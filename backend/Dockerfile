@@ -7,7 +7,7 @@ COPY package*.json ./
 COPY bun*.lock ./
 RUN bun install
 
-# Copy the rest
+# Copy the rest0
 COPY . .
 
 COPY entrypoint.sh .
