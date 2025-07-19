@@ -1,0 +1,48 @@
+
+services:
+  backend:
+    build: ./backend
+
+    ports:
+      - "3001:3001"
+
+    volumes:
+      - ./backend:/app
+
+    env_file:
+      - ./backend/.env
+
+  frontend:
+    build: ./frontend
+
+    ports:
+      - "3000:3000"
+
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules  # Prevent node_modules from being overwritten
+      - /app/.next        # Prevent .next from being overwritten
+
+    environment:
+      - WATCHPACK_POLLING=true  # Enable polling for file changes
+      - CHOKIDAR_USEPOLLING=true
+
+    depends_on:
+      - backend
+  
+  db:
+    image: postgres:17
+
+    ports:
+      - "5432:5432"
+
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: SOFEWARE_EN
+
+    volumes:
+      - ./dbdata:/var/lib/postgresql/data
+
+volumes:
+  db_data:
