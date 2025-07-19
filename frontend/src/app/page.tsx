@@ -35,7 +35,7 @@ export default function UsersPage() {
 
   useEffect(() => {
 
-    fetch("http://localhost:3001/users") // เปลี่ยน url เป็น backend ของคุณ
+    fetch("http://localhost:3001/api/users") // เปลี่ยน url เป็น backend ของคุณ
 
       .then((res) => res.json())
 
@@ -56,7 +56,7 @@ export default function UsersPage() {
 
     try {
 
-      const res = await fetch("http://localhost:3001/users", {
+      const res = await fetch("http://localhost:3001/api/users", {
 
         method: "POST",
 
