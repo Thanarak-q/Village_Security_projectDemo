@@ -8,10 +8,10 @@ docker volume prune -a --force
 
 # FRONTEND SETUP
 cd frontend || exit 1
-
 if [ -f package.json ]; then
     if [ -d node_modules ]; then
         echo "Removing existing node_modules in frontend..."
+        sudo chown -R $USER:$USER node_modules || exit 1
         rm -rf node_modules || exit 1
     fi
 
@@ -34,6 +34,7 @@ cd backend || exit 1
 if [ -f package.json ]; then
     if [ -d node_modules ]; then
         echo "Removing existing node_modules in backend..."
+        sudo chown -R $USER:$USER node_modules || exit 1
         rm -rf node_modules || exit 1
     fi
 
