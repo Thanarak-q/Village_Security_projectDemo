@@ -3,6 +3,8 @@ dbdata/
 
 # Node modules
 node_modules/
+packages-lock.json
+bun.lock
 
 # Environment variables
 .env
