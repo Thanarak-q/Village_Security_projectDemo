@@ -4,6 +4,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import ScrambleTextExample from "@/components/animetion/login/hello";
+
+//test botton
+import React, { useRef } from "react";
+import gsap from "gsap";
+// 
 
 import { Button } from "@/components/ui/button";
 import {
@@ -54,75 +60,103 @@ export default function InputFormPage() {
   const firstErrorMessage = firstErrorField
     ? form.formState.errors[firstErrorField]?.message
     : null;
+  
+//test botton
+const buttonRef = useRef<HTMLButtonElement>(null);
 
-  return (
+const handleClick = () => {
+  if (buttonRef.current) {
+    gsap.to(buttonRef.current, {
+        scale: 25, 
+        borderRadius: 0,
+        duration: 1.2,
+        ease: "power3.inOut",
+    });
+  }
+};
+//
+
+return (
+  <div>
     <Form {...form}>
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 px-4">
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="w-2/3 max-w-md mx-auto space-y-8 p-6 bg-white rounded-lg shadow-md mt-52"
-          noValidate
-        >
-          {/* Global error message */}
-          {firstErrorMessage && (
-            <FormMessage
-              className="bg-red-100 text-red-800 border border-red-300 rounded-md p-3 font-semibold text-center"
-              role="alert"
-            >
-              {firstErrorMessage}
-            </FormMessage>
-          )}
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
+        <ScrambleTextExample />
 
-          <FormField
-            control={form.control}
-            name="username"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel htmlFor="username">Username</FormLabel>
-                <FormControl>
-                  <Input
-                    id="username"
-                    placeholder="shadcn"
-                    {...field}
-                    className={
-                      form.formState.errors.username
-                        ? "border-red-500 focus:ring-red-500"
-                        : ""
-                    }
-                  />
-                </FormControl>
-              </FormItem>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="w-2/3 max-w-md mx-auto space-y-8 p-6 bg-white rounded-lg shadow-md mt-8"
+            noValidate
+          >
+
+            {/* Global error message */}
+            {firstErrorMessage && (
+              <FormMessage
+                className="bg-red-100 text-red-800 border border-red-300 rounded-md p-3 font-semibold text-center"
+                role="alert"
+              >
+                {firstErrorMessage}
+              </FormMessage>
             )}
-          />
 
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel htmlFor="password">Password</FormLabel>
-                <FormControl>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••"
-                    {...field}
-                    className={
-                      form.formState.errors.password
-                        ? "border-red-500 focus:ring-red-500"
-                        : ""
-                    }
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="username"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel htmlFor="username">Username</FormLabel>
+                  <FormControl>
+                    <Input
+                      id="username"
+                      placeholder="Username"
+                      {...field}
+                      className={
+                        form.formState.errors.username
+                          ? "border-red-500 focus:ring-red-500"
+                          : ""
+                      }
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
-          <Button type="submit" className="w-full">
-            Login
-          </Button>
-        </form>
-      </div>
-    </Form>
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel htmlFor="password">Password</FormLabel>
+                  <FormControl>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••"
+                      {...field}
+                      className={
+                        form.formState.errors.password
+                          ? "border-red-500 focus:ring-red-500"
+                          : ""
+                      }
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <div className="flex justify-center">
+              <button
+                type="button" 
+                ref={buttonRef}
+                onClick={handleClick}
+                className="bg-black text-white px-6 py-3 rounded-lg text-lg shadow-lg"
+              >
+                Login
+              </button>
+            </div>
+          </form>
+        </div>
+      </Form>
+    </div>
   );
 }
+
