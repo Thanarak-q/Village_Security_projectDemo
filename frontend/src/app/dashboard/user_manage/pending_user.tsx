@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   Dialog,
@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Pagination,
   PaginationContent,
@@ -16,7 +16,7 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "@/components/ui/pagination"
+} from "@/components/ui/pagination";
 import {
   Table,
   TableBody,
@@ -24,11 +24,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { MoreHorizontal } from "lucide-react"
+} from "@/components/ui/table";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { MoreHorizontal } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,7 +36,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 
 const approvalRequests = [
   {
@@ -47,17 +47,17 @@ const approvalRequests = [
     houseNumber: "123/45",
     status: "pending",
     submittedTime: "15 นาทีที่แล้ว",
-    phoneNumber: "081-234-5678"
+    phoneNumber: "081-234-5678",
   },
   {
     id: 2,
     name: "นางมาลี สุขใส",
-    avatar: "/avatar2.jpg", 
+    avatar: "/avatar2.jpg",
     requestType: "ขอย้ายที่อยู่",
     houseNumber: "246/12",
     status: "review",
     submittedTime: "45 นาทีที่แล้ว",
-    phoneNumber: "082-345-6789"
+    phoneNumber: "082-345-6789",
   },
   {
     id: 3,
@@ -65,9 +65,9 @@ const approvalRequests = [
     avatar: "/avatar3.jpg",
     requestType: "ขอเปลี่ยนข้อมูลส่วนตัว",
     houseNumber: "78/9",
-    status: "pending", 
+    status: "pending",
     submittedTime: "2 ชั่วโมงที่แล้ว",
-    phoneNumber: "083-456-7890"
+    phoneNumber: "083-456-7890",
   },
   {
     id: 4,
@@ -77,7 +77,7 @@ const approvalRequests = [
     houseNumber: "159/33",
     status: "urgent",
     submittedTime: "5 ชั่วโมงที่แล้ว",
-    phoneNumber: "084-567-8901"
+    phoneNumber: "084-567-8901",
   },
   {
     id: 5,
@@ -87,33 +87,34 @@ const approvalRequests = [
     houseNumber: "95/7",
     status: "review",
     submittedTime: "1 วันที่แล้ว",
-    phoneNumber: "085-678-9012"
-  }
-]
+    phoneNumber: "085-678-9012",
+  },
+];
 
 const getStatusBadge = (status: string) => {
   const statusConfig = {
     pending: { label: "รอพิจารณา", className: "bg-yellow-100 text-yellow-800" },
     review: { label: "กำลังตรวจสอบ", className: "bg-blue-100 text-blue-800" },
     urgent: { label: "ด่วน", className: "bg-red-100 text-red-800" },
-    approved: { label: "อนุมัติแล้ว", className: "bg-green-100 text-green-800" }
-  }
-  
-  const config = statusConfig[status as keyof typeof statusConfig]
+    approved: {
+      label: "อนุมัติแล้ว",
+      className: "bg-green-100 text-green-800",
+    },
+  };
+
+  const config = statusConfig[status as keyof typeof statusConfig];
   return (
     <Badge variant="secondary" className={`${config.className} font-normal`}>
       {config.label}
     </Badge>
-  )
-}
+  );
+};
 
 export default function PendingTableDialog() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className="flex items-center gap-2">
-          ดูทั้งหมด
-        </Button>
+        <Button className="flex items-center gap-2">ดูทั้งหมด</Button>
       </DialogTrigger>
       <DialogContent className="w-[95vw] max-w-[1500px] !max-w-[95vw] !w-[95vw] max-h-[85vh] overflow-hidden">
         <DialogHeader>
@@ -150,20 +151,26 @@ export default function PendingTableDialog() {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-medium text-gray-900">{request.name}</div>
-                          <div className="text-sm text-gray-500">{request.phoneNumber}</div>
+                          <div className="font-medium text-gray-900">
+                            {request.name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {request.phoneNumber}
+                          </div>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div>
-                        <div className="font-medium text-gray-900">{request.requestType}</div>
-                        <div className="text-sm text-gray-500">บ้านเลขที่ {request.houseNumber}</div>
+                        <div className="font-medium text-gray-900">
+                          {request.requestType}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          บ้านเลขที่ {request.houseNumber}
+                        </div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      {getStatusBadge(request.status)}
-                    </TableCell>
+                    <TableCell>{getStatusBadge(request.status)}</TableCell>
                     <TableCell className="text-sm text-gray-500">
                       {request.submittedTime}
                     </TableCell>
@@ -194,48 +201,22 @@ export default function PendingTableDialog() {
               </TableBody>
             </Table>
           </div>
-
-          {/* Pagination */}
-          <Pagination className="mt-6">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious href="#" />
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#" isActive>1</PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#">2</PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#">3</PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationEllipsis />
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationNext href="#" />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
 // Component สำหรับแสดงสรุปข้อมูลสั้นๆ ในหน้าหลัก
 export function PendingTableSummary() {
   // แสดงแค่ 3 รายการแรก
-  const summaryRequests = approvalRequests.slice(0, 3)
-  
+  const summaryRequests = approvalRequests.slice(0, 3);
+
   return (
     <div className="bg-white rounded-lg shadow-sm border p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">
-            รอการอนุมัติ
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-900">รอการอนุมัติ</h2>
           <p className="text-sm text-gray-600">
             มี {approvalRequests.length} คำขอรอดำเนินการ
           </p>
@@ -246,7 +227,10 @@ export function PendingTableSummary() {
       {/* Summary Table */}
       <div className="space-y-3">
         {summaryRequests.map((request) => (
-          <div key={request.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div
+            key={request.id}
+            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+          >
             <div className="flex items-center gap-3">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={request.avatar} />
@@ -256,16 +240,20 @@ export function PendingTableSummary() {
               </Avatar>
               <div>
                 <div className="font-medium text-sm">{request.name}</div>
-                <div className="text-xs text-gray-500">{request.requestType}</div>
+                <div className="text-xs text-gray-500">
+                  {request.requestType}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
               {getStatusBadge(request.status)}
-              <span className="text-xs text-gray-500">{request.submittedTime}</span>
+              <span className="text-xs text-gray-500">
+                {request.submittedTime}
+              </span>
             </div>
           </div>
         ))}
       </div>
     </div>
-  )
+  );
 }

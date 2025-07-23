@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { Button } from "@/components/ui/button"
+import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogClose,
@@ -13,8 +13,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -22,59 +21,65 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { X } from "lucide-react"
+} from "@/components/ui/select";
 
 // Form schema
 const formSchema = z.object({
-  status: z.string().min(1, {
-    message: "กรุณาเลือกสถานะ",
-  }),
-  role: z.string().min(1, {
-    message: "กรุณาเลือกบทบาท",
-  }),
+  status: z.string().min(1, { message: "กรุณาเลือกสถานะ" }),
+  role: z.string().min(1, { message: "กรุณาเลือกบทบาท" }),
   houseNumber: z.string().optional(),
-})
+});
 
-type FormData = z.infer<typeof formSchema>
+type FormData = z.infer<typeof formSchema>;
 
 interface EditUserDialogProps {
+  title: string;
   user: {
-    id: number
-    name: string
-    firstName: string
-    lastName: string
-    email: string
-    houseNumber: string
-    role: string
-    initials: string
-    avatarColor: string
-  }
+    id: number;
+    name: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    houseNumber: string;
+    role: string;
+    initials: string;
+    avatarColor: string;
+  };
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-export default function EditUserDialog({ user }: EditUserDialogProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  
+export default function EditUserDialog({
+  title,
+  user,
+  isOpen,
+  onClose,
+}: EditUserDialogProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Set initial role based on user data
   const getInitialRole = (role: string) => {
     switch (role) {
-      case "ผู้อยู่อาศัย": return "resident"
-      case "รปภ.": return "security"
-      case "ผู้จัดการ": return "admin"
-      default: return "resident"
+      case "ผู้อยู่อาศัย":
+        return "resident";
+      case "รปภ.":
+        return "security";
+      case "ผู้จัดการ":
+        return "admin";
+      default:
+        return "resident";
     }
-  }
+  };
 
-  const [selectedRole, setSelectedRole] = useState(getInitialRole(user.role))
+  const [selectedRole, setSelectedRole] = useState(getInitialRole(user.role));
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -83,38 +88,32 @@ export default function EditUserDialog({ user }: EditUserDialogProps) {
       role: getInitialRole(user.role),
       houseNumber: user.houseNumber !== "-" ? user.houseNumber : "",
     },
-  })
+  });
 
   async function onSubmit(data: FormData) {
-    setIsSubmitting(true)
-    alert("บันทึกข้อมูลผู้ใช้งาน")
+    setIsSubmitting(true);
+    alert("บันทึกข้อมูลผู้ใช้งาน");
+    setIsSubmitting(false);
+    onClose(); // ปิด dialog หลัง submit
   }
 
-  const showHouseNumberField = selectedRole === "resident"
+  const showHouseNumberField = selectedRole === "resident";
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="outline">แก้ไข</Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader className="relative">
-          <DialogClose asChild>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="absolute right-0 top-0 p-0 h-6 w-6"
-            >
-            </Button>
-          </DialogClose>
+          <DialogClose asChild></DialogClose>
           <DialogTitle className="text-lg font-semibold pr-6">
-            แก้ไขข้อมูลผู้ใช้งาน
+            {title}
           </DialogTitle>
         </DialogHeader>
 
         {/* User Info Section */}
         <div className="flex items-center gap-3 py-4 border-b">
-          <div className={`w-12 h-12 rounded-full ${user.avatarColor} flex items-center justify-center text-white text-lg font-medium`}>
+          <div
+            className={`w-12 h-12 rounded-full ${user.avatarColor} flex items-center justify-center text-white text-lg font-medium`}
+          >
             {user.initials}
           </div>
           <div>
@@ -161,11 +160,11 @@ export default function EditUserDialog({ user }: EditUserDialogProps) {
                   <FormLabel className="text-sm font-medium text-gray-700">
                     บทบาท
                   </FormLabel>
-                  <Select 
+                  <Select
                     value={field.value}
                     onValueChange={(value) => {
-                      field.onChange(value)
-                      setSelectedRole(value)
+                      field.onChange(value);
+                      setSelectedRole(value);
                     }}
                   >
                     <FormControl>
@@ -212,17 +211,17 @@ export default function EditUserDialog({ user }: EditUserDialogProps) {
 
             <DialogFooter className="flex gap-3 pt-6">
               <DialogClose asChild>
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   className="flex-1"
                   disabled={isSubmitting}
                 >
                   ยกเลิก
                 </Button>
               </DialogClose>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="flex-1 bg-cyan-600 hover:bg-cyan-700"
                 disabled={isSubmitting}
               >
@@ -233,5 +232,5 @@ export default function EditUserDialog({ user }: EditUserDialogProps) {
         </Form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
