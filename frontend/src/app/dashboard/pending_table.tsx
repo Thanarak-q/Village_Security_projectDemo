@@ -34,12 +34,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
-  Filter, 
-  ChevronLeft, 
+import {
+  Filter,
+  ChevronLeft,
   ChevronRight,
   Search,
-  MoreHorizontal
+  MoreHorizontal,
 } from "lucide-react";
 import ApprovalForm from "./ApprovalForm"; // ✅ Import ApprovalForm
 
@@ -180,12 +180,15 @@ const initialApprovalRequests: ApprovalRequest[] = [
 ];
 
 // Function สำหรับแสดง Badge สถานะ
-const getStatusBadge = (status: ApprovalRequest['status']) => {
+const getStatusBadge = (status: ApprovalRequest["status"]) => {
   const statusConfig = {
     pending: { label: "รอพิจารณา", className: "bg-yellow-100 text-yellow-800" },
     review: { label: "กำลังตรวจสอบ", className: "bg-blue-100 text-blue-800" },
     urgent: { label: "ด่วน", className: "bg-red-100 text-red-800" },
-    approved: { label: "อนุมัติแล้ว", className: "bg-green-100 text-green-800" },
+    approved: {
+      label: "อนุมัติแล้ว",
+      className: "bg-green-100 text-green-800",
+    },
     rejected: { label: "ปฏิเสธแล้ว", className: "bg-gray-100 text-gray-800" },
   };
 
@@ -199,61 +202,73 @@ const getStatusBadge = (status: ApprovalRequest['status']) => {
 
 export default function ApprovalRequestsTable() {
   // State Management เหมือน UserManagementTable
-  const [approvalRequests, setApprovalRequests] = useState<ApprovalRequest[]>(initialApprovalRequests);
+  const [approvalRequests, setApprovalRequests] = useState<ApprovalRequest[]>(
+    initialApprovalRequests
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ทั้งหมด");
   const [typeFilter, setTypeFilter] = useState("ทั้งหมด");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [editingRequestId, setEditingRequestId] = useState<number | null>(null);
-  const [approvingRequestId, setApprovingRequestId] = useState<number | null>(null); // ✅ เพิ่ม state สำหรับ approval form
+  const [approvingRequestId, setApprovingRequestId] = useState<number | null>(
+    null
+  ); // ✅ เพิ่ม state สำหรับ approval form
 
   // ✅ Function สำหรับจัดการการอนุมัติผ่าน Form
   const handleApprovalDecision = async (approvalData: ApprovalDecisionData) => {
     try {
       console.log("Processing approval decision:", approvalData);
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setApprovalRequests(prevData => 
-        prevData.map(request => {
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      setApprovalRequests((prevData) =>
+        prevData.map((request) => {
           if (request.id === approvalData.id) {
             return {
               ...request,
               status: approvalData.decision, // "approved" หรือ "rejected"
               // ✅ อัปเดตข้อมูลเพิ่มเติมถ้าอนุมัติและมี role
-              ...(approvalData.decision === "approved" && approvalData.role && {
-                // อัปเดต role และ houseNumber ถ้าอนุมัติ
-                assignedRole: approvalData.role,
-                assignedHouseNumber: approvalData.role === "resident" ? approvalData.houseNumber : "-",
-              })
+              ...(approvalData.decision === "approved" &&
+                approvalData.role && {
+                  // อัปเดต role และ houseNumber ถ้าอนุมัติ
+                  assignedRole: approvalData.role,
+                  assignedHouseNumber:
+                    approvalData.role === "resident"
+                      ? approvalData.houseNumber
+                      : "-",
+                }),
             };
           }
           return request;
         })
       );
 
-      const actionText = approvalData.decision === "approved" ? "อนุมัติ" : "ปฏิเสธ";
-      
+      const actionText =
+        approvalData.decision === "approved" ? "อนุมัติ" : "ปฏิเสธ";
+
       let message = `${actionText}คำขอ ID: ${approvalData.id} สำเร็จ!`;
-      
+
       // ✅ แสดงข้อมูลเพิ่มเติมถ้าอนุมัติและมี role
       if (approvalData.decision === "approved" && approvalData.role) {
-        const roleText = approvalData.role === "resident" ? "ผู้อยู่อาศัย" : 
-                        approvalData.role === "security" ? "รปภ." : "ผู้จัดการ";
+        const roleText =
+          approvalData.role === "resident"
+            ? "ผู้อยู่อาศัย"
+            : approvalData.role === "security"
+            ? "รปภ."
+            : "ผู้จัดการ";
         message += `\nบทบาท: ${roleText}`;
         if (approvalData.role === "resident" && approvalData.houseNumber) {
           message += `\nบ้านเลขที่: ${approvalData.houseNumber}`;
         }
       }
-      
+
       // ✅ แสดงหมายเหตุถ้ามี
       if (approvalData.note) {
         message += `\nหมายเหตุ: ${approvalData.note}`;
       }
-      
+
       alert(message);
-      
     } catch (error) {
       console.error("Error processing approval decision:", error);
       throw error;
@@ -267,16 +282,18 @@ export default function ApprovalRequestsTable() {
       request.phoneNumber.includes(searchTerm) ||
       request.houseNumber.includes(searchTerm) ||
       (request.email && request.email.includes(searchTerm));
-    
-    const matchesStatus = statusFilter === "ทั้งหมด" || 
+
+    const matchesStatus =
+      statusFilter === "ทั้งหมด" ||
       (statusFilter === "รอพิจารณา" && request.status === "pending") ||
       (statusFilter === "กำลังตรวจสอบ" && request.status === "review") ||
       (statusFilter === "ด่วน" && request.status === "urgent") ||
       (statusFilter === "อนุมัติแล้ว" && request.status === "approved") ||
       (statusFilter === "ปฏิเสธแล้ว" && request.status === "rejected");
-    
-    const matchesType = typeFilter === "ทั้งหมด" || request.requestType === typeFilter;
-    
+
+    const matchesType =
+      typeFilter === "ทั้งหมด" || request.requestType === typeFilter;
+
     return matchesSearch && matchesStatus && matchesType;
   });
 
@@ -344,7 +361,9 @@ export default function ApprovalRequestsTable() {
   };
 
   // ✅ หา request ที่ถูกเลือกสำหรับอนุมัติ
-  const approvingRequest = approvalRequests.find(request => request.id === approvingRequestId);
+  const approvingRequest = approvalRequests.find(
+    (request) => request.id === approvingRequestId
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -398,7 +417,9 @@ export default function ApprovalRequestsTable() {
                   <SelectItem value="ทั้งหมด">ทั้งหมด</SelectItem>
                   <SelectItem value="ขอเข้าพักใหม่">ขอเข้าพักใหม่</SelectItem>
                   <SelectItem value="ขอย้ายที่อยู่">ขอย้ายที่อยู่</SelectItem>
-                  <SelectItem value="ขอเปลี่ยนข้อมูลส่วนตัว">ขอเปลี่ยนข้อมูล</SelectItem>
+                  <SelectItem value="ขอเปลี่ยนข้อมูลส่วนตัว">
+                    ขอเปลี่ยนข้อมูล
+                  </SelectItem>
                   <SelectItem value="ขอย้ายออก">ขอย้ายออก</SelectItem>
                 </SelectContent>
               </Select>
@@ -486,20 +507,18 @@ export default function ApprovalRequestsTable() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>การดำเนินการ</DropdownMenuLabel>
-                            {(request.status === "pending" || request.status === "review" || request.status === "urgent") && (
-                              <>
-                                <DropdownMenuItem 
-                                  className="text-green-600"
-                                  onClick={() => setApprovingRequestId(request.id)} // ✅ เปิด Approval Form
-                                >
-                                  อนุมัติ/ปฏิเสธ
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                              </>
-                            )}
+                            <DropdownMenuItem
+                              className="text-green-600"
+                              onClick={() => setApprovingRequestId(request.id)} // ✅ เปิด Approval Form
+                            >
+                              อนุมัติ/ปฏิเสธ
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem>ดูรายละเอียด</DropdownMenuItem>
                             <DropdownMenuItem>ติดต่อผู้ขอ</DropdownMenuItem>
-                            <DropdownMenuItem>ส่งอีเมลแจ้งเตือน</DropdownMenuItem>
+                            <DropdownMenuItem>
+                              ส่งอีเมลแจ้งเตือน
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>

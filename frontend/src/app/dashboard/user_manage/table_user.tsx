@@ -112,7 +112,19 @@ const initialUserData: UserData[] = [
     roleColor: "bg-blue-100 text-blue-800",
     avatarColor: "bg-red-500",
     status: "active",
+  },  {
+    id: 6,
+    initials: "ปร",
+    firstName: "ประสิทธิ์",
+    lastName: "ปลอดภัย",
+    email: "prasit@gmail.com",
+    houseNumber: "-",
+    role: "รปภ.",
+    roleColor: "bg-blue-100 text-blue-800",
+    avatarColor: "bg-red-500",
+    status: "active",
   },
+
 ];
 
 export default function UserManagementTable() {
