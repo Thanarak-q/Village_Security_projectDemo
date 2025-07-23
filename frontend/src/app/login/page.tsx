@@ -4,12 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import ScrambleTextExample from "@/components/animetion/login/hello";
 
-//test botton
-import React, { useRef } from "react";
-import gsap from "gsap";
-// 
+import { ScrambleTextExample, ExpandButton } from "@/components/animation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -60,35 +56,18 @@ export default function InputFormPage() {
   const firstErrorMessage = firstErrorField
     ? form.formState.errors[firstErrorField]?.message
     : null;
-  
-//test botton
-const buttonRef = useRef<HTMLButtonElement>(null);
 
-const handleClick = () => {
-  if (buttonRef.current) {
-    gsap.to(buttonRef.current, {
-        scale: 25, 
-        borderRadius: 0,
-        duration: 1.2,
-        ease: "power3.inOut",
-    });
-  }
-};
-//
-
-return (
-  <div>
-    <Form {...form}>
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
-        <ScrambleTextExample />
+  return (
+    <div>
+      <Form {...form}>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
+          <ScrambleTextExample />
 
           <form
             onSubmit={form.handleSubmit(onSubmit)}
             className="w-2/3 max-w-md mx-auto space-y-8 p-6 bg-white rounded-lg shadow-md mt-8"
             noValidate
           >
-
-            {/* Global error message */}
             {firstErrorMessage && (
               <FormMessage
                 className="bg-red-100 text-red-800 border border-red-300 rounded-md p-3 font-semibold text-center"
@@ -144,14 +123,9 @@ return (
             />
 
             <div className="flex justify-center">
-              <button
-                type="button" 
-                ref={buttonRef}
-                onClick={handleClick}
-                className="bg-black text-white px-6 py-3 rounded-lg text-lg shadow-lg"
-              >
+              <ExpandButton onClick={form.handleSubmit(onSubmit)}>
                 Login
-              </button>
+              </ExpandButton>
             </div>
           </form>
         </div>
@@ -159,4 +133,3 @@ return (
     </div>
   );
 }
-
