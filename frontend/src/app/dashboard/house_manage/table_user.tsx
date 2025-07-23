@@ -29,7 +29,6 @@ import {
 } from "@/components/ui/pagination"
 import { Users, Filter } from "lucide-react"
 import EditUserDialog from "./popup_edituser"
-import PendingTableDialog from "./pending_user"
 
 
 // ข้อมูลผู้ใช้งาน
@@ -122,8 +121,8 @@ export default function UserManagementTable() {
               เพิ่มผู้อยู่อาศัย
             </Button>
             
-            <div className="flex items-center gap-2 text-white px-3 py-2 rounded-md">
-              <PendingTableDialog />
+            <div className="flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-md">
+              <span>ผู้ใช้ที่รออนุมัติ (3)</span>
             </div>
           </div>
 
