@@ -1,3 +1,4 @@
+// UserManagementTable.tsx
 "use client";
 
 import { SetStateAction, useState } from "react";
@@ -24,15 +25,34 @@ import {
   PaginationContent,
   PaginationItem,
   PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Users, Filter, ChevronLeft, ChevronRight, Edit } from "lucide-react";
-import EditUserDialog from "./EditUserDialog";
-import PendingTableDialog from "./pending_user";
+import UserForm from "./userForm";
 
-// ข้อมูลผู้ใช้งาน (เพิ่มข้อมูลตัวอย่างเพื่อทดสอบ pagination)
-const userData = [
+// ✅ เพิ่ม interface สำหรับข้อมูลอัปเดต
+interface UpdateUserData {
+  id: number;
+  status: string;
+  role: string;
+  houseNumber?: string;
+}
+
+// ✅ เพิ่ม interface สำหรับ user data
+interface UserData {
+  id: number;
+  initials: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  houseNumber: string;
+  role: string;
+  roleColor: string;
+  avatarColor: string;
+  status?: string; // ✅ เพิ่ม status field
+}
+
+// ข้อมูลผู้ใช้งาน (เพิ่ม status field)
+const initialUserData: UserData[] = [
   {
     id: 1,
     initials: "สม",
@@ -43,6 +63,7 @@ const userData = [
     role: "ผู้อยู่อาศัย",
     roleColor: "bg-green-100 text-green-800",
     avatarColor: "bg-blue-500",
+    status: "active",
   },
   {
     id: 2,
@@ -54,6 +75,7 @@ const userData = [
     role: "ผู้อยู่อาศัย",
     roleColor: "bg-green-100 text-green-800",
     avatarColor: "bg-pink-500",
+    status: "active",
   },
   {
     id: 3,
@@ -65,6 +87,7 @@ const userData = [
     role: "ผู้อยู่อาศัย",
     roleColor: "bg-green-100 text-green-800",
     avatarColor: "bg-purple-500",
+    status: "active",
   },
   {
     id: 4,
@@ -76,6 +99,7 @@ const userData = [
     role: "รปภ.",
     roleColor: "bg-blue-100 text-blue-800",
     avatarColor: "bg-yellow-500",
+    status: "active",
   },
   {
     id: 5,
@@ -87,92 +111,62 @@ const userData = [
     role: "รปภ.",
     roleColor: "bg-blue-100 text-blue-800",
     avatarColor: "bg-red-500",
-  },
-  {
-    id: 6,
-    initials: "อน",
-    firstName: "อนุชา",
-    lastName: "สุขสม",
-    email: "anucha@gmail.com",
-    houseNumber: "789/12",
-    role: "ผู้อยู่อาศัย",
-    roleColor: "bg-green-100 text-green-800",
-    avatarColor: "bg-indigo-500",
-  },
-  {
-    id: 7,
-    initials: "มน",
-    firstName: "มนทิรา",
-    lastName: "จันทร์เจ้า",
-    email: "montira@gmail.com",
-    houseNumber: "321/54",
-    role: "ผู้อยู่อาศัย",
-    roleColor: "bg-green-100 text-green-800",
-    avatarColor: "bg-teal-500",
-  },
-  {
-    id: 8,
-    initials: "ร",
-    firstName: "รัชนี",
-    lastName: "พิมพ์ดี",
-    email: "rachanee@gmail.com",
-    houseNumber: "654/87",
-    role: "ผู้อยู่อาศัย",
-    roleColor: "bg-green-100 text-green-800",
-    avatarColor: "bg-orange-500",
-  },
-  {
-    id: 9,
-    initials: "ก",
-    firstName: "กิตติ",
-    lastName: "ศักดิ์ดี",
-    email: "kitti@gmail.com",
-    houseNumber: "987/65",
-    role: "ผู้อยู่อาศัย",
-    roleColor: "bg-green-100 text-green-800",
-    avatarColor: "bg-cyan-500",
-  },
-  {
-    id: 10,
-    initials: "น",
-    firstName: "นิรันดร์",
-    lastName: "มั่นคง",
-    email: "niran@gmail.com",
-    houseNumber: "-",
-    role: "รปภ.",
-    roleColor: "bg-blue-100 text-blue-800",
-    avatarColor: "bg-lime-500",
-  },
-  {
-    id: 11,
-    initials: "ท",
-    firstName: "ทองดี",
-    lastName: "มีสุข",
-    email: "thongdee@gmail.com",
-    houseNumber: "147/25",
-    role: "ผู้อยู่อาศัย",
-    roleColor: "bg-green-100 text-green-800",
-    avatarColor: "bg-rose-500",
-  },
-  {
-    id: 12,
-    initials: "พ",
-    firstName: "พิมพ์ใจ",
-    lastName: "สว่างใส",
-    email: "pimjai@gmail.com",
-    houseNumber: "258/36",
-    role: "ผู้อยู่อาศัย",
-    roleColor: "bg-green-100 text-green-800",
-    avatarColor: "bg-emerald-500",
+    status: "active",
   },
 ];
 
 export default function UserManagementTable() {
+  // ✅ เปลี่ยนจาก const เป็น state เพื่อให้อัปเดตได้
+  const [userData, setUserData] = useState<UserData[]>(initialUserData);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("ทั้งหมด");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
+
+  // ✅ function สำหรับอัปเดตข้อมูล user
+  const handleUpdateUser = async (updateData: UpdateUserData) => {
+    try {
+      // ในการใช้งานจริง ควรส่งข้อมูลไป API
+      console.log("Updating user:", updateData);
+      
+      // จำลองการส่งข้อมูลไป API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // อัปเดตข้อมูลใน state
+      setUserData(prevData => 
+        prevData.map(user => {
+          if (user.id === updateData.id) {
+            return {
+              ...user,
+              status: updateData.status,
+              role: updateData.role === "resident" ? "ผู้อยู่อาศัย" : 
+                    updateData.role === "security" ? "รปภ." : 
+                    updateData.role === "admin" ? "ผู้จัดการ" : user.role,
+              houseNumber: updateData.role === "resident" && updateData.houseNumber 
+                          ? updateData.houseNumber 
+                          : updateData.role === "resident" 
+                          ? user.houseNumber 
+                          : "-",
+              // อัปเดต roleColor ตาม role ใหม่
+              roleColor: updateData.role === "resident" ? "bg-green-100 text-green-800" :
+                        updateData.role === "security" ? "bg-blue-100 text-blue-800" :
+                        updateData.role === "admin" ? "bg-purple-100 text-purple-800" :
+                        user.roleColor
+            };
+          }
+          return user;
+        })
+      );
+
+      // แสดงข้อความสำเร็จ
+      alert(`อัปเดตข้อมูลผู้ใช้ ID: ${updateData.id} สำเร็จ!`);
+      
+    } catch (error) {
+      console.error("Error updating user:", error);
+      throw error; // ส่งต่อ error ไปให้ UserForm จัดการ
+    }
+  };
 
   // Filter data based on search and role
   const filteredData = userData.filter((user) => {
@@ -242,6 +236,9 @@ export default function UserManagementTable() {
     return pages;
   };
 
+  // ✅ หา user ที่ถูกเลือกจาก userData ทั้งหมด (ไม่ใช่แค่ currentData)
+  const selectedUser = userData.find(user => user.id === editingUserId);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-6 max-w-7xl">
@@ -250,18 +247,6 @@ export default function UserManagementTable() {
           <h1 className="scroll-m-20 text-2xl font-semibold tracking-tight text-gray-900 mb-6">
             การจัดการผู้ใช้งาน
           </h1>
-
-          {/* Top Actions */}
-          <div className="flex items-center justify-between mb-6">
-            {/* <Button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700">
-              <Users className="h-4 w-4" />
-              เพิ่มผู้อยู่อาศัย
-            </Button> */}
-
-            {/* <div className="flex items-center gap-2 text-white px-3 py-2 rounded-md">
-              <PendingTableDialog />
-            </div> */}
-          </div>
 
           {/* Search and Filter */}
           <div className="flex items-center gap-4 mb-6">
@@ -321,6 +306,7 @@ export default function UserManagementTable() {
                 <TableHead>อีเมล</TableHead>
                 <TableHead>บ้านเลขที่</TableHead>
                 <TableHead>บทบาท</TableHead>
+                <TableHead>สถานะ</TableHead>
                 <TableHead className="w-16">แก้ไข</TableHead>
               </TableRow>
             </TableHeader>
@@ -338,21 +324,30 @@ export default function UserManagementTable() {
                         <span className="font-medium">{user.firstName}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">
-                      {user.lastName}
-                    </TableCell>
-                    <TableCell className="text-gray-600">
-                      {user.email}
-                    </TableCell>
-                    <TableCell className="text-gray-600">
-                      {user.houseNumber}
-                    </TableCell>
+                    <TableCell className="font-medium">{user.lastName}</TableCell>
+                    <TableCell className="text-gray-600">{user.email}</TableCell>
+                    <TableCell className="text-gray-600">{user.houseNumber}</TableCell>
                     <TableCell>
                       <Badge
                         variant="secondary"
                         className={`${user.roleColor} font-normal`}
                       >
                         {user.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="secondary"
+                        className={`${
+                          user.status === "active" 
+                            ? "bg-green-100 text-green-800" 
+                            : user.status === "inactive"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-yellow-100 text-yellow-800"
+                        } font-normal`}
+                      >
+                        {user.status === "active" ? "ใช้งาน" :
+                         user.status === "inactive" ? "ไม่ใช้งาน" : "รอการอนุมัติ"}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -370,7 +365,7 @@ export default function UserManagementTable() {
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={7} 
                     className="text-center py-8 text-gray-500"
                   >
                     ไม่พบข้อมูลผู้ใช้งาน
@@ -381,26 +376,25 @@ export default function UserManagementTable() {
           </Table>
         </div>
 
-        {/* Render EditUserDialog นอกจาก Table */}
-        {currentData.map((user) => (
-          <EditUserDialog
-            key={user.id}
+        {selectedUser && (
+          <UserForm
             title="แก้ไขข้อมูลผู้ใช้"
             user={{
-              id: user.id,
-              name: `${user.firstName} ${user.lastName}`,
-              firstName: user.firstName,
-              lastName: user.lastName,
-              avatarColor: user.avatarColor,
-              initials: user.initials,
-              email: user.email,
-              role: user.role === "ผู้อยู่อาศัย" ? "resident" : "security",
-              houseNumber: user.houseNumber,
+              id: selectedUser.id,
+              name: `${selectedUser.firstName} ${selectedUser.lastName}`,
+              firstName: selectedUser.firstName,
+              lastName: selectedUser.lastName,
+              avatarColor: selectedUser.avatarColor,
+              initials: selectedUser.initials,
+              email: selectedUser.email,
+              role: selectedUser.role === "ผู้อยู่อาศัย" ? "resident" : "security",
+              houseNumber: selectedUser.houseNumber,
             }}
-            isOpen={editingUserId === user.id}
+            isOpen={editingUserId === selectedUser.id}
             onClose={() => setEditingUserId(null)}
+            onSave={handleUpdateUser}
           />
-        ))}
+        )}
 
         {/* Footer with Pagination */}
         <div className="flex items-center justify-between mt-4">

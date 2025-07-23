@@ -1,3 +1,4 @@
+// userForm.tsx
 "use client";
 
 import { useState } from "react";
@@ -40,7 +41,15 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-interface EditUserDialogProps {
+// ✅ เพิ่ม interface สำหรับข้อมูลที่จะส่งกลับ
+interface UpdateUserData {
+  id: number;
+  status: string;
+  role: string;
+  houseNumber?: string;
+}
+
+interface UserFormProps {
   title: string;
   user: {
     id: number;
@@ -55,14 +64,17 @@ interface EditUserDialogProps {
   };
   isOpen: boolean;
   onClose: () => void;
+  // ✅ เพิ่ม callback สำหรับส่งข้อมูลกลับ
+  onSave?: (userData: UpdateUserData) => void;
 }
 
-export default function EditUserDialog({
+export default function UserForm({
   title,
   user,
   isOpen,
   onClose,
-}: EditUserDialogProps) {
+  onSave, // ✅ รับ callback function
+}: UserFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Set initial role based on user data
@@ -90,11 +102,34 @@ export default function EditUserDialog({
     },
   });
 
+  // ✅ ปรับปรุง onSubmit function
   async function onSubmit(data: FormData) {
     setIsSubmitting(true);
-    alert("บันทึกข้อมูลผู้ใช้งาน");
-    setIsSubmitting(false);
-    onClose(); // ปิด dialog หลัง submit
+    
+    try {
+      // สร้างข้อมูลที่จะส่งกลับ
+      const updateData: UpdateUserData = {
+        id: user.id, // ✅ ส่ง id ไปด้วย
+        status: data.status,
+        role: data.role,
+        houseNumber: data.houseNumber || "",
+      };
+
+      // ✅ เรียก callback function หากมี
+      if (onSave) {
+        await onSave(updateData);
+      } else {
+        // fallback: แสดง alert พร้อม id
+        alert(`บันทึกข้อมูลผู้ใช้งาน ID: ${user.id}\n${JSON.stringify(updateData, null, 2)}`);
+      }
+      
+      onClose(); // ปิด dialog หลังบันทึกสำเร็จ
+    } catch (error) {
+      console.error("Error saving user data:", error);
+      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const showHouseNumberField = selectedRole === "resident";
@@ -107,6 +142,10 @@ export default function EditUserDialog({
           <DialogTitle className="text-lg font-semibold pr-6">
             {title}
           </DialogTitle>
+          {/* ✅ แสดง user ID สำหรับ debug */}
+          <DialogDescription className="text-xs text-gray-500">
+            User ID: {user.id}
+          </DialogDescription>
         </DialogHeader>
 
         {/* User Info Section */}
