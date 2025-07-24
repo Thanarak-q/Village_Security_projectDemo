@@ -1,285 +1,215 @@
-import db  from './drizzle'; // Import your db
-import { admins, guards, house_members, houses, residents, roles, users, villages, visitor_records } from "./schema";
+import db from "./drizzle";
+import { eq } from "drizzle-orm";
+import {
+  roles,
+  villages,
+  houses,
+  users,
+  residents,
+  guards,
+  admins,
+  house_members,
+  visitor_records,
+} from "./schema";
 
+const seedRoles = [
+  { role_name: "resident" },
+  { role_name: "guard" },
+  { role_name: "admin" },
+];
 
-const seedRoles: {
-  role_id: string;
-  role_name: string;
-
-}[] = [
+const seedVillages = [
   {
-    role_id: '11111',
-    role_name: 'resident'
-  }
-]
-
-const seedVillages: {
-  village_id: string;
-  village_name: string;
-  village_key: string;
-}[] = [
-  {
-    village_id: '456456',
-    village_name: 'Pee Sing Village',
-    village_key: 'village001',
-  }
-]
-
-// -----------------------------------------------------------
-const seedHouse: {
-  house_id: string
-  address: string
-  village_key: string
-
-} [] = [
-  {
-    house_id: '54645464',
-    address: '65/1',
-    village_key: 'village001',
-  }
-]
-const seedUsers: {
-
-    user_id: string;
-    username: string;
-    email: string;
-    fname: string;
-    lname: string;
-    phone: string;
-    password_hash: string;
-    role_id: string;
-    status: "verified" | "pending";            // เปลี่ยนตรงนี้!!
-    village_key: string;
-    createdAt: Date;
-    updatedAt: Date;
-
-}[] = [
-
-  {
-    user_id: '9f96afab-1e4c-4253-90c7-3b8571f70877',
-    username: 'chaiwet',
-    email: 'chaiwet@example.com',
-    fname: 'ชัยเวทย์',
-    lname: 'มหานิล',
-    phone: '0891234567',
-    password_hash: 'hashedpassword1',
-    role_id: '11111',
-    status: "verified",                      // กำหนดแบบ explicit
-    village_key: 'village001',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-
+    village_name: "Pee Sing Village",
+    village_key: "f34e5d7a-3f64-4d63-9b29-1ef0e67a0a11",
   },
-
   {
-
-    user_id: '2e358e65-c367-4bdf-bb14-31d13ace6fb2',
-    username: 'sopa',
-    email: 'sopa@example.com',
-    fname: 'โสภา',
-    lname: 'โพธิ์ทอง',
-    phone: '0868887777',
-    password_hash: 'hashedpassword2',
-    role_id: '22222',
-    status: "pending",
-    village_key: 'village002',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-
+    village_name: "Village 2",
+    village_key: "1e43c08b-7aaf-41f4-a99e-3a450c21f3a9",
   },
-
-{
-
-  user_id: 'f5c33957-bd38-4342-b2af-16d3e8e333da',
-  username: 'kanokwan',
-  email: 'kanokwan@example.com',
-  fname: 'กนกวรรณ',
-  lname: 'ศรีจันทร์',
-  phone: '0817654321',
-  password_hash: 'hashedpassword3',
-  role_id: '33333',            
-  status: "verified",          
-  village_key: 'village001',   
-  createdAt: new Date(),
-  updatedAt: new Date(),
-
-}
-
-
 ];
 
-// ----------------------------------------------------
-
-// SEED: Residents
-
-const seedResidents: {
-
-  resident_id: string;
-  user_id: string;
-
-}[] = [
-
-  {
-    resident_id: "res-0001",
-    user_id: "9f96afab-1e4c-4253-90c7-3b8571f70877", // chaiwet
-  }
-
+const seedHouses = [
+  { address: "65/1", village_key: "f34e5d7a-3f64-4d63-9b29-1ef0e67a0a11" },
 ];
 
-
-// SEED: Guards
-
-const seedGuards: {
-  guard_id: string;
-  user_id: string;
-}[] = [
+const seedUsers = [
   {
-    guard_id: "grd-0001",
-    user_id: "2e358e65-c367-4bdf-bb14-31d13ace6fb2", // sopa
-  }
-];
-
-
-// SEED: Admins
-
-const seedAdmins: {
-  admin_id: string;
-  user_id: string;
-}[] = [
-  {
-    admin_id: "adm-0001",
-    user_id: "f5c33957-bd38-4342-b2af-16d3e8e333da", // กนกวัน
-  }
-];
-
-// -------------------------------------------------------------------------------------
-// SEED: House Members
-
-const seedHouseMembers: {
-  house_member_id: string;
-  house_id: string;
-  resident_id: string;
-
-}[] = [
-
-  {
-    house_member_id: "hm-0001",
-    house_id: "54645464", // Pee Sing Village
-    resident_id: "res-0001",
-
-  }
-
-];
-
-
-// SEED: Visitor Records
-
-const seedVisitorRecords: {
-  visitor_record_id: string;
-  resident_id: string;
-  guard_id: string;
-  house_id: string;
-  picture_key: string;
-  license_plate: string;
-  entry_time: Date;
-  record_status: "approved" | "pending" | "rejected";
-  visit_purpose: string;
-
-}[] = [
-
-  {
-
-    visitor_record_id: "vr-0001",
-    resident_id: "res-0001",
-    guard_id: "grd-0001",
-    house_id: "54645464",
-    picture_key: "visitor-001.png",
-    license_plate: "กข 1234 เชียงใหม่",
-    entry_time: new Date("2024-07-23T08:00:00Z"),
-    record_status: "approved",
-    visit_purpose: "เยี่ยมญาติ",
+    username: "chaiwet",
+    email: "chaiwet@example.com",
+    fname: "ชัยเวทย์",
+    lname: "มหานิล",
+    phone: "0891234567",
+    password_hash: "hashedpassword1",
+    status: "verified" as const,
+    village_key: "f34e5d7a-3f64-4d63-9b29-1ef0e67a0a11",
   },
-
   {
-
-    visitor_record_id: "vr-0002",
-    resident_id: "res-0001",
-    guard_id: "grd-0001",
-    house_id: "54645464",
-    picture_key: "visitor-002.png",
-    license_plate: "ขย 2222 เชียงใหม่",
-    entry_time: new Date("2024-07-24T09:30:00Z"),
-    record_status: "pending",
-    visit_purpose: "จัดส่งของ",
-
-  }
-
+    username: "sopa",
+    email: "sopa@example.com",
+    fname: "โสภา",
+    lname: "โพธิ์ทอง",
+    phone: "0868887777",
+    password_hash: "hashedpassword2",
+    status: "pending" as const,
+    village_key: "1e43c08b-7aaf-41f4-a99e-3a450c21f3a9",
+  },
+  {
+    username: "kanokwan",
+    email: "kanokwan@example.com",
+    fname: "กนกวรรณ",
+    lname: "ศรีจันทร์",
+    phone: "0817654321",
+    password_hash: "hashedpassword3",
+    status: "verified" as const,
+    village_key: "f34e5d7a-3f64-4d63-9b29-1ef0e67a0a11",
+  },
 ];
 
-
-export {
-  seedRoles,
-  seedVillages,
-  seedHouse,
-  seedUsers,
-  seedResidents,
-  seedGuards,
-  seedAdmins,
-  seedHouseMembers,
-  seedVisitorRecords
-
-};
-
-// ลบลูกก่อน
-async function clearAllTables() {
-  await db.delete(visitor_records);
-  await db.delete(house_members);
-  await db.delete(admins);
-  await db.delete(guards);
-  await db.delete(residents);
-  await db.delete(users);
-  await db.delete(houses);
-  await db.delete(villages);
-  await db.delete(roles);
+async function clearTables() {
+  await db.delete(visitor_records).execute();
+  await db.delete(house_members).execute();
+  await db.delete(admins).execute();
+  await db.delete(guards).execute();
+  await db.delete(residents).execute();
+  await db.delete(users).execute();
+  await db.delete(houses).execute();
+  await db.delete(villages).execute();
+  await db.delete(roles).execute();
 }
 
-// เติมแม่ 
-async function seedAll() {
-  await db.insert(roles).values(seedRoles);
-  await db.insert(villages).values(seedVillages);
-  await db.insert(houses).values(seedHouse);
-  await db.insert(users).values(seedUsers);
-  await db.insert(residents).values(seedResidents);
-  await db.insert(guards).values(seedGuards);
-  await db.insert(admins).values(seedAdmins);
-  await db.insert(house_members).values(seedHouseMembers);
-  await db.insert(visitor_records).values(seedVisitorRecords);
-}
+async function seed() {
+  await clearTables();
 
-async function main() {
-  try {
-    // ลบข้อมูลในตารางลูกก่อน แล้ว เริ่มเติมข้อมูลจากตารางแม่
-    await clearAllTables();
-    await seedAll();
-    console.log("✅ All seed data inserted.");
-  } catch (error) {
-    console.error("❌ Seeding error:", error);
-  } finally {
-    process.exit(0);
+  // Insert roles
+  await db.insert(roles).values(seedRoles).execute();
+
+  // Fetch roles
+  const residentRole = (
+    await db
+      .select()
+      .from(roles)
+      .where(eq(roles.role_name, "resident"))
+      .execute()
+  )[0];
+  const guardRole = (
+    await db.select().from(roles).where(eq(roles.role_name, "guard")).execute()
+  )[0];
+  const adminRole = (
+    await db.select().from(roles).where(eq(roles.role_name, "admin")).execute()
+  )[0];
+
+  // Insert villages
+  await db.insert(villages).values(seedVillages).execute();
+
+  // Insert houses
+  await db.insert(houses).values(seedHouses).execute();
+
+  // Insert users with role_id from roles
+  for (const user of seedUsers) {
+    let roleId =
+      user.username === "chaiwet"
+        ? residentRole?.role_id
+        : user.username === "sopa"
+        ? guardRole?.role_id
+        : adminRole?.role_id;
+
+    await db
+      .insert(users)
+      .values({
+        ...user,
+        role_id: roleId!,
+      })
+      .execute();
   }
+
+  // Fetch users
+  const chaiwetUser = (
+    await db.select().from(users).where(eq(users.username, "chaiwet")).execute()
+  )[0];
+  const sopaUser = (
+    await db.select().from(users).where(eq(users.username, "sopa")).execute()
+  )[0];
+  const kanokwanUser = (
+    await db
+      .select()
+      .from(users)
+      .where(eq(users.username, "kanokwan"))
+      .execute()
+  )[0];
+
+  // Insert residents, guards, admins
+  await db
+    .insert(residents)
+    .values([{ user_id: chaiwetUser.user_id }])
+    .execute();
+  await db
+    .insert(guards)
+    .values([{ user_id: sopaUser.user_id }])
+    .execute();
+  await db
+    .insert(admins)
+    .values([{ user_id: kanokwanUser.user_id }])
+    .execute();
+
+  // Fetch resident, guard, house for FKs
+  const resident = (
+    await db
+      .select()
+      .from(residents)
+      .where(eq(residents.user_id, chaiwetUser.user_id))
+      .execute()
+  )[0];
+  const guard = (
+    await db
+      .select()
+      .from(guards)
+      .where(eq(guards.user_id, sopaUser.user_id))
+      .execute()
+  )[0];
+  const house = (
+    await db.select().from(houses).where(eq(houses.address, "65/1")).execute()
+  )[0];
+
+  // Insert house_members
+  await db
+    .insert(house_members)
+    .values([
+      {
+        house_id: house.house_id,
+        resident_id: resident.resident_id,
+      },
+    ])
+    .execute();
+
+  // Insert visitor_records
+  await db
+    .insert(visitor_records)
+    .values([
+      {
+        resident_id: resident.resident_id,
+        guard_id: guard.guard_id,
+        house_id: house.house_id,
+        picture_key: "visitor-001.png",
+        license_plate: "กข 1234 เชียงใหม่",
+        entry_time: new Date("2024-07-23T08:00:00Z"),
+        record_status: "approved",
+        visit_purpose: "เยี่ยมญาติ",
+      },
+      {
+        resident_id: resident.resident_id,
+        guard_id: guard.guard_id,
+        house_id: house.house_id,
+        picture_key: "visitor-002.png",
+        license_plate: "ขย 2222 เชียงใหม่",
+        entry_time: new Date("2024-07-24T09:30:00Z"),
+        record_status: "pending",
+        visit_purpose: "จัดส่งของ",
+      },
+    ])
+    .execute();
+
+  console.log("✅ Seeding complete");
 }
 
-main();
-
-// const seedUsers = [
-
-//   { name: "Alice", age: 25, email: "alice@example.com" },
-
-//   { name: "Bob", age: 30, email: "bob@example.com" },
-
-//   { name: "Charlie", age: 22, email: "charlie@example.com" },
-
-// ];
-
-
-
+seed().catch(console.error);
