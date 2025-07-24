@@ -16,6 +16,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { MenuShowColor } from "@/components/animation";
+
 
 import Link from "next/link";
 
@@ -36,7 +38,7 @@ const items = [
     icon: Building,
   },
   {
-    title: "Settings",
+    title: "การตั้งค่า",
     url: "/dashboard/setting_manage",
     icon: Settings,
   },
@@ -81,6 +83,8 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
+            <MenuShowColor items={items} />
+            
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
