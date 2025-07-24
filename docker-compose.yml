@@ -1,33 +1,28 @@
 services:
   backend:
     build: ./backend
-
     ports:
       - "3001:3001"
-
     volumes:
       - ./backend:/app
-
     env_file:
       - ./backend/.env
+    restart: unless-stopped
 
   frontend:
     build: ./frontend
-
     ports:
       - "3000:3000"
-
     volumes:
       - ./frontend:/app
-      - /app/node_modules # Prevent node_modules from being overwritten
-      - /app/.next # Prevent .next from being overwritten
-
+      - /app/node_modules
+      - /app/.next
     environment:
-      - WATCHPACK_POLLING=true # Enable polling for file changes
+      - WATCHPACK_POLLING=true
       - CHOKIDAR_USEPOLLING=true
-
     depends_on:
       - backend
+    restart: unless-stopped
 
   caddy:
     image: caddy:alpine
@@ -38,20 +33,20 @@ services:
     depends_on:
       - frontend
       - backend
+    restart: unless-stopped
 
   db:
     image: postgres:17
-
     ports:
       - "5432:5432"
-
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: 1234
       POSTGRES_DB: SOFEWARE_EN
-
     volumes:
-      - ./dbdata:/var/lib/postgresql/data
+      - dbdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
   ngrok:
     build:
       context: .
@@ -59,8 +54,10 @@ services:
     environment:
       NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
     ports:
-      - 4040:4040
+      - "4040:4040"
     depends_on:
       - caddy
-# volumes:
-#   db_data:
+    restart: unless-stopped
+
+volumes:
+  dbdata:
