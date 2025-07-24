@@ -1,18 +1,23 @@
 #!/bin/sh
 
-echo "Starting the setup script..."
+echo "🔧 Starting the setup script..."
 
-# Clean up Docker resources
-echo "Checking for running Docker containers..."
-if [ "$(docker ps -q)" ]; then
-    echo "Stopping and removing running Docker containers..."
-    docker compose down || exit 1
-else
-    echo "No running Docker containers found. Skipping docker compose down."
+# Check Docker availability
+if ! command -v docker > /dev/null 2>&1; then
+    echo "❌ Docker is not installed. Please install Docker and try again."
+    exit 1
 fi
 
-docker system prune -a --force
-docker volume prune --force
+# Clean up Docker resources silently
+if [ "$(docker ps -q)" ]; then
+    echo "🧹 Stopping and removing running Docker containers..."
+    docker compose down > /dev/null 2>&1 || exit 1
+else
+    echo "✅ No running Docker containers found. Skipping docker compose down."
+fi
+
+docker system prune -a --force > /dev/null 2>&1
+docker volume prune --force > /dev/null 2>&1
 
 # FRONTEND SETUP
 cd frontend || exit 1
@@ -20,21 +25,18 @@ cd frontend || exit 1
 if [ -f package.json ]; then
     if [ "$(uname)" != "Darwin" ]; then
         if [ -d node_modules ]; then
-            echo "Removing existing node_modules in frontend..."
-            sudo chown -R "$USER":"$USER" node_modules || exit 1
-            rm -rf node_modules || exit 1
+            echo "📦 Cleaning frontend dependencies..."
+            sudo chown -R "$USER":"$USER" node_modules > /dev/null 2>&1 || exit 1
+            rm -rf node_modules > /dev/null 2>&1 || exit 1
         fi
     fi
     
-    if [ -f package-lock.json ]; then
-        echo "Removing existing package-lock.json in frontend..."
-        rm -f package-lock.json || exit 1
-    fi
+    [ -f package-lock.json ] && rm -f package-lock.json > /dev/null 2>&1 || true
     
-    echo "Installing frontend dependencies..."
-    npm install || exit 1
+    echo "📥 Installing frontend dependencies..."
+    npm install --silent || exit 1
 else
-    echo "No package.json found in frontend directory. Skipping npm install."
+    echo "⚠️ No package.json in frontend directory. Skipping npm install."
 fi
 
 cd ..
@@ -45,37 +47,32 @@ cd backend || exit 1
 if [ -f package.json ]; then
     if [ "$(uname)" != "Darwin" ]; then
         if [ -d node_modules ]; then
-            echo "Removing existing node_modules in backend..."
-            sudo chown -R "$USER":"$USER" node_modules || exit 1
-            rm -rf node_modules || exit 1
+            echo "📦 Cleaning backend dependencies..."
+            sudo chown -R "$USER":"$USER" node_modules > /dev/null 2>&1 || exit 1
+            rm -rf node_modules > /dev/null 2>&1 || exit 1
         fi
     fi
     
-    if [ -f package-lock.json ]; then
-        echo "Removing existing package-lock.json in backend..."
-        rm -f package-lock.json || exit 1
-    fi
+    [ -f package-lock.json ] && rm -f package-lock.json > /dev/null 2>&1 || true
     
-    echo "Installing backend dependencies..."
-    bun install || exit 1
+    echo "📥 Installing backend dependencies..."
+    bun install > /dev/null 2>&1 || exit 1
 else
-    echo "No package.json found in backend directory. Skipping bun install."
+    echo "⚠️ No package.json in backend directory. Skipping bun install."
 fi
 
 cd ..
 
 # Docker Compose
-echo "Starting the application using Docker Compose with COMPOSE_BAKE..."
-COMPOSE_BAKE=true docker compose -f docker-compose.yml build || exit 1
-docker compose -f docker-compose.yml --compatibility up -d || exit 1
+echo "🐳 Starting the application using Docker Compose..."
+COMPOSE_BAKE=true docker compose -f docker-compose.yml build > /dev/null 2>&1 || exit 1
+docker compose -f docker-compose.yml --compatibility up -d > /dev/null 2>&1 || exit 1
 
-echo "Setup completed successfully."
-# echo "You can now access the application at http://localhost"
-# Wait for ngrok to initialize
-echo "Waiting for ngrok to generate the public HTTPS URL..."
-sleep 5
+echo "✅ Setup completed successfully."
+echo "⏳ Waiting for ngrok to generate the public HTTPS URL..."
+sleep 20
 
-NGROK_URL=$(docker logs ngrok 2>&1 | grep -o "https://[a-zA-Z0-9.-]*\.ngrok[^ ]*" | head -n 1)
+NGROK_URL=$(docker compose logs --no-color ngrok 2>&1 | grep -o "https://[a-zA-Z0-9.-]*\.ngrok[^ ]*" | head -n 1)
 
 if [ -n "$NGROK_URL" ]; then
     echo "------------------------------------------------------"
@@ -86,4 +83,3 @@ if [ -n "$NGROK_URL" ]; then
 else
     echo "❌ Could not retrieve Ngrok HTTPS URL. Is the ngrok container running properly?"
 fi
-
