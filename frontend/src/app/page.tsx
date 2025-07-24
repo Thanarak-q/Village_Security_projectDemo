@@ -36,7 +36,7 @@ export default function UsersPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:3001/api/users", {
+      const res = await fetch("http://localhost:3001/api/usershttp://localhost:3001/api/users", {
         method: "POST",
 
         headers: { "Content-Type": "application/json" },
