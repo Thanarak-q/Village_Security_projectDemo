@@ -15,7 +15,7 @@ import { cors } from "@elysiajs/cors";
 
 const app = new Elysia();
 
-app.use(cors()); // ใช้ก่อน listen
+app.use(cors());
 
 app.get("/", () => "Hello Elysia!");
 
@@ -83,3 +83,4 @@ app.group("/api", (app) =>
 app.listen(3001, () => {
   console.log("🦊 Elysia is running at http://localhost:3001");
 });
+
