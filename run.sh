@@ -3,6 +3,14 @@
 echo "Starting the setup script..."
 
 # Clean up Docker resources
+echo "Checking for running Docker containers..."
+if [ "$(docker ps -q)" ]; then
+    echo "Stopping and removing running Docker containers..."
+    docker compose down || exit 1
+else
+    echo "No running Docker containers found. Skipping docker compose down."
+fi
+
 docker system prune -a --force
 docker volume prune -a --force
 
@@ -14,12 +22,12 @@ if [ -f package.json ]; then
         sudo chown -R $USER:$USER node_modules || exit 1
         rm -rf node_modules || exit 1
     fi
-
+    
     if [ -f package-lock.json ]; then
         echo "Removing existing package-lock.json in frontend..."
         rm -f package-lock.json || exit 1
     fi
-
+    
     echo "Installing frontend dependencies..."
     npm install || exit 1
 else
@@ -37,12 +45,12 @@ if [ -f package.json ]; then
         sudo chown -R $USER:$USER node_modules || exit 1
         rm -rf node_modules || exit 1
     fi
-
+    
     if [ -f package-lock.json ]; then
         echo "Removing existing package-lock.json in backend..."
         rm -f package-lock.json || exit 1
     fi
-
+    
     echo "Installing backend dependencies..."
     bun install || exit 1
 else
@@ -57,4 +65,20 @@ COMPOSE_BAKE=true docker compose -f docker-compose.yml build || exit 1
 docker compose -f docker-compose.yml --compatibility up -d || exit 1
 
 echo "Setup completed successfully."
-echo "You can now access the application at http://localhost"
+# echo "You can now access the application at http://localhost"
+# Wait for ngrok to initialize
+echo "Waiting for ngrok to generate the public HTTPS URL..."
+sleep 5
+
+NGROK_URL=$(docker logs ngrok 2>&1 | grep -o "https://[a-zA-Z0-9.-]*\.ngrok[^ ]*" | head -n 1)
+
+if [ -n "$NGROK_URL" ]; then
+    echo "------------------------------------------------------"
+    echo "🚀 Application is live at:"
+    echo "🌐 Local: http://localhost"
+    echo "🌐 Public (Ngrok): $NGROK_URL"
+    echo "------------------------------------------------------"
+else
+    echo "❌ Could not retrieve Ngrok HTTPS URL. Is the ngrok container running properly?"
+fi
+
