@@ -4,15 +4,18 @@ echo "Starting the setup script..."
 
 # Clean up Docker resources
 docker system prune -a --force
-docker volume prune -a --force
+docker volume prune --force
 
 # FRONTEND SETUP
 cd frontend || exit 1
+
 if [ -f package.json ]; then
-    if [ -d node_modules ]; then
-        echo "Removing existing node_modules in frontend..."
-        sudo chown -R $USER:$USER node_modules || exit 1
-        rm -rf node_modules || exit 1
+    if [ "$(uname)" != "Darwin" ]; then
+        if [ -d node_modules ]; then
+            echo "Removing existing node_modules in frontend..."
+            sudo chown -R "$USER":"$USER" node_modules || exit 1
+            rm -rf node_modules || exit 1
+        fi
     fi
 
     if [ -f package-lock.json ]; then
@@ -32,10 +35,12 @@ cd ..
 cd backend || exit 1
 
 if [ -f package.json ]; then
-    if [ -d node_modules ]; then
-        echo "Removing existing node_modules in backend..."
-        sudo chown -R $USER:$USER node_modules || exit 1
-        rm -rf node_modules || exit 1
+    if [ "$(uname)" != "Darwin" ]; then
+        if [ -d node_modules ]; then
+            echo "Removing existing node_modules in backend..."
+            sudo chown -R "$USER":"$USER" node_modules || exit 1
+            rm -rf node_modules || exit 1
+        fi
     fi
 
     if [ -f package-lock.json ]; then
