@@ -5,7 +5,8 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { ScrambleTextExample } from "@/components/animation";
+import gsap from "gsap";
+import React, { useRef, useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,8 +18,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-
+import { ScrambleTextExample } from "@/components/animation";
 import styles from "./loginpage.module.css";
+import { ButtonProps } from "react-day-picker";
 
 const FormSchema = z.object({
   username: z.string().min(2, {
@@ -29,15 +31,63 @@ const FormSchema = z.object({
   }),
 });
 
-const Page = () => {
+type GsaploginbuttonProps = ButtonProps & {
+  children: React.ReactNode;
+};
+
+const Gsaploginbutton: React.FC<GsaploginbuttonProps> = ({
+  className,
+  children,
+  ...props
+}) => {
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  const handleMouseEnter = () => {
+    if (btnRef.current) {
+      gsap.to(btnRef.current, {
+        scale: 1.07,
+        duration: 0.25,
+        ease: "power2.out",
+      });
+    }
+  };
+  const handleMouseLeave = () => {
+    if (btnRef.current) {
+      gsap.to(btnRef.current, {
+        scale: 1,
+        duration: 0.25,
+        ease: "power2.out",
+      });
+    }
+  };
+
+  return (
+    <Button
+      ref={btnRef}
+      type="submit"
+      className={className}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      {...props}
+    >
+      {children}
+    </Button>
+  );
+};
+
+const Page: React.FC = () => {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
-    defaultValues: {
-      username: "Username",
-      password: "",
-    },
+    defaultValues: { username: "", password: "" },
     mode: "onBlur",
   });
+
+  const welcomeRef = useRef<HTMLHeadingElement>(null);
+
+  const loginGroupRef = useRef<HTMLDivElement>(null);
+  const triRef = useRef<HTMLDivElement>(null);
+  const squareRef = useRef<HTMLDivElement>(null);
+  const loginRef = useRef<HTMLDivElement>(null);
 
   function onSubmit(data: z.infer<typeof FormSchema>) {
     toast("You submitted the following values", {
@@ -49,87 +99,120 @@ const Page = () => {
     });
   }
 
-  const firstErrorField = Object.keys(form.formState.errors)[0] as
-    | "username"
-    | "password"
-    | undefined;
-  const firstErrorMessage = firstErrorField
-    ? form.formState.errors[firstErrorField]?.message
-    : null;
+  useEffect(() => {
+    const tl = gsap.timeline();
+
+    tl.to(welcomeRef.current, {
+      top: "18%",
+      y: "-50%",
+      duration: 0.8,
+      ease: "power2.inOut",
+    })
+      // triangle+square scroll up
+      .to(
+        loginGroupRef.current,
+        {
+          bottom: "45%",
+          y: "50%",
+          duration: 1,
+          ease: "power2.inOut",
+        },
+        "-=0.4"
+      )
+      // fade in square
+      .to(
+        squareRef.current,
+        { opacity: 1, duration: 0.4, ease: "power2.inOut" },
+        "-=0.7"
+      )
+      // fade in loginBox
+      .to(
+        loginRef.current,
+        { opacity: 1, duration: 0.4, ease: "power2.inOut" },
+        "-=0.3"
+      );
+  }, []);
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.welcome}>
+      <h2 ref={welcomeRef} className={styles.welcome}>
         <ScrambleTextExample />
       </h2>
-      <div className={styles.triangle}>
-        <h2>Login</h2>
-      </div>
-      <div className={styles.loginBox}>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {firstErrorMessage && (
-              <FormMessage
-                className="bg-red-100 text-red-800 border border-red-300 rounded-md p-3 font-semibold text-center"
-                role="alert"
-              >
-                {firstErrorMessage}
-              </FormMessage>
-            )}
+      <div ref={loginGroupRef} className={styles.loginGroupWrapper}>
+        <div ref={triRef} className={styles.triangle}>
+          <h2>Login</h2>
+        </div>
+        <div ref={squareRef} className={styles.bgSquare}>
+          <div ref={loginRef} className={styles.loginBox}>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="username"
+                  render={({ field }) => (
+                    <FormItem className={styles.inputGroup}>
+                      <FormLabel
+                        htmlFor="username"
+                        className={styles.labelstrong}
+                      >
+                        Username
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          id="username"
+                          placeholder="Username"
+                          {...field}
+                          className={
+                            form.formState.errors.username
+                              ? `${styles.inputError}`
+                              : ""
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage className={styles.inputMessage} />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="username"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel htmlFor="username">Username</FormLabel>
-                  <FormControl>
-                    <Input
-                      id="username"
-                      placeholder="Username"
-                      {...field}
-                      className={
-                        form.formState.errors.username
-                          ? "border-red-500 focus:ring-red-500"
-                          : ""
-                      }
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem className={styles.inputGroup}>
+                      <FormLabel
+                        htmlFor="password"
+                        className={styles.labelstrong}
+                      >
+                        Password
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          id="password"
+                          type="password"
+                          placeholder="••••••"
+                          {...field}
+                          className={
+                            form.formState.errors.password
+                              ? `${styles.inputError}`
+                              : ""
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage className={styles.inputMessage} />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel htmlFor="password">Password</FormLabel>
-                  <FormControl>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••"
-                      {...field}
-                      className={
-                        form.formState.errors.password
-                          ? "border-red-500 focus:ring-red-500"
-                          : ""
-                      }
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <Button type="submit" className={styles.loginButton}>
-              Log In
-            </Button>
-          </form>
-        </Form>
-        <p className={styles.footerText}>
-          Village Management System <br /> v.x.x
-        </p>
+                <Gsaploginbutton type="submit" className={styles.loginButton}>
+                  Login
+                </Gsaploginbutton>
+              </form>
+            </Form>
+            <p className={styles.footerText}>
+              Village Management System <br /> v.x.x
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

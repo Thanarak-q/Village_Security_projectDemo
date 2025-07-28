@@ -1,102 +1,127 @@
 .container {
-  background-color: #4F6AF0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
+  width: 100vw;
+  height: 100vh;
   min-height: 100vh;
+  background: #4fa3f2;
+  position: relative;
   overflow: hidden;
-  color: #fff;
-  padding: 20px;
 }
 
 .welcome {
-  font-size: 2.5rem;
-  font-weight: 700;
+  position: absolute;
+  left: 50%;
+  top: 35%;
+  transform: translate(-50%, -50%);
   color: #fff;
-  margin-bottom: 40px;
-  text-align: center;
+  font-size: 2.5rem;
+  letter-spacing: 2px;
+  z-index: 10;
+}
+
+.loginGroupWrapper {
+  position: absolute;
+  left: 50%;
+  bottom: -350;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100vw;
+  max-width: 450px;
+  z-index: 5;
 }
 
 .triangle {
   width: 100%;
-  height: 100px;
+  height: 120px;
   background-color: #fff;
-  position: relative;
-  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+  clip-path: polygon(
+    20px 100%,
+    50% 0%,
+    calc(100% - 20px) 100%,
+    100% 100%,
+    0% 100%
+  );
+  border-top-left-radius: 22px;
+  border-top-right-radius: 22px;
   display: flex;
   justify-content: center;
-  align-items: center;
-  margin-bottom: 0; 
+  align-items: flex-end;
   z-index: 2;
-  border-radius: 10px 10px 0 0; 
-  
 }
 
 .triangle h2 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #333;
+  color: #253050;
+  margin: 0 0 15px 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+}
+
+.bgSquare {
+  width: 100%;
+  min-height: 340px;
+  background: #fff;
+  border-radius: 22px 22px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  box-shadow: 0 8px 32px 2px rgba(0,0,0,0.11);
+  opacity: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .loginBox {
-  background-color: white;
-  padding: 40px;
-  width: 100%;
-  text-align: center;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  border-radius: 10 10 10px 10px; 
-  z-index: 3;
-  margin-top: 1.4%; 
-  position: relative;
-  top: -20px; 
-  color: black;
+  margin-top: 32px;
+  width: 85%;
+  max-width: 350px;
+  opacity: 0;
+  transition: opacity 0.2s;
 }
 
+/*Form*/
 .inputGroup {
-  margin-bottom: 20px;
-  text-align: left;
+  margin-bottom: 0.8rem;
 }
-
-.inputGroup label {
-  display: block;
-  margin-bottom: 5px;
+.labelstrong {
+  font-weight: bold;
+  color: #253050;
+}
+.inputError {
+  border: 1.5px solid #ef4b6c !important;
+}
+.inputMessage {
+  color: #ef4b6c;
   font-size: 0.9rem;
-  color: #666;
-}
-
-.inputGroup input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 1rem;
 }
 
 .loginButton {
   width: 100%;
-  padding: 12px;
-  background-color: #000;
+  background: #253050;
   color: #fff;
-  border: none;
-  border-radius: 4px;
+  border-radius: 12px;
   font-size: 1.1rem;
-  cursor: pointer;
-  margin-top: 20px;
-}
-
-.loginButton:hover {
-  background-color: #333;
+  padding: 0.8em 0;
+  box-shadow: 0px 6px 24px 1px rgba(50,56,168,0.09);
+  font-weight: 600;
 }
 
 .footerText {
-  margin-top: 20px;
-  font-size: 0.8rem;
-  color: #666;
+  margin-top: 2.5em;
+  text-align: center;
+  color: #aaa;
+  font-size: 0.97em;
 }
 
+@media (max-width: 500px) {
+  .loginGroupWrapper, .triangle, .bgSquare {
+    max-width: 97vw;
+    width: 97vw;
+  }
+  .loginBox {
+    width: 97%;
+    max-width: 97vw;
+  }
+}
