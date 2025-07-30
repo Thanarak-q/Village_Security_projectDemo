@@ -6,11 +6,12 @@ import { residentRoutes } from "./routes/resident";
 import { guardRoutes } from "./routes/guard";
 import { adminRoutes } from "./routes/admin";
 import { houseMemberRoutes } from "./routes/houseMember";
+import { visitorRecordRoutes } from "./routes/visitorRecord";
 import { testConnection, closeConnection, getPoolStats } from "./db/drizzle";
 
 // Health check endpoint
 const healthCheck = new Elysia()
-  .get("/health", async () => {
+  .get("/api/health", async () => {
     try {
       await testConnection();
       const poolStats = getPoolStats();
@@ -46,6 +47,7 @@ const app = new Elysia()
   .use(guardRoutes)
   .use(adminRoutes)
   .use(houseMemberRoutes)
+  .use(visitorRecordRoutes)
   .get("/", () => "Hello Village Security API!");
 
 // Initialize database connection and start server
