@@ -1,19 +1,31 @@
 "use client";
 
+import { UUID } from "crypto";
 import React, { useState, useEffect } from "react";
-
+// import axios from "axios";
 type User = {
-  id: number;
-  name: string;
+  user_id: UUID;
+  username:string,
+  email:string;
+  fname: string;
+  lname: string;
+  phone: string;
   age: number;
-  email: string;
+  role_id: UUID;
+  status: string;
+
 };
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
-  const [name, setName] = useState("");
-  const [age, setAge] = useState<number | "">("");
+  const [username, setUsername] = useState("")
   const [email, setEmail] = useState("");
+  const [fname, setFname] = useState("");
+  const [lname, setLname] = useState("");
+  const [phone, setPhont] = useState("");
+  const [role_id, setRoleId] = useState("")
+  const [village_key, setVillage_key] = useState("")
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -43,7 +55,7 @@ export default function UsersPage() {
 
         headers: { "Content-Type": "application/json" },
 
-        body: JSON.stringify({ name, age: Number(age), email }),
+        body: JSON.stringify({ username, fname, email }),
       });
 
       if (!res.ok) {
@@ -56,9 +68,9 @@ export default function UsersPage() {
 
       setUsers((prev) => [...prev, newUser]);
 
-      setName("");
+      setUsername("");
 
-      setAge("");
+      setFname("");
 
       setEmail("");
     } catch (e: any) {
@@ -76,18 +88,17 @@ export default function UsersPage() {
         <div>
           <input
             placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             required
           />
         </div>
 
         <div>
           <input
-            placeholder="Age"
-            type="number"
-            value={age}
-            onChange={(e) => setAge(Number(e.target.value))}
+            placeholder="Fname"
+            value={fname}
+            onChange={(e) => setFname(e.target.value)}
             required
             min={1}
           />
@@ -112,8 +123,10 @@ export default function UsersPage() {
 
       <ul>
         {users.map((u) => (
-          <li key={u.id}>
-            <b>{u.name}</b> (age: {u.age}) - {u.email}
+          <li key={u.user_id}>
+            <p>{u.fname}</p>
+            <p>{u.email}</p>
+
           </li>
         ))}
       </ul>

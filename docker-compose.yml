@@ -59,5 +59,19 @@ services:
       - caddy
     restart: unless-stopped
 
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@cmu.ac.th
+      PGADMIN_DEFAULT_PASSWORD: cmupassword
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    restart: unless-stopped
+
 volumes:
   dbdata:
+  pgadmin-data:
