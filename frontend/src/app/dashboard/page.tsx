@@ -1,12 +1,11 @@
 import WeeklyAccessBarChart from "./chart";
-import FastProcessPage from "./fastprocess";
 import NotificationComponent from "./notification";
 import PendingTable from "./pending_table";
 import {
+  TotalUsersCard,
   DailyAccessCard,
-  RecentActivityCard,
-  ResidentsStatCard,
-  SecurityLevelCard,
+  PendingTasksCard,
+  EmptyCard,
 } from "./statistic";
 
 export default function page() {
@@ -20,7 +19,12 @@ export default function page() {
               สวัสดี, คุณผู้จัดการ
             </h1>
             <p className="text-xs sm:text-sm md:text-base text-gray-500">
-              วันจันทร์ที่ 1 มกราคม 2024
+              {new Date().toLocaleDateString('th-TH', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
             </p>
           </div>
           <div className="flex justify-end sm:justify-start">
@@ -28,27 +32,22 @@ export default function page() {
           </div>
         </div>
 
-        {/* Statistics Cards */}
+        {/* Statistics Cards - 4 Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-          <ResidentsStatCard />
+          <TotalUsersCard />
           <DailyAccessCard />
-          <SecurityLevelCard />
-          <RecentActivityCard />
+          <PendingTasksCard />
+          <EmptyCard />
         </div>
 
-        {/* Chart Section */}
+        {/* Chart Section - สถิติเข้าออกประจำวัน/สัปดาห์/ปี */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 mb-6 sm:mb-8">
           <div className="lg:col-span-2">
             <WeeklyAccessBarChart />
           </div>
         </div>
 
-        {/* Fast Process */}
-        <div className="mb-6 sm:mb-8">
-          <FastProcessPage />
-        </div>
-
-        {/* Pending Table */}
+        {/* Pending Users Table - ตาราง user ใหม่รออนุมัติ */}
         <div className="mb-6">
           <PendingTable />
         </div>

@@ -38,7 +38,7 @@ export const users = pgTable("users", {
   lname: text("lname").notNull(),
   phone: text("phone").notNull(),
   password_hash: text("password_hash").notNull(),
-  role_id: uuid("role_id").references(() => roles.role_id), // connect role
+  role_id: uuid("role_id").references(() => roles.role_id),
   status: text("status").$type<"verified" | "pending">().default("pending"),
 
   village_key: text("village_key").references(() => villages.village_key), // connect village

@@ -1,8 +1,6 @@
 "use client";
-
-import { SetStateAction, useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -12,6 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Check, X, Clock, UserPlus, Settings, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import ApprovalForm from "./ApprovalForm";
 import {
   Select,
   SelectContent,
@@ -19,414 +19,346 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-} from "@/components/ui/pagination";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Filter,
-  ChevronLeft,
-  ChevronRight,
-  Search,
-  MoreHorizontal,
-} from "lucide-react";
-import ApprovalForm from "./ApprovalForm"; // ✅ Import ApprovalForm
 
-// Interface สำหรับข้อมูลคำขออนุมัติ
-interface ApprovalRequest {
-  id: number;
-  name: string;
-  avatar: string;
-  requestType: string;
-  houseNumber: string;
-  status: "pending" | "review" | "urgent" | "approved" | "rejected";
-  submittedTime: string;
-  phoneNumber: string;
-  email?: string;
-}
-
-// ✅ Interface สำหรับข้อมูลอัปเดต - แก้ไขให้ตรงกับ ApprovalForm
-interface ApprovalDecisionData {
-  id: number;
-  decision: "approved" | "rejected";
-  role?: string; // ✅ เปลี่ยนเป็น optional
-  houseNumber?: string;
-  note?: string;
-}
-
-// ข้อมูลคำขออนุมัติ
-const initialApprovalRequests: ApprovalRequest[] = [
+// ข้อมูลจำลอง (Mock Data) สำหรับผู้ใช้ใหม่ที่รอการอนุมัติ
+// ในระบบจริงข้อมูลนี้จะมาจาก API หรือฐานข้อมูล
+const pendingUsers = [
   {
-    id: 1,
-    name: "นายสมชาย ใจดี",
-    avatar: "/avatar1.jpg",
-    requestType: "ขอเข้าพักใหม่",
-    houseNumber: "123/45",
-    status: "pending",
-    submittedTime: "15 นาทีที่แล้ว",
-    phoneNumber: "081-234-5678",
-    email: "somchai@gmail.com",
+    id: "1",
+    username: "somchai_j",
+    email: "somchai@example.com",
+    fname: "สมชาย",
+    lname: "ใจดี",
+    phone: "081-234-5678",
+    role: "ลูกบ้าน",
+    houseNumber: "88/123",
+    requestDate: "2024-01-15",
+    status: "รออนุมัติ"
   },
   {
-    id: 2,
-    name: "นางมาลี สุขใส",
-    avatar: "/avatar2.jpg",
-    requestType: "ขอย้ายที่อยู่",
-    houseNumber: "246/12",
-    status: "review",
-    submittedTime: "45 นาทีที่แล้ว",
-    phoneNumber: "082-345-6789",
-    email: "malee@gmail.com",
+    id: "2", 
+    username: "manee_w",
+    email: "manee@example.com",
+    fname: "มณี",
+    lname: "วงศ์ใหญ่",
+    phone: "082-345-6789",
+    role: "ลูกบ้าน",
+    houseNumber: "88/124",
+    requestDate: "2024-01-14",
+    status: "รออนุมัติ"
   },
   {
-    id: 3,
-    name: "นายวิชัย รักดี",
-    avatar: "/avatar3.jpg",
-    requestType: "ขอเปลี่ยนข้อมูลส่วนตัว",
-    houseNumber: "78/9",
-    status: "pending",
-    submittedTime: "2 ชั่วโมงที่แล้ว",
-    phoneNumber: "083-456-7890",
-    email: "wichai@gmail.com",
+    id: "3",
+    username: "somsak_g",
+    email: "somsak@example.com", 
+    fname: "สมศักดิ์",
+    lname: "เก่งดี",
+    phone: "083-456-7890",
+    role: "ยาม",
+    houseNumber: "-",
+    requestDate: "2024-01-13",
+    status: "รออนุมัติ"
   },
   {
-    id: 4,
-    name: "นางสาวสุดา ใจกว้าง",
-    avatar: "/avatar4.jpg",
-    requestType: "ขอเข้าพักใหม่",
-    houseNumber: "159/33",
-    status: "urgent",
-    submittedTime: "5 ชั่วโมงที่แล้ว",
-    phoneNumber: "084-567-8901",
-    email: "suda@gmail.com",
-  },
-  {
-    id: 5,
-    name: "นายประยุทธ สมหวัง",
-    avatar: "/avatar5.jpg",
-    requestType: "ขอย้ายออก",
-    houseNumber: "95/7",
-    status: "review",
-    submittedTime: "1 วันที่แล้ว",
-    phoneNumber: "085-678-9012",
-    email: "prayuth@gmail.com",
-  },
-  {
-    id: 6,
-    name: "นางสาวจิรา ดีใจ",
-    avatar: "/avatar6.jpg",
-    requestType: "ขอเข้าพักใหม่",
-    houseNumber: "201/15",
-    status: "approved",
-    submittedTime: "2 วันที่แล้ว",
-    phoneNumber: "086-789-0123",
-    email: "jira@gmail.com",
-  },
-  {
-    id: 7,
-    name: "นายธนา รวยจริง",
-    avatar: "/avatar7.jpg",
-    requestType: "ขอเปลี่ยนข้อมูลส่วนตัว",
-    houseNumber: "88/22",
-    status: "rejected",
-    submittedTime: "3 วันที่แล้ว",
-    phoneNumber: "087-890-1234",
-    email: "thana@gmail.com",
-  },
-  {
-    id: 8,
-    name: "นางวิมล สง่างาม",
-    avatar: "/avatar8.jpg",
-    requestType: "ขอย้ายที่อยู่",
-    houseNumber: "305/77",
-    status: "urgent",
-    submittedTime: "4 วันที่แล้ว",
-    phoneNumber: "088-901-2345",
-    email: "wimon@gmail.com",
-  },
-  {
-    id: 9,
-    name: "นายเจษฎา มีเงิน",
-    avatar: "/avatar9.jpg",
-    requestType: "ขอเข้าพักใหม่",
-    houseNumber: "77/99",
-    status: "pending",
-    submittedTime: "5 วันที่แล้ว",
-    phoneNumber: "089-012-3456",
-    email: "jetsada@gmail.com",
-  },
-  {
-    id: 10,
-    name: "นางสาวพิมพ์ใจ สวยงาม",
-    avatar: "/avatar10.jpg",
-    requestType: "ขอย้ายออก",
-    houseNumber: "144/88",
-    status: "review",
-    submittedTime: "1 สัปดาห์ที่แล้ว",
-    phoneNumber: "090-123-4567",
-    email: "pimjai@gmail.com",
-  },
+    id: "4",
+    username: "ratree_p",
+    email: "ratree@example.com",
+    fname: "ราตรี", 
+    lname: "เพชรดี",
+    phone: "084-567-8901",
+    role: "ลูกบ้าน",
+    houseNumber: "88/125",
+    requestDate: "2024-01-12",
+    status: "รออนุมัติ"
+  }
 ];
 
-// Function สำหรับแสดง Badge สถานะ
-const getStatusBadge = (status: ApprovalRequest["status"]) => {
-  const statusConfig = {
-    pending: { label: "รอพิจารณา", className: "bg-yellow-100 text-yellow-800" },
-    review: { label: "กำลังตรวจสอบ", className: "bg-blue-100 text-blue-800" },
-    urgent: { label: "ด่วน", className: "bg-red-100 text-red-800" },
-    approved: {
-      label: "อนุมัติแล้ว",
-      className: "bg-green-100 text-green-800",
-    },
-    rejected: { label: "ปฏิเสธแล้ว", className: "bg-gray-100 text-gray-800" },
+// Interface สำหรับกำหนดโครงสร้างข้อมูลผู้ใช้ที่รออนุมัติ
+interface PendingUser {
+  id: string;           // รหัสผู้ใช้
+  username: string;     // ชื่อผู้ใช้
+  email: string;        // อีเมล
+  fname: string;        // ชื่อจริง
+  lname: string;        // นามสกุล
+  phone: string;        // เบอร์โทรศัพท์
+  role: string;         // บทบาท (ลูกบ้าน/ยาม)
+  houseNumber: string;  // บ้านเลขที่
+  requestDate: string;  // วันที่สมัคร
+  status: string;       // สถานะ
+}
+
+// Interface สำหรับข้อมูลฟอร์มการอนุมัติ
+interface ApprovalFormData {
+  approvedRole: string;  // บทบาทที่อนุมัติ
+  houseNumber: string;   // บ้านเลขที่
+  notes: string;         // หมายเหตุ
+  approvalReason: string; // เหตุผลการอนุมัติ
+}
+
+// ฟังก์ชันหลักสำหรับแสดงตารางผู้ใช้ที่รออนุมัติ
+export default function PendingTable() {
+  // State สำหรับจัดการข้อมูลผู้ใช้
+  const [users, setUsers] = useState<PendingUser[]>(pendingUsers);
+  
+  // State สำหรับจัดการผู้ใช้ที่เลือกเพื่ออนุมัติ
+  const [selectedUser, setSelectedUser] = useState<PendingUser | null>(null);
+  
+  // State สำหรับควบคุมการแสดง/ซ่อนฟอร์มอนุมัติ
+  const [isApprovalFormOpen, setIsApprovalFormOpen] = useState(false);
+  
+  // State สำหรับการแบ่งหน้า (Pagination)
+  const [currentPage, setCurrentPage] = useState(1);        // หน้าปัจจุบัน
+  const [itemsPerPage, setItemsPerPage] = useState(3);      // จำนวนรายการต่อหน้า
+  const [searchTerm, setSearchTerm] = useState("");         // คำค้นหา
+
+  // ฟังก์ชันสำหรับเปิดฟอร์มอนุมัติเมื่อคลิกปุ่ม "ดำเนินการ"
+  const handleProcess = (user: PendingUser) => {
+    setSelectedUser(user);           // เก็บข้อมูลผู้ใช้ที่เลือก
+    setIsApprovalFormOpen(true);     // เปิดฟอร์มอนุมัติ
   };
 
-  const config = statusConfig[status];
-  return (
-    <Badge variant="secondary" className={`${config.className} font-normal`}>
-      {config.label}
-    </Badge>
+  // ฟังก์ชันสำหรับจัดการการส่งฟอร์มอนุมัติ (อนุมัติหรือปฏิเสธ)
+  const handleApprovalSubmit = (action: 'approve' | 'reject', formData: ApprovalFormData) => {
+    console.log(`${action} user:`, selectedUser?.id, 'with data:', formData);
+    
+    // ลบผู้ใช้ออกจากรายการรออนุมัติ
+    if (selectedUser) {
+      setUsers(users.filter(user => user.id !== selectedUser.id));
+    }
+    
+    // ปิดฟอร์มและล้างข้อมูลผู้ใช้ที่เลือก
+    setIsApprovalFormOpen(false);
+    setSelectedUser(null);
+  };
+
+  // ฟังก์ชันสำหรับสร้างตัวอักษรย่อจากชื่อและนามสกุล (สำหรับ Avatar)
+  const getAvatarInitials = (fname: string, lname: string) => {
+    return `${fname.charAt(0)}${lname.charAt(0)}`.toUpperCase();
+  };
+
+  // ฟังก์ชันสำหรับกำหนดสี Avatar ตาม ID ของผู้ใช้
+  const getAvatarColor = (userId: string) => {
+    const colors = [
+      "bg-blue-500",
+      "bg-green-500", 
+      "bg-purple-500",
+      "bg-yellow-500",
+      "bg-red-500",
+      "bg-indigo-500",
+    ];
+    // ใช้ ASCII code ของตัวอักษรแรกของ ID เพื่อเลือกสี
+    const index = userId.charCodeAt(0) % colors.length;
+    return colors[index];
+  };
+
+  // ฟังก์ชันสำหรับจัดรูปแบบวันที่ให้เป็นภาษาไทย
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('th-TH', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // กรองข้อมูลผู้ใช้ตามคำค้นหา
+  // ค้นหาได้จากชื่อ, นามสกุล, อีเมล, บทบาท, และบ้านเลขที่
+  const filteredUsers = users.filter(user =>
+    user.fname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.lname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.houseNumber.includes(searchTerm)
   );
-};
 
-export default function ApprovalRequestsTable() {
-  // State Management เหมือน UserManagementTable
-  const [approvalRequests, setApprovalRequests] = useState<ApprovalRequest[]>(
-    initialApprovalRequests
-  );
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ทั้งหมด");
-  const [typeFilter, setTypeFilter] = useState("ทั้งหมด");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
-  const [editingRequestId, setEditingRequestId] = useState<number | null>(null);
-  const [approvingRequestId, setApprovingRequestId] = useState<number | null>(
-    null
-  ); // ✅ เพิ่ม state สำหรับ approval form
+  // คำนวณข้อมูลสำหรับการแบ่งหน้า
+  const totalItems = filteredUsers.length;                    // จำนวนรายการทั้งหมด
+  const totalPages = Math.ceil(totalItems / itemsPerPage);    // จำนวนหน้าทั้งหมด
+  const startIndex = (currentPage - 1) * itemsPerPage;        // ดัชนีเริ่มต้นของหน้าปัจจุบัน
+  const endIndex = startIndex + itemsPerPage;                 // ดัชนีสิ้นสุดของหน้าปัจจุบัน
+  const currentUsers = filteredUsers.slice(startIndex, endIndex); // ข้อมูลผู้ใช้ในหน้าปัจจุบัน
 
-  // ✅ Function สำหรับจัดการการอนุมัติผ่าน Form
-  const handleApprovalDecision = async (approvalData: ApprovalDecisionData) => {
-    try {
-      console.log("Processing approval decision:", approvalData);
+  // Effect สำหรับรีเซ็ตหน้าแรกเมื่อมีการค้นหาใหม่
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      setApprovalRequests((prevData) =>
-        prevData.map((request) => {
-          if (request.id === approvalData.id) {
-            return {
-              ...request,
-              status: approvalData.decision, // "approved" หรือ "rejected"
-              // ✅ อัปเดตข้อมูลเพิ่มเติมถ้าอนุมัติและมี role
-              ...(approvalData.decision === "approved" &&
-                approvalData.role && {
-                  // อัปเดต role และ houseNumber ถ้าอนุมัติ
-                  assignedRole: approvalData.role,
-                  assignedHouseNumber:
-                    approvalData.role === "resident"
-                      ? approvalData.houseNumber
-                      : "-",
-                }),
-            };
-          }
-          return request;
-        })
-      );
-
-      const actionText =
-        approvalData.decision === "approved" ? "อนุมัติ" : "ปฏิเสธ";
-
-      let message = `${actionText}คำขอ ID: ${approvalData.id} สำเร็จ!`;
-
-      // ✅ แสดงข้อมูลเพิ่มเติมถ้าอนุมัติและมี role
-      if (approvalData.decision === "approved" && approvalData.role) {
-        const roleText =
-          approvalData.role === "resident"
-            ? "ผู้อยู่อาศัย"
-            : approvalData.role === "security"
-            ? "รปภ."
-            : "ผู้จัดการ";
-        message += `\nบทบาท: ${roleText}`;
-        if (approvalData.role === "resident" && approvalData.houseNumber) {
-          message += `\nบ้านเลขที่: ${approvalData.houseNumber}`;
-        }
-      }
-
-      // ✅ แสดงหมายเหตุถ้ามี
-      if (approvalData.note) {
-        message += `\nหมายเหตุ: ${approvalData.note}`;
-      }
-
-      alert(message);
-    } catch (error) {
-      console.error("Error processing approval decision:", error);
-      throw error;
+  // ฟังก์ชันสำหรับไปหน้าถัดไป
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
     }
   };
 
-  // Filter data based on search, status, and type
-  const filteredData = approvalRequests.filter((request) => {
-    const matchesSearch =
-      request.name.includes(searchTerm) ||
-      request.phoneNumber.includes(searchTerm) ||
-      request.houseNumber.includes(searchTerm) ||
-      (request.email && request.email.includes(searchTerm));
-
-    const matchesStatus =
-      statusFilter === "ทั้งหมด" ||
-      (statusFilter === "รอพิจารณา" && request.status === "pending") ||
-      (statusFilter === "กำลังตรวจสอบ" && request.status === "review") ||
-      (statusFilter === "ด่วน" && request.status === "urgent") ||
-      (statusFilter === "อนุมัติแล้ว" && request.status === "approved") ||
-      (statusFilter === "ปฏิเสธแล้ว" && request.status === "rejected");
-
-    const matchesType =
-      typeFilter === "ทั้งหมด" || request.requestType === typeFilter;
-
-    return matchesSearch && matchesStatus && matchesType;
-  });
-
-  // Calculate pagination
-  const totalItems = filteredData.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentData = filteredData.slice(startIndex, endIndex);
-
-  // Reset to first page when filters change
-  const handleSearch = (value: SetStateAction<string>) => {
-    setSearchTerm(value);
-    setCurrentPage(1);
+  // ฟังก์ชันสำหรับไปหน้าก่อนหน้า
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
   };
 
-  const handleStatusFilter = (value: SetStateAction<string>) => {
-    setStatusFilter(value);
-    setCurrentPage(1);
-  };
-
-  const handleTypeFilter = (value: SetStateAction<string>) => {
-    setTypeFilter(value);
-    setCurrentPage(1);
-  };
-
-  const handlePageChange = (page: SetStateAction<number>) => {
-    setCurrentPage(page);
-  };
-
+  // ฟังก์ชันสำหรับเปลี่ยนจำนวนรายการต่อหน้า
   const handleItemsPerPageChange = (value: string) => {
-    setItemsPerPage(parseInt(value));
-    setCurrentPage(1);
+    setItemsPerPage(Number(value));
+    setCurrentPage(1); // รีเซ็ตกลับไปหน้าแรก
   };
-
-  // Generate page numbers for pagination
-  const getPageNumbers = () => {
-    const pages = [];
-    const maxVisiblePages = 5;
-
-    if (totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      const startPage = Math.max(1, currentPage - 2);
-      const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-      for (let i = startPage; i <= endPage; i++) {
-        pages.push(i);
-      }
-
-      if (startPage > 1) {
-        pages.unshift("...");
-        pages.unshift(1);
-      }
-
-      if (endPage < totalPages) {
-        pages.push("...");
-        pages.push(totalPages);
-      }
-    }
-
-    return pages;
-  };
-
-  // ✅ หา request ที่ถูกเลือกสำหรับอนุมัติ
-  const approvingRequest = approvalRequests.find(
-    (request) => request.id === approvingRequestId
-  );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="scroll-m-20 text-2xl font-semibold tracking-tight text-gray-900 mb-6">
-            จัดการคำขออนุมัติ
-          </h1>
-
-          {/* Search and Filter */}
-          <div className="flex items-center gap-4 mb-6">
-            {/* Search */}
-            <div className="flex-1 max-w-md relative">
+    <div className="bg-white rounded-lg shadow-sm border">
+      {/* ส่วนหัวของตาราง */}
+      <div className="p-6 border-b border-gray-200">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          {/* ส่วนแสดงชื่อและจำนวนรายการ */}
+          <div className="flex items-center space-x-3">
+            <UserPlus className="h-6 w-6 text-blue-500" />
+            <h2 className="text-xl font-semibold text-gray-900">
+              ผู้ใช้ใหม่รออนุมัติ
+            </h2>
+            <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+              {users.length} รายการ
+            </Badge>
+          </div>
+          
+          {/* ส่วนค้นหาและเวลาอัปเดต */}
+          <div className="flex items-center space-x-4">
+            {/* ช่องค้นหา */}
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="ค้นหาชื่อ, เบอร์โทร, บ้านเลขที่..."
+              <input
+                type="text"
+                placeholder="ค้นหาผู้ใช้..."
                 value={searchTerm}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="pl-10 w-full"
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-
-            {/* Status Filter */}
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-gray-500" />
-              <span className="text-sm text-gray-600">สถานะ</span>
-              <Select value={statusFilter} onValueChange={handleStatusFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ทั้งหมด">ทั้งหมด</SelectItem>
-                  <SelectItem value="รอพิจารณา">รอพิจารณา</SelectItem>
-                  <SelectItem value="กำลังตรวจสอบ">กำลังตรวจสอบ</SelectItem>
-                  <SelectItem value="ด่วน">ด่วน</SelectItem>
-                  <SelectItem value="อนุมัติแล้ว">อนุมัติแล้ว</SelectItem>
-                  <SelectItem value="ปฏิเสธแล้ว">ปฏิเสธแล้ว</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* แสดงเวลาอัปเดตล่าสุด */}
+            <div className="text-sm text-gray-500">
+              อัปเดตล่าสุด: {new Date().toLocaleTimeString('th-TH')}
             </div>
+          </div>
+        </div>
+      </div>
 
-            {/* Type Filter */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">ประเภท</span>
-              <Select value={typeFilter} onValueChange={handleTypeFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ทั้งหมด">ทั้งหมด</SelectItem>
-                  <SelectItem value="ขอเข้าพักใหม่">ขอเข้าพักใหม่</SelectItem>
-                  <SelectItem value="ขอย้ายที่อยู่">ขอย้ายที่อยู่</SelectItem>
-                  <SelectItem value="ขอเปลี่ยนข้อมูลส่วนตัว">
-                    ขอเปลี่ยนข้อมูล
-                  </SelectItem>
-                  <SelectItem value="ขอย้ายออก">ขอย้ายออก</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      {/* ส่วนตารางแสดงข้อมูล */}
+      <div className="overflow-x-auto">
+        <Table>
+          {/* หัวตาราง */}
+          <TableHeader>
+            <TableRow className="bg-gray-50">
+              <TableHead className="text-gray-600 font-medium">ผู้สมัคร</TableHead>
+              <TableHead className="text-gray-600 font-medium">ข้อมูลติดต่อ</TableHead>
+              <TableHead className="text-gray-600 font-medium">บทบาท</TableHead>
+              <TableHead className="text-gray-600 font-medium">บ้านเลขที่</TableHead>
+              <TableHead className="text-gray-600 font-medium">วันที่สมัคร</TableHead>
+              <TableHead className="text-gray-600 font-medium">สถานะ</TableHead>
+              <TableHead className="text-gray-600 font-medium">การดำเนินการ</TableHead>
+            </TableRow>
+          </TableHeader>
+          
+          {/* เนื้อหาตาราง */}
+          <TableBody>
+            {currentUsers.map((user) => (
+              <TableRow key={user.id} className="hover:bg-gray-50">
+                {/* คอลัมน์ผู้สมัคร - แสดง Avatar และชื่อ */}
+                <TableCell>
+                  <div className="flex items-center space-x-3">
+                    {/* Avatar วงกลมที่มีตัวอักษรย่อ */}
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm ${getAvatarColor(
+                        user.id
+                      )}`}
+                    >
+                      {getAvatarInitials(user.fname, user.lname)}
+                    </div>
+                    {/* ชื่อและ username */}
+                    <div>
+                      <div className="font-medium text-gray-900">
+                        {user.fname} {user.lname}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        @{user.username}
+                      </div>
+                    </div>
+                  </div>
+                </TableCell>
+                
+                {/* คอลัมน์ข้อมูลติดต่อ - แสดงอีเมลและเบอร์โทร */}
+                <TableCell>
+                  <div className="space-y-1">
+                    <div className="text-sm text-gray-900">{user.email}</div>
+                    <div className="text-sm text-gray-500">{user.phone}</div>
+                  </div>
+                </TableCell>
+                
+                {/* คอลัมน์บทบาท - แสดง Badge สีตามบทบาท */}
+                <TableCell>
+                  <Badge 
+                    variant="outline" 
+                    className={
+                      user.role === "ยาม" 
+                        ? "border-blue-200 text-blue-700 bg-blue-50" 
+                        : "border-green-200 text-green-700 bg-green-50"
+                    }
+                  >
+                    {user.role}
+                  </Badge>
+                </TableCell>
+                
+                {/* คอลัมน์บ้านเลขที่ */}
+                <TableCell className="text-gray-700">
+                  {user.houseNumber !== "-" ? user.houseNumber : "-"}
+                </TableCell>
+                
+                {/* คอลัมน์วันที่สมัคร - แสดงในรูปแบบภาษาไทย */}
+                <TableCell className="text-gray-600">
+                  {formatDate(user.requestDate)}
+                </TableCell>
+                
+                {/* คอลัมน์สถานะ - แสดง Badge สีส้มพร้อมไอคอนนาฬิกา */}
+                <TableCell>
+                  <Badge className="bg-orange-100 text-orange-800 border-orange-200">
+                    <Clock className="w-3 h-3 mr-1" />
+                    {user.status}
+                  </Badge>
+                </TableCell>
+                
+                {/* คอลัมน์การดำเนินการ - ปุ่มสำหรับเปิดฟอร์มอนุมัติ */}
+                <TableCell>
+                  <Button
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => handleProcess(user)}
+                  >
+                    <Settings className="w-4 h-4 mr-1" />
+                    ดำเนินการ
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
 
-            {/* Items per page selector */}
-            <div className="flex items-center gap-2">
+      {/* ส่วนแสดงเมื่อไม่มีข้อมูล */}
+      {filteredUsers.length === 0 && (
+        <div className="p-12 text-center">
+          <UserPlus className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            {searchTerm ? 'ไม่พบข้อมูลที่ค้นหา' : 'ไม่มีผู้ใช้ใหม่รออนุมัติ'}
+          </h3>
+          <p className="text-gray-500">
+            {searchTerm ? 'ลองค้นหาด้วยคำอื่น' : 'ผู้ใช้ใหม่ที่สมัครเข้ามาจะปรากฏที่นี่'}
+          </p>
+        </div>
+      )}
+
+      {/* ส่วนควบคุมการแบ่งหน้า */}
+      {totalItems > 0 && (
+        <div className="flex items-center justify-between px-6 py-4 border-t bg-gray-50">
+          {/* ส่วนซ้าย - แสดงการตั้งค่าจำนวนรายการต่อหน้าและข้อมูลการแสดงผล */}
+          <div className="flex items-center space-x-4">
+            {/* ตัวเลือกจำนวนรายการต่อหน้า */}
+            <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-600">แสดง</span>
               <Select
                 value={itemsPerPage.toString()}
@@ -436,195 +368,97 @@ export default function ApprovalRequestsTable() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="2">2</SelectItem>
+                  <SelectItem value="3">3</SelectItem>
                   <SelectItem value="5">5</SelectItem>
                   <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
                 </SelectContent>
               </Select>
-              <span className="text-sm text-gray-600">รายการ</span>
+              <span className="text-sm text-gray-600">รายการต่อหน้า</span>
+            </div>
+            
+            {/* แสดงข้อมูลการแบ่งหน้า */}
+            <div className="text-sm text-gray-600">
+              แสดง {startIndex + 1} ถึง {Math.min(endIndex, totalItems)} จาก {totalItems} รายการ
             </div>
           </div>
-        </div>
-
-        {/* Table */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-gray-50">
-                <TableHead className="w-16">ผู้ขออนุมัติ</TableHead>
-                <TableHead>ประเภทคำขอ</TableHead>
-                <TableHead>สถานะ</TableHead>
-                <TableHead>เวลาที่ส่งคำขอ</TableHead>
-                <TableHead className="w-20 text-center">การดำเนินการ</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {currentData.length > 0 ? (
-                currentData.map((request) => (
-                  <TableRow key={request.id} className="hover:bg-gray-50">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={request.avatar} />
-                          <AvatarFallback className="bg-gray-200 text-gray-600">
-                            {request.name.slice(0, 2)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {request.name}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {request.phoneNumber}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {request.requestType}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          บ้านเลขที่ {request.houseNumber}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(request.status)}</TableCell>
-                    <TableCell className="text-sm text-gray-500">
-                      {request.submittedTime}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-center">
-                        {/* ✅ เหลือแค่ DropdownMenu อย่างเดียว */}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">เปิดเมนู</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>การดำเนินการ</DropdownMenuLabel>
-                            <DropdownMenuItem
-                              className="text-green-600"
-                              onClick={() => setApprovingRequestId(request.id)} // ✅ เปิด Approval Form
-                            >
-                              อนุมัติ/ปฏิเสธ
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem>ดูรายละเอียด</DropdownMenuItem>
-                            <DropdownMenuItem>ติดต่อผู้ขอ</DropdownMenuItem>
-                            <DropdownMenuItem>
-                              ส่งอีเมลแจ้งเตือน
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="text-center py-8 text-gray-500"
+          
+          {/* ส่วนขวา - ปุ่มนำทางระหว่างหน้า */}
+          <div className="flex items-center space-x-2">
+            {/* ปุ่มไปหน้าก่อนหน้า */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToPreviousPage}
+              disabled={currentPage === 1}
+              className="flex items-center"
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              ก่อนหน้า
+            </Button>
+            
+            {/* ปุ่มหมายเลขหน้า */}
+            <div className="flex items-center space-x-1">
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                let pageNum;
+                // ตรรกะการแสดงหมายเลขหน้า
+                if (totalPages <= 5) {
+                  // ถ้ามีหน้าไม่เกิน 5 หน้า แสดงทุกหน้า
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  // ถ้าอยู่หน้าแรกๆ แสดงหน้า 1-5
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  // ถ้าอยู่หน้าท้ายๆ แสดงหน้า 5 หน้าสุดท้าย
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  // ถ้าอยู่ตรงกลาง แสดงหน้า 2 หน้าแรกและหลังหน้าปัจจุบัน
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={currentPage === pageNum ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`w-8 h-8 p-0 ${
+                      currentPage === pageNum 
+                        ? "bg-blue-600 text-white" 
+                        : "text-gray-600 hover:bg-gray-100"
+                    }`}
                   >
-                    ไม่พบข้อมูลคำขออนุมัติ
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* ✅ Render ApprovalForm เมื่อกด "อนุมัติ/ปฏิเสธ" */}
-        {approvingRequest && (
-          <ApprovalForm
-            title="พิจารณาคำขออนุมัติ"
-            request={{
-              id: approvingRequest.id,
-              name: approvingRequest.name,
-              avatar: approvingRequest.avatar,
-              requestType: approvingRequest.requestType,
-              houseNumber: approvingRequest.houseNumber,
-              status: approvingRequest.status,
-              submittedTime: approvingRequest.submittedTime,
-              phoneNumber: approvingRequest.phoneNumber,
-              email: approvingRequest.email,
-            }}
-            isOpen={approvingRequestId === approvingRequest.id}
-            onClose={() => setApprovingRequestId(null)}
-            onSave={handleApprovalDecision}
-          />
-        )}
-
-        {/* Footer with Pagination */}
-        <div className="flex items-center justify-between mt-4">
-          <div className="text-sm text-gray-600">
-            แสดง <span className="font-medium">{startIndex + 1}</span> ถึง{" "}
-            <span className="font-medium">
-              {Math.min(endIndex, totalItems)}
-            </span>{" "}
-            จากทั้งหมด <span className="font-medium">{totalItems}</span> รายการ
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+            
+            {/* ปุ่มไปหน้าถัดไป */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              className="flex items-center"
+            >
+              ถัดไป
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
           </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <Pagination>
-              <PaginationContent>
-                {/* Previous button */}
-                <PaginationItem>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="flex items-center gap-1"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    ก่อนหน้า
-                  </Button>
-                </PaginationItem>
-
-                {/* Page numbers */}
-                {getPageNumbers().map((page, index) => (
-                  <PaginationItem key={index}>
-                    {page === "..." ? (
-                      <span className="px-3 py-2 text-gray-500">...</span>
-                    ) : (
-                      <PaginationLink
-                        onClick={() => {
-                          if (typeof page === "number") handlePageChange(page);
-                        }}
-                        isActive={currentPage === page}
-                        className="cursor-pointer"
-                      >
-                        {page}
-                      </PaginationLink>
-                    )}
-                  </PaginationItem>
-                ))}
-
-                {/* Next button */}
-                <PaginationItem>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="flex items-center gap-1"
-                  >
-                    ถัดไป
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          )}
         </div>
-      </div>
+      )}
+
+      {/* ฟอร์มอนุมัติ - แสดงเป็น Dialog */}
+      <ApprovalForm
+        user={selectedUser}
+        isOpen={isApprovalFormOpen}
+        onClose={() => {
+          setIsApprovalFormOpen(false);
+          setSelectedUser(null);
+        }}
+        onSubmit={handleApprovalSubmit}
+      />
     </div>
   );
 }

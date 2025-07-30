@@ -1,28 +1,15 @@
-// ApprovalForm.tsx
 "use client";
 
-import { useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -32,298 +19,205 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Check, X, UserCheck, AlertTriangle } from "lucide-react";
 
-// Form schema สำหรับการอนุมัติ
-const approvalFormSchema = z.object({
-  decision: z.string().min(1, { message: "กรุณาเลือกการตัดสินใจ" }),
-  role: z.string().optional(), // ✅ เปลี่ยนเป็น optional
-  houseNumber: z.string().optional(),
-  note: z.string().optional(),
-}).refine((data) => {
-  // ✅ ถ้าอนุมัติต้องมี role
-  if (data.decision === "approved" && !data.role) {
-    return false;
-  }
-  return true;
-}, {
-  message: "กรุณาเลือกบทบาทเมื่ออนุมัติ",
-  path: ["role"],
-});
+interface PendingUser {
+  id: string;
+  username: string;
+  email: string;
+  fname: string;
+  lname: string;
+  phone: string;
+  role: string;
+  houseNumber: string;
+  requestDate: string;
+  status: string;
+}
 
-type ApprovalFormData = z.infer<typeof approvalFormSchema>;
-
-// Interface สำหรับข้อมูลที่จะส่งกลับ
-interface ApprovalDecisionData {
-  id: number;
-  decision: "approved" | "rejected";
-  role?: string; // ✅ เปลี่ยนเป็น optional
-  houseNumber?: string;
-  note?: string;
+interface ApprovalFormData {
+  approvedRole: string;
+  houseNumber: string;
+  notes: string;
+  approvalReason: string;
 }
 
 interface ApprovalFormProps {
-  title: string;
-  request: {
-    id: number;
-    name: string;
-    avatar: string;
-    requestType: string;
-    houseNumber: string;
-    status: string;
-    submittedTime: string;
-    phoneNumber: string;
-    email?: string;
-  };
+  user: PendingUser | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave?: (approvalData: ApprovalDecisionData) => void;
+  onSubmit: (action: 'approve' | 'reject', formData: ApprovalFormData) => void;
 }
 
-export default function ApprovalForm({
-  title,
-  request,
-  isOpen,
-  onClose,
-  onSave,
-}: ApprovalFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedRole, setSelectedRole] = useState("resident"); // ✅ เพิ่ม state สำหรับ role
-  const [selectedDecision, setSelectedDecision] = useState(""); // ✅ เพิ่ม state สำหรับ decision
-
-  const form = useForm<ApprovalFormData>({
-    resolver: zodResolver(approvalFormSchema),
-    defaultValues: {
-      decision: "",
-      role: "resident", // ✅ ค่าเริ่มต้น
-      houseNumber: request.houseNumber !== "-" ? request.houseNumber : "",
-      note: "",
-    },
+export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: ApprovalFormProps) {
+  const [formData, setFormData] = useState({
+    approvedRole: "",
+    houseNumber: "",
+    notes: "",
+    approvalReason: ""
   });
 
-  // ✅ Fix: แสดงฟิลด์เฉพาะเมื่ออนุมัติ
-  const showRoleAndHouseFields = selectedDecision === "approved";
-  const showHouseNumberField = showRoleAndHouseFields && selectedRole === "resident";
-
-  async function onSubmit(data: ApprovalFormData) {
-    setIsSubmitting(true);
-    
-    try {
-      // ✅ Fix: เพิ่ม role ใน approvalData เฉพาะเมื่ออนุมัติ
-      const approvalData: ApprovalDecisionData = {
-        id: request.id,
-        decision: data.decision as "approved" | "rejected",
-        note: data.note || "",
-      };
-
-      // ✅ เพิ่ม role และ houseNumber เฉพาะเมื่ออนุมัติ
-      if (data.decision === "approved") {
-        approvalData.role = data.role;
-        approvalData.houseNumber = data.houseNumber;
-      }
-
-      if (onSave) {
-        await onSave(approvalData);
-      } else {
-        alert(`${data.decision === "approved" ? "อนุมัติ" : "ปฏิเสธ"}คำขอ ID: ${request.id}\n${JSON.stringify(approvalData, null, 2)}`);
-      }
-      
-      // Reset form และปิด dialog
-      form.reset();
-      onClose();
-    } catch (error) {
-      console.error("Error processing approval:", error);
-      alert("เกิดข้อผิดพลาดในการดำเนินการ");
-    } finally {
-      setIsSubmitting(false);
+  // โหลดข้อมูล user เข้าฟอร์มเมื่อเปิด
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        approvedRole: user.role,
+        houseNumber: user.houseNumber !== "-" ? user.houseNumber : "",
+        notes: "",
+        approvalReason: ""
+      });
     }
-  }
+  }, [user]);
+
+  const handleApprove = () => {
+    onSubmit('approve', formData);
+  };
+
+  const handleReject = () => {
+    onSubmit('reject', formData);
+  };
+
+  if (!user) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader className="relative">
-          <DialogClose asChild></DialogClose>
-          <DialogTitle className="text-lg font-semibold pr-6">
-            {title}
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+            <UserCheck className="h-5 w-5 text-blue-500" />
+            อนุมัติผู้ใช้ใหม่
           </DialogTitle>
-          <DialogDescription className="text-xs text-gray-500">
-            Request ID: {request.id}
-          </DialogDescription>
         </DialogHeader>
 
-        {/* Request Info Section */}
-        <div className="flex items-center gap-3 py-4 border-b">
-          <Avatar className="h-12 w-12">
-            <AvatarImage src={request.avatar} />
-            <AvatarFallback className="bg-gray-200 text-gray-600">
-              {request.name.slice(0, 2)}
-            </AvatarFallback>
-          </Avatar>
+        {/* แสดงข้อมูล User */}
+        <div className="bg-blue-50 p-4 rounded-lg mb-6 border border-blue-200">
+          <h3 className="font-medium text-blue-900 mb-3">ข้อมูลผู้สมัคร</h3>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-blue-700 font-medium">ชื่อ-นามสกุล:</span>
+              <p className="text-blue-900">{user.fname} {user.lname}</p>
+            </div>
+            <div>
+              <span className="text-blue-700 font-medium">Username:</span>
+              <p className="text-blue-900">@{user.username}</p>
+            </div>
+            <div>
+              <span className="text-blue-700 font-medium">อีเมล:</span>
+              <p className="text-blue-900">{user.email}</p>
+            </div>
+            <div>
+              <span className="text-blue-700 font-medium">เบอร์โทร:</span>
+              <p className="text-blue-900">{user.phone}</p>
+            </div>
+            <div>
+              <span className="text-blue-700 font-medium">วันที่สมัคร:</span>
+              <p className="text-blue-900">{new Date(user.requestDate).toLocaleDateString('th-TH')}</p>
+            </div>
+            <div>
+              <span className="text-blue-700 font-medium">บทบาทที่สมัคร:</span>
+              <p className="text-blue-900">{user.role}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {/* บทบาทที่อนุมัติ */}
           <div>
-            <div className="font-medium text-gray-900">{request.name}</div>
-            <div className="text-sm text-gray-500">{request.phoneNumber}</div>
-            {request.email && (
-              <div className="text-sm text-gray-500">{request.email}</div>
-            )}
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              บทบาทที่อนุมัติ
+            </label>
+            <Select
+              value={formData.approvedRole}
+              onValueChange={(value) =>
+                setFormData({ ...formData, approvedRole: value })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="เลือกบทบาท" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ลูกบ้าน">ลูกบ้าน</SelectItem>
+                <SelectItem value="ยาม">ยาม</SelectItem>
+                <SelectItem value="ผู้จัดการ">ผู้จัดการ</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* บ้านเลขที่ */}
+          {formData.approvedRole === "ลูกบ้าน" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                บ้านเลขที่
+              </label>
+              <Input
+                placeholder="เช่น 88/123"
+                value={formData.houseNumber}
+                onChange={(e) =>
+                  setFormData({ ...formData, houseNumber: e.target.value })
+                }
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                กรอกบ้านเลขที่สำหรับลูกบ้าน
+              </p>
+            </div>
+          )}
+
+          {/* หมายเหตุ */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              หมายเหตุ (ไม่บังคับ)
+            </label>
+            <Textarea
+              placeholder="เพิ่มหมายเหตุหรือข้อมูลเพิ่มเติม..."
+              value={formData.notes}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
+              rows={3}
+            />
+          </div>
+
+          {/* เหตุผลการปฏิเสธ (แสดงเมื่อกดปฏิเสธ) */}
+          <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+            <h4 className="font-medium text-red-900 mb-2 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              เหตุผลการปฏิเสธ
+            </h4>
+            <Textarea
+              placeholder="ระบุเหตุผลในการปฏิเสธ..."
+              value={formData.approvalReason}
+              onChange={(e) =>
+                setFormData({ ...formData, approvalReason: e.target.value })
+              }
+              rows={2}
+              className="border-red-300 focus:border-red-500"
+            />
           </div>
         </div>
 
-        {/* Request Details */}
-        <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-          <div className="flex justify-between">
-            <span className="text-sm text-gray-600">ประเภทคำขอ:</span>
-            <span className="text-sm font-medium">{request.requestType}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-gray-600">บ้านเลขที่:</span>
-            <span className="text-sm font-medium">{request.houseNumber}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-gray-600">เวลาที่ส่งคำขอ:</span>
-            <span className="text-sm font-medium">{request.submittedTime}</span>
-          </div>
-        </div>
-
-        {/* Form */}
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* การตัดสินใจ */}
-            <FormField
-              control={form.control}
-              name="decision"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">
-                    การตัดสินใจ
-                  </FormLabel>
-                  <Select 
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      setSelectedDecision(value); // ✅ อัปเดต decision state
-                    }} 
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกการตัดสินใจ" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="approved">อนุมัติ</SelectItem>
-                      <SelectItem value="rejected">ปฏิเสธ</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* ✅ บทบาท - แสดงเฉพาะเมื่ออนุมัติ */}
-            {showRoleAndHouseFields && (
-              <FormField
-                control={form.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-gray-700">
-                      บทบาท
-                    </FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        setSelectedRole(value); // ✅ อัปเดต state
-                      }}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="resident">ผู้อยู่อาศัย</SelectItem>
-                        <SelectItem value="security">รปภ.</SelectItem>
-                        <SelectItem value="admin">ผู้จัดการ</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {/* ✅ บ้านเลขที่ - แสดงเฉพาะเมื่อเลือกผู้อยู่อาศัย */}
-            {showHouseNumberField && (
-              <FormField
-                control={form.control}
-                name="houseNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-gray-700">
-                      บ้านเลขที่
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="88/123"
-                        {...field}
-                        className="placeholder:text-gray-400"
-                      />
-                    </FormControl>
-                    <p className="text-xs text-gray-500">
-                      * ระบุบ้านเลขที่สำหรับผู้อยู่อาศัยใหม่
-                    </p>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {/* หมายเหตุ */}
-            <FormField
-              control={form.control}
-              name="note"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">
-                    หมายเหตุ (ไม่บังคับ)
-                  </FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="เพิ่มหมายเหตุสำหรับการตัดสินใจนี้..."
-                      {...field}
-                      className="placeholder:text-gray-400 min-h-[80px]"
-                    />
-                  </FormControl>
-                  <p className="text-xs text-gray-500">
-                    * หมายเหตุจะถูกส่งให้ผู้ขออนุมัติทราบ
-                  </p>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <DialogFooter className="flex gap-3 pt-6">
-              <DialogClose asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  disabled={isSubmitting}
-                >
-                  ยกเลิก
-                </Button>
-              </DialogClose>
-              <Button
-                type="submit"
-                className="flex-1 bg-cyan-600 hover:bg-cyan-700"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "กำลังดำเนินการ..." : "ยืนยันการตัดสินใจ"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+        <DialogFooter className="flex gap-3 pt-6">
+          <DialogClose asChild>
+            <Button type="button" variant="outline" className="flex-1">
+              ยกเลิก
+            </Button>
+          </DialogClose>
+          <Button
+            type="button"
+            variant="outline"
+            className="flex-1 border-red-300 text-red-700 hover:bg-red-50"
+            onClick={handleReject}
+          >
+            <X className="w-4 h-4 mr-2" />
+            ปฏิเสธ
+          </Button>
+          <Button
+            type="button"
+            className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+            onClick={handleApprove}
+          >
+            <Check className="w-4 h-4 mr-2" />
+            อนุมัติ
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

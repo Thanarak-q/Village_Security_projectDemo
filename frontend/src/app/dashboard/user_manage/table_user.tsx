@@ -1,9 +1,6 @@
-// UserManagementTable.tsx
 "use client";
-
-import { SetStateAction, useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -20,459 +17,574 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-} from "@/components/ui/pagination";
-import { Users, Filter, ChevronLeft, ChevronRight, Edit } from "lucide-react";
-import UserForm from "./userForm";
+import { Edit, Users, Shield, Home, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import UserEditForm from "./userEditForm";
 
-// ✅ เพิ่ม interface สำหรับข้อมูลอัปเดต
-interface UpdateUserData {
-  id: number;
-  status: string;
-  role: string;
-  houseNumber?: string;
-}
-
-// ✅ เพิ่ม interface สำหรับ user data
-interface UserData {
-  id: number;
-  initials: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  houseNumber: string;
-  role: string;
-  roleColor: string;
-  avatarColor: string;
-  status?: string; // ✅ เพิ่ม status field
-}
-
-// ข้อมูลผู้ใช้งาน (เพิ่ม status field)
-const initialUserData: UserData[] = [
+// ข้อมูลจำลอง (Mock Data) สำหรับลูกบ้าน
+// ในระบบจริงข้อมูลนี้จะมาจาก API หรือฐานข้อมูล
+const residentsData = [
   {
-    id: 1,
-    initials: "สม",
-    firstName: "สมชาย",
-    lastName: "ใจดี",
-    email: "somchai@gmail.com",
-    houseNumber: "123/45",
-    role: "ผู้อยู่อาศัย",
-    roleColor: "bg-green-100 text-green-800",
-    avatarColor: "bg-blue-500",
-    status: "active",
+    id: "1",
+    username: "somchai_j",
+    email: "somchai@example.com",
+    fname: "สมชาย",
+    lname: "ใจดี",
+    phone: "081-234-5678",
+    houseNumber: "88/123",
+    status: "ใช้งาน",
+    joinDate: "2023-01-15"
   },
   {
-    id: 2,
-    initials: "สม",
-    firstName: "สมหญิง",
-    lastName: "รักสวย",
-    email: "somying@gmail.com",
-    houseNumber: "123/45",
-    role: "ผู้อยู่อาศัย",
-    roleColor: "bg-green-100 text-green-800",
-    avatarColor: "bg-pink-500",
-    status: "active",
+    id: "2",
+    username: "manee_w",
+    email: "manee@example.com",
+    fname: "มณี",
+    lname: "วงศ์ใหญ่",
+    phone: "082-345-6789",
+    houseNumber: "88/124",
+    status: "ใช้งาน",
+    joinDate: "2023-02-20"
   },
   {
-    id: 3,
-    initials: "ว",
-    firstName: "วิชัย",
-    lastName: "นิมิตร",
-    email: "wichai@gmail.com",
-    houseNumber: "456/78",
-    role: "ผู้อยู่อาศัย",
-    roleColor: "bg-green-100 text-green-800",
-    avatarColor: "bg-purple-500",
-    status: "active",
-  },
-  {
-    id: 4,
-    initials: "ส",
-    firstName: "สุรชัย",
-    lastName: "ฐานสิริ",
-    email: "surachai@gmail.com",
-    houseNumber: "-",
-    role: "รปภ.",
-    roleColor: "bg-blue-100 text-blue-800",
-    avatarColor: "bg-yellow-500",
-    status: "active",
-  },
-  {
-    id: 5,
-    initials: "ปร",
-    firstName: "ประสิทธิ์",
-    lastName: "ปลอดภัย",
-    email: "prasit@gmail.com",
-    houseNumber: "-",
-    role: "รปภ.",
-    roleColor: "bg-blue-100 text-blue-800",
-    avatarColor: "bg-red-500",
-    status: "active",
-  },  {
-    id: 6,
-    initials: "ปร",
-    firstName: "ประสิทธิ์",
-    lastName: "ปลอดภัย",
-    email: "prasit@gmail.com",
-    houseNumber: "-",
-    role: "รปภ.",
-    roleColor: "bg-blue-100 text-blue-800",
-    avatarColor: "bg-red-500",
-    status: "active",
-  },
-
+    id: "3",
+    username: "ratree_p",
+    email: "ratree@example.com",
+    fname: "ราตรี",
+    lname: "เพชรดี",
+    phone: "084-567-8901",
+    houseNumber: "88/125",
+    status: "ไม่ใช้งาน",
+    joinDate: "2023-03-10"
+  }
 ];
 
+// ข้อมูลจำลอง (Mock Data) สำหรับยาม
+// ในระบบจริงข้อมูลนี้จะมาจาก API หรือฐานข้อมูล
+const guardsData = [
+  {
+    id: "4",
+    username: "somsak_g",
+    email: "somsak@example.com",
+    fname: "สมศักดิ์",
+    lname: "เก่งดี",
+    phone: "083-456-7890",
+    shift: "กะเช้า",
+    status: "ใช้งาน",
+    joinDate: "2023-01-01"
+  },
+  {
+    id: "5",
+    username: "pranee_s",
+    email: "pranee@example.com",
+    fname: "ปราณี",
+    lname: "ศรีสุข",
+    phone: "085-678-9012",
+    shift: "กะดึก",
+    status: "ใช้งาน",
+    joinDate: "2023-02-15"
+  }
+];
+
+// Interface สำหรับกำหนดโครงสร้างข้อมูลผู้ใช้
+// รองรับทั้งลูกบ้านและยาม โดยมีฟิลด์ที่แตกต่างกัน
+interface User {
+  id: string;           // รหัสผู้ใช้
+  username: string;     // ชื่อผู้ใช้
+  email: string;        // อีเมล
+  fname: string;        // ชื่อจริง
+  lname: string;        // นามสกุล
+  phone: string;        // เบอร์โทรศัพท์
+  status: string;       // สถานะ (ใช้งาน/ไม่ใช้งาน)
+  joinDate: string;     // วันที่เข้าร่วม
+  houseNumber?: string; // บ้านเลขที่ (เฉพาะลูกบ้าน)
+  shift?: string;       // กะ (เฉพาะยาม)
+}
+
+// ฟังก์ชันหลักสำหรับจัดการตารางผู้ใช้
 export default function UserManagementTable() {
-  // ✅ เปลี่ยนจาก const เป็น state เพื่อให้อัปเดตได้
-  const [userData, setUserData] = useState<UserData[]>(initialUserData);
+  // State สำหรับจัดการแท็บที่เลือก (ลูกบ้านหรือยาม)
+  const [activeTab, setActiveTab] = useState<'residents' | 'guards'>('residents');
+  
+  // State สำหรับจัดการผู้ใช้ที่เลือกเพื่อแก้ไข
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  
+  // State สำหรับควบคุมการแสดง/ซ่อนฟอร์มแก้ไข
+  const [isEditFormOpen, setIsEditFormOpen] = useState(false);
+  
+  // State สำหรับคำค้นหา
   const [searchTerm, setSearchTerm] = useState("");
-  const [roleFilter, setRoleFilter] = useState("ทั้งหมด");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
-  const [editingUserId, setEditingUserId] = useState<number | null>(null);
+  
+  // State สำหรับการแบ่งหน้า (Pagination)
+  const [currentPage, setCurrentPage] = useState(1);        // หน้าปัจจุบัน
+  const [itemsPerPage, setItemsPerPage] = useState(5);      // จำนวนรายการต่อหน้า
 
-  // ✅ function สำหรับอัปเดตข้อมูล user
-  const handleUpdateUser = async (updateData: UpdateUserData) => {
-    try {
-      // ในการใช้งานจริง ควรส่งข้อมูลไป API
-      console.log("Updating user:", updateData);
-      
-      // จำลองการส่งข้อมูลไป API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // อัปเดตข้อมูลใน state
-      setUserData(prevData => 
-        prevData.map(user => {
-          if (user.id === updateData.id) {
-            return {
-              ...user,
-              status: updateData.status,
-              role: updateData.role === "resident" ? "ผู้อยู่อาศัย" : 
-                    updateData.role === "security" ? "รปภ." : 
-                    updateData.role === "admin" ? "ผู้จัดการ" : user.role,
-              houseNumber: updateData.role === "resident" && updateData.houseNumber 
-                          ? updateData.houseNumber 
-                          : updateData.role === "resident" 
-                          ? user.houseNumber 
-                          : "-",
-              // อัปเดต roleColor ตาม role ใหม่
-              roleColor: updateData.role === "resident" ? "bg-green-100 text-green-800" :
-                        updateData.role === "security" ? "bg-blue-100 text-blue-800" :
-                        updateData.role === "admin" ? "bg-purple-100 text-purple-800" :
-                        user.roleColor
-            };
-          }
-          return user;
-        })
-      );
-
-      // แสดงข้อความสำเร็จ
-      alert(`อัปเดตข้อมูลผู้ใช้ ID: ${updateData.id} สำเร็จ!`);
-      
-    } catch (error) {
-      console.error("Error updating user:", error);
-      throw error; // ส่งต่อ error ไปให้ UserForm จัดการ
-    }
+  // ฟังก์ชันสำหรับเปิดฟอร์มแก้ไขเมื่อคลิกปุ่มแก้ไข
+  const handleEdit = (user: User) => {
+    setSelectedUser(user);           // เก็บข้อมูลผู้ใช้ที่เลือก
+    setIsEditFormOpen(true);         // เปิดฟอร์มแก้ไข
   };
 
-  // Filter data based on search and role
-  const filteredData = userData.filter((user) => {
-    const matchesSearch =
-      user.firstName.includes(searchTerm) ||
-      user.lastName.includes(searchTerm) ||
-      user.email.includes(searchTerm);
-    const matchesRole = roleFilter === "ทั้งหมด" || user.role === roleFilter;
-    return matchesSearch && matchesRole;
-  });
+  // ฟังก์ชันสำหรับจัดการการส่งฟอร์มแก้ไข
+  const handleEditSubmit = (formData: Partial<User>) => {
+    console.log("แก้ไขข้อมูล user:", selectedUser?.id, 'with data:', formData);
+    setIsEditFormOpen(false);        // ปิดฟอร์ม
+    setSelectedUser(null);           // ล้างข้อมูลผู้ใช้ที่เลือก
+  };
 
-  // Calculate pagination
-  const totalItems = filteredData.length;
+  // ฟังก์ชันสำหรับสร้างตัวอักษรย่อจากชื่อและนามสกุล (สำหรับ Avatar)
+  const getAvatarInitials = (fname: string, lname: string) => {
+    return `${fname.charAt(0)}${lname.charAt(0)}`.toUpperCase();
+  };
+
+  // ฟังก์ชันสำหรับกำหนดสี Avatar ตาม ID ของผู้ใช้
+  const getAvatarColor = (userId: string) => {
+    const colors = [
+      "bg-blue-500",
+      "bg-green-500",
+      "bg-purple-500",
+      "bg-yellow-500",
+      "bg-red-500",
+      "bg-indigo-500",
+    ];
+    // ใช้ ASCII code ของตัวอักษรแรกของ ID เพื่อเลือกสี
+    const index = userId.charCodeAt(0) % colors.length;
+    return colors[index];
+  };
+
+  // ฟังก์ชันสำหรับจัดรูปแบบวันที่ให้เป็นภาษาไทย
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('th-TH', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // กรองข้อมูลลูกบ้านตามคำค้นหา
+  // ค้นหาได้จากชื่อ, นามสกุล, อีเมล, และบ้านเลขที่
+  const filteredResidents = residentsData.filter(user =>
+    user.fname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.lname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.houseNumber.includes(searchTerm)
+  );
+
+  // กรองข้อมูลยามตามคำค้นหา
+  // ค้นหาได้จากชื่อ, นามสกุล, และอีเมล
+  const filteredGuards = guardsData.filter(user =>
+    user.fname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.lname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // ฟังก์ชันสำหรับดึงข้อมูลลูกบ้านในหน้าปัจจุบัน
+  const getCurrentResidents = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredResidents.slice(startIndex, endIndex);
+  };
+
+  // ฟังก์ชันสำหรับดึงข้อมูลยามในหน้าปัจจุบัน
+  const getCurrentGuards = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredGuards.slice(startIndex, endIndex);
+  };
+
+  // คำนวณข้อมูลสำหรับการแบ่งหน้า
+  const totalItems = activeTab === 'residents' ? filteredResidents.length : filteredGuards.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentData = filteredData.slice(startIndex, endIndex);
 
-  // Reset to first page when filters change
-  const handleSearch = (value: SetStateAction<string>) => {
-    setSearchTerm(value);
+  // Effect สำหรับรีเซ็ตหน้าแรกเมื่อเปลี่ยนแท็บหรือค้นหา
+  useEffect(() => {
     setCurrentPage(1);
-  };
+  }, [activeTab, searchTerm]);
 
-  const handleRoleFilter = (value: SetStateAction<string>) => {
-    setRoleFilter(value);
-    setCurrentPage(1);
-  };
-
-  const handlePageChange = (page: SetStateAction<number>) => {
-    setCurrentPage(page);
-  };
-
-  const handleItemsPerPageChange = (value: string) => {
-    setItemsPerPage(parseInt(value));
-    setCurrentPage(1);
-  };
-
-  // Generate page numbers for pagination
-  const getPageNumbers = () => {
-    const pages = [];
-    const maxVisiblePages = 5;
-
-    if (totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      const startPage = Math.max(1, currentPage - 2);
-      const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-      for (let i = startPage; i <= endPage; i++) {
-        pages.push(i);
-      }
-
-      if (startPage > 1) {
-        pages.unshift("...");
-        pages.unshift(1);
-      }
-
-      if (endPage < totalPages) {
-        pages.push("...");
-        pages.push(totalPages);
-      }
+  // ฟังก์ชันสำหรับไปหน้าถัดไป
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
     }
-
-    return pages;
   };
 
-  // ✅ หา user ที่ถูกเลือกจาก userData ทั้งหมด (ไม่ใช่แค่ currentData)
-  const selectedUser = userData.find(user => user.id === editingUserId);
+  // ฟังก์ชันสำหรับไปหน้าก่อนหน้า
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  // ฟังก์ชันสำหรับเปลี่ยนจำนวนรายการต่อหน้า
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(Number(value));
+    setCurrentPage(1); // รีเซ็ตกลับไปหน้าแรก
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="scroll-m-20 text-2xl font-semibold tracking-tight text-gray-900 mb-6">
-            การจัดการผู้ใช้งาน
-          </h1>
-
-          {/* Search and Filter */}
-          <div className="flex items-center gap-4 mb-6">
-            <div className="flex-1 max-w-md">
-              <Input
-                placeholder="ค้นหาผู้ใช้งาน..."
-                value={searchTerm}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="w-full"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-gray-500" />
-              <span className="text-sm text-gray-600">ตัวกรอง</span>
-              <Select value={roleFilter} onValueChange={handleRoleFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ทั้งหมด">ทั้งหมด</SelectItem>
-                  <SelectItem value="ผู้อยู่อาศัย">ผู้อยู่อาศัย</SelectItem>
-                  <SelectItem value="รปภ.">รปภ.</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Items per page selector */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">แสดง</span>
-              <Select
-                value={itemsPerPage.toString()}
-                onValueChange={handleItemsPerPageChange}
-              >
-                <SelectTrigger className="w-20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                </SelectContent>
-              </Select>
-              <span className="text-sm text-gray-600">รายการ</span>
-            </div>
+    <div className="space-y-6">
+      {/* ส่วนหลักของตาราง */}
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        {/* ส่วนหัวพร้อมแท็บและช่องค้นหา */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          {/* แท็บสำหรับเลือกประเภทผู้ใช้ */}
+          <div className="flex items-center space-x-4">
+            {/* แท็บลูกบ้าน */}
+            <button
+              onClick={() => setActiveTab('residents')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                activeTab === 'residents'
+                  ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <Home className="h-5 w-5" />
+              <span>ลูกบ้าน ({residentsData.length})</span>
+            </button>
+            
+            {/* แท็บยาม */}
+            <button
+              onClick={() => setActiveTab('guards')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                activeTab === 'guards'
+                  ? 'bg-green-100 text-green-700 border border-green-200'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <Shield className="h-5 w-5" />
+              <span>ยาม ({guardsData.length})</span>
+            </button>
+          </div>
+          
+          {/* ช่องค้นหา */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="ค้นหาผู้ใช้..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
           </div>
         </div>
 
-        {/* Table */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-gray-50">
-                <TableHead className="w-16">ชื่อ</TableHead>
-                <TableHead>นามสกุล</TableHead>
-                <TableHead>อีเมล</TableHead>
-                <TableHead>บ้านเลขที่</TableHead>
-                <TableHead>บทบาท</TableHead>
-                <TableHead>สถานะ</TableHead>
-                <TableHead className="w-16">แก้ไข</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {currentData.length > 0 ? (
-                currentData.map((user) => (
+        {/* ตารางลูกบ้าน */}
+        {activeTab === 'residents' && (
+          <div className="overflow-x-auto">
+            <Table>
+              {/* หัวตารางลูกบ้าน */}
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="text-gray-600 font-medium">ผู้ใช้งาน</TableHead>
+                  <TableHead className="text-gray-600 font-medium">ข้อมูลติดต่อ</TableHead>
+                  <TableHead className="text-gray-600 font-medium">บ้านเลขที่</TableHead>
+                  <TableHead className="text-gray-600 font-medium">วันที่เข้าร่วม</TableHead>
+                  <TableHead className="text-gray-600 font-medium">สถานะ</TableHead>
+                  <TableHead className="text-gray-600 font-medium">จัดการ</TableHead>
+                </TableRow>
+              </TableHeader>
+              
+              {/* เนื้อหาตารางลูกบ้าน */}
+              <TableBody>
+                {getCurrentResidents().map((user) => (
                   <TableRow key={user.id} className="hover:bg-gray-50">
+                    {/* คอลัมน์ผู้ใช้งาน - แสดง Avatar และชื่อ */}
                     <TableCell>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center space-x-3">
+                        {/* Avatar วงกลมที่มีตัวอักษรย่อ */}
                         <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${user.avatarColor}`}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm ${getAvatarColor(
+                            user.id
+                          )}`}
                         >
-                          {user.initials}
+                          {getAvatarInitials(user.fname, user.lname)}
                         </div>
-                        <span className="font-medium">{user.firstName}</span>
+                        {/* ชื่อและ username */}
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {user.fname} {user.lname}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            @{user.username}
+                          </div>
+                        </div>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">{user.lastName}</TableCell>
-                    <TableCell className="text-gray-600">{user.email}</TableCell>
-                    <TableCell className="text-gray-600">{user.houseNumber}</TableCell>
+                    
+                    {/* คอลัมน์ข้อมูลติดต่อ - แสดงอีเมลและเบอร์โทร */}
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="text-sm text-gray-900">{user.email}</div>
+                        <div className="text-sm text-gray-500">{user.phone}</div>
+                      </div>
+                    </TableCell>
+                    
+                    {/* คอลัมน์บ้านเลขที่ */}
+                    <TableCell className="text-gray-700 font-medium">
+                      {user.houseNumber}
+                    </TableCell>
+                    
+                    {/* คอลัมน์วันที่เข้าร่วม - แสดงในรูปแบบภาษาไทย */}
+                    <TableCell className="text-gray-600">
+                      {formatDate(user.joinDate)}
+                    </TableCell>
+                    
+                    {/* คอลัมน์สถานะ - แสดง Badge สีตามสถานะ */}
                     <TableCell>
                       <Badge
-                        variant="secondary"
-                        className={`${user.roleColor} font-normal`}
+                        variant={user.status === "ใช้งาน" ? "default" : "secondary"}
+                        className={
+                          user.status === "ใช้งาน"
+                            ? "bg-green-100 text-green-800 hover:bg-green-100"
+                            : "bg-red-100 text-red-800 hover:bg-red-100"
+                        }
                       >
-                        {user.role}
+                        {user.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className={`${
-                          user.status === "active" 
-                            ? "bg-green-100 text-green-800" 
-                            : user.status === "inactive"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        } font-normal`}
-                      >
-                        {user.status === "active" ? "ใช้งาน" :
-                         user.status === "inactive" ? "ไม่ใช้งาน" : "รอการอนุมัติ"}
-                      </Badge>
-                    </TableCell>
+                    
+                    {/* คอลัมน์จัดการ - ปุ่มแก้ไข */}
                     <TableCell>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setEditingUserId(user.id)}
-                        className="h-8 w-8 p-0"
+                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                        onClick={() => handleEdit(user)}
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit className="w-4 h-4" />
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={7} 
-                    className="text-center py-8 text-gray-500"
-                  >
-                    ไม่พบข้อมูลผู้ใช้งาน
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-
-        {selectedUser && (
-          <UserForm
-            title="แก้ไขข้อมูลผู้ใช้"
-            user={{
-              id: selectedUser.id,
-              name: `${selectedUser.firstName} ${selectedUser.lastName}`,
-              firstName: selectedUser.firstName,
-              lastName: selectedUser.lastName,
-              avatarColor: selectedUser.avatarColor,
-              initials: selectedUser.initials,
-              email: selectedUser.email,
-              role: selectedUser.role === "ผู้อยู่อาศัย" ? "resident" : "security",
-              houseNumber: selectedUser.houseNumber,
-            }}
-            isOpen={editingUserId === selectedUser.id}
-            onClose={() => setEditingUserId(null)}
-            onSave={handleUpdateUser}
-          />
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
 
-        {/* Footer with Pagination */}
-        <div className="flex items-center justify-between mt-4">
-          <div className="text-sm text-gray-600">
-            แสดง <span className="font-medium">{startIndex + 1}</span> ถึง{" "}
-            <span className="font-medium">
-              {Math.min(endIndex, totalItems)}
-            </span>{" "}
-            จากทั้งหมด <span className="font-medium">{totalItems}</span> รายการ
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <Pagination>
-              <PaginationContent>
-                {/* Previous button */}
-                <PaginationItem>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="flex items-center gap-1"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    ก่อนหน้า
-                  </Button>
-                </PaginationItem>
-
-                {/* Page numbers */}
-                {getPageNumbers().map((page, index) => (
-                  <PaginationItem key={index}>
-                    {page === "..." ? (
-                      <span className="px-3 py-2 text-gray-500">...</span>
-                    ) : (
-                      <PaginationLink
-                        onClick={() => {
-                          if (typeof page === "number") handlePageChange(page);
-                        }}
-                        isActive={currentPage === page}
-                        className="cursor-pointer"
+        {/* ตารางยาม */}
+        {activeTab === 'guards' && (
+          <div className="overflow-x-auto">
+            <Table>
+              {/* หัวตารางยาม */}
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="text-gray-600 font-medium">ผู้ใช้งาน</TableHead>
+                  <TableHead className="text-gray-600 font-medium">ข้อมูลติดต่อ</TableHead>
+                  <TableHead className="text-gray-600 font-medium">กะ</TableHead>
+                  <TableHead className="text-gray-600 font-medium">วันที่เข้าร่วม</TableHead>
+                  <TableHead className="text-gray-600 font-medium">สถานะ</TableHead>
+                  <TableHead className="text-gray-600 font-medium">จัดการ</TableHead>
+                </TableRow>
+              </TableHeader>
+              
+              {/* เนื้อหาตารางยาม */}
+              <TableBody>
+                {getCurrentGuards().map((user) => (
+                  <TableRow key={user.id} className="hover:bg-gray-50">
+                    {/* คอลัมน์ผู้ใช้งาน - แสดง Avatar และชื่อ */}
+                    <TableCell>
+                      <div className="flex items-center space-x-3">
+                        {/* Avatar วงกลมที่มีตัวอักษรย่อ */}
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm ${getAvatarColor(
+                            user.id
+                          )}`}
+                        >
+                          {getAvatarInitials(user.fname, user.lname)}
+                        </div>
+                        {/* ชื่อและ username */}
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {user.fname} {user.lname}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            @{user.username}
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    
+                    {/* คอลัมน์ข้อมูลติดต่อ - แสดงอีเมลและเบอร์โทร */}
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="text-sm text-gray-900">{user.email}</div>
+                        <div className="text-sm text-gray-500">{user.phone}</div>
+                      </div>
+                    </TableCell>
+                    
+                    {/* คอลัมน์กะ - แสดง Badge สีตามกะ */}
+                    <TableCell>
+                      <Badge 
+                        variant="outline" 
+                        className={
+                          user.shift === "กะเช้า" 
+                            ? "border-blue-200 text-blue-700 bg-blue-50" 
+                            : "border-purple-200 text-purple-700 bg-purple-50"
+                        }
                       >
-                        {page}
-                      </PaginationLink>
-                    )}
-                  </PaginationItem>
+                        {user.shift}
+                      </Badge>
+                    </TableCell>
+                    
+                    {/* คอลัมน์วันที่เข้าร่วม - แสดงในรูปแบบภาษาไทย */}
+                    <TableCell className="text-gray-600">
+                      {formatDate(user.joinDate)}
+                    </TableCell>
+                    
+                    {/* คอลัมน์สถานะ - แสดง Badge สีตามสถานะ */}
+                    <TableCell>
+                      <Badge
+                        variant={user.status === "ใช้งาน" ? "default" : "secondary"}
+                        className={
+                          user.status === "ใช้งาน"
+                            ? "bg-green-100 text-green-800 hover:bg-green-100"
+                            : "bg-red-100 text-red-800 hover:bg-red-100"
+                        }
+                      >
+                        {user.status}
+                      </Badge>
+                    </TableCell>
+                    
+                    {/* คอลัมน์จัดการ - ปุ่มแก้ไข */}
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                        onClick={() => handleEdit(user)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
 
-                {/* Next button */}
-                <PaginationItem>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="flex items-center gap-1"
-                  >
-                    ถัดไป
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          )}
-        </div>
+        {/* ส่วนแสดงเมื่อไม่มีข้อมูล */}
+        {((activeTab === 'residents' && filteredResidents.length === 0) ||
+          (activeTab === 'guards' && filteredGuards.length === 0)) && (
+          <div className="p-12 text-center">
+            <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              ไม่พบข้อมูลผู้ใช้
+            </h3>
+            <p className="text-gray-500">
+              {searchTerm ? 'ลองค้นหาด้วยคำอื่น' : 'ยังไม่มีข้อมูลผู้ใช้ในหมวดหมู่นี้'}
+            </p>
+          </div>
+        )}
+
+        {/* ส่วนควบคุมการแบ่งหน้า */}
+        {totalItems > 0 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t bg-gray-50">
+            {/* ส่วนซ้าย - แสดงการตั้งค่าจำนวนรายการต่อหน้าและข้อมูลการแสดงผล */}
+            <div className="flex items-center space-x-4">
+              {/* ตัวเลือกจำนวนรายการต่อหน้า */}
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600">แสดง</span>
+                <Select
+                  value={itemsPerPage.toString()}
+                  onValueChange={handleItemsPerPageChange}
+                >
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3">3</SelectItem>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-gray-600">รายการต่อหน้า</span>
+              </div>
+              
+              {/* แสดงข้อมูลการแบ่งหน้า */}
+              <div className="text-sm text-gray-600">
+                แสดง {((currentPage - 1) * itemsPerPage) + 1} ถึง {Math.min(currentPage * itemsPerPage, totalItems)} จาก {totalItems} รายการ
+              </div>
+            </div>
+            
+            {/* ส่วนขวา - ปุ่มนำทางระหว่างหน้า */}
+            <div className="flex items-center space-x-2">
+              {/* ปุ่มไปหน้าก่อนหน้า */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+                className="flex items-center"
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                ก่อนหน้า
+              </Button>
+              
+              {/* ปุ่มหมายเลขหน้า */}
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  let pageNum;
+                  // ตรรกะการแสดงหมายเลขหน้า
+                  if (totalPages <= 5) {
+                    // ถ้ามีหน้าไม่เกิน 5 หน้า แสดงทุกหน้า
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    // ถ้าอยู่หน้าแรกๆ แสดงหน้า 1-5
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    // ถ้าอยู่หน้าท้ายๆ แสดงหน้า 5 หน้าสุดท้าย
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    // ถ้าอยู่ตรงกลาง แสดงหน้า 2 หน้าแรกและหลังหน้าปัจจุบัน
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`w-8 h-8 p-0 ${
+                        currentPage === pageNum 
+                          ? "bg-blue-600 text-white" 
+                          : "text-gray-600 hover:bg-gray-100"
+                      }`}
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+              
+              {/* ปุ่มไปหน้าถัดไป */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+                className="flex items-center"
+              >
+                ถัดไป
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* ฟอร์มแก้ไขผู้ใช้ - แสดงเป็น Dialog */}
+      <UserEditForm
+        user={selectedUser}
+        isOpen={isEditFormOpen}
+        onClose={() => {
+          setIsEditFormOpen(false);
+          setSelectedUser(null);
+        }}
+        onSubmit={handleEditSubmit}
+      />
     </div>
   );
 }

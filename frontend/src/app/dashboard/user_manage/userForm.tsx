@@ -1,28 +1,14 @@
-// userForm.tsx
 "use client";
-
-import { useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -32,243 +18,160 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Form schema
-const formSchema = z.object({
-  status: z.string().min(1, { message: "กรุณาเลือกสถานะ" }),
-  role: z.string().min(1, { message: "กรุณาเลือกบทบาท" }),
-  houseNumber: z.string().optional(),
-});
-
-type FormData = z.infer<typeof formSchema>;
-
-// ✅ เพิ่ม interface สำหรับข้อมูลที่จะส่งกลับ
-interface UpdateUserData {
-  id: number;
+interface User {
+  user_id: string;
+  username: string;
+  email: string;
+  fname: string;
+  lname: string;
+  phone: string;
+  role_id: string;
   status: string;
-  role: string;
-  houseNumber?: string;
 }
 
 interface UserFormProps {
-  title: string;
-  user: {
-    id: number;
-    name: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    houseNumber: string;
-    role: string;
-    initials: string;
-    avatarColor: string;
-  };
+  user: User | null;
   isOpen: boolean;
   onClose: () => void;
-  // ✅ เพิ่ม callback สำหรับส่งข้อมูลกลับ
-  onSave?: (userData: UpdateUserData) => void;
 }
 
-export default function UserForm({
-  title,
-  user,
-  isOpen,
-  onClose,
-  onSave, // ✅ รับ callback function
-}: UserFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Set initial role based on user data
-  const getInitialRole = (role: string) => {
-    switch (role) {
-      case "ผู้อยู่อาศัย":
-        return "resident";
-      case "รปภ.":
-        return "security";
-      case "ผู้จัดการ":
-        return "admin";
-      default:
-        return "resident";
-    }
-  };
-
-  const [selectedRole, setSelectedRole] = useState(getInitialRole(user.role));
-
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      status: "active",
-      role: getInitialRole(user.role),
-      houseNumber: user.houseNumber !== "-" ? user.houseNumber : "",
-    },
+export default function UserForm({ user, isOpen, onClose }: UserFormProps) {
+  const [formData, setFormData] = useState({
+    status: "",
+    role: "",
+    houseNumber: "",
   });
 
-  // ✅ ปรับปรุง onSubmit function
-  async function onSubmit(data: FormData) {
-    setIsSubmitting(true);
-    
-    try {
-      // สร้างข้อมูลที่จะส่งกลับ
-      const updateData: UpdateUserData = {
-        id: user.id, // ✅ ส่ง id ไปด้วย
-        status: data.status,
-        role: data.role,
-        houseNumber: data.houseNumber || "",
-      };
+  console.log("UserForm props:", { user, isOpen });
 
-      // ✅ เรียก callback function หากมี
-      if (onSave) {
-        await onSave(updateData);
-      } else {
-        // fallback: แสดง alert พร้อม id
-        alert(`บันทึกข้อมูลผู้ใช้งาน ID: ${user.id}\n${JSON.stringify(updateData, null, 2)}`);
-      }
-      
-      onClose(); // ปิด dialog หลังบันทึกสำเร็จ
-    } catch (error) {
-      console.error("Error saving user data:", error);
-      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
-    } finally {
-      setIsSubmitting(false);
+  // ใช้ useEffect ที่มี dependency ที่ถูกต้อง
+  useEffect(() => {
+    if (user && isOpen) {
+      console.log("Loading user data:", user);
+      setFormData({
+        status: user.status || "",
+        role: user.role_id || "",
+        houseNumber: "",
+      });
     }
-  }
+  }, [user?.user_id, isOpen]); // dependency ที่ถูกต้อง
 
-  const showHouseNumberField = selectedRole === "resident";
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("Form Data:", formData);
+    console.log("User ID:", user?.user_id);
+    
+    // ปิดฟอร์มหลังบันทึก
+    onClose();
+  };
+
+  // ป้องกันการ render ถ้าไม่มี user หรือปิดอยู่
+  if (!user || !isOpen) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader className="relative">
-          <DialogClose asChild></DialogClose>
-          <DialogTitle className="text-lg font-semibold pr-6">
-            {title}
+        <DialogHeader>
+          <DialogTitle className="text-lg font-semibold">
+            แก้ไขข้อมูลผู้ใช้
           </DialogTitle>
-          {/* ✅ แสดง user ID สำหรับ debug */}
-          <DialogDescription className="text-xs text-gray-500">
-            User ID: {user.id}
-          </DialogDescription>
         </DialogHeader>
 
-        {/* User Info Section */}
-        <div className="flex items-center gap-3 py-4 border-b">
-          <div
-            className={`w-12 h-12 rounded-full ${user.avatarColor} flex items-center justify-center text-white text-lg font-medium`}
-          >
-            {user.initials}
-          </div>
-          <div>
-            <div className="font-medium text-gray-900">{user.name}</div>
-            <div className="text-sm text-gray-500">{user.email}</div>
+        {/* แสดงข้อมูล User */}
+        <div className="bg-gray-50 p-3 rounded-lg mb-4">
+          <div className="text-sm space-y-1">
+            <div>
+              <strong>ชื่อ:</strong> {user.fname} {user.lname}
+            </div>
+            <div>
+              <strong>Username:</strong> {user.username}
+            </div>
+            <div>
+              <strong>Email:</strong> {user.email}
+            </div>
+            <div>
+              <strong>ID:</strong> {user.user_id}
+            </div>
           </div>
         </div>
 
-        {/* Form */}
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* สถานะ */}
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">
-                    สถานะ
-                  </FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกสถานะ" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="active">ใช้งาน</SelectItem>
-                      <SelectItem value="inactive">ไม่ใช้งาน</SelectItem>
-                      <SelectItem value="pending">รอการอนุมัติ</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* สถานะ */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              สถานะ
+            </label>
+            <Select
+              value={formData.status}
+              onValueChange={(value) =>
+                setFormData(prev => ({ ...prev, status: value }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="เลือกสถานะ" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="verified">ยืนยันแล้ว</SelectItem>
+                <SelectItem value="disabled">ปิดใช้งาน</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            {/* บทบาท */}
-            <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">
-                    บทบาท
-                  </FormLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      setSelectedRole(value);
-                    }}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="resident">ผู้อยู่อาศัย</SelectItem>
-                      <SelectItem value="security">รปภ.</SelectItem>
-                      <SelectItem value="admin">ผู้จัดการ</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          {/* บทบาท */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              บทบาท
+            </label>
+            <Select
+              value={formData.role}
+              onValueChange={(value) =>
+                setFormData(prev => ({ ...prev, role: value }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="เลือกบทบาท" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="resident">ลูกบ้าน</SelectItem>
+                <SelectItem value="security">ยาม</SelectItem>
+                <SelectItem value="admin">นิติ</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            {/* บ้านเลขที่ - แสดงเฉพาะเมื่อเลือกผู้อยู่อาศัย */}
-            {showHouseNumberField && (
-              <FormField
-                control={form.control}
-                name="houseNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-gray-700">
-                      บ้านเลขที่
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="88/123"
-                        {...field}
-                        className="placeholder:text-gray-400"
-                      />
-                    </FormControl>
-                    <p className="text-xs text-gray-500">
-                      * ระบบจะอัปเดตข้อมูลอัตโนมัติหลังจากยืนยัน
-                    </p>
-                    <FormMessage />
-                  </FormItem>
-                )}
+          {/* บ้านเลขที่ */}
+          {formData.role === "resident" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                บ้านเลขที่
+              </label>
+              <Input
+                placeholder="เช่น 88/123"
+                value={formData.houseNumber}
+                onChange={(e) =>
+                  setFormData(prev => ({ ...prev, houseNumber: e.target.value }))
+                }
               />
-            )}
+              <p className="text-xs text-gray-500 mt-1">
+                กรอกเฉพาะเมื่อเลือกบทบาท ลูกบ้าน
+              </p>
+            </div>
+          )}
 
-            <DialogFooter className="flex gap-3 pt-6">
-              <DialogClose asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  disabled={isSubmitting}
-                >
-                  ยกเลิก
-                </Button>
-              </DialogClose>
-              <Button
-                type="submit"
-                className="flex-1 bg-cyan-600 hover:bg-cyan-700"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
+          <DialogFooter className="flex gap-3 pt-6">
+            <DialogClose asChild>
+              <Button type="button" variant="outline" className="flex-1">
+                ยกเลิก
               </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+            </DialogClose>
+            <Button
+              type="submit"
+              className="flex-1 bg-blue-600 hover:bg-blue-700"
+            >
+              บันทึก
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

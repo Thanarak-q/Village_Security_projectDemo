@@ -51,7 +51,7 @@ const seedUsers = [
     lname: "โพธิ์ทอง",
     phone: "0868887777",
     password_hash: "hashedpassword2",
-    status: "pending" as const,
+    status: "verified" as const,
     village_key: "1e43c08b-7aaf-41f4-a99e-3a450c21f3a9",
   },
   {
