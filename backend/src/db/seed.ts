@@ -1,215 +1,270 @@
 import db from "./drizzle";
-import { eq } from "drizzle-orm";
-import {
-  roles,
-  villages,
-  houses,
-  users,
-  residents,
-  guards,
-  admins,
-  house_members,
-  visitor_records,
-} from "./schema";
+import { villages, houses } from "./schema";
 
-const seedRoles = [
-  { role_name: "resident" },
-  { role_name: "guard" },
-  { role_name: "admin" },
+const villageData = [
+  {
+    village_name: "หมู่บ้านผาสุก",
+    village_key: "pha-suk-village-001"
+  },
+  {
+    village_name: "หมู่บ้านสุขสันต์",
+    village_key: "suk-san-village-002"
+  },
+  {
+    village_name: "หมู่บ้านร่มเย็น",
+    village_key: "rom-yen-village-003"
+  },
+  {
+    village_name: "หมู่บ้านสวนทอง",
+    village_key: "suan-thong-village-004"
+  },
+  {
+    village_name: "หมู่บ้านลุมพินี",
+    village_key: "lumphini-village-005"
+  },
+  {
+    village_name: "หมู่บ้านรัตนา",
+    village_key: "rattana-village-006"
+  },
+  {
+    village_name: "หมู่บ้านศรีสุข",
+    village_key: "sri-suk-village-007"
+  },
+  {
+    village_name: "หมู่บ้านธนารมย์",
+    village_key: "thanarom-village-008"
+  },
+  {
+    village_name: "หมู่บ้านสวนสวรรค์",
+    village_key: "suan-sawan-village-009"
+  },
+  {
+    village_name: "หมู่บ้านสุขุมวิท",
+    village_key: "sukhumvit-village-010"
+  },
+  {
+    village_name: "หมู่บ้านรัชดา",
+    village_key: "ratchada-village-011"
+  },
+  {
+    village_name: "หมู่บ้านลาดพร้าว",
+    village_key: "ladprao-village-012"
+  },
+  {
+    village_name: "หมู่บ้านบางนา",
+    village_key: "bangna-village-013"
+  },
+  {
+    village_name: "หมู่บ้านอโศก",
+    village_key: "asoke-village-014"
+  },
+  {
+    village_name: "หมู่บ้านทองหล่อ",
+    village_key: "thonglor-village-015"
+  }
 ];
 
-const seedVillages = [
+const houseData = [
+  // หมู่บ้านผาสุก
   {
-    village_name: "Pee Sing Village",
-    village_key: "f34e5d7a-3f64-4d63-9b29-1ef0e67a0a11",
+    address: "123/45 หมู่บ้านผาสุก ซอย 1 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110",
+    village_key: "pha-suk-village-001"
   },
   {
-    village_name: "Village 2",
-    village_key: "1e43c08b-7aaf-41f4-a99e-3a450c21f3a9",
+    address: "67/89 หมู่บ้านผาสุก ซอย 2 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110",
+    village_key: "pha-suk-village-001"
   },
+  {
+    address: "12/34 หมู่บ้านผาสุก ซอย 3 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110",
+    village_key: "pha-suk-village-001"
+  },
+
+  // หมู่บ้านสุขสันต์
+  {
+    address: "456/78 หมู่บ้านสุขสันต์ ซอยสุขสันต์ 1 ถนนลาดพร้าว แขวงจอมพล เขตจตุจักร กรุงเทพฯ 10900",
+    village_key: "suk-san-village-002"
+  },
+  {
+    address: "90/12 หมู่บ้านสุขสันต์ ซอยสุขสันต์ 2 ถนนลาดพร้าว แขวงจอมพล เขตจตุจักร กรุงเทพฯ 10900",
+    village_key: "suk-san-village-002"
+  },
+
+  // หมู่บ้านร่มเย็น
+  {
+    address: "789/01 หมู่บ้านร่มเย็น ซอยร่มเย็น 1 ถนนรัชดาภิเษก แขวงดินแดง เขตดินแดง กรุงเทพฯ 10400",
+    village_key: "rom-yen-village-003"
+  },
+  {
+    address: "23/45 หมู่บ้านร่มเย็น ซอยร่มเย็น 2 ถนนรัชดาภิเษก แขวงดินแดง เขตดินแดง กรุงเทพฯ 10400",
+    village_key: "rom-yen-village-003"
+  },
+  {
+    address: "67/89 หมู่บ้านร่มเย็น ซอยร่มเย็น 3 ถนนรัชดาภิเษก แขวงดินแดง เขตดินแดง กรุงเทพฯ 10400",
+    village_key: "rom-yen-village-003"
+  },
+
+  // หมู่บ้านสวนทอง
+  {
+    address: "234/56 หมู่บ้านสวนทอง ซอยสวนทอง 1 ถนนบางนา-ตราด แขวงบางนาใต้ เขตบางนา กรุงเทพฯ 10260",
+    village_key: "suan-thong-village-004"
+  },
+  {
+    address: "78/90 หมู่บ้านสวนทอง ซอยสวนทอง 2 ถนนบางนา-ตราด แขวงบางนาใต้ เขตบางนา กรุงเทพฯ 10260",
+    village_key: "suan-thong-village-004"
+  },
+
+  // หมู่บ้านลุมพินี
+  {
+    address: "345/67 หมู่บ้านลุมพินี ซอยลุมพินี 1 ถนนวิทยุ แขวงลุมพินี เขตปทุมวัน กรุงเทพฯ 10330",
+    village_key: "lumphini-village-005"
+  },
+  {
+    address: "89/01 หมู่บ้านลุมพินี ซอยลุมพินี 2 ถนนวิทยุ แขวงลุมพินี เขตปทุมวัน กรุงเทพฯ 10330",
+    village_key: "lumphini-village-005"
+  },
+  {
+    address: "12/34 หมู่บ้านลุมพินี ซอยลุมพินี 3 ถนนวิทยุ แขวงลุมพินี เขตปทุมวัน กรุงเทพฯ 10330",
+    village_key: "lumphini-village-005"
+  },
+
+  // หมู่บ้านรัตนา
+  {
+    address: "456/78 หมู่บ้านรัตนา ซอยรัตนา 1 ถนนพระราม 9 แขวงห้วยขวาง เขตห้วยขวาง กรุงเทพฯ 10310",
+    village_key: "rattana-village-006"
+  },
+  {
+    address: "90/12 หมู่บ้านรัตนา ซอยรัตนา 2 ถนนพระราม 9 แขวงห้วยขวาง เขตห้วยขวาง กรุงเทพฯ 10310",
+    village_key: "rattana-village-006"
+  },
+
+  // หมู่บ้านศรีสุข
+  {
+    address: "567/89 หมู่บ้านศรีสุข ซอยศรีสุข 1 ถนนศรีนครินทร์ แขวงสวนหลวง เขตสวนหลวง กรุงเทพฯ 10250",
+    village_key: "sri-suk-village-007"
+  },
+  {
+    address: "01/23 หมู่บ้านศรีสุข ซอยศรีสุข 2 ถนนศรีนครินทร์ แขวงสวนหลวง เขตสวนหลวง กรุงเทพฯ 10250",
+    village_key: "sri-suk-village-007"
+  },
+  {
+    address: "45/67 หมู่บ้านศรีสุข ซอยศรีสุข 3 ถนนศรีนครินทร์ แขวงสวนหลวง เขตสวนหลวง กรุงเทพฯ 10250",
+    village_key: "sri-suk-village-007"
+  },
+
+  // หมู่บ้านธนารมย์
+  {
+    address: "678/90 หมู่บ้านธนารมย์ ซอยธนารมย์ 1 ถนนอโศก-ดินแดง แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110",
+    village_key: "thanarom-village-008"
+  },
+  {
+    address: "12/34 หมู่บ้านธนารมย์ ซอยธนารมย์ 2 ถนนอโศก-ดินแดง แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110",
+    village_key: "thanarom-village-008"
+  },
+
+  // หมู่บ้านสวนสวรรค์
+  {
+    address: "789/01 หมู่บ้านสวนสวรรค์ ซอยสวนสวรรค์ 1 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110",
+    village_key: "suan-sawan-village-009"
+  },
+  {
+    address: "23/45 หมู่บ้านสวนสวรรค์ ซอยสวนสวรรค์ 2 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110",
+    village_key: "suan-sawan-village-009"
+  },
+  {
+    address: "67/89 หมู่บ้านสวนสวรรค์ ซอยสวนสวรรค์ 3 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110",
+    village_key: "suan-sawan-village-009"
+  },
+
+  // หมู่บ้านสุขุมวิท
+  {
+    address: "890/12 หมู่บ้านสุขุมวิท ซอยสุขุมวิท 1 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110",
+    village_key: "sukhumvit-village-010"
+  },
+  {
+    address: "34/56 หมู่บ้านสุขุมวิท ซอยสุขุมวิท 2 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110",
+    village_key: "sukhumvit-village-010"
+  },
+
+  // หมู่บ้านรัชดา
+  {
+    address: "901/23 หมู่บ้านรัชดา ซอยรัชดา 1 ถนนรัชดาภิเษก แขวงดินแดง เขตดินแดง กรุงเทพฯ 10400",
+    village_key: "ratchada-village-011"
+  },
+  {
+    address: "45/67 หมู่บ้านรัชดา ซอยรัชดา 2 ถนนรัชดาภิเษก แขวงดินแดง เขตดินแดง กรุงเทพฯ 10400",
+    village_key: "ratchada-village-011"
+  },
+  {
+    address: "89/01 หมู่บ้านรัชดา ซอยรัชดา 3 ถนนรัชดาภิเษก แขวงดินแดง เขตดินแดง กรุงเทพฯ 10400",
+    village_key: "ratchada-village-011"
+  },
+
+  // หมู่บ้านลาดพร้าว
+  {
+    address: "012/34 หมู่บ้านลาดพร้าว ซอยลาดพร้าว 1 ถนนลาดพร้าว แขวงจอมพล เขตจตุจักร กรุงเทพฯ 10900",
+    village_key: "ladprao-village-012"
+  },
+  {
+    address: "56/78 หมู่บ้านลาดพร้าว ซอยลาดพร้าว 2 ถนนลาดพร้าว แขวงจอมพล เขตจตุจักร กรุงเทพฯ 10900",
+    village_key: "ladprao-village-012"
+  },
+
+  // หมู่บ้านบางนา
+  {
+    address: "123/45 หมู่บ้านบางนา ซอยบางนา 1 ถนนบางนา-ตราด แขวงบางนาใต้ เขตบางนา กรุงเทพฯ 10260",
+    village_key: "bangna-village-013"
+  },
+  {
+    address: "67/89 หมู่บ้านบางนา ซอยบางนา 2 ถนนบางนา-ตราด แขวงบางนาใต้ เขตบางนา กรุงเทพฯ 10260",
+    village_key: "bangna-village-013"
+  },
+  {
+    address: "01/23 หมู่บ้านบางนา ซอยบางนา 3 ถนนบางนา-ตราด แขวงบางนาใต้ เขตบางนา กรุงเทพฯ 10260",
+    village_key: "bangna-village-013"
+  },
+
+  // หมู่บ้านอโศก
+  {
+    address: "234/56 หมู่บ้านอโศก ซอยอโศก 1 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110",
+    village_key: "asoke-village-014"
+  },
+  {
+    address: "78/90 หมู่บ้านอโศก ซอยอโศก 2 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110",
+    village_key: "asoke-village-014"
+  },
+
+  // หมู่บ้านทองหล่อ
+  {
+    address: "345/67 หมู่บ้านทองหล่อ ซอยทองหล่อ 1 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110",
+    village_key: "thonglor-village-015"
+  },
+  {
+    address: "89/01 หมู่บ้านทองหล่อ ซอยทองหล่อ 2 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110",
+    village_key: "thonglor-village-015"
+  },
+  {
+    address: "12/34 หมู่บ้านทองหล่อ ซอยทองหล่อ 3 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110",
+    village_key: "thonglor-village-015"
+  }
 ];
 
-const seedHouses = [
-  { address: "65/1", village_key: "f34e5d7a-3f64-4d63-9b29-1ef0e67a0a11" },
-];
-
-const seedUsers = [
-  {
-    username: "chaiwet",
-    email: "chaiwet@example.com",
-    fname: "ชัยเวทย์",
-    lname: "มหานิล",
-    phone: "0891234567",
-    password_hash: "hashedpassword1",
-    status: "verified" as const,
-    village_key: "f34e5d7a-3f64-4d63-9b29-1ef0e67a0a11",
-  },
-  {
-    username: "sopa",
-    email: "sopa@example.com",
-    fname: "โสภา",
-    lname: "โพธิ์ทอง",
-    phone: "0868887777",
-    password_hash: "hashedpassword2",
-    status: "pending" as const,
-    village_key: "1e43c08b-7aaf-41f4-a99e-3a450c21f3a9",
-  },
-  {
-    username: "kanokwan",
-    email: "kanokwan@example.com",
-    fname: "กนกวรรณ",
-    lname: "ศรีจันทร์",
-    phone: "0817654321",
-    password_hash: "hashedpassword3",
-    status: "verified" as const,
-    village_key: "f34e5d7a-3f64-4d63-9b29-1ef0e67a0a11",
-  },
-];
-
-async function clearTables() {
-  await db.delete(visitor_records).execute();
-  await db.delete(house_members).execute();
-  await db.delete(admins).execute();
-  await db.delete(guards).execute();
-  await db.delete(residents).execute();
-  await db.delete(users).execute();
-  await db.delete(houses).execute();
-  await db.delete(villages).execute();
-  await db.delete(roles).execute();
+export async function clearDb() {
+  // Check if villages or houses exist before deleting
+  const existingVillages = await db.select().from(villages).limit(1);
+  if (existingVillages.length > 0) {
+    await db.delete(villages);
+  }
+  const existingHouses = await db.select().from(houses).limit(1);
+  if (existingHouses.length > 0) {
+    await db.delete(houses);
+  }
 }
 
 async function seed() {
-  await clearTables();
-
-  // Insert roles
-  await db.insert(roles).values(seedRoles).execute();
-
-  // Fetch roles
-  const residentRole = (
-    await db
-      .select()
-      .from(roles)
-      .where(eq(roles.role_name, "resident"))
-      .execute()
-  )[0];
-  const guardRole = (
-    await db.select().from(roles).where(eq(roles.role_name, "guard")).execute()
-  )[0];
-  const adminRole = (
-    await db.select().from(roles).where(eq(roles.role_name, "admin")).execute()
-  )[0];
-
-  // Insert villages
-  await db.insert(villages).values(seedVillages).execute();
-
-  // Insert houses
-  await db.insert(houses).values(seedHouses).execute();
-
-  // Insert users with role_id from roles
-  for (const user of seedUsers) {
-    let roleId =
-      user.username === "chaiwet"
-        ? residentRole?.role_id
-        : user.username === "sopa"
-        ? guardRole?.role_id
-        : adminRole?.role_id;
-
-    await db
-      .insert(users)
-      .values({
-        ...user,
-        role_id: roleId!,
-      })
-      .execute();
-  }
-
-  // Fetch users
-  const chaiwetUser = (
-    await db.select().from(users).where(eq(users.username, "chaiwet")).execute()
-  )[0];
-  const sopaUser = (
-    await db.select().from(users).where(eq(users.username, "sopa")).execute()
-  )[0];
-  const kanokwanUser = (
-    await db
-      .select()
-      .from(users)
-      .where(eq(users.username, "kanokwan"))
-      .execute()
-  )[0];
-
-  // Insert residents, guards, admins
-  await db
-    .insert(residents)
-    .values([{ user_id: chaiwetUser.user_id }])
-    .execute();
-  await db
-    .insert(guards)
-    .values([{ user_id: sopaUser.user_id }])
-    .execute();
-  await db
-    .insert(admins)
-    .values([{ user_id: kanokwanUser.user_id }])
-    .execute();
-
-  // Fetch resident, guard, house for FKs
-  const resident = (
-    await db
-      .select()
-      .from(residents)
-      .where(eq(residents.user_id, chaiwetUser.user_id))
-      .execute()
-  )[0];
-  const guard = (
-    await db
-      .select()
-      .from(guards)
-      .where(eq(guards.user_id, sopaUser.user_id))
-      .execute()
-  )[0];
-  const house = (
-    await db.select().from(houses).where(eq(houses.address, "65/1")).execute()
-  )[0];
-
-  // Insert house_members
-  await db
-    .insert(house_members)
-    .values([
-      {
-        house_id: house.house_id,
-        resident_id: resident.resident_id,
-      },
-    ])
-    .execute();
-
-  // Insert visitor_records
-  await db
-    .insert(visitor_records)
-    .values([
-      {
-        resident_id: resident.resident_id,
-        guard_id: guard.guard_id,
-        house_id: house.house_id,
-        picture_key: "visitor-001.png",
-        license_plate: "กข 1234 เชียงใหม่",
-        entry_time: new Date("2024-07-23T08:00:00Z"),
-        record_status: "approved",
-        visit_purpose: "เยี่ยมญาติ",
-      },
-      {
-        resident_id: resident.resident_id,
-        guard_id: guard.guard_id,
-        house_id: house.house_id,
-        picture_key: "visitor-002.png",
-        license_plate: "ขย 2222 เชียงใหม่",
-        entry_time: new Date("2024-07-24T09:30:00Z"),
-        record_status: "pending",
-        visit_purpose: "จัดส่งของ",
-      },
-    ])
-    .execute();
-
-  console.log("✅ Seeding complete");
+  await clearDb();
+  await db.insert(villages).values(villageData);
+  await db.insert(houses).values(houseData);
 }
 
+// Run the seeding
 seed().catch(console.error);
