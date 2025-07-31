@@ -137,16 +137,16 @@ export default function WeeklyAccessBarChart() {
     <Card>
       <CardHeader>
         <div>
-          <CardTitle className="grid grid-cols-2 items-center">
+          <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-blue-500" />
-              สถิติการเข้า/ออก
+              <span className="text-base sm:text-lg">สถิติการเข้า/ออก</span>
             </div>
             
-            <div className="flex items-center gap-2 justify-self-end">
-              <span className="text-sm text-gray-500">ช่วงเวลา:</span>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <span className="text-xs sm:text-sm text-gray-500">ช่วงเวลา:</span>
               <Select value={selectedPeriod} onValueChange={handlePeriodChange}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-24 sm:w-32 text-xs sm:text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -158,34 +158,36 @@ export default function WeeklyAccessBarChart() {
             </div>
           </CardTitle>
           
-          <CardDescription className="flex items-center gap-1 mt-2">
-            <Calendar className="h-4 w-4" />
+          <CardDescription className="flex items-center gap-1 mt-2 text-xs sm:text-sm">
+            <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
             {getPeriodText()}
           </CardDescription>
         </div>
         
         {/* Stats Summary */}
-        <div className="flex items-center gap-4 pt-4">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
-            <span className="text-sm text-gray-600">เข้า: {totalEntry.toLocaleString()} คน</span>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 pt-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+              <span className="text-xs sm:text-sm text-gray-600">เข้า: {totalEntry.toLocaleString()} คน</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-green-600 rounded-full"></div>
+              <span className="text-xs sm:text-sm text-gray-600">ออก: {totalExit.toLocaleString()} คน</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+              <span className="text-xs sm:text-sm text-gray-600">รวม: {(totalEntry + totalExit).toLocaleString()} คน</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-600 rounded-full"></div>
-            <span className="text-sm text-gray-600">ออก: {totalExit.toLocaleString()} คน</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
-            <span className="text-sm text-gray-600">รวม: {(totalEntry + totalExit).toLocaleString()} คน</span>
-          </div>
-          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs sm:text-sm w-fit">
             {getAverageText()}
           </Badge>
         </div>
       </CardHeader>
       
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-[350px] w-full">
+        <ChartContainer config={chartConfig} className="h-[250px] sm:h-[300px] lg:h-[350px] w-full">
           <BarChart accessibilityLayer data={chartData}>
             <CartesianGrid vertical={false} strokeDasharray="3 3" />
             <XAxis
@@ -194,7 +196,7 @@ export default function WeeklyAccessBarChart() {
               tickMargin={10}
               axisLine={false}
               tickFormatter={getAxisFormatter}
-              fontSize={12}
+              fontSize={10}
             />
             <ChartTooltip content={<ChartTooltipContent />} />
             <ChartLegend content={<ChartLegendContent />} />

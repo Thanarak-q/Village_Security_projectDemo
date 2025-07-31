@@ -205,34 +205,34 @@ export default function PendingTable() {
   return (
     <div className="bg-white rounded-lg shadow-sm border">
       {/* ส่วนหัวของตาราง */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-4 sm:p-6 border-b border-gray-200">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           {/* ส่วนแสดงชื่อและจำนวนรายการ */}
           <div className="flex items-center space-x-3">
-            <UserPlus className="h-6 w-6 text-blue-500" />
-            <h2 className="text-xl font-semibold text-gray-900">
+            <UserPlus className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500" />
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
               ผู้ใช้ใหม่รออนุมัติ
             </h2>
-            <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+            <Badge variant="secondary" className="bg-orange-100 text-orange-800 text-xs sm:text-sm">
               {users.length} รายการ
             </Badge>
           </div>
           
           {/* ส่วนค้นหาและเวลาอัปเดต */}
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
             {/* ช่องค้นหา */}
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
                 placeholder="ค้นหาผู้ใช้..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-64 text-sm"
               />
             </div>
             {/* แสดงเวลาอัปเดตล่าสุด */}
-            <div className="text-sm text-gray-500">
+            <div className="text-xs sm:text-sm text-gray-500">
               อัปเดตล่าสุด: {new Date().toLocaleTimeString('th-TH')}
             </div>
           </div>
@@ -245,13 +245,13 @@ export default function PendingTable() {
           {/* หัวตาราง */}
           <TableHeader>
             <TableRow className="bg-gray-50">
-              <TableHead className="text-gray-600 font-medium">ผู้สมัคร</TableHead>
-              <TableHead className="text-gray-600 font-medium">ข้อมูลติดต่อ</TableHead>
-              <TableHead className="text-gray-600 font-medium">บทบาท</TableHead>
-              <TableHead className="text-gray-600 font-medium">บ้านเลขที่</TableHead>
-              <TableHead className="text-gray-600 font-medium">วันที่สมัคร</TableHead>
-              <TableHead className="text-gray-600 font-medium">สถานะ</TableHead>
-              <TableHead className="text-gray-600 font-medium">การดำเนินการ</TableHead>
+              <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">ผู้สมัคร</TableHead>
+              <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden sm:table-cell">ข้อมูลติดต่อ</TableHead>
+              <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">บทบาท</TableHead>
+              <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden md:table-cell">บ้านเลขที่</TableHead>
+              <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden lg:table-cell">วันที่สมัคร</TableHead>
+              <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">สถานะ</TableHead>
+              <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">การดำเนินการ</TableHead>
             </TableRow>
           </TableHeader>
           
@@ -264,7 +264,7 @@ export default function PendingTable() {
                   <div className="flex items-center space-x-3">
                     {/* Avatar วงกลมที่มีตัวอักษรย่อ */}
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm ${getAvatarColor(
+                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-medium text-xs sm:text-sm ${getAvatarColor(
                         user.id
                       )}`}
                     >
@@ -272,18 +272,23 @@ export default function PendingTable() {
                     </div>
                     {/* ชื่อและ username */}
                     <div>
-                      <div className="font-medium text-gray-900">
+                      <div className="font-medium text-gray-900 text-sm sm:text-base">
                         {user.fname} {user.lname}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-xs sm:text-sm text-gray-500">
                         @{user.username}
+                      </div>
+                      {/* แสดงข้อมูลติดต่อในมือถือ */}
+                      <div className="sm:hidden text-xs text-gray-500 mt-1">
+                        {user.email}<br/>
+                        {user.phone}
                       </div>
                     </div>
                   </div>
                 </TableCell>
                 
                 {/* คอลัมน์ข้อมูลติดต่อ - แสดงอีเมลและเบอร์โทร */}
-                <TableCell>
+                <TableCell className="hidden sm:table-cell">
                   <div className="space-y-1">
                     <div className="text-sm text-gray-900">{user.email}</div>
                     <div className="text-sm text-gray-500">{user.phone}</div>
@@ -294,29 +299,29 @@ export default function PendingTable() {
                 <TableCell>
                   <Badge 
                     variant="outline" 
-                    className={
+                    className={`text-xs sm:text-sm ${
                       user.role === "ยาม" 
                         ? "border-blue-200 text-blue-700 bg-blue-50" 
                         : "border-green-200 text-green-700 bg-green-50"
-                    }
+                    }`}
                   >
                     {user.role}
                   </Badge>
                 </TableCell>
                 
                 {/* คอลัมน์บ้านเลขที่ */}
-                <TableCell className="text-gray-700">
+                <TableCell className="text-gray-700 hidden md:table-cell text-sm">
                   {user.houseNumber !== "-" ? user.houseNumber : "-"}
                 </TableCell>
                 
                 {/* คอลัมน์วันที่สมัคร - แสดงในรูปแบบภาษาไทย */}
-                <TableCell className="text-gray-600">
+                <TableCell className="text-gray-600 hidden lg:table-cell text-sm">
                   {formatDate(user.requestDate)}
                 </TableCell>
                 
                 {/* คอลัมน์สถานะ - แสดง Badge สีส้มพร้อมไอคอนนาฬิกา */}
                 <TableCell>
-                  <Badge className="bg-orange-100 text-orange-800 border-orange-200">
+                  <Badge className="bg-orange-100 text-orange-800 border-orange-200 text-xs sm:text-sm">
                     <Clock className="w-3 h-3 mr-1" />
                     {user.status}
                   </Badge>
@@ -326,11 +331,12 @@ export default function PendingTable() {
                 <TableCell>
                   <Button
                     size="sm"
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm"
                     onClick={() => handleProcess(user)}
                   >
-                    <Settings className="w-4 h-4 mr-1" />
-                    ดำเนินการ
+                    <Settings className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                    <span className="hidden sm:inline">ดำเนินการ</span>
+                    <span className="sm:hidden">จัดการ</span>
                   </Button>
                 </TableCell>
               </TableRow>
@@ -341,12 +347,12 @@ export default function PendingTable() {
 
       {/* ส่วนแสดงเมื่อไม่มีข้อมูล */}
       {filteredUsers.length === 0 && (
-        <div className="p-12 text-center">
-          <UserPlus className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+        <div className="p-8 sm:p-12 text-center">
+          <UserPlus className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
             {searchTerm ? 'ไม่พบข้อมูลที่ค้นหา' : 'ไม่มีผู้ใช้ใหม่รออนุมัติ'}
           </h3>
-          <p className="text-gray-500">
+          <p className="text-sm sm:text-base text-gray-500">
             {searchTerm ? 'ลองค้นหาด้วยคำอื่น' : 'ผู้ใช้ใหม่ที่สมัครเข้ามาจะปรากฏที่นี่'}
           </p>
         </div>
@@ -354,17 +360,17 @@ export default function PendingTable() {
 
       {/* ส่วนควบคุมการแบ่งหน้า */}
       {totalItems > 0 && (
-        <div className="flex items-center justify-between px-6 py-4 border-t bg-gray-50">
+        <div className="flex flex-col sm:flex-row items-center justify-between px-4 sm:px-6 py-4 border-t bg-gray-50 gap-4">
           {/* ส่วนซ้าย - แสดงการตั้งค่าจำนวนรายการต่อหน้าและข้อมูลการแสดงผล */}
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
             {/* ตัวเลือกจำนวนรายการต่อหน้า */}
             <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-600">แสดง</span>
+              <span className="text-xs sm:text-sm text-gray-600">แสดง</span>
               <Select
                 value={itemsPerPage.toString()}
                 onValueChange={handleItemsPerPageChange}
               >
-                <SelectTrigger className="w-20">
+                <SelectTrigger className="w-16 sm:w-20 text-xs sm:text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -374,11 +380,11 @@ export default function PendingTable() {
                   <SelectItem value="10">10</SelectItem>
                 </SelectContent>
               </Select>
-              <span className="text-sm text-gray-600">รายการต่อหน้า</span>
+              <span className="text-xs sm:text-sm text-gray-600">รายการต่อหน้า</span>
             </div>
             
             {/* แสดงข้อมูลการแบ่งหน้า */}
-            <div className="text-sm text-gray-600">
+            <div className="text-xs sm:text-sm text-gray-600">
               แสดง {startIndex + 1} ถึง {Math.min(endIndex, totalItems)} จาก {totalItems} รายการ
             </div>
           </div>
@@ -391,10 +397,11 @@ export default function PendingTable() {
               size="sm"
               onClick={goToPreviousPage}
               disabled={currentPage === 1}
-              className="flex items-center"
+              className="flex items-center text-xs sm:text-sm"
             >
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              ก่อนหน้า
+              <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+              <span className="hidden sm:inline">ก่อนหน้า</span>
+              <span className="sm:hidden">ก่อน</span>
             </Button>
             
             {/* ปุ่มหมายเลขหน้า */}
@@ -422,7 +429,7 @@ export default function PendingTable() {
                     variant={currentPage === pageNum ? "default" : "outline"}
                     size="sm"
                     onClick={() => setCurrentPage(pageNum)}
-                    className={`w-8 h-8 p-0 ${
+                    className={`w-6 h-6 sm:w-8 sm:h-8 p-0 text-xs sm:text-sm ${
                       currentPage === pageNum 
                         ? "bg-blue-600 text-white" 
                         : "text-gray-600 hover:bg-gray-100"
@@ -440,10 +447,11 @@ export default function PendingTable() {
               size="sm"
               onClick={goToNextPage}
               disabled={currentPage === totalPages}
-              className="flex items-center"
+              className="flex items-center text-xs sm:text-sm"
             >
-              ถัดไป
-              <ChevronRight className="w-4 h-4 ml-1" />
+              <span className="hidden sm:inline">ถัดไป</span>
+              <span className="sm:hidden">ถัด</span>
+              <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
             </Button>
           </div>
         </div>

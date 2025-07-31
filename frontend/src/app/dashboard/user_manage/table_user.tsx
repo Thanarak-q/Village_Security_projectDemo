@@ -221,49 +221,49 @@ export default function UserManagementTable() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* ส่วนหลักของตาราง */}
-      <div className="bg-white rounded-lg shadow-sm border p-6">
+      <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
         {/* ส่วนหัวพร้อมแท็บและช่องค้นหา */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
           {/* แท็บสำหรับเลือกประเภทผู้ใช้ */}
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
             {/* แท็บลูกบ้าน */}
             <button
               onClick={() => setActiveTab('residents')}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
                 activeTab === 'residents'
                   ? 'bg-blue-100 text-blue-700 border border-blue-200'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              <Home className="h-5 w-5" />
+              <Home className="h-4 w-4 sm:h-5 sm:w-5" />
               <span>ลูกบ้าน ({residentsData.length})</span>
             </button>
             
             {/* แท็บยาม */}
             <button
               onClick={() => setActiveTab('guards')}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
                 activeTab === 'guards'
                   ? 'bg-green-100 text-green-700 border border-green-200'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              <Shield className="h-5 w-5" />
+              <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
               <span>ยาม ({guardsData.length})</span>
             </button>
           </div>
           
           {/* ช่องค้นหา */}
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
               placeholder="ค้นหาผู้ใช้..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-64 text-sm"
             />
           </div>
         </div>
@@ -275,12 +275,12 @@ export default function UserManagementTable() {
               {/* หัวตารางลูกบ้าน */}
               <TableHeader>
                 <TableRow className="bg-gray-50">
-                  <TableHead className="text-gray-600 font-medium">ผู้ใช้งาน</TableHead>
-                  <TableHead className="text-gray-600 font-medium">ข้อมูลติดต่อ</TableHead>
-                  <TableHead className="text-gray-600 font-medium">บ้านเลขที่</TableHead>
-                  <TableHead className="text-gray-600 font-medium">วันที่เข้าร่วม</TableHead>
-                  <TableHead className="text-gray-600 font-medium">สถานะ</TableHead>
-                  <TableHead className="text-gray-600 font-medium">จัดการ</TableHead>
+                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">ผู้ใช้งาน</TableHead>
+                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden sm:table-cell">ข้อมูลติดต่อ</TableHead>
+                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden md:table-cell">บ้านเลขที่</TableHead>
+                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden lg:table-cell">วันที่เข้าร่วม</TableHead>
+                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">สถานะ</TableHead>
+                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
               
@@ -293,7 +293,7 @@ export default function UserManagementTable() {
                       <div className="flex items-center space-x-3">
                         {/* Avatar วงกลมที่มีตัวอักษรย่อ */}
                         <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm ${getAvatarColor(
+                          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-medium text-xs sm:text-sm ${getAvatarColor(
                             user.id
                           )}`}
                         >
@@ -301,18 +301,27 @@ export default function UserManagementTable() {
                         </div>
                         {/* ชื่อและ username */}
                         <div>
-                          <div className="font-medium text-gray-900">
+                          <div className="font-medium text-gray-900 text-sm sm:text-base">
                             {user.fname} {user.lname}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-xs sm:text-sm text-gray-500">
                             @{user.username}
+                          </div>
+                          {/* แสดงข้อมูลติดต่อในมือถือ */}
+                          <div className="sm:hidden text-xs text-gray-500 mt-1">
+                            {user.email}<br/>
+                            {user.phone}
+                          </div>
+                          {/* แสดงบ้านเลขที่ในมือถือ */}
+                          <div className="md:hidden text-xs text-gray-500 mt-1">
+                            บ้านเลขที่: {user.houseNumber}
                           </div>
                         </div>
                       </div>
                     </TableCell>
                     
                     {/* คอลัมน์ข้อมูลติดต่อ - แสดงอีเมลและเบอร์โทร */}
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <div className="space-y-1">
                         <div className="text-sm text-gray-900">{user.email}</div>
                         <div className="text-sm text-gray-500">{user.phone}</div>
@@ -320,12 +329,12 @@ export default function UserManagementTable() {
                     </TableCell>
                     
                     {/* คอลัมน์บ้านเลขที่ */}
-                    <TableCell className="text-gray-700 font-medium">
+                    <TableCell className="text-gray-700 font-medium hidden md:table-cell text-sm">
                       {user.houseNumber}
                     </TableCell>
                     
                     {/* คอลัมน์วันที่เข้าร่วม - แสดงในรูปแบบภาษาไทย */}
-                    <TableCell className="text-gray-600">
+                    <TableCell className="text-gray-600 hidden lg:table-cell text-sm">
                       {formatDate(user.joinDate)}
                     </TableCell>
                     
@@ -333,11 +342,11 @@ export default function UserManagementTable() {
                     <TableCell>
                       <Badge
                         variant={user.status === "ใช้งาน" ? "default" : "secondary"}
-                        className={
+                        className={`text-xs sm:text-sm ${
                           user.status === "ใช้งาน"
                             ? "bg-green-100 text-green-800 hover:bg-green-100"
                             : "bg-red-100 text-red-800 hover:bg-red-100"
-                        }
+                        }`}
                       >
                         {user.status}
                       </Badge>
@@ -348,10 +357,10 @@ export default function UserManagementTable() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 text-xs sm:text-sm"
                         onClick={() => handleEdit(user)}
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -368,12 +377,12 @@ export default function UserManagementTable() {
               {/* หัวตารางยาม */}
               <TableHeader>
                 <TableRow className="bg-gray-50">
-                  <TableHead className="text-gray-600 font-medium">ผู้ใช้งาน</TableHead>
-                  <TableHead className="text-gray-600 font-medium">ข้อมูลติดต่อ</TableHead>
-                  <TableHead className="text-gray-600 font-medium">กะ</TableHead>
-                  <TableHead className="text-gray-600 font-medium">วันที่เข้าร่วม</TableHead>
-                  <TableHead className="text-gray-600 font-medium">สถานะ</TableHead>
-                  <TableHead className="text-gray-600 font-medium">จัดการ</TableHead>
+                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">ผู้ใช้งาน</TableHead>
+                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden sm:table-cell">ข้อมูลติดต่อ</TableHead>
+                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">กะ</TableHead>
+                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden lg:table-cell">วันที่เข้าร่วม</TableHead>
+                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">สถานะ</TableHead>
+                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
               
@@ -386,7 +395,7 @@ export default function UserManagementTable() {
                       <div className="flex items-center space-x-3">
                         {/* Avatar วงกลมที่มีตัวอักษรย่อ */}
                         <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm ${getAvatarColor(
+                          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-medium text-xs sm:text-sm ${getAvatarColor(
                             user.id
                           )}`}
                         >
@@ -394,18 +403,23 @@ export default function UserManagementTable() {
                         </div>
                         {/* ชื่อและ username */}
                         <div>
-                          <div className="font-medium text-gray-900">
+                          <div className="font-medium text-gray-900 text-sm sm:text-base">
                             {user.fname} {user.lname}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-xs sm:text-sm text-gray-500">
                             @{user.username}
+                          </div>
+                          {/* แสดงข้อมูลติดต่อในมือถือ */}
+                          <div className="sm:hidden text-xs text-gray-500 mt-1">
+                            {user.email}<br/>
+                            {user.phone}
                           </div>
                         </div>
                       </div>
                     </TableCell>
                     
                     {/* คอลัมน์ข้อมูลติดต่อ - แสดงอีเมลและเบอร์โทร */}
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <div className="space-y-1">
                         <div className="text-sm text-gray-900">{user.email}</div>
                         <div className="text-sm text-gray-500">{user.phone}</div>
@@ -416,18 +430,18 @@ export default function UserManagementTable() {
                     <TableCell>
                       <Badge 
                         variant="outline" 
-                        className={
+                        className={`text-xs sm:text-sm ${
                           user.shift === "กะเช้า" 
                             ? "border-blue-200 text-blue-700 bg-blue-50" 
                             : "border-purple-200 text-purple-700 bg-purple-50"
-                        }
+                        }`}
                       >
                         {user.shift}
                       </Badge>
                     </TableCell>
                     
                     {/* คอลัมน์วันที่เข้าร่วม - แสดงในรูปแบบภาษาไทย */}
-                    <TableCell className="text-gray-600">
+                    <TableCell className="text-gray-600 hidden lg:table-cell text-sm">
                       {formatDate(user.joinDate)}
                     </TableCell>
                     
@@ -435,11 +449,11 @@ export default function UserManagementTable() {
                     <TableCell>
                       <Badge
                         variant={user.status === "ใช้งาน" ? "default" : "secondary"}
-                        className={
+                        className={`text-xs sm:text-sm ${
                           user.status === "ใช้งาน"
                             ? "bg-green-100 text-green-800 hover:bg-green-100"
                             : "bg-red-100 text-red-800 hover:bg-red-100"
-                        }
+                        }`}
                       >
                         {user.status}
                       </Badge>
@@ -450,10 +464,10 @@ export default function UserManagementTable() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 text-xs sm:text-sm"
                         onClick={() => handleEdit(user)}
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -466,12 +480,12 @@ export default function UserManagementTable() {
         {/* ส่วนแสดงเมื่อไม่มีข้อมูล */}
         {((activeTab === 'residents' && filteredResidents.length === 0) ||
           (activeTab === 'guards' && filteredGuards.length === 0)) && (
-          <div className="p-12 text-center">
-            <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <div className="p-8 sm:p-12 text-center">
+            <Users className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
               ไม่พบข้อมูลผู้ใช้
             </h3>
-            <p className="text-gray-500">
+            <p className="text-sm sm:text-base text-gray-500">
               {searchTerm ? 'ลองค้นหาด้วยคำอื่น' : 'ยังไม่มีข้อมูลผู้ใช้ในหมวดหมู่นี้'}
             </p>
           </div>
@@ -479,17 +493,17 @@ export default function UserManagementTable() {
 
         {/* ส่วนควบคุมการแบ่งหน้า */}
         {totalItems > 0 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t bg-gray-50">
+          <div className="flex flex-col sm:flex-row items-center justify-between px-4 sm:px-6 py-4 border-t bg-gray-50 gap-4">
             {/* ส่วนซ้าย - แสดงการตั้งค่าจำนวนรายการต่อหน้าและข้อมูลการแสดงผล */}
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
               {/* ตัวเลือกจำนวนรายการต่อหน้า */}
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">แสดง</span>
+                <span className="text-xs sm:text-sm text-gray-600">แสดง</span>
                 <Select
                   value={itemsPerPage.toString()}
                   onValueChange={handleItemsPerPageChange}
                 >
-                  <SelectTrigger className="w-20">
+                  <SelectTrigger className="w-16 sm:w-20 text-xs sm:text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -499,11 +513,11 @@ export default function UserManagementTable() {
                     <SelectItem value="20">20</SelectItem>
                   </SelectContent>
                 </Select>
-                <span className="text-sm text-gray-600">รายการต่อหน้า</span>
+                <span className="text-xs sm:text-sm text-gray-600">รายการต่อหน้า</span>
               </div>
               
               {/* แสดงข้อมูลการแบ่งหน้า */}
-              <div className="text-sm text-gray-600">
+              <div className="text-xs sm:text-sm text-gray-600">
                 แสดง {((currentPage - 1) * itemsPerPage) + 1} ถึง {Math.min(currentPage * itemsPerPage, totalItems)} จาก {totalItems} รายการ
               </div>
             </div>
@@ -516,10 +530,11 @@ export default function UserManagementTable() {
                 size="sm"
                 onClick={goToPreviousPage}
                 disabled={currentPage === 1}
-                className="flex items-center"
+                className="flex items-center text-xs sm:text-sm"
               >
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                ก่อนหน้า
+                <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                <span className="hidden sm:inline">ก่อนหน้า</span>
+                <span className="sm:hidden">ก่อน</span>
               </Button>
               
               {/* ปุ่มหมายเลขหน้า */}
@@ -547,7 +562,7 @@ export default function UserManagementTable() {
                       variant={currentPage === pageNum ? "default" : "outline"}
                       size="sm"
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`w-8 h-8 p-0 ${
+                      className={`w-6 h-6 sm:w-8 sm:h-8 p-0 text-xs sm:text-sm ${
                         currentPage === pageNum 
                           ? "bg-blue-600 text-white" 
                           : "text-gray-600 hover:bg-gray-100"
@@ -565,10 +580,11 @@ export default function UserManagementTable() {
                 size="sm"
                 onClick={goToNextPage}
                 disabled={currentPage === totalPages}
-                className="flex items-center"
+                className="flex items-center text-xs sm:text-sm"
               >
-                ถัดไป
-                <ChevronRight className="w-4 h-4 ml-1" />
+                <span className="hidden sm:inline">ถัดไป</span>
+                <span className="sm:hidden">ถัด</span>
+                <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
               </Button>
             </div>
           </div>

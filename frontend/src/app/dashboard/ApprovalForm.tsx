@@ -80,7 +80,7 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold flex items-center gap-2">
             <UserCheck className="h-5 w-5 text-blue-500" />

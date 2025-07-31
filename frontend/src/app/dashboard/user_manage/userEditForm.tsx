@@ -90,21 +90,21 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold flex items-center gap-2">
-            <Edit className="h-5 w-5 text-blue-500" />
+          <DialogTitle className="text-lg sm:text-xl font-semibold flex items-center gap-2">
+            <Edit className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
             แก้ไขข้อมูลผู้ใช้
           </DialogTitle>
         </DialogHeader>
 
         {/* แสดงข้อมูล User */}
-        <div className="bg-blue-50 p-4 rounded-lg mb-6 border border-blue-200">
-          <h3 className="font-medium text-blue-900 mb-3 flex items-center gap-2">
-            {isResident ? <Home className="h-4 w-4" /> : <Shield className="h-4 w-4" />}
+        <div className="bg-blue-50 p-3 sm:p-4 rounded-lg mb-4 sm:mb-6 border border-blue-200">
+          <h3 className="font-medium text-blue-900 mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
+            {isResident ? <Home className="h-3 w-3 sm:h-4 sm:w-4" /> : <Shield className="h-3 w-3 sm:h-4 sm:w-4" />}
             ข้อมูลผู้ใช้
           </h3>
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
             <div>
               <span className="text-blue-700 font-medium">Username:</span>
               <p className="text-blue-900">@{user.username}</p>
@@ -132,34 +132,36 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
           {/* ชื่อ-นามสกุล */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                 ชื่อ
               </label>
               <Input
                 value={formData.fname}
                 onChange={(e) => setFormData({ ...formData, fname: e.target.value })}
                 required
+                className="text-sm"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                 นามสกุล
               </label>
               <Input
                 value={formData.lname}
                 onChange={(e) => setFormData({ ...formData, lname: e.target.value })}
                 required
+                className="text-sm"
               />
             </div>
           </div>
 
           {/* อีเมล */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
               อีเมล
             </label>
             <Input
@@ -167,31 +169,33 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
+              className="text-sm"
             />
           </div>
 
           {/* เบอร์โทร */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
               เบอร์โทร
             </label>
             <Input
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               required
+              className="text-sm"
             />
           </div>
 
           {/* สถานะ */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
               สถานะ
             </label>
             <Select
               value={formData.status}
               onValueChange={(value) => setFormData({ ...formData, status: value })}
             >
-              <SelectTrigger>
+              <SelectTrigger className="text-sm">
                 <SelectValue placeholder="เลือกสถานะ" />
               </SelectTrigger>
               <SelectContent>
@@ -205,13 +209,14 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
           {/* บ้านเลขที่ (สำหรับลูกบ้าน) */}
           {isResident && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                 บ้านเลขที่
               </label>
               <Input
                 value={formData.houseNumber}
                 onChange={(e) => setFormData({ ...formData, houseNumber: e.target.value })}
                 placeholder="เช่น 88/123"
+                className="text-sm"
               />
             </div>
           )}
@@ -219,14 +224,14 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
           {/* กะ (สำหรับยาม) */}
           {!isResident && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                 กะ
               </label>
               <Select
                 value={formData.shift}
                 onValueChange={(value) => setFormData({ ...formData, shift: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="text-sm">
                   <SelectValue placeholder="เลือกกะ" />
                 </SelectTrigger>
                 <SelectContent>
@@ -240,7 +245,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
 
           {/* หมายเหตุ */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
               หมายเหตุ (ไม่บังคับ)
             </label>
             <Textarea
@@ -248,21 +253,23 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
+              className="text-sm"
             />
           </div>
 
-          <DialogFooter className="flex gap-3 pt-6">
+          <DialogFooter className="flex gap-2 sm:gap-3 pt-4 sm:pt-6">
             <DialogClose asChild>
-              <Button type="button" variant="outline" className="flex-1">
+              <Button type="button" variant="outline" className="flex-1 text-xs sm:text-sm">
                 ยกเลิก
               </Button>
             </DialogClose>
             <Button
               type="submit"
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm"
             >
-              <Edit className="w-4 h-4 mr-2" />
-              บันทึกการเปลี่ยนแปลง
+              <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">บันทึกการเปลี่ยนแปลง</span>
+              <span className="sm:hidden">บันทึก</span>
             </Button>
           </DialogFooter>
         </form>
