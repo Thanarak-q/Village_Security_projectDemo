@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { ScrambleTextExample } from "@/components/animation";
-import styles from "./loginpage.module.css";
 import { ButtonProps } from "react-day-picker";
 
 const FormSchema = z.object({
@@ -100,60 +99,85 @@ const Page: React.FC = () => {
   }
 
   useEffect(() => {
+    const isLowPerformance = window.innerWidth < 768 || navigator.hardwareConcurrency < 4;
+    const preferReducedMotion = window.matchMedia("(prefers-reduced-motion:reduce").matches;
     const tl = gsap.timeline();
+    if (!preferReducedMotion) {
+      tl.to(welcomeRef.current, {
+        top: "18%",
+        // y: "-50%",
+        duration: 0.8,
+        ease: "power2.inOut",
+      })
+        // triangle+square scroll up
+        // .to(
+        //   loginGroupRef.current,
+        //   {
+        //     bottom: "25%",
+        //     y: "50%",
+        //     duration: 1,
+        //     ease: "power2.inOut",
+        //   },
+        //   "-=0.4"
+        // )
+        .to(
+          triRef.current,
+          {
+            opacity: 1,
+            duration: 1,
+            ease: "power2.inOut",
+          },
+          "<"
+        )
+        // fade in square at same time as triangle
+        .to(
+          squareRef.current,
+          { opacity: 1, duration: 1, ease: "power2.inOut" },
+          "<"
+        )
+        // fade in loginBox
+        .to(
+          loginRef.current,
+          { opacity: 1, duration: 0.4, ease: "power2.inOut" },
+          "-=0.3"
+        );
+    } else if (isLowPerformance) {
+      gsap.set(welcomeRef.current, { top: "18%", y: "-50%" })
+      gsap.set(loginGroupRef.current, { bottom: "45%", y: "50%" })
+      gsap.set(squareRef.current, { opacity: 1 })
+      gsap.set(loginRef.current, { opacity: 1 })
 
-    tl.to(welcomeRef.current, {
-      top: "18%",
-      y: "-50%",
-      duration: 0.8,
-      ease: "power2.inOut",
-    })
-      // triangle+square scroll up
-      .to(
-        loginGroupRef.current,
-        {
-          bottom: "45%",
-          y: "50%",
-          duration: 1,
-          ease: "power2.inOut",
-        },
-        "-=0.4"
-      )
-      // fade in square
-      .to(
-        squareRef.current,
-        { opacity: 1, duration: 0.4, ease: "power2.inOut" },
-        "-=0.7"
-      )
-      // fade in loginBox
-      .to(
-        loginRef.current,
-        { opacity: 1, duration: 0.4, ease: "power2.inOut" },
-        "-=0.3"
-      );
+    } else {
+      gsap.set(welcomeRef.current, { top: "18%", y: "-50%" })
+      gsap.set(loginGroupRef.current, { bottom: "45%", y: "50%" })
+      gsap.set(squareRef.current, { opacity: 1 })
+      gsap.set(loginRef.current, { opacity: 1 })
+
+    }
   }, []);
 
   return (
-    <div className={styles.container}>
-      <h2 ref={welcomeRef} className={styles.welcome}>
+    <div className="w-screen h-screen bg-[#4fa3f2] flex flex-col justify-center items-center overflow-hidden">
+      <div ref={welcomeRef} className="absolute text-white text-4xl tracking-[2px] z-10">
         <ScrambleTextExample />
-      </h2>
-      <div ref={loginGroupRef} className={styles.loginGroupWrapper}>
-        <div ref={triRef} className={styles.triangle}>
-          <h2>Login</h2>
+      </div>
+      <div ref={loginGroupRef} className="relative -bottom-[350px] flex flex-col items-stretch w-full z-[5]">
+        <div ref={triRef} className="opacity-0 w-full h-[120px] bg-white flex justify-center items-end z-[2] mt-[50px] rounded-t-[22px]"
+          style={{ clipPath: 'polygon(20px 100%, 50% 0%, calc(100% - 20px) 100%, 100% 100%, 0% 100%)' }}>
+          <h2 className="text-[#253050] m-0 mb-[30px] text-[1.8rem] font-black tracking-[1.5px]">Login</h2>
         </div>
-        <div ref={squareRef} className={styles.bgSquare}>
-          <div ref={loginRef} className={styles.loginBox}>
+        <div ref={squareRef} className="w-full h-screen bg-white rounded-[22px] flex flex-col items-center opacity-0 z-[1]">
+          <div ref={loginRef} className="mt-8 w-[85%] max-w-[350px] opacity-0 transition-opacity duration-200">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
                   control={form.control}
                   name="username"
                   render={({ field }) => (
-                    <FormItem className={styles.inputGroup}>
+                    <FormItem className="mb-3">
                       <FormLabel
                         htmlFor="username"
-                        className={styles.labelstrong}
+                        className="font-bold text-[#253050]"
                       >
                         Username
                       </FormLabel>
@@ -164,12 +188,12 @@ const Page: React.FC = () => {
                           {...field}
                           className={
                             form.formState.errors.username
-                              ? `${styles.inputError}`
+                              ? "border-[1.5px] border-[#ef4b6c]"
                               : ""
                           }
                         />
                       </FormControl>
-                      <FormMessage className={styles.inputMessage} />
+                      <FormMessage className="text-[#ef4b6c] text-[0.9rem]" />
                     </FormItem>
                   )}
                 />
@@ -178,10 +202,10 @@ const Page: React.FC = () => {
                   control={form.control}
                   name="password"
                   render={({ field }) => (
-                    <FormItem className={styles.inputGroup}>
+                    <FormItem className="mb-3">
                       <FormLabel
                         htmlFor="password"
-                        className={styles.labelstrong}
+                        className="font-bold text-[#253050]"
                       >
                         Password
                       </FormLabel>
@@ -193,22 +217,22 @@ const Page: React.FC = () => {
                           {...field}
                           className={
                             form.formState.errors.password
-                              ? `${styles.inputError}`
+                              ? "border-[1.5px] border-[#ef4b6c]"
                               : ""
                           }
                         />
                       </FormControl>
-                      <FormMessage className={styles.inputMessage} />
+                      <FormMessage className="text-[#ef4b6c] text-[0.9rem]" />
                     </FormItem>
                   )}
                 />
 
-                <Gsaploginbutton type="submit" className={styles.loginButton}>
+                <Gsaploginbutton type="submit" className="w-full bg-[#253050] text-white rounded-xl text-[1.1rem] py-3 shadow-[0px_6px_24px_1px_rgba(50,56,168,0.09)] font-semibold">
                   Login
                 </Gsaploginbutton>
               </form>
             </Form>
-            <p className={styles.footerText}>
+            <p className="mt-10 text-center text-[#aaa] text-[0.97em]">
               Village Management System <br /> v.x.x
             </p>
           </div>
