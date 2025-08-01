@@ -1,3 +1,4 @@
+import { unique } from "drizzle-orm/gel-core";
 import {
   pgTable,
   text,
@@ -21,6 +22,7 @@ export type VillageInsert = typeof villages.$inferInsert;
 export const houses = pgTable("houses", {
   house_id: uuid("house_id").primaryKey().defaultRandom(),
   address: text("address").notNull(),
+  status: text("status").$type<"available" | "occupied" | "disable">().default("available"),
   village_key: text("village_key").references(() => villages.village_key),
 });
 export type House = typeof houses.$inferSelect;
@@ -29,7 +31,7 @@ export type HouseInsert = typeof houses.$inferInsert;
 // ----------------------------------------------------------------
 export const residents = pgTable("residents", {
   resident_id: uuid("resident_id").primaryKey().defaultRandom(),
-  
+  line_user_id: text("line_user_id").unique(),
   email: text("email").notNull().unique(),
   fname: text("fname").notNull(),
   lname: text("lname").notNull(),
@@ -38,9 +40,9 @@ export const residents = pgTable("residents", {
   phone: text("phone").notNull(), 
   village_key: text("village_key").references(() => villages.village_key), // connect village
   status: text("status").$type<"verified" | "pending" | "disable">().default("pending"),
-  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  profile_image_url: text("profile_image_url"),
 });
 
 export type Resident = typeof residents.$inferSelect;
@@ -50,7 +52,7 @@ export type ResidentInsert = typeof residents.$inferInsert;
 
 export const guards = pgTable("guards", {
   guard_id: uuid("guard_id").primaryKey().defaultRandom(),
-
+  line_user_id: text("line_user_id").unique(),
   email: text("email").notNull().unique(),
   fname: text("fname").notNull(),
   lname: text("lname").notNull(),
@@ -59,9 +61,9 @@ export const guards = pgTable("guards", {
   phone: text("phone").notNull(), 
   village_key: text("village_key").references(() => villages.village_key), // connect village
   status: text("status").$type<"verified" | "pending" | "disable">().default("pending"),
-  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  profile_image_url: text("profile_image_url"),
 });
 
 export type Guard = typeof guards.$inferSelect;
