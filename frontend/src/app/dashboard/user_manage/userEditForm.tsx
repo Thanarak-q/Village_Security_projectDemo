@@ -56,7 +56,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
     notes: ""
   });
 
-  // โหลดข้อมูล user เข้าฟอร์มเมื่อเปิด
+  // Load user data into form when opened
   useEffect(() => {
     if (user) {
       setFormData({

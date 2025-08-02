@@ -32,6 +32,7 @@ interface UserTableResponse {
     guards: number;
     total: number;
   };
+  error?: string;
 }
 
 // Interface for Resident from API
@@ -64,91 +65,116 @@ interface Guard {
   updatedAt: string;
 }
 
-// Interface สำหรับกำหนดโครงสร้างข้อมูลผู้ใช้
-// รองรับทั้งลูกบ้านและยาม โดยมีฟิลด์ที่แตกต่างกัน
+// Interface for User data structure
 interface User {
-  id: string;           // รหัสผู้ใช้
-  username: string;     // ชื่อผู้ใช้
-  email: string;        // อีเมล
-  fname: string;        // ชื่อจริง
-  lname: string;        // นามสกุล
-  phone: string;        // เบอร์โทรศัพท์
-  status: string;       // สถานะ (ใช้งาน/ไม่ใช้งาน)
-  role: string;         // บทบาท (resident/guard)
-  joinDate: string;     // วันที่เข้าร่วม
-  houseNumber?: string; // บ้านเลขที่ (เฉพาะลูกบ้าน)
-  shift?: string;       // กะ (เฉพาะยาม)
+  id: string;
+  username: string;
+  email: string;
+  fname: string;
+  lname: string;
+  phone: string;
+  status: string;
+  role: string;
+  joinDate: string;
+  houseNumber?: string;
+  shift?: string;
 }
 
-// ฟังก์ชันหลักสำหรับจัดการตารางผู้ใช้
+// Helper function to map backend status to frontend display
+function mapStatusForDisplay(status: string): { display: string; variant: "default" | "secondary" | "destructive" } {
+  switch (status) {
+    case 'verified':
+      return { display: 'ยืนยันแล้ว', variant: 'default' as const };
+    case 'pending':
+      return { display: 'รอยืนยัน', variant: 'secondary' as const };
+    case 'disable':
+      return { display: 'ระงับการใช้งาน', variant: 'destructive' as const };
+    default:
+      return { display: status, variant: 'secondary' as const };
+  }
+}
+
+// Helper function to map frontend status to backend
+function mapStatusForBackend(status: string): string {
+  switch (status) {
+    case 'suspended':
+      return 'disable';
+    case 'verified':
+    case 'pending':
+    case 'disable':
+      return status;
+    default:
+      return 'pending';
+  }
+}
+
+// Main user management table component
 export default function UserManagementTable() {
-  // State สำหรับข้อมูลจาก API
+  // State for API data
   const [residentsData, setResidentsData] = useState<Resident[]>([]);
   const [guardsData, setGuardsData] = useState<Guard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // State สำหรับจัดการแท็บที่เลือก (ลูกบ้านหรือยาม)
+  // State for managing selected tab (residents or guards)
   const [activeTab, setActiveTab] = useState<'residents' | 'guards'>('residents');
   
-  // State สำหรับจัดการผู้ใช้ที่เลือกเพื่อแก้ไข
+  // State for managing selected user for editing
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   
-  // State สำหรับควบคุมการแสดง/ซ่อนฟอร์มแก้ไข
+  // State for controlling edit form visibility
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
   
-  // State สำหรับคำค้นหา
+  // State for search term
   const [searchTerm, setSearchTerm] = useState("");
   
-  // State สำหรับการแบ่งหน้า (Pagination)
-  const [currentPage, setCurrentPage] = useState(1);        // หน้าปัจจุบัน
-  const [itemsPerPage, setItemsPerPage] = useState(5);      // จำนวนรายการต่อหน้า
+  // State for pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
 
   // Fetch data from API
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch("/api/userTable");
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data: UserTableResponse = await response.json();
-        
-        if (data.success) {
-          setResidentsData(data.data.residents);
-          setGuardsData(data.data.guards);
-        } else {
-          throw new Error("Failed to fetch users");
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-        console.error("Error fetching users:", err);
-      } finally {
-        setLoading(false);
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch("/api/userTable");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    };
+      
+      const data: UserTableResponse = await response.json();
+      
+      if (data.success) {
+        setResidentsData(data.data.residents);
+        setGuardsData(data.data.guards);
+      } else {
+        throw new Error(data.error || "Failed to fetch users");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+      console.error("Error fetching users:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchUsers();
   }, []);
 
-  // ฟังก์ชันสำหรับเปิดฟอร์มแก้ไขเมื่อคลิกปุ่มแก้ไข
+  // Function to handle edit button click
   const handleEdit = (user: User) => {
-    setSelectedUser(user);           // เก็บข้อมูลผู้ใช้ที่เลือก
-    setIsEditFormOpen(true);         // เปิดฟอร์มแก้ไข
+    setSelectedUser(user);
+    setIsEditFormOpen(true);
   };
 
-
-
-  // ฟังก์ชันสำหรับสร้างตัวอักษรย่อจากชื่อและนามสกุล (สำหรับ Avatar)
+  // Function to create avatar initials from name
   const getAvatarInitials = (fname: string, lname: string) => {
     return `${fname.charAt(0)}${lname.charAt(0)}`.toUpperCase();
   };
 
-  // ฟังก์ชันสำหรับกำหนดสี Avatar ตาม ID ของผู้ใช้
+  // Function to get avatar color based on user ID
   const getAvatarColor = (userId: string) => {
     const colors = [
       "bg-blue-500",
@@ -158,12 +184,11 @@ export default function UserManagementTable() {
       "bg-red-500",
       "bg-indigo-500",
     ];
-    // ใช้ ASCII code ของตัวอักษรแรกของ ID เพื่อเลือกสี
     const index = userId.charCodeAt(0) % colors.length;
     return colors[index];
   };
 
-  // ฟังก์ชันสำหรับจัดรูปแบบวันที่ให้เป็นภาษาไทย
+  // Function to format date in Thai
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('th-TH', {
       year: 'numeric',
@@ -172,8 +197,7 @@ export default function UserManagementTable() {
     });
   };
 
-  // กรองข้อมูลลูกบ้านตามคำค้นหา
-  // ค้นหาได้จากชื่อ, นามสกุล, อีเมล, และเบอร์โทร
+  // Filter residents by search term
   const filteredResidents = residentsData.filter(user =>
     user.fname.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.lname.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -181,68 +205,82 @@ export default function UserManagementTable() {
     user.phone.includes(searchTerm)
   );
 
-  // กรองข้อมูลยามตามคำค้นหา
-  // ค้นหาได้จากชื่อ, นามสกุล, และอีเมล
+  // Filter guards by search term
   const filteredGuards = guardsData.filter(user =>
     user.fname.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.lname.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // ฟังก์ชันสำหรับดึงข้อมูลลูกบ้านในหน้าปัจจุบัน
+  // Function to get current page residents
   const getCurrentResidents = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return filteredResidents.slice(startIndex, endIndex).map(resident => ({
       ...resident,
-      username: resident.email.split('@')[0], // Generate username from email
-      houseNumber: resident.house_address || resident.village_key, // Use house_address if available, fallback to village_key
-      joinDate: resident.createdAt, // Use createdAt as joinDate
-      role: "resident" // Explicitly set role
+      username: resident.email.split('@')[0],
+      houseNumber: resident.house_address || resident.village_key,
+      joinDate: resident.createdAt,
+      role: "resident"
     }));
   };
 
-  // ฟังก์ชันสำหรับดึงข้อมูลยามในหน้าปัจจุบัน
+  // Function to get current page guards
   const getCurrentGuards = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return filteredGuards.slice(startIndex, endIndex).map(guard => ({
       ...guard,
-      username: guard.email.split('@')[0], // Generate username from email
-      houseNumber: guard.house_address || "-", // Use house_address if available, show "-" for guards
-      shift: "กะปกติ", // Default shift
-      joinDate: guard.createdAt, // Use createdAt as joinDate
-      role: "guard" // Explicitly set role
+      username: guard.email.split('@')[0],
+      houseNumber: guard.house_address || "-",
+      shift: "กะปกติ",
+      joinDate: guard.createdAt,
+      role: "guard"
     }));
   };
 
-  // คำนวณข้อมูลสำหรับการแบ่งหน้า
+  // Calculate pagination data
   const totalItems = activeTab === 'residents' ? filteredResidents.length : filteredGuards.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-  // Effect สำหรับรีเซ็ตหน้าแรกเมื่อเปลี่ยนแท็บหรือค้นหา
+  // Reset to first page when changing tab or search
   useEffect(() => {
     setCurrentPage(1);
   }, [activeTab, searchTerm]);
 
-  // ฟังก์ชันสำหรับไปหน้าถัดไป
+  // Function to go to next page
   const goToNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
     }
   };
 
-  // ฟังก์ชันสำหรับไปหน้าก่อนหน้า
+  // Function to go to previous page
   const goToPreviousPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
   };
 
-  // ฟังก์ชันสำหรับเปลี่ยนจำนวนรายการต่อหน้า
+  // Function to change items per page
   const handleItemsPerPageChange = (value: string) => {
     setItemsPerPage(Number(value));
-    setCurrentPage(1); // รีเซ็ตกลับไปหน้าแรก
+    setCurrentPage(1);
+  };
+
+  // Function to handle form submission
+  const handleFormSubmit = async (formData: { status: string; role: string; houseNumber: string; notes: string }) => {
+    try {
+      console.log("Updating user:", selectedUser?.id, 'with data:', formData);
+      
+      // Refresh data after successful update
+      await fetchUsers();
+      
+      setIsEditFormOpen(false);
+      setSelectedUser(null);
+    } catch (error) {
+      console.error("Error updating user:", error);
+    }
   };
 
   if (loading) {
@@ -263,7 +301,7 @@ export default function UserManagementTable() {
           <div className="text-red-500 text-xl mb-2">⚠️</div>
           <p className="text-red-600">เกิดข้อผิดพลาด: {error}</p>
           <button 
-            onClick={() => window.location.reload()} 
+            onClick={fetchUsers} 
             className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             ลองใหม่
@@ -275,13 +313,13 @@ export default function UserManagementTable() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* ส่วนหลักของตาราง */}
+      {/* Main table section */}
       <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
-        {/* ส่วนหัวพร้อมแท็บและช่องค้นหา */}
+        {/* Header with tabs and search */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
-          {/* แท็บสำหรับเลือกประเภทผู้ใช้ */}
+          {/* User type tabs */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
-            {/* แท็บลูกบ้าน */}
+            {/* Residents tab */}
             <button
               onClick={() => setActiveTab('residents')}
               className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
@@ -294,7 +332,7 @@ export default function UserManagementTable() {
               <span>ลูกบ้าน ({residentsData.length})</span>
             </button>
             
-            {/* แท็บยาม */}
+            {/* Guards tab */}
             <button
               onClick={() => setActiveTab('guards')}
               className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
@@ -308,7 +346,7 @@ export default function UserManagementTable() {
             </button>
           </div>
           
-          {/* ช่องค้นหา */}
+          {/* Search box */}
           <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
@@ -321,11 +359,11 @@ export default function UserManagementTable() {
           </div>
         </div>
 
-        {/* ตารางลูกบ้าน */}
+        {/* Residents table */}
         {activeTab === 'residents' && (
           <div className="overflow-x-auto">
             <Table>
-              {/* หัวตารางลูกบ้าน */}
+              {/* Residents table header */}
               <TableHeader>
                 <TableRow className="bg-gray-50">
                   <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">ผู้ใช้งาน</TableHead>
@@ -337,97 +375,102 @@ export default function UserManagementTable() {
                 </TableRow>
               </TableHeader>
               
-              {/* เนื้อหาตารางลูกบ้าน */}
+              {/* Residents table body */}
               <TableBody>
-                {getCurrentResidents().map((user) => (
-                  <TableRow key={user.id} className="hover:bg-gray-50">
-                    {/* คอลัมน์ผู้ใช้งาน - แสดง Avatar และชื่อ */}
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        {/* Avatar วงกลมที่มีตัวอักษรย่อ */}
-                        <div
-                          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-medium text-xs sm:text-sm ${getAvatarColor(
-                            user.id
-                          )}`}
+                {getCurrentResidents().map((user) => {
+                  const statusInfo = mapStatusForDisplay(user.status);
+                  return (
+                    <TableRow key={user.id} className="hover:bg-gray-50">
+                      {/* User column - Avatar and name */}
+                      <TableCell>
+                        <div className="flex items-center space-x-3">
+                          {/* Avatar circle with initials */}
+                          <div
+                            className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-medium text-xs sm:text-sm ${getAvatarColor(
+                              user.id
+                            )}`}
+                          >
+                            {getAvatarInitials(user.fname, user.lname)}
+                          </div>
+                          {/* Name and username */}
+                          <div>
+                            <div className="font-medium text-gray-900 text-sm sm:text-base">
+                              {user.fname} {user.lname}
+                            </div>
+                            <div className="text-xs sm:text-sm text-gray-500">
+                              @{user.username}
+                            </div>
+                            {/* Show contact info on mobile */}
+                            <div className="sm:hidden text-xs text-gray-500 mt-1">
+                              {user.email}<br/>
+                              {user.phone}
+                            </div>
+                            {/* Show house number on mobile */}
+                            <div className="md:hidden text-xs text-gray-500 mt-1">
+                              บ้านเลขที่: {user.houseNumber}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      
+                      {/* Contact info column */}
+                      <TableCell className="hidden sm:table-cell">
+                        <div className="space-y-1">
+                          <div className="text-sm text-gray-900">{user.email}</div>
+                          <div className="text-sm text-gray-500">{user.phone}</div>
+                        </div>
+                      </TableCell>
+                      
+                      {/* House number column */}
+                      <TableCell className="text-gray-700 font-medium hidden md:table-cell text-sm">
+                        {user.houseNumber}
+                      </TableCell>
+                      
+                      {/* Join date column */}
+                      <TableCell className="text-gray-600 hidden lg:table-cell text-sm">
+                        {formatDate(user.joinDate)}
+                      </TableCell>
+                      
+                      {/* Status column */}
+                      <TableCell>
+                        <Badge
+                          variant={statusInfo.variant}
+                          className={`text-xs sm:text-sm ${
+                            user.status === "verified"
+                              ? "bg-green-100 text-green-800 hover:bg-green-100"
+                              : user.status === "disable"
+                              ? "bg-red-100 text-red-800 hover:bg-red-100"
+                              : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                          }`}
                         >
-                          {getAvatarInitials(user.fname, user.lname)}
-                        </div>
-                        {/* ชื่อและ username */}
-                        <div>
-                          <div className="font-medium text-gray-900 text-sm sm:text-base">
-                            {user.fname} {user.lname}
-                          </div>
-                          <div className="text-xs sm:text-sm text-gray-500">
-                            @{user.username}
-                          </div>
-                          {/* แสดงข้อมูลติดต่อในมือถือ */}
-                          <div className="sm:hidden text-xs text-gray-500 mt-1">
-                            {user.email}<br/>
-                            {user.phone}
-                          </div>
-                          {/* แสดงบ้านเลขที่ในมือถือ */}
-                          <div className="md:hidden text-xs text-gray-500 mt-1">
-                            บ้านเลขที่: {user.houseNumber}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    
-                    {/* คอลัมน์ข้อมูลติดต่อ - แสดงอีเมลและเบอร์โทร */}
-                    <TableCell className="hidden sm:table-cell">
-                      <div className="space-y-1">
-                        <div className="text-sm text-gray-900">{user.email}</div>
-                        <div className="text-sm text-gray-500">{user.phone}</div>
-                      </div>
-                    </TableCell>
-                    
-                    {/* คอลัมน์บ้านเลขที่ */}
-                    <TableCell className="text-gray-700 font-medium hidden md:table-cell text-sm">
-                      {user.houseNumber}
-                    </TableCell>
-                    
-                    {/* คอลัมน์วันที่เข้าร่วม - แสดงในรูปแบบภาษาไทย */}
-                    <TableCell className="text-gray-600 hidden lg:table-cell text-sm">
-                      {formatDate(user.joinDate)}
-                    </TableCell>
-                    
-                    {/* คอลัมน์สถานะ - แสดง Badge สีตามสถานะ */}
-                    <TableCell>
-                      <Badge
-                        variant={user.status === "verified" ? "default" : "secondary"}
-                        className={`text-xs sm:text-sm ${
-                          user.status === "verified"
-                            ? "bg-green-100 text-green-800 hover:bg-green-100"
-                            : "bg-red-100 text-red-800 hover:bg-red-100"
-                        }`}
-                      >
-                        {user.status}
-                      </Badge>
-                    </TableCell>
-                    
-                    {/* คอลัมน์จัดการ - ปุ่มแก้ไข */}
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 text-xs sm:text-sm"
-                        onClick={() => handleEdit(user)}
-                      >
-                        <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          {statusInfo.display}
+                        </Badge>
+                      </TableCell>
+                      
+                      {/* Actions column */}
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 text-xs sm:text-sm"
+                          onClick={() => handleEdit(user)}
+                        >
+                          <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
         )}
 
-        {/* ตารางยาม */}
+        {/* Guards table */}
         {activeTab === 'guards' && (
           <div className="overflow-x-auto">
             <Table>
-              {/* หัวตารางยาม */}
+              {/* Guards table header */}
               <TableHeader>
                 <TableRow className="bg-gray-50">
                   <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">ผู้ใช้งาน</TableHead>
@@ -439,98 +482,103 @@ export default function UserManagementTable() {
                 </TableRow>
               </TableHeader>
               
-              {/* เนื้อหาตารางยาม */}
+              {/* Guards table body */}
               <TableBody>
-                {getCurrentGuards().map((user) => (
-                  <TableRow key={user.id} className="hover:bg-gray-50">
-                    {/* คอลัมน์ผู้ใช้งาน - แสดง Avatar และชื่อ */}
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        {/* Avatar วงกลมที่มีตัวอักษรย่อ */}
-                        <div
-                          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-medium text-xs sm:text-sm ${getAvatarColor(
-                            user.id
-                          )}`}
+                {getCurrentGuards().map((user) => {
+                  const statusInfo = mapStatusForDisplay(user.status);
+                  return (
+                    <TableRow key={user.id} className="hover:bg-gray-50">
+                      {/* User column - Avatar and name */}
+                      <TableCell>
+                        <div className="flex items-center space-x-3">
+                          {/* Avatar circle with initials */}
+                          <div
+                            className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-medium text-xs sm:text-sm ${getAvatarColor(
+                              user.id
+                            )}`}
+                          >
+                            {getAvatarInitials(user.fname, user.lname)}
+                          </div>
+                          {/* Name and username */}
+                          <div>
+                            <div className="font-medium text-gray-900 text-sm sm:text-base">
+                              {user.fname} {user.lname}
+                            </div>
+                            <div className="text-xs sm:text-sm text-gray-500">
+                              @{user.username}
+                            </div>
+                            {/* Show contact info on mobile */}
+                            <div className="sm:hidden text-xs text-gray-500 mt-1">
+                              {user.email}<br/>
+                              {user.phone}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      
+                      {/* Contact info column */}
+                      <TableCell className="hidden sm:table-cell">
+                        <div className="space-y-1">
+                          <div className="text-sm text-gray-900">{user.email}</div>
+                          <div className="text-sm text-gray-500">{user.phone}</div>
+                        </div>
+                      </TableCell>
+                      
+                      {/* Shift column */}
+                      <TableCell>
+                        <Badge 
+                          variant="outline" 
+                          className={`text-xs sm:text-sm ${
+                            user.shift === "กะเช้า" 
+                              ? "border-blue-200 text-blue-700 bg-blue-50" 
+                              : "border-purple-200 text-purple-700 bg-purple-50"
+                          }`}
                         >
-                          {getAvatarInitials(user.fname, user.lname)}
-                        </div>
-                        {/* ชื่อและ username */}
-                        <div>
-                          <div className="font-medium text-gray-900 text-sm sm:text-base">
-                            {user.fname} {user.lname}
-                          </div>
-                          <div className="text-xs sm:text-sm text-gray-500">
-                            @{user.username}
-                          </div>
-                          {/* แสดงข้อมูลติดต่อในมือถือ */}
-                          <div className="sm:hidden text-xs text-gray-500 mt-1">
-                            {user.email}<br/>
-                            {user.phone}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    
-                    {/* คอลัมน์ข้อมูลติดต่อ - แสดงอีเมลและเบอร์โทร */}
-                    <TableCell className="hidden sm:table-cell">
-                      <div className="space-y-1">
-                        <div className="text-sm text-gray-900">{user.email}</div>
-                        <div className="text-sm text-gray-500">{user.phone}</div>
-                      </div>
-                    </TableCell>
-                    
-                    {/* คอลัมน์กะ - แสดง Badge สีตามกะ */}
-                    <TableCell>
-                      <Badge 
-                        variant="outline" 
-                        className={`text-xs sm:text-sm ${
-                          user.shift === "กะเช้า" 
-                            ? "border-blue-200 text-blue-700 bg-blue-50" 
-                            : "border-purple-200 text-purple-700 bg-purple-50"
-                        }`}
-                      >
-                        {user.shift}
-                      </Badge>
-                    </TableCell>
-                    
-                    {/* คอลัมน์วันที่เข้าร่วม - แสดงในรูปแบบภาษาไทย */}
-                    <TableCell className="text-gray-600 hidden lg:table-cell text-sm">
-                      {formatDate(user.joinDate)}
-                    </TableCell>
-                    
-                    {/* คอลัมน์สถานะ - แสดง Badge สีตามสถานะ */}
-                    <TableCell>
-                      <Badge
-                        variant={user.status === "verified" ? "default" : "secondary"}
-                        className={`text-xs sm:text-sm ${
-                          user.status === "verified"
-                            ? "bg-green-100 text-green-800 hover:bg-green-100"
-                            : "bg-red-100 text-red-800 hover:bg-red-100"
-                        }`}
-                      >
-                        {user.status}
-                      </Badge>
-                    </TableCell>
-                    
-                    {/* คอลัมน์จัดการ - ปุ่มแก้ไข */}
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 text-xs sm:text-sm"
-                        onClick={() => handleEdit(user)}
-                      >
-                        <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          {user.shift}
+                        </Badge>
+                      </TableCell>
+                      
+                      {/* Join date column */}
+                      <TableCell className="text-gray-600 hidden lg:table-cell text-sm">
+                        {formatDate(user.joinDate)}
+                      </TableCell>
+                      
+                      {/* Status column */}
+                      <TableCell>
+                        <Badge
+                          variant={statusInfo.variant}
+                          className={`text-xs sm:text-sm ${
+                            user.status === "verified"
+                              ? "bg-green-100 text-green-800 hover:bg-green-100"
+                              : user.status === "disable"
+                              ? "bg-red-100 text-red-800 hover:bg-red-100"
+                              : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                          }`}
+                        >
+                          {statusInfo.display}
+                        </Badge>
+                      </TableCell>
+                      
+                      {/* Actions column */}
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 text-xs sm:text-sm"
+                          onClick={() => handleEdit(user)}
+                        >
+                          <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
         )}
 
-        {/* ส่วนแสดงเมื่อไม่มีข้อมูล */}
+        {/* No data message */}
         {((activeTab === 'residents' && filteredResidents.length === 0) ||
           (activeTab === 'guards' && filteredGuards.length === 0)) && (
           <div className="p-8 sm:p-12 text-center">
@@ -544,12 +592,12 @@ export default function UserManagementTable() {
           </div>
         )}
 
-        {/* ส่วนควบคุมการแบ่งหน้า */}
+        {/* Pagination controls */}
         {totalItems > 0 && (
           <div className="flex flex-col sm:flex-row items-center justify-between px-4 sm:px-6 py-4 border-t bg-gray-50 gap-4">
-            {/* ส่วนซ้าย - แสดงการตั้งค่าจำนวนรายการต่อหน้าและข้อมูลการแสดงผล */}
+            {/* Left section - Items per page and pagination info */}
             <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
-              {/* ตัวเลือกจำนวนรายการต่อหน้า */}
+              {/* Items per page selector */}
               <div className="flex items-center space-x-2">
                 <span className="text-xs sm:text-sm text-gray-600">แสดง</span>
                 <Select
@@ -569,15 +617,15 @@ export default function UserManagementTable() {
                 <span className="text-xs sm:text-sm text-gray-600">รายการต่อหน้า</span>
               </div>
               
-              {/* แสดงข้อมูลการแบ่งหน้า */}
+              {/* Pagination info */}
               <div className="text-xs sm:text-sm text-gray-600">
                 แสดง {((currentPage - 1) * itemsPerPage) + 1} ถึง {Math.min(currentPage * itemsPerPage, totalItems)} จาก {totalItems} รายการ
               </div>
             </div>
             
-            {/* ส่วนขวา - ปุ่มนำทางระหว่างหน้า */}
+            {/* Right section - Navigation buttons */}
             <div className="flex items-center space-x-2">
-              {/* ปุ่มไปหน้าก่อนหน้า */}
+              {/* Previous page button */}
               <Button
                 variant="outline"
                 size="sm"
@@ -590,22 +638,17 @@ export default function UserManagementTable() {
                 <span className="sm:hidden">ก่อน</span>
               </Button>
               
-              {/* ปุ่มหมายเลขหน้า */}
+              {/* Page number buttons */}
               <div className="flex items-center space-x-1">
                 {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
                   let pageNum;
-                  // ตรรกะการแสดงหมายเลขหน้า
                   if (totalPages <= 5) {
-                    // ถ้ามีหน้าไม่เกิน 5 หน้า แสดงทุกหน้า
                     pageNum = i + 1;
                   } else if (currentPage <= 3) {
-                    // ถ้าอยู่หน้าแรกๆ แสดงหน้า 1-5
                     pageNum = i + 1;
                   } else if (currentPage >= totalPages - 2) {
-                    // ถ้าอยู่หน้าท้ายๆ แสดงหน้า 5 หน้าสุดท้าย
                     pageNum = totalPages - 4 + i;
                   } else {
-                    // ถ้าอยู่ตรงกลาง แสดงหน้า 2 หน้าแรกและหลังหน้าปัจจุบัน
                     pageNum = currentPage - 2 + i;
                   }
                   
@@ -627,7 +670,7 @@ export default function UserManagementTable() {
                 })}
               </div>
               
-              {/* ปุ่มไปหน้าถัดไป */}
+              {/* Next page button */}
               <Button
                 variant="outline"
                 size="sm"
@@ -644,7 +687,7 @@ export default function UserManagementTable() {
         )}
       </div>
 
-      {/* ฟอร์มแก้ไขผู้ใช้ - แสดงเป็น Dialog */}
+      {/* User edit form - Dialog */}
       <UserEditForm
         user={selectedUser}
         isOpen={isEditFormOpen}
@@ -652,40 +695,7 @@ export default function UserManagementTable() {
           setIsEditFormOpen(false);
           setSelectedUser(null);
         }}
-        onSubmit={(formData) => {
-          console.log("แก้ไขข้อมูล user:", selectedUser?.id, 'with data:', formData);
-          setIsEditFormOpen(false);
-          setSelectedUser(null);
-          
-          // Refresh data after successful update
-          const fetchUsers = async () => {
-            try {
-              setLoading(true);
-              setError(null);
-              
-              const response = await fetch("/api/userTable");
-              if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-              }
-              
-              const data: UserTableResponse = await response.json();
-              
-              if (data.success) {
-                setResidentsData(data.data.residents);
-                setGuardsData(data.data.guards);
-              } else {
-                throw new Error("Failed to fetch users");
-              }
-            } catch (err) {
-              setError(err instanceof Error ? err.message : "An error occurred");
-              console.error("Error fetching users:", err);
-            } finally {
-              setLoading(false);
-            }
-          };
-
-          fetchUsers();
-        }}
+        onSubmit={handleFormSubmit}
       />
     </div>
   );
