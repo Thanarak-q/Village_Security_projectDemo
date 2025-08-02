@@ -20,58 +20,50 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// ข้อมูลจำลอง (Mock Data) สำหรับผู้ใช้ใหม่ที่รอการอนุมัติ
-// ในระบบจริงข้อมูลนี้จะมาจาก API หรือฐานข้อมูล
-const pendingUsers = [
-  {
-    id: "1",
-    username: "somchai_j",
-    email: "somchai@example.com",
-    fname: "สมชาย",
-    lname: "ใจดี",
-    phone: "081-234-5678",
-    role: "ลูกบ้าน",
-    houseNumber: "88/123",
-    requestDate: "2024-01-15",
-    status: "รออนุมัติ"
-  },
-  {
-    id: "2", 
-    username: "manee_w",
-    email: "manee@example.com",
-    fname: "มณี",
-    lname: "วงศ์ใหญ่",
-    phone: "082-345-6789",
-    role: "ลูกบ้าน",
-    houseNumber: "88/124",
-    requestDate: "2024-01-14",
-    status: "รออนุมัติ"
-  },
-  {
-    id: "3",
-    username: "somsak_g",
-    email: "somsak@example.com", 
-    fname: "สมศักดิ์",
-    lname: "เก่งดี",
-    phone: "083-456-7890",
-    role: "ยาม",
-    houseNumber: "-",
-    requestDate: "2024-01-13",
-    status: "รออนุมัติ"
-  },
-  {
-    id: "4",
-    username: "ratree_p",
-    email: "ratree@example.com",
-    fname: "ราตรี", 
-    lname: "เพชรดี",
-    phone: "084-567-8901",
-    role: "ลูกบ้าน",
-    houseNumber: "88/125",
-    requestDate: "2024-01-12",
-    status: "รออนุมัติ"
-  }
-];
+// API Response Interface
+interface PendingUsersResponse {
+  success: boolean;
+  data: {
+    residents: PendingResident[];
+    guards: PendingGuard[];
+  };
+  total: {
+    residents: number;
+    guards: number;
+    total: number;
+  };
+  error?: string;
+}
+
+// Interface for Pending Resident from API
+interface PendingResident {
+  id: string;
+  fname: string;
+  lname: string;
+  email: string;
+  phone: string;
+  status: string;
+  role: string;
+  village_key: string;
+  house_address: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Interface for Pending Guard from API
+interface PendingGuard {
+  id: string;
+  fname: string;
+  lname: string;
+  email: string;
+  phone: string;
+  status: string;
+  role: string;
+  village_key: string;
+  house_address: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
 // Interface สำหรับกำหนดโครงสร้างข้อมูลผู้ใช้ที่รออนุมัติ
 interface PendingUser {
@@ -81,7 +73,7 @@ interface PendingUser {
   fname: string;        // ชื่อจริง
   lname: string;        // นามสกุล
   phone: string;        // เบอร์โทรศัพท์
-  role: string;         // บทบาท (ลูกบ้าน/ยาม)
+  role: string;         // บทบาท (resident/guard)
   houseNumber: string;  // บ้านเลขที่
   requestDate: string;  // วันที่สมัคร
   status: string;       // สถานะ
@@ -97,8 +89,11 @@ interface ApprovalFormData {
 
 // ฟังก์ชันหลักสำหรับแสดงตารางผู้ใช้ที่รออนุมัติ
 export default function PendingTable() {
-  // State สำหรับจัดการข้อมูลผู้ใช้
-  const [users, setUsers] = useState<PendingUser[]>(pendingUsers);
+  // State for API data
+  const [residentsData, setResidentsData] = useState<PendingResident[]>([]);
+  const [guardsData, setGuardsData] = useState<PendingGuard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // State สำหรับจัดการผู้ใช้ที่เลือกเพื่ออนุมัติ
   const [selectedUser, setSelectedUser] = useState<PendingUser | null>(null);
@@ -111,6 +106,37 @@ export default function PendingTable() {
   const [itemsPerPage, setItemsPerPage] = useState(3);      // จำนวนรายการต่อหน้า
   const [searchTerm, setSearchTerm] = useState("");         // คำค้นหา
 
+  // Fetch data from API
+  const fetchPendingUsers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch("/api/pendingUsers");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data: PendingUsersResponse = await response.json();
+      
+      if (data.success) {
+        setResidentsData(data.data.residents);
+        setGuardsData(data.data.guards);
+      } else {
+        throw new Error(data.error || "Failed to fetch pending users");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+      console.error("Error fetching pending users:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPendingUsers();
+  }, []);
+
   // ฟังก์ชันสำหรับเปิดฟอร์มอนุมัติเมื่อคลิกปุ่ม "ดำเนินการ"
   const handleProcess = (user: PendingUser) => {
     setSelectedUser(user);           // เก็บข้อมูลผู้ใช้ที่เลือก
@@ -118,17 +144,62 @@ export default function PendingTable() {
   };
 
   // ฟังก์ชันสำหรับจัดการการส่งฟอร์มอนุมัติ (อนุมัติหรือปฏิเสธ)
-  const handleApprovalSubmit = (action: 'approve' | 'reject', formData: ApprovalFormData) => {
-    console.log(`${action} user:`, selectedUser?.id, 'with data:', formData);
+  const handleApprovalSubmit = async (action: 'approve' | 'reject', formData: ApprovalFormData) => {
+    if (!selectedUser) return;
     
-    // ลบผู้ใช้ออกจากรายการรออนุมัติ
-    if (selectedUser) {
-      setUsers(users.filter(user => user.id !== selectedUser.id));
+    console.log(`${action} user:`, selectedUser.id, 'with data:', formData);
+    
+    try {
+      let response;
+      
+      if (action === 'approve') {
+        response = await fetch('/api/approveUser', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: selectedUser.id,
+            currentRole: selectedUser.role,
+            approvedRole: formData.approvedRole === 'ลูกบ้าน' ? 'resident' : 'guard',
+            houseNumber: formData.approvedRole === 'ลูกบ้าน' ? formData.houseNumber : undefined,
+            notes: formData.notes
+          }),
+        });
+      } else {
+        response = await fetch('/api/rejectUser', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: selectedUser.id,
+            currentRole: selectedUser.role,
+            reason: formData.approvalReason,
+            notes: formData.notes
+          }),
+        });
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        console.log(`User ${action}d successfully:`, result.message);
+        
+        // Refresh data after successful approval/rejection
+        await fetchPendingUsers();
+        
+        // ปิดฟอร์มและล้างข้อมูลผู้ใช้ที่เลือก
+        setIsApprovalFormOpen(false);
+        setSelectedUser(null);
+      } else {
+        console.error(`Failed to ${action} user:`, result.error);
+        alert(`Failed to ${action} user: ${result.error}`);
+      }
+    } catch (error) {
+      console.error(`Error ${action}ing user:`, error);
+      alert(`An error occurred while ${action}ing the user`);
     }
-    
-    // ปิดฟอร์มและล้างข้อมูลผู้ใช้ที่เลือก
-    setIsApprovalFormOpen(false);
-    setSelectedUser(null);
   };
 
   // ฟังก์ชันสำหรับสร้างตัวอักษรย่อจากชื่อและนามสกุล (สำหรับ Avatar)
@@ -160,9 +231,31 @@ export default function PendingTable() {
     });
   };
 
+  // Function to convert API data to PendingUser format
+  const convertToPendingUser = (data: PendingResident | PendingGuard): PendingUser => {
+    return {
+      id: data.id,
+      username: data.email.split('@')[0],
+      email: data.email,
+      fname: data.fname,
+      lname: data.lname,
+      phone: data.phone,
+      role: data.role,
+      houseNumber: data.house_address || "-",
+      requestDate: data.createdAt,
+      status: data.status
+    };
+  };
+
+  // Combine and filter all pending users
+  const allPendingUsers = [
+    ...residentsData.map(convertToPendingUser),
+    ...guardsData.map(convertToPendingUser)
+  ];
+
   // กรองข้อมูลผู้ใช้ตามคำค้นหา
   // ค้นหาได้จากชื่อ, นามสกุล, อีเมล, บทบาท, และบ้านเลขที่
-  const filteredUsers = users.filter(user =>
+  const filteredUsers = allPendingUsers.filter(user =>
     user.fname.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.lname.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -202,6 +295,34 @@ export default function PendingTable() {
     setCurrentPage(1); // รีเซ็ตกลับไปหน้าแรก
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="text-red-500 text-xl mb-2">⚠️</div>
+          <p className="text-red-600">เกิดข้อผิดพลาด: {error}</p>
+          <button 
+            onClick={fetchPendingUsers} 
+            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            ลองใหม่
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-sm border">
       {/* ส่วนหัวของตาราง */}
@@ -214,7 +335,7 @@ export default function PendingTable() {
               ผู้ใช้ใหม่รออนุมัติ
             </h2>
             <Badge variant="secondary" className="bg-orange-100 text-orange-800 text-xs sm:text-sm">
-              {users.length} รายการ
+              {allPendingUsers.length} รายการ
             </Badge>
           </div>
           
@@ -300,12 +421,12 @@ export default function PendingTable() {
                   <Badge 
                     variant="outline" 
                     className={`text-xs sm:text-sm ${
-                      user.role === "ยาม" 
+                      user.role === "guard" 
                         ? "border-blue-200 text-blue-700 bg-blue-50" 
                         : "border-green-200 text-green-700 bg-green-50"
                     }`}
                   >
-                    {user.role}
+                    {user.role === "guard" ? "ยาม" : "ลูกบ้าน"}
                   </Badge>
                 </TableCell>
                 

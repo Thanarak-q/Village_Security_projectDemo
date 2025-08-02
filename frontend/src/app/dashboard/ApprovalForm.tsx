@@ -41,6 +41,8 @@ interface ApprovalFormData {
   approvalReason: string;
 }
 
+
+
 interface ApprovalFormProps {
   user: PendingUser | null;
   isOpen: boolean;
@@ -60,7 +62,7 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
   useEffect(() => {
     if (user) {
       setFormData({
-        approvedRole: user.role,
+        approvedRole: user.role === 'resident' ? 'ลูกบ้าน' : 'ยาม',
         houseNumber: user.houseNumber !== "-" ? user.houseNumber : "",
         notes: "",
         approvalReason: ""
@@ -69,10 +71,25 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
   }, [user]);
 
   const handleApprove = () => {
+    if (!user) return;
+    
+    // Validate required fields for approval
+    if (formData.approvedRole === 'ลูกบ้าน' && !formData.houseNumber.trim()) {
+      alert('กรุณาระบุบ้านเลขที่สำหรับลูกบ้าน');
+      return;
+    }
+    
     onSubmit('approve', formData);
   };
 
   const handleReject = () => {
+    if (!user) return;
+
+    if (!formData.approvalReason.trim()) {
+      alert('กรุณาระบุเหตุผลในการปฏิเสธ');
+      return;
+    }
+    
     onSubmit('reject', formData);
   };
 
@@ -114,7 +131,7 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
             </div>
             <div>
               <span className="text-blue-700 font-medium">บทบาทที่สมัคร:</span>
-              <p className="text-blue-900">{user.role}</p>
+              <p className="text-blue-900">{user.role === 'resident' ? 'ลูกบ้าน' : 'ยาม'}</p>
             </div>
           </div>
         </div>
@@ -137,7 +154,7 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
               <SelectContent>
                 <SelectItem value="ลูกบ้าน">ลูกบ้าน</SelectItem>
                 <SelectItem value="ยาม">ยาม</SelectItem>
-                <SelectItem value="ผู้จัดการ">ผู้จัดการ</SelectItem>
+                {/* <SelectItem value="ผู้จัดการ">ผู้จัดการ</SelectItem> */}
               </SelectContent>
             </Select>
           </div>

@@ -368,7 +368,7 @@ const residentData = [
     password_hash: "password123",
     phone: "0801234567",
     village_key: "sukhumvit-village-010",
-    status: "verified"
+    status: "pending"
   },
   {
     email: "benjawan.suk@email.com",
@@ -412,7 +412,7 @@ const residentData = [
     password_hash: "password123",
     phone: "0845679012",
     village_key: "ladprao-village-012",
-    status: "verified"
+    status: "pending"
   },
 
   // หมู่บ้านบางนา
@@ -424,7 +424,7 @@ const residentData = [
     password_hash: "password123",
     phone: "0856790123",
     village_key: "bangna-village-013",
-    status: "verified"
+    status: "pending"
   },
 
   // หมู่บ้านทองหล่อ
@@ -436,7 +436,7 @@ const residentData = [
     password_hash: "password123",
     phone: "0867901234",
     village_key: "thonglor-village-015",
-    status: "verified"
+    status: "pending"
   }
 ];
 

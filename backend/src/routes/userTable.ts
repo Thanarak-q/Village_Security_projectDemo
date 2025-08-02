@@ -159,6 +159,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           updatedAt: residents.updatedAt,
         })
         .from(residents)
+        .where(sql`${residents.status} != 'pending'`)
         .leftJoin(house_members, eq(residents.resident_id, house_members.resident_id))
         .leftJoin(houses, eq(house_members.house_id, houses.house_id));
 
@@ -177,7 +178,8 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           createdAt: guards.createdAt,
           updatedAt: guards.updatedAt,
         })
-        .from(guards);
+        .from(guards)
+        .where(sql`${guards.status} != 'pending'`);
         
 
       return {
