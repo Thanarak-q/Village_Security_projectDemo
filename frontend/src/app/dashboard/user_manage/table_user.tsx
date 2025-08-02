@@ -20,70 +20,49 @@ import {
 import { Edit, Users, Shield, Home, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import UserEditForm from "./userEditForm";
 
-// ข้อมูลจำลอง (Mock Data) สำหรับลูกบ้าน
-// ในระบบจริงข้อมูลนี้จะมาจาก API หรือฐานข้อมูล
-const residentsData = [
-  {
-    id: "1",
-    username: "somchai_j",
-    email: "somchai@example.com",
-    fname: "สมชาย",
-    lname: "ใจดี",
-    phone: "081-234-5678",
-    houseNumber: "88/123",
-    status: "ใช้งาน",
-    joinDate: "2023-01-15"
-  },
-  {
-    id: "2",
-    username: "manee_w",
-    email: "manee@example.com",
-    fname: "มณี",
-    lname: "วงศ์ใหญ่",
-    phone: "082-345-6789",
-    houseNumber: "88/124",
-    status: "ใช้งาน",
-    joinDate: "2023-02-20"
-  },
-  {
-    id: "3",
-    username: "ratree_p",
-    email: "ratree@example.com",
-    fname: "ราตรี",
-    lname: "เพชรดี",
-    phone: "084-567-8901",
-    houseNumber: "88/125",
-    status: "ไม่ใช้งาน",
-    joinDate: "2023-03-10"
-  }
-];
+// API Response Interface
+interface UserTableResponse {
+  success: boolean;
+  data: {
+    residents: Resident[];
+    guards: Guard[];
+  };
+  total: {
+    residents: number;
+    guards: number;
+    total: number;
+  };
+}
 
-// ข้อมูลจำลอง (Mock Data) สำหรับยาม
-// ในระบบจริงข้อมูลนี้จะมาจาก API หรือฐานข้อมูล
-const guardsData = [
-  {
-    id: "4",
-    username: "somsak_g",
-    email: "somsak@example.com",
-    fname: "สมศักดิ์",
-    lname: "เก่งดี",
-    phone: "083-456-7890",
-    shift: "กะเช้า",
-    status: "ใช้งาน",
-    joinDate: "2023-01-01"
-  },
-  {
-    id: "5",
-    username: "pranee_s",
-    email: "pranee@example.com",
-    fname: "ปราณี",
-    lname: "ศรีสุข",
-    phone: "085-678-9012",
-    shift: "กะดึก",
-    status: "ใช้งาน",
-    joinDate: "2023-02-15"
-  }
-];
+// Interface for Resident from API
+interface Resident {
+  id: string;
+  fname: string;
+  lname: string;
+  email: string;
+  phone: string;
+  status: string;
+  role: string;
+  village_key: string;
+  house_address: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Interface for Guard from API
+interface Guard {
+  id: string;
+  fname: string;
+  lname: string;
+  email: string;
+  phone: string;
+  status: string;
+  role: string;
+  village_key: string;
+  house_address: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
 // Interface สำหรับกำหนดโครงสร้างข้อมูลผู้ใช้
 // รองรับทั้งลูกบ้านและยาม โดยมีฟิลด์ที่แตกต่างกัน
@@ -95,6 +74,7 @@ interface User {
   lname: string;        // นามสกุล
   phone: string;        // เบอร์โทรศัพท์
   status: string;       // สถานะ (ใช้งาน/ไม่ใช้งาน)
+  role: string;         // บทบาท (resident/guard)
   joinDate: string;     // วันที่เข้าร่วม
   houseNumber?: string; // บ้านเลขที่ (เฉพาะลูกบ้าน)
   shift?: string;       // กะ (เฉพาะยาม)
@@ -102,6 +82,12 @@ interface User {
 
 // ฟังก์ชันหลักสำหรับจัดการตารางผู้ใช้
 export default function UserManagementTable() {
+  // State สำหรับข้อมูลจาก API
+  const [residentsData, setResidentsData] = useState<Resident[]>([]);
+  const [guardsData, setGuardsData] = useState<Guard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
   // State สำหรับจัดการแท็บที่เลือก (ลูกบ้านหรือยาม)
   const [activeTab, setActiveTab] = useState<'residents' | 'guards'>('residents');
   
@@ -118,18 +104,44 @@ export default function UserManagementTable() {
   const [currentPage, setCurrentPage] = useState(1);        // หน้าปัจจุบัน
   const [itemsPerPage, setItemsPerPage] = useState(5);      // จำนวนรายการต่อหน้า
 
+  // Fetch data from API
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch("/api/userTable");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data: UserTableResponse = await response.json();
+        
+        if (data.success) {
+          setResidentsData(data.data.residents);
+          setGuardsData(data.data.guards);
+        } else {
+          throw new Error("Failed to fetch users");
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+        console.error("Error fetching users:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
   // ฟังก์ชันสำหรับเปิดฟอร์มแก้ไขเมื่อคลิกปุ่มแก้ไข
   const handleEdit = (user: User) => {
     setSelectedUser(user);           // เก็บข้อมูลผู้ใช้ที่เลือก
     setIsEditFormOpen(true);         // เปิดฟอร์มแก้ไข
   };
 
-  // ฟังก์ชันสำหรับจัดการการส่งฟอร์มแก้ไข
-  const handleEditSubmit = (formData: Partial<User>) => {
-    console.log("แก้ไขข้อมูล user:", selectedUser?.id, 'with data:', formData);
-    setIsEditFormOpen(false);        // ปิดฟอร์ม
-    setSelectedUser(null);           // ล้างข้อมูลผู้ใช้ที่เลือก
-  };
+
 
   // ฟังก์ชันสำหรับสร้างตัวอักษรย่อจากชื่อและนามสกุล (สำหรับ Avatar)
   const getAvatarInitials = (fname: string, lname: string) => {
@@ -161,12 +173,12 @@ export default function UserManagementTable() {
   };
 
   // กรองข้อมูลลูกบ้านตามคำค้นหา
-  // ค้นหาได้จากชื่อ, นามสกุล, อีเมล, และบ้านเลขที่
+  // ค้นหาได้จากชื่อ, นามสกุล, อีเมล, และเบอร์โทร
   const filteredResidents = residentsData.filter(user =>
     user.fname.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.lname.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.houseNumber.includes(searchTerm)
+    user.phone.includes(searchTerm)
   );
 
   // กรองข้อมูลยามตามคำค้นหา
@@ -181,14 +193,27 @@ export default function UserManagementTable() {
   const getCurrentResidents = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return filteredResidents.slice(startIndex, endIndex);
+    return filteredResidents.slice(startIndex, endIndex).map(resident => ({
+      ...resident,
+      username: resident.email.split('@')[0], // Generate username from email
+      houseNumber: resident.house_address || resident.village_key, // Use house_address if available, fallback to village_key
+      joinDate: resident.createdAt, // Use createdAt as joinDate
+      role: "resident" // Explicitly set role
+    }));
   };
 
   // ฟังก์ชันสำหรับดึงข้อมูลยามในหน้าปัจจุบัน
   const getCurrentGuards = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return filteredGuards.slice(startIndex, endIndex);
+    return filteredGuards.slice(startIndex, endIndex).map(guard => ({
+      ...guard,
+      username: guard.email.split('@')[0], // Generate username from email
+      houseNumber: guard.house_address || "-", // Use house_address if available, show "-" for guards
+      shift: "กะปกติ", // Default shift
+      joinDate: guard.createdAt, // Use createdAt as joinDate
+      role: "guard" // Explicitly set role
+    }));
   };
 
   // คำนวณข้อมูลสำหรับการแบ่งหน้า
@@ -219,6 +244,34 @@ export default function UserManagementTable() {
     setItemsPerPage(Number(value));
     setCurrentPage(1); // รีเซ็ตกลับไปหน้าแรก
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="text-red-500 text-xl mb-2">⚠️</div>
+          <p className="text-red-600">เกิดข้อผิดพลาด: {error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            ลองใหม่
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -341,9 +394,9 @@ export default function UserManagementTable() {
                     {/* คอลัมน์สถานะ - แสดง Badge สีตามสถานะ */}
                     <TableCell>
                       <Badge
-                        variant={user.status === "ใช้งาน" ? "default" : "secondary"}
+                        variant={user.status === "verified" ? "default" : "secondary"}
                         className={`text-xs sm:text-sm ${
-                          user.status === "ใช้งาน"
+                          user.status === "verified"
                             ? "bg-green-100 text-green-800 hover:bg-green-100"
                             : "bg-red-100 text-red-800 hover:bg-red-100"
                         }`}
@@ -448,9 +501,9 @@ export default function UserManagementTable() {
                     {/* คอลัมน์สถานะ - แสดง Badge สีตามสถานะ */}
                     <TableCell>
                       <Badge
-                        variant={user.status === "ใช้งาน" ? "default" : "secondary"}
+                        variant={user.status === "verified" ? "default" : "secondary"}
                         className={`text-xs sm:text-sm ${
-                          user.status === "ใช้งาน"
+                          user.status === "verified"
                             ? "bg-green-100 text-green-800 hover:bg-green-100"
                             : "bg-red-100 text-red-800 hover:bg-red-100"
                         }`}
@@ -599,7 +652,11 @@ export default function UserManagementTable() {
           setIsEditFormOpen(false);
           setSelectedUser(null);
         }}
-        onSubmit={handleEditSubmit}
+        onSubmit={(formData) => {
+          console.log("แก้ไขข้อมูล user:", selectedUser?.id, 'with data:', formData);
+          setIsEditFormOpen(false);
+          setSelectedUser(null);
+        }}
       />
     </div>
   );
