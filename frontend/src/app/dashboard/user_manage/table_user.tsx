@@ -446,7 +446,7 @@ export default function UserManagementTable() {
                 <TableRow className="bg-gray-50">
                   <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">ผู้ใช้งาน</TableHead>
                   <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden sm:table-cell">ข้อมูลติดต่อ</TableHead>
-                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">กะ</TableHead>
+                  {/* <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">กะ</TableHead> */}
                   <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden lg:table-cell">วันที่เข้าร่วม</TableHead>
                   <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">สถานะ</TableHead>
                   <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">จัดการ</TableHead>
@@ -494,7 +494,7 @@ export default function UserManagementTable() {
                     </TableCell>
                     
                     {/* Shift column */}
-                    <TableCell>
+                    {/* <TableCell>
                       <Badge 
                         variant="outline" 
                         className={`text-xs sm:text-sm ${
@@ -505,7 +505,7 @@ export default function UserManagementTable() {
                       >
                         {user.shift}
                       </Badge>
-                    </TableCell>
+                    </TableCell> */}
                     
                     {/* Join date column */}
                     <TableCell className="text-gray-600 hidden lg:table-cell text-sm">

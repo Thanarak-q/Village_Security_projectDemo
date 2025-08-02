@@ -87,6 +87,7 @@ async function createGuardFromResident(resident: any, status: string) {
   return result[0] || null;
 }
 
+
 async function createResidentFromGuard(guard: any, status: string) {
   
   const result = await db

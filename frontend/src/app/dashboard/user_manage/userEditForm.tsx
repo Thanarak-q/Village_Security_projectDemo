@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Edit, User, Home, Shield } from "lucide-react";
+import { Edit, Home, Shield } from "lucide-react";
 
 interface User {
   id: string;
@@ -56,7 +56,6 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
     notes: ""
   });
 
-  // Load user data into form when opened
   useEffect(() => {
     if (user) {
       setFormData({
@@ -73,44 +72,34 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
     
     if (!user) return;
 
-    // Check if role has changed
     const roleChanged = user.role !== formData.role;
 
     try {
-      let response;
-      
-      if (roleChanged) {
-        // Use role change API
-        response = await fetch('/api/changeUserRole', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+      const apiEndpoint = roleChanged ? '/api/changeUserRole' : '/api/updateUser';
+      const requestBody = roleChanged 
+        ? {
             userId: user.id,
             currentRole: user.role as 'resident' | 'guard',
             newRole: formData.role as 'resident' | 'guard',
             status: formData.status,
             houseNumber: formData.role === 'resident' ? formData.houseNumber : undefined,
             notes: formData.notes
-          }),
-        });
-      } else {
-        // Use regular update API
-        response = await fetch('/api/updateUser', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+          }
+        : {
             userId: user.id,
             role: formData.role,
             status: formData.status,
             houseNumber: formData.role === 'resident' ? formData.houseNumber : undefined,
             notes: formData.notes
-          }),
-        });
-      }
+          };
+
+      const response = await fetch(apiEndpoint, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
 
       const result = await response.json();
 
@@ -141,7 +130,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
           </DialogTitle>
         </DialogHeader>
 
-        {/* แสดงข้อมูล User */}
+        {/* User Information Display */}
         <div className="bg-blue-50 p-3 sm:p-4 rounded-lg mb-4 sm:mb-6 border border-blue-200">
           <h3 className="font-medium text-blue-900 mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
             {isResident ? <Home className="h-3 w-3 sm:h-4 sm:w-4" /> : <Shield className="h-3 w-3 sm:h-4 sm:w-4" />}
@@ -188,7 +177,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-          {/* สถานะ */}
+          {/* Status Field */}
           <div>
             <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
               สถานะ
@@ -202,13 +191,12 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="verified">ยืนยันแล้ว</SelectItem>
-                <SelectItem value="pending">รอยืนยัน</SelectItem>
                 <SelectItem value="disable">ระงับการใช้งาน</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* บทบาท */}
+          {/* Role Field */}
           <div>
             <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
               บทบาท
@@ -227,7 +215,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
             </Select>
           </div>
 
-          {/* บ้านเลขที่ (สำหรับลูกบ้าน) */}
+          {/* House Number Field (for residents only) */}
           {formData.role === 'resident' && (
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
@@ -242,7 +230,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
             </div>
           )}
 
-          {/* หมายเหตุ */}
+          {/* Notes Field */}
           <div>
             <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
               หมายเหตุ (ไม่บังคับ)
@@ -256,6 +244,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
             />
           </div>
 
+          {/* Form Actions */}
           <DialogFooter className="flex gap-2 sm:gap-3 pt-4 sm:pt-6">
             <DialogClose asChild>
               <Button type="button" variant="outline" className="flex-1 text-xs sm:text-sm">
