@@ -80,7 +80,7 @@ async function createGuardFromResident(resident: any, status: string) {
       password_hash: resident.password_hash,
       phone: resident.phone,
       village_key: resident.village_key,
-      status: resident.status,
+      status: status as "verified" | "pending" | "disable",
       profile_image_url: resident.profile_image_url
     })
     .returning();
@@ -100,7 +100,7 @@ async function createResidentFromGuard(guard: any, status: string) {
       password_hash: guard.password_hash,
       phone: guard.phone,
       village_key: guard.village_key,
-      status: guard.status,
+      status: status as "verified" | "pending" | "disable",
       profile_image_url: guard.profile_image_url
     })
     .returning();
@@ -159,8 +159,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
         })
         .from(residents)
         .leftJoin(house_members, eq(residents.resident_id, house_members.resident_id))
-        .leftJoin(houses, eq(house_members.house_id, houses.house_id))
-        .where(sql`${residents.status} != 'pending'`);
+        .leftJoin(houses, eq(house_members.house_id, houses.house_id));
 
       // Get guards data
       const guardsData = await db
@@ -177,8 +176,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           createdAt: guards.createdAt,
           updatedAt: guards.updatedAt,
         })
-        .from(guards)
-        .where(sql`${guards.status} != 'pending'`);
+        .from(guards);
         
 
       return {

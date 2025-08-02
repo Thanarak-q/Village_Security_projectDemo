@@ -202,6 +202,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="verified">ยืนยันแล้ว</SelectItem>
+                <SelectItem value="pending">รอยืนยัน</SelectItem>
                 <SelectItem value="disable">ระงับการใช้งาน</SelectItem>
               </SelectContent>
             </Select>

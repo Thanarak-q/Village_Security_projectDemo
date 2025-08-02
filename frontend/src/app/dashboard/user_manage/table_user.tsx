@@ -80,33 +80,7 @@ interface User {
   shift?: string;
 }
 
-// Helper function to map backend status to frontend display
-function mapStatusForDisplay(status: string): { display: string; variant: "default" | "secondary" | "destructive" } {
-  switch (status) {
-    case 'verified':
-      return { display: 'ยืนยันแล้ว', variant: 'default' as const };
-    case 'pending':
-      return { display: 'รอยืนยัน', variant: 'secondary' as const };
-    case 'disable':
-      return { display: 'ระงับการใช้งาน', variant: 'destructive' as const };
-    default:
-      return { display: status, variant: 'secondary' as const };
-  }
-}
 
-// Helper function to map frontend status to backend
-function mapStatusForBackend(status: string): string {
-  switch (status) {
-    case 'suspended':
-      return 'disable';
-    case 'verified':
-    case 'pending':
-    case 'disable':
-      return status;
-    default:
-      return 'pending';
-  }
-}
 
 // Main user management table component
 export default function UserManagementTable() {
@@ -377,90 +351,87 @@ export default function UserManagementTable() {
               
               {/* Residents table body */}
               <TableBody>
-                {getCurrentResidents().map((user) => {
-                  const statusInfo = mapStatusForDisplay(user.status);
-                  return (
-                    <TableRow key={user.id} className="hover:bg-gray-50">
-                      {/* User column - Avatar and name */}
-                      <TableCell>
-                        <div className="flex items-center space-x-3">
-                          {/* Avatar circle with initials */}
-                          <div
-                            className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-medium text-xs sm:text-sm ${getAvatarColor(
-                              user.id
-                            )}`}
-                          >
-                            {getAvatarInitials(user.fname, user.lname)}
+                {getCurrentResidents().map((user) => (
+                  <TableRow key={user.id} className="hover:bg-gray-50">
+                    {/* User column - Avatar and name */}
+                    <TableCell>
+                      <div className="flex items-center space-x-3">
+                        {/* Avatar circle with initials */}
+                        <div
+                          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-medium text-xs sm:text-sm ${getAvatarColor(
+                            user.id
+                          )}`}
+                        >
+                          {getAvatarInitials(user.fname, user.lname)}
+                        </div>
+                        {/* Name and username */}
+                        <div>
+                          <div className="font-medium text-gray-900 text-sm sm:text-base">
+                            {user.fname} {user.lname}
                           </div>
-                          {/* Name and username */}
-                          <div>
-                            <div className="font-medium text-gray-900 text-sm sm:text-base">
-                              {user.fname} {user.lname}
-                            </div>
-                            <div className="text-xs sm:text-sm text-gray-500">
-                              @{user.username}
-                            </div>
-                            {/* Show contact info on mobile */}
-                            <div className="sm:hidden text-xs text-gray-500 mt-1">
-                              {user.email}<br/>
-                              {user.phone}
-                            </div>
-                            {/* Show house number on mobile */}
-                            <div className="md:hidden text-xs text-gray-500 mt-1">
-                              บ้านเลขที่: {user.houseNumber}
-                            </div>
+                          <div className="text-xs sm:text-sm text-gray-500">
+                            @{user.username}
+                          </div>
+                          {/* Show contact info on mobile */}
+                          <div className="sm:hidden text-xs text-gray-500 mt-1">
+                            {user.email}<br/>
+                            {user.phone}
+                          </div>
+                          {/* Show house number on mobile */}
+                          <div className="md:hidden text-xs text-gray-500 mt-1">
+                            บ้านเลขที่: {user.houseNumber}
                           </div>
                         </div>
-                      </TableCell>
-                      
-                      {/* Contact info column */}
-                      <TableCell className="hidden sm:table-cell">
-                        <div className="space-y-1">
-                          <div className="text-sm text-gray-900">{user.email}</div>
-                          <div className="text-sm text-gray-500">{user.phone}</div>
-                        </div>
-                      </TableCell>
-                      
-                      {/* House number column */}
-                      <TableCell className="text-gray-700 font-medium hidden md:table-cell text-sm">
-                        {user.houseNumber}
-                      </TableCell>
-                      
-                      {/* Join date column */}
-                      <TableCell className="text-gray-600 hidden lg:table-cell text-sm">
-                        {formatDate(user.joinDate)}
-                      </TableCell>
-                      
-                      {/* Status column */}
-                      <TableCell>
-                        <Badge
-                          variant={statusInfo.variant}
-                          className={`text-xs sm:text-sm ${
-                            user.status === "verified"
-                              ? "bg-green-100 text-green-800 hover:bg-green-100"
-                              : user.status === "disable"
-                              ? "bg-red-100 text-red-800 hover:bg-red-100"
-                              : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
-                          }`}
-                        >
-                          {statusInfo.display}
-                        </Badge>
-                      </TableCell>
-                      
-                      {/* Actions column */}
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 text-xs sm:text-sm"
-                          onClick={() => handleEdit(user)}
-                        >
-                          <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                      </div>
+                    </TableCell>
+                    
+                    {/* Contact info column */}
+                    <TableCell className="hidden sm:table-cell">
+                      <div className="space-y-1">
+                        <div className="text-sm text-gray-900">{user.email}</div>
+                        <div className="text-sm text-gray-500">{user.phone}</div>
+                      </div>
+                    </TableCell>
+                    
+                    {/* House number column */}
+                    <TableCell className="text-gray-700 font-medium hidden md:table-cell text-sm">
+                      {user.houseNumber}
+                    </TableCell>
+                    
+                    {/* Join date column */}
+                    <TableCell className="text-gray-600 hidden lg:table-cell text-sm">
+                      {formatDate(user.joinDate)}
+                    </TableCell>
+                    
+                    {/* Status column */}
+                    <TableCell>
+                      <Badge
+                        variant={user.status === "verified" ? "default" : "secondary"}
+                        className={`text-xs sm:text-sm ${
+                          user.status === "verified"
+                            ? "bg-green-100 text-green-800 hover:bg-green-100"
+                            : user.status === "disable"
+                            ? "bg-red-100 text-red-800 hover:bg-red-100"
+                            : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                        }`}
+                      >
+                        {user.status}
+                      </Badge>
+                    </TableCell>
+                    
+                    {/* Actions column */}
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 text-xs sm:text-sm"
+                        onClick={() => handleEdit(user)}
+                      >
+                        <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -484,95 +455,92 @@ export default function UserManagementTable() {
               
               {/* Guards table body */}
               <TableBody>
-                {getCurrentGuards().map((user) => {
-                  const statusInfo = mapStatusForDisplay(user.status);
-                  return (
-                    <TableRow key={user.id} className="hover:bg-gray-50">
-                      {/* User column - Avatar and name */}
-                      <TableCell>
-                        <div className="flex items-center space-x-3">
-                          {/* Avatar circle with initials */}
-                          <div
-                            className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-medium text-xs sm:text-sm ${getAvatarColor(
-                              user.id
-                            )}`}
-                          >
-                            {getAvatarInitials(user.fname, user.lname)}
+                {getCurrentGuards().map((user) => (
+                  <TableRow key={user.id} className="hover:bg-gray-50">
+                    {/* User column - Avatar and name */}
+                    <TableCell>
+                      <div className="flex items-center space-x-3">
+                        {/* Avatar circle with initials */}
+                        <div
+                          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-medium text-xs sm:text-sm ${getAvatarColor(
+                            user.id
+                          )}`}
+                        >
+                          {getAvatarInitials(user.fname, user.lname)}
+                        </div>
+                        {/* Name and username */}
+                        <div>
+                          <div className="font-medium text-gray-900 text-sm sm:text-base">
+                            {user.fname} {user.lname}
                           </div>
-                          {/* Name and username */}
-                          <div>
-                            <div className="font-medium text-gray-900 text-sm sm:text-base">
-                              {user.fname} {user.lname}
-                            </div>
-                            <div className="text-xs sm:text-sm text-gray-500">
-                              @{user.username}
-                            </div>
-                            {/* Show contact info on mobile */}
-                            <div className="sm:hidden text-xs text-gray-500 mt-1">
-                              {user.email}<br/>
-                              {user.phone}
-                            </div>
+                          <div className="text-xs sm:text-sm text-gray-500">
+                            @{user.username}
+                          </div>
+                          {/* Show contact info on mobile */}
+                          <div className="sm:hidden text-xs text-gray-500 mt-1">
+                            {user.email}<br/>
+                            {user.phone}
                           </div>
                         </div>
-                      </TableCell>
-                      
-                      {/* Contact info column */}
-                      <TableCell className="hidden sm:table-cell">
-                        <div className="space-y-1">
-                          <div className="text-sm text-gray-900">{user.email}</div>
-                          <div className="text-sm text-gray-500">{user.phone}</div>
-                        </div>
-                      </TableCell>
-                      
-                      {/* Shift column */}
-                      <TableCell>
-                        <Badge 
-                          variant="outline" 
-                          className={`text-xs sm:text-sm ${
-                            user.shift === "กะเช้า" 
-                              ? "border-blue-200 text-blue-700 bg-blue-50" 
-                              : "border-purple-200 text-purple-700 bg-purple-50"
-                          }`}
-                        >
-                          {user.shift}
-                        </Badge>
-                      </TableCell>
-                      
-                      {/* Join date column */}
-                      <TableCell className="text-gray-600 hidden lg:table-cell text-sm">
-                        {formatDate(user.joinDate)}
-                      </TableCell>
-                      
-                      {/* Status column */}
-                      <TableCell>
-                        <Badge
-                          variant={statusInfo.variant}
-                          className={`text-xs sm:text-sm ${
-                            user.status === "verified"
-                              ? "bg-green-100 text-green-800 hover:bg-green-100"
-                              : user.status === "disable"
-                              ? "bg-red-100 text-red-800 hover:bg-red-100"
-                              : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
-                          }`}
-                        >
-                          {statusInfo.display}
-                        </Badge>
-                      </TableCell>
-                      
-                      {/* Actions column */}
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 text-xs sm:text-sm"
-                          onClick={() => handleEdit(user)}
-                        >
-                          <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                      </div>
+                    </TableCell>
+                    
+                    {/* Contact info column */}
+                    <TableCell className="hidden sm:table-cell">
+                      <div className="space-y-1">
+                        <div className="text-sm text-gray-900">{user.email}</div>
+                        <div className="text-sm text-gray-500">{user.phone}</div>
+                      </div>
+                    </TableCell>
+                    
+                    {/* Shift column */}
+                    <TableCell>
+                      <Badge 
+                        variant="outline" 
+                        className={`text-xs sm:text-sm ${
+                          user.shift === "กะเช้า" 
+                            ? "border-blue-200 text-blue-700 bg-blue-50" 
+                            : "border-purple-200 text-purple-700 bg-purple-50"
+                        }`}
+                      >
+                        {user.shift}
+                      </Badge>
+                    </TableCell>
+                    
+                    {/* Join date column */}
+                    <TableCell className="text-gray-600 hidden lg:table-cell text-sm">
+                      {formatDate(user.joinDate)}
+                    </TableCell>
+                    
+                    {/* Status column */}
+                    <TableCell>
+                      <Badge
+                        variant={user.status === "verified" ? "default" : "secondary"}
+                        className={`text-xs sm:text-sm ${
+                          user.status === "verified"
+                            ? "bg-green-100 text-green-800 hover:bg-green-100"
+                            : user.status === "disable"
+                            ? "bg-red-100 text-red-800 hover:bg-red-100"
+                            : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                        }`}
+                      >
+                        {user.status}
+                      </Badge>
+                    </TableCell>
+                    
+                    {/* Actions column */}
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 text-xs sm:text-sm"
+                        onClick={() => handleEdit(user)}
+                      >
+                        <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>
