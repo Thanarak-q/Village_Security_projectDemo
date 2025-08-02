@@ -28,19 +28,16 @@ interface User {
   lname: string;
   phone: string;
   status: string;
+  role: string;
   joinDate: string;
   houseNumber?: string;
   shift?: string;
 }
 
 interface UserEditFormData {
-  fname: string;
-  lname: string;
-  email: string;
-  phone: string;
   status: string;
+  role: string;
   houseNumber: string;
-  shift: string;
   notes: string;
 }
 
@@ -53,13 +50,9 @@ interface UserEditFormProps {
 
 export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEditFormProps) {
   const [formData, setFormData] = useState<UserEditFormData>({
-    fname: "",
-    lname: "",
-    email: "",
-    phone: "",
     status: "",
+    role: "",
     houseNumber: "",
-    shift: "",
     notes: ""
   });
 
@@ -67,13 +60,9 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
   useEffect(() => {
     if (user) {
       setFormData({
-        fname: user.fname,
-        lname: user.lname,
-        email: user.email,
-        phone: user.phone,
         status: user.status,
+        role: user.role,
         houseNumber: user.houseNumber || "",
-        shift: user.shift || "",
         notes: ""
       });
     }
@@ -84,7 +73,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
     onSubmit(formData);
   };
 
-  const isResident = user?.houseNumber;
+  const isResident = user?.role === 'resident';
 
   if (!user) return null;
 
@@ -106,8 +95,20 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
             <div>
+              <span className="text-blue-700 font-medium">ชื่อ-นามสกุล:</span>
+              <p className="text-blue-900">{user.fname} {user.lname}</p>
+            </div>
+            <div>
               <span className="text-blue-700 font-medium">Username:</span>
               <p className="text-blue-900">@{user.username}</p>
+            </div>
+            <div>
+              <span className="text-blue-700 font-medium">อีเมล:</span>
+              <p className="text-blue-900">{user.email}</p>
+            </div>
+            <div>
+              <span className="text-blue-700 font-medium">เบอร์โทร:</span>
+              <p className="text-blue-900">{user.phone}</p>
             </div>
             <div>
               <span className="text-blue-700 font-medium">ประเภท:</span>
@@ -133,59 +134,6 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-          {/* ชื่อ-นามสกุล */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                ชื่อ
-              </label>
-              <Input
-                value={formData.fname}
-                onChange={(e) => setFormData({ ...formData, fname: e.target.value })}
-                required
-                className="text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                นามสกุล
-              </label>
-              <Input
-                value={formData.lname}
-                onChange={(e) => setFormData({ ...formData, lname: e.target.value })}
-                required
-                className="text-sm"
-              />
-            </div>
-          </div>
-
-          {/* อีเมล */}
-          <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-              อีเมล
-            </label>
-            <Input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required
-              className="text-sm"
-            />
-          </div>
-
-          {/* เบอร์โทร */}
-          <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-              เบอร์โทร
-            </label>
-            <Input
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              required
-              className="text-sm"
-            />
-          </div>
-
           {/* สถานะ */}
           <div>
             <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
@@ -199,15 +147,34 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
                 <SelectValue placeholder="เลือกสถานะ" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ใช้งาน">ใช้งาน</SelectItem>
-                <SelectItem value="ไม่ใช้งาน">ไม่ใช้งาน</SelectItem>
-                <SelectItem value="ระงับชั่วคราว">ระงับชั่วคราว</SelectItem>
+                <SelectItem value="verified">ยืนยันแล้ว</SelectItem>
+                <SelectItem value="pending">รอยืนยัน</SelectItem>
+                <SelectItem value="suspended">ระงับการใช้งาน</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* บทบาท */}
+          <div>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+              บทบาท
+            </label>
+            <Select
+              value={formData.role}
+              onValueChange={(value) => setFormData({ ...formData, role: value })}
+            >
+              <SelectTrigger className="text-sm">
+                <SelectValue placeholder="เลือกบทบาท" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="resident">ลูกบ้าน</SelectItem>
+                <SelectItem value="guard">ยาม</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* บ้านเลขที่ (สำหรับลูกบ้าน) */}
-          {isResident && (
+          {formData.role === 'resident' && (
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                 บ้านเลขที่
@@ -218,28 +185,6 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
                 placeholder="เช่น 88/123"
                 className="text-sm"
               />
-            </div>
-          )}
-
-          {/* กะ (สำหรับยาม) */}
-          {!isResident && (
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                กะ
-              </label>
-              <Select
-                value={formData.shift}
-                onValueChange={(value) => setFormData({ ...formData, shift: value })}
-              >
-                <SelectTrigger className="text-sm">
-                  <SelectValue placeholder="เลือกกะ" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="กะเช้า">กะเช้า</SelectItem>
-                  <SelectItem value="กะบ่าย">กะบ่าย</SelectItem>
-                  <SelectItem value="กะดึก">กะดึก</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           )}
 
