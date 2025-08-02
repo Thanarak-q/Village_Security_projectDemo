@@ -656,6 +656,35 @@ export default function UserManagementTable() {
           console.log("แก้ไขข้อมูล user:", selectedUser?.id, 'with data:', formData);
           setIsEditFormOpen(false);
           setSelectedUser(null);
+          
+          // Refresh data after successful update
+          const fetchUsers = async () => {
+            try {
+              setLoading(true);
+              setError(null);
+              
+              const response = await fetch("/api/userTable");
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              
+              const data: UserTableResponse = await response.json();
+              
+              if (data.success) {
+                setResidentsData(data.data.residents);
+                setGuardsData(data.data.guards);
+              } else {
+                throw new Error("Failed to fetch users");
+              }
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "An error occurred");
+              console.error("Error fetching users:", err);
+            } finally {
+              setLoading(false);
+            }
+          };
+
+          fetchUsers();
         }}
       />
     </div>

@@ -68,9 +68,39 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
     }
   }, [user]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    
+    if (!user) return;
+
+    try {
+      const response = await fetch('/api/updateUser', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          role: formData.role,
+          status: formData.status,
+          houseNumber: formData.role === 'resident' ? formData.houseNumber : undefined,
+          notes: formData.notes
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        console.log('User updated successfully:', result);
+        onSubmit(formData);
+      } else {
+        console.error('Failed to update user:', result.error);
+        alert(`Failed to update user: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error updating user:', error);
+      alert('An error occurred while updating the user');
+    }
   };
 
   const isResident = user?.role === 'resident';
