@@ -593,7 +593,7 @@ const adminData = [
     password_hash: "password123",
     phone: "0891234579",
     village_key: "bangna-village-013",
-    status: "verified"
+    status: "pending"
   },
   // หมู่บ้านอโศก
   {
@@ -602,7 +602,7 @@ const adminData = [
     password_hash: "password123",
     phone: "0891234580",
     village_key: "asoke-village-014",
-    status: "verified"
+    status: "pending"
   },
   // หมู่บ้านทองหล่อ
   {
@@ -611,7 +611,7 @@ const adminData = [
     password_hash: "password123",
     phone: "0891234581",
     village_key: "thonglor-village-015",
-    status: "verified"
+    status: "pending"
   }
 ];
 

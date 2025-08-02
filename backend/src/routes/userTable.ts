@@ -20,7 +20,8 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           createdAt: residents.createdAt,
           updatedAt: residents.updatedAt,
         })
-        .from(residents);
+        .from(residents)
+        .where(eq(residents.status, 'verified'));
 
       // ดึงข้อมูล guards
       const guardsData = await db
@@ -36,7 +37,8 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           createdAt: guards.createdAt,
           updatedAt: guards.updatedAt,
         })
-        .from(guards);
+        .from(guards)
+        .where(eq(guards.status, 'verified'));
 
       return {
         success: true,
