@@ -141,11 +141,15 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
               .update(houses)
               .set({ address: houseNumber })
               .where(eq(houses.house_id, existingHouse[0].house_id!));
+          } else {
+            // Create new house and house_member record
+            const villageKey = updateResult[0].village_key;
+            
             const newHouse = await db
               .insert(houses)
               .values({
                 address: houseNumber,
-                village_key: "need session first"
+                village_key: villageKey
               })
               .returning();
 
