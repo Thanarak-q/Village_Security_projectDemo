@@ -73,33 +73,57 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
     
     if (!user) return;
 
+    // Check if role has changed
+    const roleChanged = user.role !== formData.role;
+
     try {
-      const response = await fetch('/api/updateUser', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          role: formData.role,
-          status: formData.status,
-          houseNumber: formData.role === 'resident' ? formData.houseNumber : undefined,
-          notes: formData.notes
-        }),
-      });
+      let response;
+      
+      if (roleChanged) {
+        // Use role change API
+        response = await fetch('/api/changeUserRole', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            currentRole: user.role as 'resident' | 'guard',
+            newRole: formData.role as 'resident' | 'guard',
+            status: formData.status,
+            houseNumber: formData.role === 'resident' ? formData.houseNumber : undefined,
+            notes: formData.notes
+          }),
+        });
+      } else {
+        // Use regular update API
+        response = await fetch('/api/updateUser', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            role: formData.role,
+            status: formData.status,
+            houseNumber: formData.role === 'resident' ? formData.houseNumber : undefined,
+            notes: formData.notes
+          }),
+        });
+      }
 
       const result = await response.json();
 
       if (result.success) {
-        console.log('User updated successfully:', result);
+        console.log(roleChanged ? 'User role changed successfully:' : 'User updated successfully:', result);
         onSubmit(formData);
       } else {
         console.error('Failed to update user:', result.error);
-        alert(`Failed to update user: ${result.error}`);
+        alert(`Failed to ${roleChanged ? 'change user role' : 'update user'}: ${result.error}`);
       }
     } catch (error) {
       console.error('Error updating user:', error);
-      alert('An error occurred while updating the user');
+      alert(`An error occurred while ${roleChanged ? 'changing user role' : 'updating the user'}`);
     }
   };
 
@@ -178,8 +202,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="verified">ยืนยันแล้ว</SelectItem>
-                <SelectItem value="pending">รอยืนยัน</SelectItem>
-                <SelectItem value="suspended">ระงับการใช้งาน</SelectItem>
+                <SelectItem value="disable">ระงับการใช้งาน</SelectItem>
               </SelectContent>
             </Select>
           </div>
