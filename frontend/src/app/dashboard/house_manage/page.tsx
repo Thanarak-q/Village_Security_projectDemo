@@ -1,6 +1,5 @@
 import NotificationComponent from "../notification";
-import UserManagementTable from "./table_user";
-
+import HouseManagementTable from "./table_house";
 
 export default function page() {
   return (
@@ -9,10 +8,10 @@ export default function page() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div className="space-y-1">
             <h1 className="scroll-m-20 text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight text-gray-900">
-              
+              การจัดการบ้าน
             </h1>
             <p className="text-sm sm:text-base text-gray-500">
-              
+              จัดการข้อมูลบ้านและสถานะการอยู่อาศัย
             </p>
           </div>
           <div className="flex justify-end sm:justify-start">
@@ -20,7 +19,7 @@ export default function page() {
           </div>
         </div>
         <div>
-          <UserManagementTable />
+          <HouseManagementTable />
         </div>
       </div>
     </div>

@@ -13,6 +13,7 @@ import { visitorRecordYearlyRoutes } from "./routes/visitorRecord-yearly";
 import { testConnection, closeConnection, getPoolStats } from "./db/drizzle";
 import { statsCardRoutes } from "./routes/statsCard";
 import { userTableRoutes } from "./routes/userTable";
+import { pendingUsersRoutes } from "./routes/pendingUsers";
 // Health check endpoint
 const healthCheck = new Elysia()
   .get("/api/health", async () => {
@@ -57,6 +58,7 @@ const app = new Elysia()
   .use(visitorRecordYearlyRoutes)
   .use(statsCardRoutes)
   .use(userTableRoutes)
+  .use(pendingUsersRoutes)
   .get("/", () => "Hello Village Security API!");
 
 // Initialize database connection and start server
