@@ -282,16 +282,6 @@ const residentData = [
     village_key: "rattana-village-006",
     status: "verified"
   },
-  {
-    email: "kittipong.rat@email.com",
-    fname: "กิตติพงษ์",
-    lname: "รัตนา",
-    username: "kittipong_rat",
-    password_hash: "password123",
-    phone: "0834567890",
-    village_key: "rattana-village-006",
-    status: "verified"
-  },
 
   // หมู่บ้านศรีสุข
   {

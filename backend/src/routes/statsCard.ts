@@ -3,15 +3,34 @@ import db from "../db/drizzle";
 import { residents, visitor_records, guards } from "../db/schema";
 import { eq, count, and, gte, lt } from "drizzle-orm";
 
-export const statsCardRoutes = new Elysia({ prefix: "/api" })
+// Types
+interface StatsData {
+  residentCount: number;
+  residentPendingCount: number;
+  guardPendingCount: number;
+  visitorRecordToday: number;
+  visitorApprovedToday: number;
+  visitorPendingToday: number;
+  visitorRejectedToday: number;
+}
 
+// Helper functions
+const getTodayDateRange = () => {
+  const today = new Date();
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  return { startOfDay, endOfDay };
+};
+
+const getCountFromResult = (result: any[]): number => {
+  return result[0]?.count || 0;
+};
+
+export const statsCardRoutes = new Elysia({ prefix: "/api" })
   // Get resident count and visitor record stats for today
   .get("/statsCard", async () => {
     try {
-      // Get today's date range (start of day to end of day)
-      const today = new Date();
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+      const { startOfDay, endOfDay } = getTodayDateRange();
       
       // Count total residents
       const countResidents = await db.select({ count: count() }).from(residents);
@@ -29,7 +48,6 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
       // Count visitor records for today
       const countVisitorRecordToday = await db.select({ count: count() })
         .from(visitor_records)
-        // อยู่ภายในวันนี้
         .where(
           and(
             gte(visitor_records.createdAt, startOfDay),
@@ -70,26 +88,27 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
           )
         );
       
+      const statsData: StatsData = {
+        residentCount: getCountFromResult(countResidents),
+        residentPendingCount: getCountFromResult(countResidentsPending),
+        guardPendingCount: getCountFromResult(countGuardsPending),
+        visitorRecordToday: getCountFromResult(countVisitorRecordToday),
+        visitorApprovedToday: getCountFromResult(countApprovedToday),
+        visitorPendingToday: getCountFromResult(countPendingToday),
+        visitorRejectedToday: getCountFromResult(countRejectedToday),
+      };
+      
       return { 
         success: true, 
-        data: { 
-          residentCount: countResidents[0]?.count || 0,
-          residentPendingCount: countResidentsPending[0]?.count || 0,
-          guardPendingCount: countGuardsPending[0]?.count || 0,
-          visitorRecordToday: countVisitorRecordToday[0]?.count || 0,
-          visitorApprovedToday: countApprovedToday[0]?.count || 0,
-          visitorPendingToday: countPendingToday[0]?.count || 0,
-          visitorRejectedToday: countRejectedToday[0]?.count || 0,
-          message: "ข้อมูลสถิติประจำวัน"
-        } 
+        data: statsData,
+        message: "ข้อมูลสถิติประจำวัน"
       };
     } catch (error) {
+      console.error("Error fetching statistics:", error);
       return { 
         success: false, 
         error: "Failed to fetch statistics",
         details: error instanceof Error ? error.message : "Unknown error"
       };
     }
-  })
-  
-; 
+  }); 

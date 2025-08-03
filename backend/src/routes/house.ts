@@ -3,14 +3,75 @@ import db from "../db/drizzle";
 import { houses, villages } from "../db/schema";
 import { eq } from "drizzle-orm";
 
+// Types
+interface CreateHouseBody {
+  address: string;
+  village_key: string;
+}
+
+interface UpdateHouseBody {
+  address?: string;
+  village_key?: string;
+  status?: "available" | "occupied" | "disable";
+}
+
+interface UpdateStatusBody {
+  status: "available" | "occupied" | "disable";
+}
+
+// Validation functions
+const validateHouseData = (data: CreateHouseBody) => {
+  const errors: string[] = [];
+  
+  if (!data.address?.trim()) {
+    errors.push("Address is required");
+  }
+  
+  if (!data.village_key?.trim()) {
+    errors.push("Village key is required");
+  }
+  
+  return errors;
+};
+
+const validateUpdateData = (data: UpdateHouseBody) => {
+  const errors: string[] = [];
+  
+  if (data.address !== undefined && !data.address.trim()) {
+    errors.push("Address cannot be empty");
+  }
+  
+  if (data.village_key !== undefined && !data.village_key.trim()) {
+    errors.push("Village key cannot be empty");
+  }
+  
+  if (data.status !== undefined && !["available", "occupied", "disable"].includes(data.status)) {
+    errors.push("Invalid status. Must be: available, occupied, or disable");
+  }
+  
+  return errors;
+};
+
+const validateStatus = (status: string): status is "available" | "occupied" | "disable" => {
+  return ["available", "occupied", "disable"].includes(status);
+};
+
 export const houseRoutes = new Elysia({ prefix: "/api" })
   // Get all houses
   .get("/houses", async () => {
     try {
       const result = await db.select().from(houses);
-      return { success: true, data: result };
+      return { 
+        success: true, 
+        data: result,
+        total: result.length
+      };
     } catch (error) {
-      return { error: "Failed to fetch houses" };
+      console.error("Error fetching houses:", error);
+      return { 
+        success: false, 
+        error: "Failed to fetch houses" 
+      };
     }
   })
   
@@ -19,14 +80,29 @@ export const houseRoutes = new Elysia({ prefix: "/api" })
     try {
       const { village_key } = params;
       
+      if (!village_key?.trim()) {
+        return { 
+          success: false, 
+          error: "Village key is required" 
+        };
+      }
+      
       const result = await db
         .select()
         .from(houses)
         .where(eq(houses.village_key, village_key));
       
-      return { success: true, data: result };
+      return { 
+        success: true, 
+        data: result,
+        total: result.length
+      };
     } catch (error) {
-      return { error: "Failed to fetch houses for village" };
+      console.error("Error fetching houses by village:", error);
+      return { 
+        success: false, 
+        error: "Failed to fetch houses for village" 
+      };
     }
   })
   
@@ -35,48 +111,49 @@ export const houseRoutes = new Elysia({ prefix: "/api" })
     try {
       const { house_id } = params;
       
+      if (!house_id?.trim()) {
+        return { 
+          success: false, 
+          error: "House ID is required" 
+        };
+      }
+      
       const result = await db
         .select()
         .from(houses)
         .where(eq(houses.house_id, house_id));
       
       if (result.length === 0) {
-        return { success: false, error: "House not found" };
+        return { 
+          success: false, 
+          error: "House not found" 
+        };
       }
       
-      return { success: true, data: result[0] };
+      return { 
+        success: true, 
+        data: result[0] 
+      };
     } catch (error) {
-      return { error: "Failed to fetch house" };
+      console.error("Error fetching house:", error);
+      return { 
+        success: false, 
+        error: "Failed to fetch house" 
+      };
     }
   })
   
   // Create new house
   .post("/houses", async ({ body }) => {
     try {
-      const { address, village_key } = body as {
-        address: string;
-        village_key: string;
-      };
-
+      const houseData = body as CreateHouseBody;
+      
       // Validation
-      if (!address || !village_key) {
+      const validationErrors = validateHouseData(houseData);
+      if (validationErrors.length > 0) {
         return { 
           success: false, 
-          error: "Missing required fields! address and village_key are required." 
-        };
-      }
-
-      if (address.trim().length === 0) {
-        return { 
-          success: false, 
-          error: "Address cannot be empty!" 
-        };
-      }
-
-      if (village_key.trim().length === 0) {
-        return { 
-          success: false, 
-          error: "Village key cannot be empty!" 
+          error: validationErrors.join(", ") 
         };
       }
 
@@ -84,12 +161,12 @@ export const houseRoutes = new Elysia({ prefix: "/api" })
       const existingVillage = await db
         .select()
         .from(villages)
-        .where(eq(villages.village_key, village_key));
+        .where(eq(villages.village_key, houseData.village_key.trim()));
 
       if (existingVillage.length === 0) {
         return { 
           success: false, 
-          error: "Village not found! Please provide a valid village key." 
+          error: "Village not found. Please provide a valid village key." 
         };
       }
 
@@ -97,8 +174,8 @@ export const houseRoutes = new Elysia({ prefix: "/api" })
       const [newHouse] = await db
         .insert(houses)
         .values({
-          address: address.trim(),
-          village_key: village_key.trim(),
+          address: houseData.address.trim(),
+          village_key: houseData.village_key.trim(),
         })
         .returning();
 
@@ -120,10 +197,14 @@ export const houseRoutes = new Elysia({ prefix: "/api" })
   .put("/houses/:house_id", async ({ params, body }) => {
     try {
       const { house_id } = params;
-      const { address, village_key } = body as {
-        address?: string;
-        village_key?: string;
-      };
+      const updateData = body as UpdateHouseBody;
+
+      if (!house_id?.trim()) {
+        return { 
+          success: false, 
+          error: "House ID is required" 
+        };
+      }
 
       // Check if house exists
       const existingHouse = await db
@@ -139,26 +220,20 @@ export const houseRoutes = new Elysia({ prefix: "/api" })
       }
 
       // Validation
-      if (address !== undefined && address.trim().length === 0) {
+      const validationErrors = validateUpdateData(updateData);
+      if (validationErrors.length > 0) {
         return { 
           success: false, 
-          error: "Address cannot be empty!" 
+          error: validationErrors.join(", ") 
         };
       }
 
-      if (village_key !== undefined) {
-        if (village_key.trim().length === 0) {
-          return { 
-            success: false, 
-            error: "Village key cannot be empty!" 
-          };
-        }
-
-        // Check if new village exists
+      // Check if new village exists (if updating village_key)
+      if (updateData.village_key !== undefined) {
         const existingVillage = await db
           .select()
           .from(villages)
-          .where(eq(villages.village_key, village_key));
+          .where(eq(villages.village_key, updateData.village_key.trim()));
 
         if (existingVillage.length === 0) {
           return { 
@@ -168,14 +243,16 @@ export const houseRoutes = new Elysia({ prefix: "/api" })
         }
       }
 
-      // Update house
-      const updateData: any = {};
-      if (address !== undefined) updateData.address = address.trim();
-      if (village_key !== undefined) updateData.village_key = village_key.trim();
+      // Prepare update data
+      const dataToUpdate: any = {};
+      if (updateData.address !== undefined) dataToUpdate.address = updateData.address.trim();
+      if (updateData.village_key !== undefined) dataToUpdate.village_key = updateData.village_key.trim();
+      if (updateData.status !== undefined) dataToUpdate.status = updateData.status;
 
+      // Update house
       const [updatedHouse] = await db
         .update(houses)
-        .set(updateData)
+        .set(dataToUpdate)
         .where(eq(houses.house_id, house_id))
         .returning();
 
@@ -193,10 +270,71 @@ export const houseRoutes = new Elysia({ prefix: "/api" })
     }
   })
   
+  // Update house status only
+  .patch("/houses/:house_id/status", async ({ params, body }) => {
+    try {
+      const { house_id } = params;
+      const { status } = body as UpdateStatusBody;
+
+      if (!house_id?.trim()) {
+        return { 
+          success: false, 
+          error: "House ID is required" 
+        };
+      }
+
+      if (!status || !validateStatus(status)) {
+        return { 
+          success: false, 
+          error: "Invalid status. Must be: available, occupied, or disable" 
+        };
+      }
+
+      // Check if house exists
+      const existingHouse = await db
+        .select()
+        .from(houses)
+        .where(eq(houses.house_id, house_id));
+
+      if (existingHouse.length === 0) {
+        return { 
+          success: false, 
+          error: "House not found!" 
+        };
+      }
+
+      // Update house status
+      const [updatedHouse] = await db
+        .update(houses)
+        .set({ status })
+        .where(eq(houses.house_id, house_id))
+        .returning();
+
+      return { 
+        success: true, 
+        message: "House status updated successfully!", 
+        data: updatedHouse 
+      };
+    } catch (error) {
+      console.error("Error updating house status:", error);
+      return { 
+        success: false, 
+        error: "Failed to update house status. Please try again." 
+      };
+    }
+  })
+  
   // Delete house
   .delete("/houses/:house_id", async ({ params }) => {
     try {
       const { house_id } = params;
+
+      if (!house_id?.trim()) {
+        return { 
+          success: false, 
+          error: "House ID is required" 
+        };
+      }
 
       // Check if house exists
       const existingHouse = await db
