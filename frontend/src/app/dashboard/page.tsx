@@ -1,55 +1,52 @@
 import WeeklyAccessBarChart from "./chart";
-import FastProcessPage from "./fastprocess";
 import NotificationComponent from "./notification";
 import PendingTable from "./pending_table";
 import {
+  TotalUsersCard,
   DailyAccessCard,
-  RecentActivityCard,
-  ResidentsStatCard,
-  SecurityLevelCard,
+  PendingTasksCard,
+  EmptyCard,
 } from "./statistic";
 
 export default function page() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 max-w-full xl:max-w-7xl">
+      <div className="container mx-auto px-2 sm:px-4 lg:px-6 py-3 sm:py-6 max-w-full xl:max-w-7xl">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 lg:mb-8">
           <div className="space-y-1">
             <h1 className="scroll-m-20 text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-gray-900">
               สวัสดี, คุณผู้จัดการ
             </h1>
             <p className="text-xs sm:text-sm md:text-base text-gray-500">
-              วันจันทร์ที่ 1 มกราคม 2024
+              {new Date().toLocaleDateString('th-TH', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
             </p>
           </div>
-          <div className="flex justify-end sm:justify-start">
+          <div className="flex justify-start sm:justify-end">
             <NotificationComponent />
           </div>
         </div>
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-          <ResidentsStatCard />
+        {/* Statistics Cards - 4 Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6 lg:mb-8">
+          <TotalUsersCard />
           <DailyAccessCard />
-          <SecurityLevelCard />
-          <RecentActivityCard />
+          <PendingTasksCard />
+          <EmptyCard />
         </div>
 
-        {/* Chart Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 mb-6 sm:mb-8">
-          <div className="lg:col-span-2">
-            <WeeklyAccessBarChart />
-          </div>
+        {/* Chart Section - สถิติเข้าออกประจำวัน/สัปดาห์/ปี */}
+        <div className="mb-4 sm:mb-6 lg:mb-8">
+          <WeeklyAccessBarChart />
         </div>
 
-        {/* Fast Process */}
-        <div className="mb-6 sm:mb-8">
-          <FastProcessPage />
-        </div>
-
-        {/* Pending Table */}
-        <div className="mb-6">
+        {/* Pending Users Table - ตาราง user ใหม่รออนุมัติ */}
+        <div className="mb-4 sm:mb-6">
           <PendingTable />
         </div>
       </div>

@@ -11,15 +11,71 @@ import {
   deleteVisitorRecord
 } from "../db/visitorRecordUtils";
 
+// Types
+interface CreateVisitorRecordBody {
+  visitor_name: string;
+  visitor_phone: string;
+  visitor_purpose: string;
+  resident_id: string;
+  house_id: string;
+  village_key: string;
+}
+
+interface UpdateStatusBody {
+  record_status: "pending" | "approved" | "rejected";
+}
+
+// Validation functions
+const validateVisitorRecordData = (data: CreateVisitorRecordBody) => {
+  const errors: string[] = [];
+  
+  if (!data.visitor_name?.trim()) {
+    errors.push("Visitor name is required");
+  }
+  
+  if (!data.visitor_phone?.trim()) {
+    errors.push("Visitor phone is required");
+  }
+  
+  if (!data.visitor_purpose?.trim()) {
+    errors.push("Visitor purpose is required");
+  }
+  
+  if (!data.resident_id?.trim()) {
+    errors.push("Resident ID is required");
+  }
+  
+  if (!data.house_id?.trim()) {
+    errors.push("House ID is required");
+  }
+  
+  if (!data.village_key?.trim()) {
+    errors.push("Village key is required");
+  }
+  
+  return errors;
+};
+
+const validateStatus = (status: string): status is "pending" | "approved" | "rejected" => {
+  return ["pending", "approved", "rejected"].includes(status);
+};
+
 export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
   // Get all visitor records
   .get("/visitor-records", async () => {
     try {
       const result = await getAllVisitorRecords();
-      return { success: true, data: result };
+      return { 
+        success: true, 
+        data: result,
+        total: result.length
+      };
     } catch (error) {
       console.error("Error fetching visitor records:", error);
-      return { success: false, error: "Failed to fetch visitor records" };
+      return { 
+        success: false, 
+        error: "Failed to fetch visitor records" 
+      };
     }
   })
   
@@ -28,7 +84,7 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
     try {
       const { village_key } = params;
       
-      if (!village_key || village_key.trim().length === 0) {
+      if (!village_key?.trim()) {
         return { 
           success: false, 
           error: "Village key is required" 
@@ -36,10 +92,17 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
       }
       
       const result = await getVisitorRecordsByVillage(village_key);
-      return { success: true, data: result };
+      return { 
+        success: true, 
+        data: result,
+        total: result.length
+      };
     } catch (error) {
       console.error("Error fetching visitor records by village:", error);
-      return { success: false, error: "Failed to fetch visitor records for village" };
+      return { 
+        success: false, 
+        error: "Failed to fetch visitor records for village" 
+      };
     }
   })
   
@@ -48,7 +111,7 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
     try {
       const { resident_id } = params;
       
-      if (!resident_id || resident_id.trim().length === 0) {
+      if (!resident_id?.trim()) {
         return { 
           success: false, 
           error: "Resident ID is required" 
@@ -56,10 +119,17 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
       }
       
       const result = await getVisitorRecordsByResident(resident_id);
-      return { success: true, data: result };
+      return { 
+        success: true, 
+        data: result,
+        total: result.length
+      };
     } catch (error) {
       console.error("Error fetching visitor records by resident:", error);
-      return { success: false, error: "Failed to fetch visitor records for resident" };
+      return { 
+        success: false, 
+        error: "Failed to fetch visitor records for resident" 
+      };
     }
   })
   
@@ -68,7 +138,7 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
     try {
       const { guard_id } = params;
       
-      if (!guard_id || guard_id.trim().length === 0) {
+      if (!guard_id?.trim()) {
         return { 
           success: false, 
           error: "Guard ID is required" 
@@ -76,10 +146,17 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
       }
       
       const result = await getVisitorRecordsByGuard(guard_id);
-      return { success: true, data: result };
+      return { 
+        success: true, 
+        data: result,
+        total: result.length
+      };
     } catch (error) {
       console.error("Error fetching visitor records by guard:", error);
-      return { success: false, error: "Failed to fetch visitor records for guard" };
+      return { 
+        success: false, 
+        error: "Failed to fetch visitor records for guard" 
+      };
     }
   })
   
@@ -88,7 +165,7 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
     try {
       const { house_id } = params;
       
-      if (!house_id || house_id.trim().length === 0) {
+      if (!house_id?.trim()) {
         return { 
           success: false, 
           error: "House ID is required" 
@@ -96,10 +173,17 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
       }
       
       const result = await getVisitorRecordsByHouse(house_id);
-      return { success: true, data: result };
+      return { 
+        success: true, 
+        data: result,
+        total: result.length
+      };
     } catch (error) {
       console.error("Error fetching visitor records by house:", error);
-      return { success: false, error: "Failed to fetch visitor records for house" };
+      return { 
+        success: false, 
+        error: "Failed to fetch visitor records for house" 
+      };
     }
   })
   
@@ -108,104 +192,47 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
     try {
       const { status } = params;
       
-      if (!status || !["approved", "pending", "rejected"].includes(status)) {
+      if (!status?.trim() || !validateStatus(status)) {
         return { 
           success: false, 
-          error: "Valid status is required (approved, pending, or rejected)" 
+          error: "Valid status is required (pending, approved, rejected)" 
         };
       }
       
-      const result = await getVisitorRecordsByStatus(status as "approved" | "pending" | "rejected");
-      return { success: true, data: result };
+      const result = await getVisitorRecordsByStatus(status);
+      return { 
+        success: true, 
+        data: result,
+        total: result.length
+      };
     } catch (error) {
       console.error("Error fetching visitor records by status:", error);
-      return { success: false, error: "Failed to fetch visitor records by status" };
+      return { 
+        success: false, 
+        error: "Failed to fetch visitor records by status" 
+      };
     }
   })
   
-  // Get single visitor record by ID
-  .get("/visitor-records/:visitor_record_id", async ({ params }) => {
-    try {
-      const { visitor_record_id } = params;
-      
-      if (!visitor_record_id || visitor_record_id.trim().length === 0) {
-        return { 
-          success: false, 
-          error: "Visitor record ID is required" 
-        };
-      }
-      
-      const result = await getAllVisitorRecords();
-      const record = result.find(r => r.visitor_record_id === visitor_record_id);
-      
-      if (!record) {
-        return { success: false, error: "Visitor record not found" };
-      }
-      
-      return { success: true, data: record };
-    } catch (error) {
-      console.error("Error fetching visitor record:", error);
-      return { success: false, error: "Failed to fetch visitor record" };
-    }
-  })
-  
-  // Create new visitor record
+  // Create visitor record
   .post("/visitor-records", async ({ body }) => {
     try {
-      const { resident_id, guard_id, house_id, picture_key, license_plate, record_status, visit_purpose } = body as {
-        resident_id: string;
-        guard_id: string;
-        house_id: string;
-        picture_key?: string;
-        license_plate?: string;
-        record_status?: "approved" | "pending" | "rejected";
-        visit_purpose?: string;
-      };
-
+      const recordData = body as CreateVisitorRecordBody;
+      
       // Validation
-      if (!resident_id || !guard_id || !house_id) {
+      const validationErrors = validateVisitorRecordData(recordData);
+      if (validationErrors.length > 0) {
         return { 
           success: false, 
-          error: "Missing required fields! resident_id, guard_id, and house_id are required." 
+          error: validationErrors.join(", ") 
         };
       }
-
-      if (resident_id.trim().length === 0) {
-        return { 
-          success: false, 
-          error: "Resident ID cannot be empty!" 
-        };
-      }
-
-      if (guard_id.trim().length === 0) {
-        return { 
-          success: false, 
-          error: "Guard ID cannot be empty!" 
-        };
-      }
-
-      if (house_id.trim().length === 0) {
-        return { 
-          success: false, 
-          error: "House ID cannot be empty!" 
-        };
-      }
-
-      // Create new visitor record
-      const newVisitorRecord = await createVisitorRecord({
-        resident_id: resident_id.trim(),
-        guard_id: guard_id.trim(),
-        house_id: house_id.trim(),
-        picture_key,
-        license_plate,
-        record_status,
-        visit_purpose
-      });
-
+      
+      const result = await createVisitorRecord(recordData);
       return { 
         success: true, 
         message: "Visitor record created successfully!", 
-        data: newVisitorRecord 
+        data: result 
       };
     } catch (error) {
       console.error("Error creating visitor record:", error);
@@ -217,32 +244,30 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
   })
   
   // Update visitor record status
-  .patch("/visitor-records/:visitor_record_id/status", async ({ params, body }) => {
+  .put("/visitor-records/:record_id/status", async ({ params, body }) => {
     try {
-      const { visitor_record_id } = params;
-      const { status } = body as { status: "approved" | "pending" | "rejected" };
-
-      if (!visitor_record_id || visitor_record_id.trim().length === 0) {
+      const { record_id } = params;
+      const { record_status } = body as UpdateStatusBody;
+      
+      if (!record_id?.trim()) {
         return { 
           success: false, 
-          error: "Visitor record ID is required" 
+          error: "Record ID is required" 
         };
       }
-
-      if (!status || !["approved", "pending", "rejected"].includes(status)) {
+      
+      if (!record_status || !validateStatus(record_status)) {
         return { 
           success: false, 
-          error: "Valid status is required (approved, pending, or rejected)" 
+          error: "Valid status is required (pending, approved, rejected)" 
         };
       }
-
-      // Update visitor record status
-      const updatedVisitorRecord = await updateVisitorRecordStatus(visitor_record_id, status);
-
+      
+      const result = await updateVisitorRecordStatus(record_id, record_status);
       return { 
         success: true, 
-        message: "Visitor record status updated successfully!",
-        data: updatedVisitorRecord
+        message: "Visitor record status updated successfully!", 
+        data: result 
       };
     } catch (error) {
       console.error("Error updating visitor record status:", error);
@@ -254,24 +279,21 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
   })
   
   // Delete visitor record
-  .delete("/visitor-records/:visitor_record_id", async ({ params }) => {
+  .delete("/visitor-records/:record_id", async ({ params }) => {
     try {
-      const { visitor_record_id } = params;
-
-      if (!visitor_record_id || visitor_record_id.trim().length === 0) {
+      const { record_id } = params;
+      
+      if (!record_id?.trim()) {
         return { 
           success: false, 
-          error: "Visitor record ID is required" 
+          error: "Record ID is required" 
         };
       }
-
-      // Delete visitor record
-      const deletedVisitorRecord = await deleteVisitorRecord(visitor_record_id);
-
+      
+      await deleteVisitorRecord(record_id);
       return { 
         success: true, 
-        message: "Visitor record deleted successfully!",
-        data: deletedVisitorRecord
+        message: "Visitor record deleted successfully!" 
       };
     } catch (error) {
       console.error("Error deleting visitor record:", error);
