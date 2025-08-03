@@ -63,25 +63,239 @@ http://localhost:3001
 - **DELETE** `/api/house-members/:house_member_id` - Delete house member
 
 ## Visitor Records
-- **GET** `/api/visitor-records` - Get all visitor records
-- **GET** `/api/visitor-records/village/:village_key` - Get visitor records by village
-- **GET** `/api/visitor-records/resident/:resident_id` - Get visitor records by resident
-- **GET** `/api/visitor-records/guard/:guard_id` - Get visitor records by guard
-- **GET** `/api/visitor-records/house/:house_id` - Get visitor records by house
-- **GET** `/api/visitor-records/status/:status` - Get visitor records by status
-- **GET** `/api/visitor-records/:visitor_record_id` - Get single visitor record by ID
-- **POST** `/api/visitor-records` - Create new visitor record
-- **PATCH** `/api/visitor-records/:visitor_record_id/status` - Update visitor record status
-- **DELETE** `/api/visitor-records/:visitor_record_id` - Delete visitor record
+
+### Get All Visitor Records
+- **GET** `/api/visitor-records`
+- **Description**: Get all visitor records with related data
+- **Response**: Array of visitor records with resident, guard, and house information
+
+### Get Visitor Records by Village
+- **GET** `/api/visitor-records/village/:village_key`
+- **Description**: Get visitor records for a specific village
+- **Parameters**: `village_key` (string)
+- **Response**: Array of visitor records for the specified village
+
+### Get Visitor Records by Resident
+- **GET** `/api/visitor-records/resident/:resident_id`
+- **Description**: Get visitor records for a specific resident
+- **Parameters**: `resident_id` (string)
+- **Response**: Array of visitor records for the specified resident
+
+### Get Visitor Records by Guard
+- **GET** `/api/visitor-records/guard/:guard_id`
+- **Description**: Get visitor records for a specific guard
+- **Parameters**: `guard_id` (string)
+- **Response**: Array of visitor records for the specified guard
+
+### Get Visitor Records by House
+- **GET** `/api/visitor-records/house/:house_id`
+- **Description**: Get visitor records for a specific house
+- **Parameters**: `house_id` (string)
+- **Response**: Array of visitor records for the specified house
+
+### Get Visitor Records by Status
+- **GET** `/api/visitor-records/status/:status`
+- **Description**: Get visitor records by status (approved, pending, rejected)
+- **Parameters**: `status` (string) - must be "approved", "pending", or "rejected"
+- **Response**: Array of visitor records with the specified status
+
+### Get Single Visitor Record
+- **GET** `/api/visitor-records/:visitor_record_id`
+- **Description**: Get a single visitor record by ID
+- **Parameters**: `visitor_record_id` (string)
+- **Response**: Single visitor record object
+
+### Create Visitor Record
+- **POST** `/api/visitor-records`
+- **Description**: Create a new visitor record
+- **Body**:
+  ```json
+  {
+    "resident_id": "string",
+    "guard_id": "string",
+    "house_id": "string",
+    "picture_key": "string (optional)",
+    "license_plate": "string (optional)",
+    "record_status": "approved|pending|rejected (optional)",
+    "visit_purpose": "string (optional)"
+  }
+  ```
+- **Response**: Created visitor record object
+
+### Update Visitor Record Status
+- **PATCH** `/api/visitor-records/:visitor_record_id/status`
+- **Description**: Update the status of a visitor record
+- **Parameters**: `visitor_record_id` (string)
+- **Body**:
+  ```json
+  {
+    "status": "approved|pending|rejected"
+  }
+  ```
+- **Response**: Updated visitor record object
+
+### Delete Visitor Record
+- **DELETE** `/api/visitor-records/:visitor_record_id`
+- **Description**: Delete a visitor record
+- **Parameters**: `visitor_record_id` (string)
+- **Response**: Deleted visitor record object
+
+## Visitor Records Statistics
+
+### Get Weekly Visitor Records Statistics
+- **GET** `/api/visitor-record-weekly`
+- **Description**: Get visitor records statistics for the current week (Sunday to Saturday)
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "weekStart": "2024-01-07T00:00:00.000Z",
+      "weekEnd": "2024-01-13T23:59:59.999Z",
+      "currentDate": "2024-01-10T12:00:00.000Z",
+      "weeklyData": [
+        {
+          "day": "Sunday",
+          "approved": 5,
+          "pending": 2,
+          "rejected": 1,
+          "total": 8
+        },
+        // ... other days
+      ],
+      "summary": {
+        "totalApproved": 25,
+        "totalPending": 10,
+        "totalRejected": 5,
+        "totalRecords": 40
+      }
+    }
+  }
+  ```
+
+### Get Monthly Visitor Records Statistics
+- **GET** `/api/visitor-record-monthly`
+- **Description**: Get visitor records statistics for the current year, broken down by month
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "year": 2024,
+      "yearStart": "2024-01-01T00:00:00.000Z",
+      "yearEnd": "2024-12-31T23:59:59.999Z",
+      "currentDate": "2024-01-10T12:00:00.000Z",
+      "monthlyData": [
+        {
+          "month": "January",
+          "monthNumber": 1,
+          "approved": 45,
+          "pending": 15,
+          "rejected": 8,
+          "total": 68
+        },
+        {
+          "month": "February",
+          "monthNumber": 2,
+          "approved": 0,
+          "pending": 0,
+          "rejected": 0,
+          "total": 0
+        },
+        // ... other months (showing 0 for future months)
+      ],
+      "summary": {
+        "totalApproved": 45,
+        "totalPending": 15,
+        "totalRejected": 8,
+        "totalRecords": 68
+      }
+    }
+  }
+  ```
+
+### Get Yearly Visitor Records Statistics
+**GET** `/api/visitor-record-yearly`
+
+Returns yearly statistics for visitor records including approved, pending, and rejected counts for each year.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "currentDate": "2024-01-15T10:30:00.000Z",
+    "totalYears": 3,
+    "yearlyData": [
+      {
+        "year": 2024,
+        "approved": 150,
+        "pending": 25,
+        "rejected": 10,
+        "total": 185
+      },
+      {
+        "year": 2023,
+        "approved": 1200,
+        "pending": 180,
+        "rejected": 75,
+        "total": 1455
+      },
+      {
+        "year": 2022,
+        "approved": 800,
+        "pending": 120,
+        "rejected": 50,
+        "total": 970
+      }
+    ],
+    "summary": {
+      "totalApproved": 2150,
+      "totalPending": 325,
+      "totalRejected": 135,
+      "totalRecords": 2610
+    }
+  }
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "error": "Failed to fetch yearly visitor records"
+}
+```
+
+**Description:**
+- Returns visitor record statistics grouped by year
+- Years are sorted in descending order (newest first)
+- Includes counts for approved, pending, and rejected records
+- Provides summary totals across all years
+- Useful for yearly trend analysis and reporting
+
+## Other Endpoints
+
+### Health Check
+- **GET** `/api/health`
+- **Description**: Check the health status of the API and database connection
+- **Response**: Health status information
+
+### Root
+- **GET** `/`
+- **Description**: Welcome message
+- **Response**: "Hello Village Security API!"
 
 ## Response Format
+
+All API responses follow a consistent format:
 
 ### Success Response
 ```json
 {
   "success": true,
-  "data": [...],
-  "message": "Operation completed successfully"
+  "data": { ... },
+  "message": "Optional success message"
 }
 ```
 
@@ -89,50 +303,14 @@ http://localhost:3001
 ```json
 {
   "success": false,
-  "error": "Error message"
+  "error": "Error message describing what went wrong"
 }
 ```
 
-### Health Check Response
-```json
-{
-  "status": "healthy",
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "service": "Village Security API",
-  "database": {
-    "status": "connected",
-    "pool": {
-      "totalCount": 5,
-      "idleCount": 3,
-      "waitingCount": 0
-    }
-  }
-}
-```
+## Notes
 
-## Status Values
-
-### User Status
-- `verified` - User is verified and active
-- `pending` - User is pending verification
-- `disable` - User is disabled
-
-### Visitor Record Status
-- `approved` - Visitor record is approved
-- `pending` - Visitor record is pending approval
-- `rejected` - Visitor record is rejected
-
-## Testing the API
-
-You can test the API using curl or any HTTP client:
-
-```bash
-# Health check
-curl http://localhost:3001/health
-
-# Get all villages
-curl http://localhost:3001/api/villages
-
-# Get all houses
-curl http://localhost:3001/api/houses
-``` 
+- **Monthly Statistics**: The monthly endpoint shows data for all 12 months of the current year. Months that haven't occurred yet (future months) will show 0 for all counts.
+- **Weekly Statistics**: The weekly endpoint shows data for the current week (Sunday to Saturday). Future days in the current week will show 0 for all counts.
+- **Status Values**: Visitor record status can be "approved", "pending", or "rejected".
+- **Authentication**: Some endpoints may require authentication (to be implemented).
+- **CORS**: The API supports CORS for cross-origin requests. 

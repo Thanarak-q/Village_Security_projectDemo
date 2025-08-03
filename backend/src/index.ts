@@ -7,9 +7,13 @@ import { guardRoutes } from "./routes/guard";
 import { adminRoutes } from "./routes/admin";
 import { houseMemberRoutes } from "./routes/houseMember";
 import { visitorRecordRoutes } from "./routes/visitorRecord";
-import { tests } from "./routes/tests";
+import { visitorRecordWeeklyRoutes } from "./routes/visitorRecord-weekly";
+import { visitorRecordMonthlyRoutes } from "./routes/visitorRecord-monthly";
+import { visitorRecordYearlyRoutes } from "./routes/visitorRecord-yearly";
 import { testConnection, closeConnection, getPoolStats } from "./db/drizzle";
-
+import { statsCardRoutes } from "./routes/statsCard";
+import { userTableRoutes } from "./routes/userTable";
+import { pendingUsersRoutes } from "./routes/pendingUsers";
 // Health check endpoint
 const healthCheck = new Elysia()
   .get("/api/health", async () => {
@@ -49,7 +53,12 @@ const app = new Elysia()
   .use(adminRoutes)
   .use(houseMemberRoutes)
   .use(visitorRecordRoutes)
-  .use(tests)
+  .use(visitorRecordWeeklyRoutes)
+  .use(visitorRecordMonthlyRoutes)
+  .use(visitorRecordYearlyRoutes)
+  .use(statsCardRoutes)
+  .use(userTableRoutes)
+  .use(pendingUsersRoutes)
   .get("/", () => "Hello Village Security API!");
 
 // Initialize database connection and start server
