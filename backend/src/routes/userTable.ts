@@ -1,12 +1,20 @@
 import { Elysia } from "elysia";
 import db from "../db/drizzle";
-import { residents, guards, villages, houses, house_members, visitor_records } from "../db/schema";
-import { eq, sql } from "drizzle-orm";
+import {
+  residents,
+  guards,
+  villages,
+  houses,
+  house_members,
+  visitor_records,
+} from "../db/schema";
+import { eq, sql, and } from "drizzle-orm";
+import { requireRole } from "../hooks/requireRole";
 
 // Interface for update request
 interface UpdateUserRequest {
   userId: string;
-  role: 'resident' | 'guard';
+  role: "resident" | "guard";
   status: string;
   houseNumber?: string;
   notes?: string;
@@ -15,13 +23,12 @@ interface UpdateUserRequest {
 // Interface for role change request
 interface ChangeRoleRequest {
   userId: string;
-  currentRole: 'resident' | 'guard';
-  newRole: 'resident' | 'guard';
+  currentRole: "resident" | "guard";
+  newRole: "resident" | "guard";
   status: string;
   houseNumber?: string;
   notes?: string;
 }
-
 
 // Helper functions
 async function getResident(userId: string) {
@@ -47,20 +54,21 @@ async function removeHouseRelationships(userId: string) {
     .where(eq(house_members.resident_id, userId));
 
   if (houseMemberData.length > 0) {
-    await db
-      .delete(house_members)
-      .where(eq(house_members.resident_id, userId));
+    await db.delete(house_members).where(eq(house_members.resident_id, userId));
   }
 
   return houseMemberData[0] || null;
 }
 
-async function cleanupVisitorRecords(userId: string, role: 'resident' | 'guard') {
-  if (role === 'resident') {
+async function cleanupVisitorRecords(
+  userId: string,
+  role: "resident" | "guard"
+) {
+  if (role === "resident") {
     await db
       .delete(visitor_records)
       .where(eq(visitor_records.resident_id, userId));
-  } else if (role === 'guard') {
+  } else if (role === "guard") {
     await db
       .delete(visitor_records)
       .where(eq(visitor_records.guard_id, userId));
@@ -68,7 +76,6 @@ async function cleanupVisitorRecords(userId: string, role: 'resident' | 'guard')
 }
 
 async function createGuardFromResident(resident: any, status: string) {
-  
   const result = await db
     .insert(guards)
     .values({
@@ -81,15 +88,13 @@ async function createGuardFromResident(resident: any, status: string) {
       phone: resident.phone,
       village_key: resident.village_key,
       status: status as "verified" | "pending" | "disable",
-      profile_image_url: resident.profile_image_url
+      profile_image_url: resident.profile_image_url,
     })
     .returning();
   return result[0] || null;
 }
 
-
 async function createResidentFromGuard(guard: any, status: string) {
-  
   const result = await db
     .insert(residents)
     .values({
@@ -102,7 +107,7 @@ async function createResidentFromGuard(guard: any, status: string) {
       phone: guard.phone,
       village_key: guard.village_key,
       status: status as "verified" | "pending" | "disable",
-      profile_image_url: guard.profile_image_url
+      profile_image_url: guard.profile_image_url,
     })
     .returning();
   return result[0] || null;
@@ -119,31 +124,35 @@ async function cleanupOrphanedHouse(houseId: string) {
   }
 }
 
-async function createHouseForResident(residentId: string, houseNumber: string, villageKey: string | null) {
+async function createHouseForResident(
+  residentId: string,
+  houseNumber: string,
+  villageKey: string | null
+) {
   if (!villageKey) return null;
-  
+
   const newHouse = await db
     .insert(houses)
     .values({
       address: houseNumber,
-      village_key: villageKey
+      village_key: villageKey,
     })
     .returning();
 
-  await db
-    .insert(house_members)
-    .values({
-      house_id: newHouse[0].house_id,
-      resident_id: residentId
-    });
+  await db.insert(house_members).values({
+    house_id: newHouse[0].house_id,
+    resident_id: residentId,
+  });
 
   return newHouse[0];
 }
 
 export const userTableRoutes = new Elysia({ prefix: "/api" })
-  .get("/userTable", async () => {
+  .onBeforeHandle(requireRole(["admin"]))
+  .get("/userTable", async ({ currentUser }: any) => {
     try {
-      // Get residents data with house address
+      const { village_key } = currentUser;
+
       const residentsData = await db
         .select({
           id: residents.resident_id,
@@ -152,7 +161,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           email: residents.email,
           phone: residents.phone,
           status: residents.status,
-          role: sql`'resident'`.as('role'),
+          role: sql`'resident'`.as("role"),
           village_key: residents.village_key,
           house_address: houses.address,
           createdAt: residents.createdAt,
@@ -160,11 +169,18 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           profile_image_url: residents.profile_image_url
         })
         .from(residents)
-        .where(sql`${residents.status} != 'pending'`)
-        .leftJoin(house_members, eq(residents.resident_id, house_members.resident_id))
+        .where(
+          and(
+            eq(residents.village_key, village_key),
+            sql`${residents.status} != 'pending'`
+          )
+        )
+        .leftJoin(
+          house_members,
+          eq(residents.resident_id, house_members.resident_id)
+        )
         .leftJoin(houses, eq(house_members.house_id, houses.house_id));
 
-      // Get guards data
       const guardsData = await db
         .select({
           id: guards.guard_id,
@@ -173,19 +189,24 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           email: guards.email,
           phone: guards.phone,
           status: guards.status,
-          role: sql`'guard'`.as('role'),
+          role: sql`'guard'`.as("role"),
           village_key: guards.village_key,
-          house_address: sql`NULL`.as('house_address'),
+          house_address: sql`NULL`.as("house_address"),
           createdAt: guards.createdAt,
           updatedAt: guards.updatedAt,
           profile_image_url: guards.profile_image_url
         })
         .from(guards)
-        .where(sql`${guards.status} != 'pending'`);
-        
+        .where(
+          and(
+            eq(guards.village_key, village_key),
+            sql`${guards.status} != 'pending'`
+          )
+        );
 
       return {
         success: true,
+        currentUser,
         data: {
           residents: residentsData,
           guards: guardsData,
@@ -197,33 +218,35 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
         },
       };
     } catch (error) {
-      return { 
-        success: false, 
+      return {
+        success: false,
         error: "Failed to fetch user data",
-        details: error instanceof Error ? error.message : "Unknown error"
+        details: error instanceof Error ? error.message : "Unknown error",
       };
     }
   })
+
   .put("/updateUser", async ({ body }) => {
     try {
-      const { userId, role, status, houseNumber, notes }: UpdateUserRequest = body as UpdateUserRequest;
+      const { userId, role, status, houseNumber, notes }: UpdateUserRequest =
+        body as UpdateUserRequest;
 
       // Validate required fields
       if (!userId || !role || !status) {
         return {
           success: false,
-          error: "Missing required fields: userId, role, status"
+          error: "Missing required fields: userId, role, status",
         };
       }
 
       // Update based on role
-      if (role === 'resident') {
+      if (role === "resident") {
         // Update resident
         const updateResult = await db
           .update(residents)
           .set({
             status: status as "verified" | "pending" | "disable",
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .where(eq(residents.resident_id, userId))
           .returning();
@@ -231,7 +254,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
         if (updateResult.length === 0) {
           return {
             success: false,
-            error: "Resident not found"
+            error: "Resident not found",
           };
         }
 
@@ -252,39 +275,36 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           } else {
             // Create new house and house_member record
             const villageKey = updateResult[0].village_key;
-            
+
             // Create new house
             const newHouse = await db
               .insert(houses)
               .values({
                 address: houseNumber,
-                village_key: villageKey
+                village_key: villageKey,
               })
               .returning();
 
             // Create house_member relationship
-            await db
-              .insert(house_members)
-              .values({
-                house_id: newHouse[0].house_id,
-                resident_id: userId
-              });
+            await db.insert(house_members).values({
+              house_id: newHouse[0].house_id,
+              resident_id: userId,
+            });
           }
         }
 
         return {
           success: true,
           message: "Resident updated successfully",
-          data: updateResult[0]
+          data: updateResult[0],
         };
-
-      } else if (role === 'guard') {
+      } else if (role === "guard") {
         // Update guard
         const updateResult = await db
           .update(guards)
           .set({
             status: status as "verified" | "pending" | "disable",
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .where(eq(guards.guard_id, userId))
           .returning();
@@ -292,41 +312,47 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
         if (updateResult.length === 0) {
           return {
             success: false,
-            error: "Guard not found"
+            error: "Guard not found",
           };
         }
 
         return {
           success: true,
           message: "Guard updated successfully",
-          data: updateResult[0]
+          data: updateResult[0],
         };
-
       } else {
         return {
           success: false,
-          error: "Invalid role specified"
+          error: "Invalid role specified",
         };
       }
-
     } catch (error) {
       console.error("Error updating user:", error);
       return {
         success: false,
         error: "Failed to update user",
-        details: error instanceof Error ? error.message : "Unknown error"
+        details: error instanceof Error ? error.message : "Unknown error",
       };
     }
   })
   .put("/changeUserRole", async ({ body }) => {
     try {
-      const { userId, currentRole, newRole, status, houseNumber, notes }: ChangeRoleRequest = body as ChangeRoleRequest;
+      const {
+        userId,
+        currentRole,
+        newRole,
+        status,
+        houseNumber,
+        notes,
+      }: ChangeRoleRequest = body as ChangeRoleRequest;
 
       // Validate required fields
       if (!userId || !currentRole || !newRole || !status) {
         return {
           success: false,
-          error: "Missing required fields: userId, currentRole, newRole, status"
+          error:
+            "Missing required fields: userId, currentRole, newRole, status",
         };
       }
 
@@ -334,19 +360,22 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
       if (currentRole === newRole) {
         return {
           success: false,
-          error: "Current role and new role cannot be the same"
+          error: "Current role and new role cannot be the same",
         };
       }
 
       // Validate roles
-      if (!['resident', 'guard'].includes(currentRole) || !['resident', 'guard'].includes(newRole)) {
+      if (
+        !["resident", "guard"].includes(currentRole) ||
+        !["resident", "guard"].includes(newRole)
+      ) {
         return {
           success: false,
-          error: "Invalid role specified. Must be 'resident' or 'guard'"
+          error: "Invalid role specified. Must be 'resident' or 'guard'",
         };
       }
 
-      if (currentRole === 'resident' && newRole === 'guard') {
+      if (currentRole === "resident" && newRole === "guard") {
         // Convert resident to guard
         const resident = await getResident(userId);
         if (!resident) {
@@ -358,7 +387,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           const houseMemberData = await removeHouseRelationships(userId);
 
           // Clean up visitor records for this resident
-          await cleanupVisitorRecords(userId, 'resident');
+          await cleanupVisitorRecords(userId, "resident");
 
           // Create new guard
           const newGuard = await createGuardFromResident(resident, status);
@@ -395,13 +424,12 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           return {
             success: true,
             message: "Resident successfully converted to guard",
-            data: newGuard
+            data: newGuard,
           };
-
         } catch (error) {
           // If any step fails, we need to clean up
           console.error("Error during resident to guard conversion:", error);
-          
+
           // Try to clean up any partial changes
           try {
             // If guard was created but resident deletion failed, delete the guard
@@ -410,22 +438,23 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
               .from(guards)
               .where(eq(guards.email, resident.email))
               .limit(1);
-            
+
             if (newGuard.length > 0) {
-              await db.delete(guards).where(eq(guards.guard_id, newGuard[0].guard_id));
+              await db
+                .delete(guards)
+                .where(eq(guards.guard_id, newGuard[0].guard_id));
             }
           } catch (cleanupError) {
             console.error("Error during cleanup:", cleanupError);
           }
 
-          return { 
-            success: false, 
+          return {
+            success: false,
             error: "Failed to convert resident to guard",
-            details: error instanceof Error ? error.message : "Unknown error"
+            details: error instanceof Error ? error.message : "Unknown error",
           };
         }
-
-      } else if (currentRole === 'guard' && newRole === 'resident') {
+      } else if (currentRole === "guard" && newRole === "resident") {
         // Convert guard to resident
         const guard = await getGuard(userId);
         if (!guard) {
@@ -433,16 +462,16 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
         }
 
         // Validate house number is provided when converting to resident
-        if (!houseNumber || houseNumber.trim() === '') {
-          return { 
-            success: false, 
-            error: "House number is required when converting guard to resident" 
+        if (!houseNumber || houseNumber.trim() === "") {
+          return {
+            success: false,
+            error: "House number is required when converting guard to resident",
           };
         }
 
         try {
           // Clean up visitor records for this guard
-          await cleanupVisitorRecords(userId, 'guard');
+          await cleanupVisitorRecords(userId, "guard");
 
           // Create new resident
           const newResident = await createResidentFromGuard(guard, status);
@@ -462,7 +491,11 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
 
           // Create house if houseNumber provided
           if (houseNumber && newResident.resident_id) {
-            await createHouseForResident(newResident.resident_id, houseNumber, guard.village_key);
+            await createHouseForResident(
+              newResident.resident_id,
+              houseNumber,
+              guard.village_key
+            );
           }
 
           // Verify the conversion was successful
@@ -479,13 +512,12 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           return {
             success: true,
             message: "Guard successfully converted to resident",
-            data: newResident
+            data: newResident,
           };
-
         } catch (error) {
           // If any step fails, we need to clean up
           console.error("Error during guard to resident conversion:", error);
-          
+
           // Try to clean up any partial changes
           try {
             // If resident was created but guard deletion failed, delete the resident
@@ -494,34 +526,34 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
               .from(residents)
               .where(eq(residents.email, guard.email))
               .limit(1);
-            
+
             if (newResident.length > 0) {
-              await db.delete(residents).where(eq(residents.resident_id, newResident[0].resident_id));
+              await db
+                .delete(residents)
+                .where(eq(residents.resident_id, newResident[0].resident_id));
             }
           } catch (cleanupError) {
             console.error("Error during cleanup:", cleanupError);
           }
 
-          return { 
-            success: false, 
+          return {
+            success: false,
             error: "Failed to convert guard to resident",
-            details: error instanceof Error ? error.message : "Unknown error"
+            details: error instanceof Error ? error.message : "Unknown error",
           };
         }
-
       } else {
         return {
           success: false,
-          error: "Invalid role conversion"
+          error: "Invalid role conversion",
         };
       }
-
     } catch (error) {
       console.error("Error changing user role:", error);
       return {
         success: false,
         error: "Failed to change user role",
-        details: error instanceof Error ? error.message : "Unknown error"
+        details: error instanceof Error ? error.message : "Unknown error",
       };
     }
   });
