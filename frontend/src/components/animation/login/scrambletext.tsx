@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import gsap from "gsap";
 import { ScrollTrigger,SplitText, ScrambleTextPlugin } from "gsap/all";
 
-gsap.registerPlugin(ScrollTrigger,SplitText,ScrambleTextPlugin);
+gsap.registerPlugin(ScrambleTextPlugin);
 
 const ScrambleTextExample = () => {
   useEffect(() => {

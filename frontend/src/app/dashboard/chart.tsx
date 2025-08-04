@@ -15,38 +15,38 @@ import { Bar, BarChart, XAxis, CartesianGrid } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart"
 import { Users, Calendar} from "lucide-react"
 
-// ข้อมูลการเข้าออกตามช่วงเวลาต่างๆ
+// ข้อมูลการเข้าออกตามช่วงเวลาต่างๆ - ข้อมูลที่ดูง่ายขึ้น
 const weeklyData = [
-  { period: "จันทร์", entry: 145, exit: 132 },
-  { period: "อังคาร", entry: 158, exit: 149 },
-  { period: "พุธ", entry: 162, exit: 157 },
-  { period: "พฤหัสบดี", entry: 143, exit: 138 },
-  { period: "ศุกร์", entry: 167, exit: 162 },
-  { period: "เสาร์", entry: 189, exit: 184 },
-  { period: "อาทิตย์", entry: 201, exit: 195 }
+  { period: "จันทร์", entry: 45, exit: 42 },
+  { period: "อังคาร", entry: 58, exit: 49 },
+  { period: "พุธ", entry: 62, exit: 57 },
+  { period: "พฤหัสบดี", entry: 43, exit: 38 },
+  { period: "ศุกร์", entry: 67, exit: 62 },
+  { period: "เสาร์", entry: 89, exit: 84 },
+  { period: "อาทิตย์", entry: 101, exit: 95 }
 ]
 
 const monthlyData = [
-  { period: "มกราคม", entry: 4250, exit: 4100 },
-  { period: "กุมภาพันธ์", entry: 3980, exit: 3850 },
-  { period: "มีนาคม", entry: 4350, exit: 4200 },
-  { period: "เมษายน", entry: 4150, exit: 4000 },
-  { period: "พฤษภาคม", entry: 4450, exit: 4300 },
-  { period: "มิถุนายน", entry: 4200, exit: 4050 },
-  { period: "กรกฎาคม", entry: 4600, exit: 4450 },
-  { period: "สิงหาคม", entry: 4300, exit: 4150 },
-  { period: "กันยายน", entry: 4250, exit: 4100 },
-  { period: "ตุลาคม", entry: 4400, exit: 4250 },
-  { period: "พฤศจิกายน", entry: 4350, exit: 4200 },
-  { period: "ธันวาคม", entry: 4500, exit: 4350 }
+  { period: "ม.ค.", entry: 1250, exit: 1200 },
+  { period: "ก.พ.", entry: 1180, exit: 1150 },
+  { period: "มี.ค.", entry: 1350, exit: 1300 },
+  { period: "เม.ย.", entry: 1150, exit: 1100 },
+  { period: "พ.ค.", entry: 1450, exit: 1400 },
+  { period: "มิ.ย.", entry: 1200, exit: 1150 },
+  { period: "ก.ค.", entry: 1600, exit: 1550 },
+  { period: "ส.ค.", entry: 1300, exit: 1250 },
+  { period: "ก.ย.", entry: 1250, exit: 1200 },
+  { period: "ต.ค.", entry: 1400, exit: 1350 },
+  { period: "พ.ย.", entry: 1350, exit: 1300 },
+  { period: "ธ.ค.", entry: 1500, exit: 1450 }
 ]
 
 const yearlyData = [
-  { period: "2020", entry: 45000, exit: 44200 },
-  { period: "2021", entry: 48500, exit: 47800 },
-  { period: "2022", entry: 52000, exit: 51200 },
-  { period: "2023", entry: 54500, exit: 53700 },
-  { period: "2024", entry: 56800, exit: 55900 }
+  { period: "2020", entry: 15000, exit: 14200 },
+  { period: "2021", entry: 18500, exit: 17800 },
+  { period: "2022", entry: 22000, exit: 21200 },
+  { period: "2023", entry: 24500, exit: 23700 },
+  { period: "2024", entry: 26800, exit: 25900 }
 ]
 
 
@@ -106,15 +106,16 @@ export default function WeeklyAccessBarChart() {
 
   // Get period display text
   const getPeriodText = () => {
+    const currentDate = new Date()
     switch(selectedPeriod) {
       case "week":
-        return "สัปดาห์ที่ 1-7 มกราคม 2024"
+        return `สัปดาห์ที่ ${currentDate.getDate() - 6} - ${currentDate.getDate()} ${currentDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })}`
       case "month":
-        return "ข้อมูลรายเดือน ปี 2024"
+        return `ข้อมูลรายเดือน ปี ${currentDate.getFullYear()}`
       case "year":
-        return "ข้อมูลรายปี 2020-2024"
+        return `ข้อมูลรายปี ${currentDate.getFullYear() - 4} - ${currentDate.getFullYear()}`
       default:
-        return "สัปดาห์ที่ 1-7 มกราคม 2024"
+        return `สัปดาห์ที่ ${currentDate.getDate() - 6} - ${currentDate.getDate()} ${currentDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })}`
     }
   }
 
@@ -124,7 +125,7 @@ export default function WeeklyAccessBarChart() {
       case "week":
         return value.slice(0, 3) // จันทร์ -> จัน
       case "month":
-        return value.slice(0, 4) // มกราคม -> มกรา
+        return value // ม.ค., ก.พ., etc.
       case "year":
         return value // 2024
       default:
@@ -136,16 +137,16 @@ export default function WeeklyAccessBarChart() {
     <Card>
       <CardHeader>
         <div>
-          <CardTitle className="grid grid-cols-2 items-center">
+          <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-blue-500" />
-              สถิติการเข้า/ออก
+              <span className="text-base sm:text-lg">สถิติการเข้า/ออก</span>
             </div>
             
-            <div className="flex items-center gap-2 justify-self-end">
-              <span className="text-sm text-gray-500">ช่วงเวลา:</span>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <span className="text-xs sm:text-sm text-gray-500">ช่วงเวลา:</span>
               <Select value={selectedPeriod} onValueChange={handlePeriodChange}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-24 sm:w-32 text-xs sm:text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -157,43 +158,50 @@ export default function WeeklyAccessBarChart() {
             </div>
           </CardTitle>
           
-          <CardDescription className="flex items-center gap-1 mt-2">
-            <Calendar className="h-4 w-4" />
+          <CardDescription className="flex items-center gap-1 mt-2 text-xs sm:text-sm">
+            <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
             {getPeriodText()}
           </CardDescription>
         </div>
         
         {/* Stats Summary */}
-        <div className="flex items-center gap-4 pt-4">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
-            <span className="text-sm text-gray-600">เข้า: {totalEntry.toLocaleString()} คน</span>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 pt-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+              <span className="text-xs sm:text-sm text-gray-600">เข้า: {totalEntry.toLocaleString()} คน</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-green-600 rounded-full"></div>
+              <span className="text-xs sm:text-sm text-gray-600">ออก: {totalExit.toLocaleString()} คน</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+              <span className="text-xs sm:text-sm text-gray-600">รวม: {(totalEntry + totalExit).toLocaleString()} คน</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-600 rounded-full"></div>
-            <span className="text-sm text-gray-600">ออก: {totalExit.toLocaleString()} คน</span>
-          </div>
-          <Badge variant="outline">
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs sm:text-sm w-fit">
             {getAverageText()}
           </Badge>
         </div>
       </CardHeader>
       
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-[300px] w-full">
+        <ChartContainer config={chartConfig} className="h-[250px] sm:h-[300px] lg:h-[350px] w-full">
           <BarChart accessibilityLayer data={chartData}>
-            <CartesianGrid vertical={false} />
+            <CartesianGrid vertical={false} strokeDasharray="3 3" />
             <XAxis
               dataKey="period"
               tickLine={false}
               tickMargin={10}
               axisLine={false}
               tickFormatter={getAxisFormatter}
+              fontSize={10}
             />
             <ChartTooltip content={<ChartTooltipContent />} />
             <ChartLegend content={<ChartLegendContent />} />
-            <Bar dataKey="entry" fill="var(--color-entry)" radius={4} />
-            <Bar dataKey="exit" fill="var(--color-exit)" radius={4} />
+            <Bar dataKey="entry" fill="var(--color-entry)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="exit" fill="var(--color-exit)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ChartContainer>
       </CardContent>

@@ -20,6 +20,7 @@ import { MenuShowColor } from "@/components/animation";
 
 
 import Link from "next/link";
+import { MenuShowColor } from "@/components/animation";
 
 const items = [
   {
@@ -83,8 +84,7 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
-            <MenuShowColor items={items} />
-            
+            <MenuShowColor items={items}/>  
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
