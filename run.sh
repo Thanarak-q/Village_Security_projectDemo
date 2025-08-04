@@ -72,7 +72,7 @@ echo "✅ Setup completed successfully."
 echo "⏳ Waiting for ngrok to generate the public HTTPS URL..."
 sleep 20
 
-NGROK_URL=$(docker compose logs --no-color ngrok 2>&1 | grep -o "https://[a-zA-Z0-9.-]*\.ngrok[^ ]*" | head -n 1)
+NGROK_URL=$(docker compose logs ngrok 2>&1 | grep -o "https://[a-zA-Z0-9.-]*\.ngrok[^ ]*" | head -n 1)
 
 if [ -n "$NGROK_URL" ]; then
     echo "------------------------------------------------------"

@@ -1,4 +1,4 @@
-import NotificationComponent from "../main/notification";
+import NotificationComponent from "../(main)/notification";
 import HouseManagementTable from "./table_house";
 
 export default function page() {

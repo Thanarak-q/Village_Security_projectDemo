@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation"; // ใช้ next/navigation สำหรับ App Router
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -7,7 +9,6 @@ import { z } from "zod";
 
 import { ScrambleTextExample, ExpandButton } from "@/components/animation";
 
-import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -17,6 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 const FormSchema = z.object({
   username: z.string().min(2, {
@@ -28,26 +30,51 @@ const FormSchema = z.object({
 });
 
 export default function InputFormPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [shouldRedirect, setShouldRedirect] = useState(false);
+
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
       username: "",
       password: "",
     },
-    mode: "onBlur", // validate on blur for better UX
+    mode: "onBlur",
   });
 
-  function onSubmit(data: z.infer<typeof FormSchema>) {
-    toast("You submitted the following values", {
-      description: (
-        <pre className="mt-2 w-[320px] rounded-md bg-neutral-950 p-4">
-          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
-    });
+  async function onSubmit(data: z.infer<typeof FormSchema>) {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData?.message || "Login failed");
+      }
+
+      console.log("Login successful");
+      toast.success("Login successful!");
+      setShouldRedirect(true);
+    } catch (err: any) {
+      toast.error(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  // Get first error and the related field name
+  useEffect(() => {
+    if (shouldRedirect) {
+      router.push("/dashboard");
+    }
+  }, [shouldRedirect, router]);
+
   const firstErrorField = Object.keys(form.formState.errors)[0] as
     | "username"
     | "password"
@@ -87,6 +114,7 @@ export default function InputFormPage() {
                     <Input
                       id="username"
                       placeholder="Username"
+                      autoComplete="username"
                       {...field}
                       className={
                         form.formState.errors.username
@@ -110,6 +138,7 @@ export default function InputFormPage() {
                       id="password"
                       type="password"
                       placeholder="••••••"
+                      autoComplete="current-password"
                       {...field}
                       className={
                         form.formState.errors.password
@@ -123,9 +152,9 @@ export default function InputFormPage() {
             />
 
             <div className="flex justify-center">
-              <ExpandButton onClick={form.handleSubmit(onSubmit)}>
-                Login
-              </ExpandButton>
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? "Logging in..." : "Login"}
+              </Button>
             </div>
           </form>
         </div>
