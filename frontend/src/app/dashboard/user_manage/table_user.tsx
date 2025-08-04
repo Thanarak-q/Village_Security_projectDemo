@@ -176,14 +176,16 @@ export default function UserManagementTable() {
     user.fname.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.lname.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.phone.includes(searchTerm)
+    user.phone.includes(searchTerm) ||
+    user.status.includes(searchTerm)
   );
 
   // Filter guards by search term
   const filteredGuards = guardsData.filter(user =>
     user.fname.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.lname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.status.includes(searchTerm)
   );
 
   // Function to get current page residents
