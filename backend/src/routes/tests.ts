@@ -1,0 +1,85 @@
+import { Elysia } from "elysia";
+import axios from "axios";
+import qs from "qs";
+
+const LINE_CHANNEL_ACCESS_TOKEN = 'LO2jgxe/E7j3yqymxnKheGNvuG503tjnUR9Twkq+DUcEls/UrFgRexkq/79b/1U9wurDdiZvPvAm2fFmpnJ8gKxVvexldXqIfCMXQYp62nJggytqlSzot30oVix5mJSuA3v5ITo9VwAlEo3nzNj6iwdB04t89/1O/w1cDnyilFU='
+
+
+const CLIENT_ID = "2007847995";
+const CLIENT_SECRET = "76c589c0a53b923bef9b8a35bc25cea6";
+const REDIRECT_URI = "http://localhost/api/callback"; // URL ที่ลงทะเบียนไว้ เช่น http://localhost:3000/callback
+
+export const tests = new Elysia({ prefix: "/api" })
+  // Get all admins
+
+  .get("/callback", async ({ query, set }) => {
+    const code = query.code;
+
+    if (!code) {
+      set.status = 400;
+      return "Missing code parameter";
+    }
+
+    try {
+      // 1. ขอ access_token
+      const tokenRes = await axios.post(
+        "https://api.line.me/oauth2/v2.1/token",
+        qs.stringify({
+          grant_type: "authorization_code",
+          code,
+          redirect_uri: REDIRECT_URI,
+          client_id: CLIENT_ID,
+          client_secret: CLIENT_SECRET,
+        }),
+        {
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        }
+      );
+
+      const accessToken = tokenRes.data.access_token;
+
+      // 2. ขอ user profile
+      const profileRes = await axios.get("https://api.line.me/v2/profile", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const profile = profileRes.data;
+      console.log(profile); // ดูข้อมูลบน console: userId, displayName, pictureUrl, statusMessage
+
+      return "LINE Login Success! ดูข้อมูล user ที่ console";
+    } catch (e: any) {
+      console.error(e.response?.data || e);
+      set.status = 500;
+      return "LINE Login Failed";
+    }
+  })
+
+  .get('/send-line-message', async ({ body }) => {
+  
+      const response = await fetch('https://api.line.me/v2/bot/message/push', {
+          method: 'POST',
+          headers: {
+              'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`,
+              'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+              to: "U1d1b4112afebc7b7d256305a9a9d2450",
+              messages: [
+                  {
+                      type: "text",
+                      text: "Hello World"
+                  }
+              ]
+          })
+      });
+      
+      return {
+          status: response.status,
+          text: await response.text()
+      }
+  });
+

@@ -1,7 +1,9 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import 'dotenv/config';
-
+import { schema } from '../db/schema'; // 👈 import schema
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres'; // 👈 import type
+ 
 // Database configuration
 const databaseConfig = {
   url: process.env.DATABASE_URL,
@@ -44,7 +46,7 @@ pool.on('error', (err) => {
 });
 
 // Create drizzle instance with the pool
-const db = drizzle(pool);
+const db: NodePgDatabase<typeof schema> = drizzle(pool, { schema });
 
 // Test database connection on startup
 export async function testConnection() {
