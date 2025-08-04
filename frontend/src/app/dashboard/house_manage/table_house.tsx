@@ -39,12 +39,26 @@ export default function HouseManagementTable() {
   
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(5)
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    // Get saved itemsPerPage from localStorage, default to 5
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = localStorage.getItem('houseTable_itemsPerPage');
+      return saved ? parseInt(saved, 10) : 5;
+    }
+    return 5;
+  })
+  
+  // State สำหรับการ refresh ข้อมูล
+  const [refreshing, setRefreshing] = useState(false)
 
   // Fetch data from API
-  const fetchHouses = async () => {
+  const fetchHouses = async (isRefresh = false) => {
     try {
-      setLoading(true)
+      if (isRefresh) {
+        setRefreshing(true)
+      } else {
+        setLoading(true)
+      }
       const response = await fetch('/api/houses')
       const result = await response.json()
       
@@ -58,6 +72,7 @@ export default function HouseManagementTable() {
       console.error('Error fetching houses:', err)
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }
 
@@ -131,8 +146,14 @@ export default function HouseManagementTable() {
 
   // Function to change items per page
   const handleItemsPerPageChange = (value: string) => {
-    setItemsPerPage(Number(value))
+    const newValue = Number(value)
+    setItemsPerPage(newValue)
     setCurrentPage(1)
+    
+    // Save to localStorage for persistence
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem('houseTable_itemsPerPage', newValue.toString());
+    }
   }
 
   // Get current page data
@@ -158,7 +179,7 @@ export default function HouseManagementTable() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()}>
+          <Button onClick={() => fetchHouses()}>
             ลองใหม่
           </Button>
         </div>
@@ -221,6 +242,14 @@ export default function HouseManagementTable() {
                 </SelectContent>
               </Select>
             </div>
+            
+            {/* Refresh indicator */}
+            {refreshing && (
+              <div className="flex items-center gap-1 text-blue-600 text-sm">
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                <span>กำลังอัปเดต...</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -261,7 +290,7 @@ export default function HouseManagementTable() {
                     {house.house_id.slice(0, 8)}...
                   </TableCell>
                   <TableCell>
-                    <EditHouseDialog house={house} onUpdate={fetchHouses}>
+                    <EditHouseDialog house={house} onUpdate={() => fetchHouses(true)}>
                       <Button
                         variant="ghost"
                         size="sm"

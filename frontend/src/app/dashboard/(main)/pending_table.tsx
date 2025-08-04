@@ -48,6 +48,7 @@ interface PendingResident {
   house_address: string | null;
   createdAt: string;
   updatedAt: string;
+  profile_image_url: string | null;
 }
 
 // Interface for Pending Guard from API
@@ -63,6 +64,7 @@ interface PendingGuard {
   house_address: string | null;
   createdAt: string;
   updatedAt: string;
+  profile_image_url: string | null;
 }
 
 // Interface สำหรับกำหนดโครงสร้างข้อมูลผู้ใช้ที่รออนุมัติ
@@ -77,6 +79,7 @@ interface PendingUser {
   houseNumber: string;  // บ้านเลขที่
   requestDate: string;  // วันที่สมัคร
   status: string;       // สถานะ
+  profile_image_url?: string | null;  // รูปโปรไฟล์
 }
 
 // Interface สำหรับข้อมูลฟอร์มการอนุมัติ
@@ -84,7 +87,6 @@ interface ApprovalFormData {
   approvedRole: string;  // บทบาทที่อนุมัติ
   houseNumber: string;   // บ้านเลขที่
   notes: string;         // หมายเหตุ
-  approvalReason: string; // เหตุผลการอนุมัติ
 }
 
 // ฟังก์ชันหลักสำหรับแสดงตารางผู้ใช้ที่รออนุมัติ
@@ -103,13 +105,27 @@ export default function PendingTable() {
   
   // State สำหรับการแบ่งหน้า (Pagination)
   const [currentPage, setCurrentPage] = useState(1);        // หน้าปัจจุบัน
-  const [itemsPerPage, setItemsPerPage] = useState(3);      // จำนวนรายการต่อหน้า
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    // Get saved itemsPerPage from localStorage, default to 2
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = localStorage.getItem('pendingTable_itemsPerPage');
+      return saved ? parseInt(saved, 10) : 2;
+    }
+    return 2;
+  });      // จำนวนรายการต่อหน้า
   const [searchTerm, setSearchTerm] = useState("");         // คำค้นหา
+  
+  // State สำหรับการ refresh ข้อมูล
+  const [refreshing, setRefreshing] = useState(false);
 
   // Fetch data from API
-  const fetchPendingUsers = async () => {
+  const fetchPendingUsers = async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (isRefresh) {
+        setRefreshing(true);  
+      } else {
+        setLoading(true);
+      }
       setError(null);
       
       const response = await fetch("/api/pendingUsers");
@@ -130,6 +146,7 @@ export default function PendingTable() {
       console.error("Error fetching pending users:", err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -175,8 +192,8 @@ export default function PendingTable() {
           body: JSON.stringify({
             userId: selectedUser.id,
             currentRole: selectedUser.role,
-            reason: formData.approvalReason,
-            notes: formData.notes
+            reason: 'Rejected by administrator',
+            notes: formData.notes,
           }),
         });
       }
@@ -185,11 +202,11 @@ export default function PendingTable() {
 
       if (result.success) {
         console.log(`User ${action}d successfully:`, result.message);
-        
+
+
         // Refresh data after successful approval/rejection
-        await fetchPendingUsers();
-        
-        // ปิดฟอร์มและล้างข้อมูลผู้ใช้ที่เลือก
+        await fetchPendingUsers(true);
+
         setIsApprovalFormOpen(false);
         setSelectedUser(null);
       } else {
@@ -211,13 +228,12 @@ export default function PendingTable() {
   const getAvatarColor = (userId: string) => {
     const colors = [
       "bg-blue-500",
-      "bg-green-500", 
+      "bg-green-500",
       "bg-purple-500",
       "bg-yellow-500",
       "bg-red-500",
       "bg-indigo-500",
     ];
-    // ใช้ ASCII code ของตัวอักษรแรกของ ID เพื่อเลือกสี
     const index = userId.charCodeAt(0) % colors.length;
     return colors[index];
   };
@@ -243,7 +259,8 @@ export default function PendingTable() {
       role: data.role,
       houseNumber: data.house_address || "-",
       requestDate: data.createdAt,
-      status: data.status
+      status: data.status,
+      profile_image_url: data.profile_image_url
     };
   };
 
@@ -259,7 +276,7 @@ export default function PendingTable() {
     user.fname.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.lname.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.houseNumber.includes(searchTerm)
   );
 
@@ -291,8 +308,14 @@ export default function PendingTable() {
 
   // ฟังก์ชันสำหรับเปลี่ยนจำนวนรายการต่อหน้า
   const handleItemsPerPageChange = (value: string) => {
-    setItemsPerPage(Number(value));
+    const newValue = Number(value);
+    setItemsPerPage(newValue);
     setCurrentPage(1); // รีเซ็ตกลับไปหน้าแรก
+    
+    // Save to localStorage for persistence
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem('pendingTable_itemsPerPage', newValue.toString());
+    }
   };
 
   if (loading) {
@@ -313,7 +336,7 @@ export default function PendingTable() {
           <div className="text-red-500 text-xl mb-2">⚠️</div>
           <p className="text-red-600">เกิดข้อผิดพลาด: {error}</p>
           <button 
-            onClick={fetchPendingUsers} 
+            onClick={() => fetchPendingUsers()} 
             className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             ลองใหม่
@@ -353,8 +376,13 @@ export default function PendingTable() {
               />
             </div>
             {/* แสดงเวลาอัปเดตล่าสุด */}
-            <div className="text-xs sm:text-sm text-gray-500">
-              อัปเดตล่าสุด: {new Date().toLocaleTimeString('th-TH')}
+            <div className="text-xs sm:text-sm text-gray-500 flex items-center gap-2">
+              {refreshing && (
+                <div className="flex items-center gap-1 text-blue-600">
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                  <span>กำลังอัปเดต...</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -371,7 +399,7 @@ export default function PendingTable() {
               <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">บทบาท</TableHead>
               <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden md:table-cell">บ้านเลขที่</TableHead>
               <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden lg:table-cell">วันที่สมัคร</TableHead>
-              <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">สถานะ</TableHead>
+              {/* <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">สถานะ</TableHead> */}
               <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">การดำเนินการ</TableHead>
             </TableRow>
           </TableHeader>
@@ -441,12 +469,12 @@ export default function PendingTable() {
                 </TableCell>
                 
                 {/* คอลัมน์สถานะ - แสดง Badge สีส้มพร้อมไอคอนนาฬิกา */}
-                <TableCell>
+                {/* <TableCell>
                   <Badge className="bg-orange-100 text-orange-800 border-orange-200 text-xs sm:text-sm">
                     <Clock className="w-3 h-3 mr-1" />
                     {user.status}
                   </Badge>
-                </TableCell>
+                </TableCell> */}
                 
                 {/* คอลัมน์การดำเนินการ - ปุ่มสำหรับเปิดฟอร์มอนุมัติ */}
                 <TableCell>
