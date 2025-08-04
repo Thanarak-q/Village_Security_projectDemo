@@ -1,5 +1,7 @@
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
+import jwt from "@elysiajs/jwt";
+import cookie from "@elysiajs/cookie";
 import { villageRoutes } from "./routes/village";
 import { houseRoutes } from "./routes/house";
 import { residentRoutes } from "./routes/resident";
@@ -14,6 +16,7 @@ import { testConnection, closeConnection, getPoolStats } from "./db/drizzle";
 import { statsCardRoutes } from "./routes/statsCard";
 import { userTableRoutes } from "./routes/userTable";
 import { pendingUsersRoutes } from "./routes/pendingUsers";
+import { authRoutes } from "./routes/auth";
 // Health check endpoint
 const healthCheck = new Elysia()
   .get("/api/health", async () => {
@@ -45,6 +48,8 @@ const healthCheck = new Elysia()
 
 const app = new Elysia()
   .use(cors())
+  .use(cookie())
+  .use(jwt({ name: "jwt", secret: "super-secret", exp: "7d" }))
   .use(healthCheck)
   .use(villageRoutes)
   .use(houseRoutes)
@@ -59,6 +64,7 @@ const app = new Elysia()
   .use(statsCardRoutes)
   .use(userTableRoutes)
   .use(pendingUsersRoutes)
+  .use(authRoutes)
   .get("/", () => "Hello Village Security API!");
 
 // Initialize database connection and start server
