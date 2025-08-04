@@ -1,12 +1,14 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import gsap from "gsap";
-import React, { useRef, useEffect } from "react";
+import React, { useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -75,6 +77,10 @@ const Gsaploginbutton: React.FC<GsaploginbuttonProps> = ({
 };
 
 const Page: React.FC = () => {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [shouldRedirect, setShouldRedirect] = useState(false);
+
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: { username: "", password: "" },
@@ -88,15 +94,37 @@ const Page: React.FC = () => {
   const squareRef = useRef<HTMLDivElement>(null);
   const loginRef = useRef<HTMLDivElement>(null);
 
-  function onSubmit(data: z.infer<typeof FormSchema>) {
-    toast("You submitted the following values", {
-      description: (
-        <pre className="mt-2 w-[320px] rounded-md bg-neutral-950 p-4">
-          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
-    });
+  async function onSubmit(data: z.infer<typeof FormSchema>) {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData?.message || "Login failed");
+      }
+
+      console.log("Login successful");
+      toast.success("Login successful!");
+      setShouldRedirect(true);
+    } catch (err: any) {
+      toast.error(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   }
+
+  useEffect(() => {
+    if (shouldRedirect) {
+      router.push("/dashboard");
+    }
+  }, [shouldRedirect, router]);
 
   useEffect(() => {
     const isLowPerformance = window.innerWidth < 768 || navigator.hardwareConcurrency < 4;
@@ -222,8 +250,8 @@ const Page: React.FC = () => {
                   )}
                 />
 
-                <Gsaploginbutton type="submit" className="w-full bg-[#253050] text-white rounded-xl text-[1.1rem] py-3 shadow-[0px_6px_24px_1px_rgba(50,56,168,0.09)] font-semibold">
-                  Login
+                <Gsaploginbutton type="submit" disabled={loading} className="w-full bg-[#253050] text-white rounded-xl text-[1.1rem] py-3 shadow-[0px_6px_24px_1px_rgba(50,56,168,0.09)] font-semibold disabled:opacity-50">
+                  {loading ? "Logging in..." : "Login"}
                 </Gsaploginbutton>
               </form>
             </Form>

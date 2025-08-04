@@ -20,7 +20,6 @@ import { MenuShowColor } from "@/components/animation";
 
 
 import Link from "next/link";
-import { MenuShowColor } from "@/components/animation";
 
 const items = [
   {
