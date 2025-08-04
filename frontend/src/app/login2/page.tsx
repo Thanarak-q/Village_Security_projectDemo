@@ -101,25 +101,20 @@ const Page: React.FC = () => {
   useEffect(() => {
     const isLowPerformance = window.innerWidth < 768 || navigator.hardwareConcurrency < 4;
     const preferReducedMotion = window.matchMedia("(prefers-reduced-motion:reduce").matches;
+    const isShortScreen = window.innerHeight < 800;
     const tl = gsap.timeline();
+
+    // Set initial position based on screen height
+    const initialBottom = isShortScreen ? "-250px" : "-350px";
+    gsap.set(loginGroupRef.current, { bottom: initialBottom });
+
     if (!preferReducedMotion) {
       tl.to(welcomeRef.current, {
-        top: "18%",
+        top: "10%",
         // y: "-50%",
         duration: 0.8,
         ease: "power2.inOut",
       })
-        // triangle+square scroll up
-        // .to(
-        //   loginGroupRef.current,
-        //   {
-        //     bottom: "25%",
-        //     y: "50%",
-        //     duration: 1,
-        //     ease: "power2.inOut",
-        //   },
-        //   "-=0.4"
-        // )
         .to(
           triRef.current,
           {
@@ -143,13 +138,13 @@ const Page: React.FC = () => {
         );
     } else if (isLowPerformance) {
       gsap.set(welcomeRef.current, { top: "18%", y: "-50%" })
-      gsap.set(loginGroupRef.current, { bottom: "45%", y: "50%" })
+      gsap.set(loginGroupRef.current, { bottom: isShortScreen ? "35%" : "45%", y: "50%" })
       gsap.set(squareRef.current, { opacity: 1 })
       gsap.set(loginRef.current, { opacity: 1 })
 
     } else {
       gsap.set(welcomeRef.current, { top: "18%", y: "-50%" })
-      gsap.set(loginGroupRef.current, { bottom: "45%", y: "50%" })
+      gsap.set(loginGroupRef.current, { bottom: isShortScreen ? "35%" : "45%", y: "50%" })
       gsap.set(squareRef.current, { opacity: 1 })
       gsap.set(loginRef.current, { opacity: 1 })
 
@@ -161,7 +156,7 @@ const Page: React.FC = () => {
       <div ref={welcomeRef} className="absolute text-white text-4xl tracking-[2px] z-10">
         <ScrambleTextExample />
       </div>
-      <div ref={loginGroupRef} className="relative -bottom-[350px] flex flex-col items-stretch w-full z-[5]">
+      <div ref={loginGroupRef} className="relative flex flex-col items-stretch w-full z-[5]">
         <div ref={triRef} className="opacity-0 w-full h-[120px] bg-white flex justify-center items-end z-[2] mt-[50px] rounded-t-[22px]"
           style={{ clipPath: 'polygon(20px 100%, 50% 0%, calc(100% - 20px) 100%, 100% 100%, 0% 100%)' }}>
           <h2 className="text-[#253050] m-0 mb-[30px] text-[1.8rem] font-black tracking-[1.5px]">Login</h2>
