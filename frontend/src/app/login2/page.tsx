@@ -36,16 +36,17 @@ type GsaploginbuttonProps = ButtonProps & {
   children: React.ReactNode;
 };
 
-const Gsaploginbutton: React.FC<GsaploginbuttonProps> = ({
+const Gsaploginbutton = React.forwardRef<HTMLButtonElement, GsaploginbuttonProps>(({
   className,
   children,
   ...props
-}) => {
-  const btnRef = useRef<HTMLButtonElement>(null);
+}, ref) => {
+  const internalRef = useRef<HTMLButtonElement>(null);
+  const buttonRef = ref || internalRef;
 
   const handleMouseEnter = () => {
-    if (btnRef.current) {
-      gsap.to(btnRef.current, {
+    if (buttonRef && 'current' in buttonRef && buttonRef.current) {
+      gsap.to(buttonRef.current, {
         scale: 1.07,
         duration: 0.25,
         ease: "power2.out",
@@ -53,8 +54,8 @@ const Gsaploginbutton: React.FC<GsaploginbuttonProps> = ({
     }
   };
   const handleMouseLeave = () => {
-    if (btnRef.current) {
-      gsap.to(btnRef.current, {
+    if (buttonRef && 'current' in buttonRef && buttonRef.current) {
+      gsap.to(buttonRef.current, {
         scale: 1,
         duration: 0.25,
         ease: "power2.out",
@@ -64,7 +65,7 @@ const Gsaploginbutton: React.FC<GsaploginbuttonProps> = ({
 
   return (
     <Button
-      ref={btnRef}
+      ref={buttonRef}
       type="submit"
       className={className}
       onMouseEnter={handleMouseEnter}
@@ -74,7 +75,9 @@ const Gsaploginbutton: React.FC<GsaploginbuttonProps> = ({
       {children}
     </Button>
   );
-};
+});
+
+Gsaploginbutton.displayName = "Gsaploginbutton";
 
 const Page: React.FC = () => {
   const router = useRouter();
@@ -93,6 +96,12 @@ const Page: React.FC = () => {
   const triRef = useRef<HTMLDivElement>(null);
   const squareRef = useRef<HTMLDivElement>(null);
   const loginRef = useRef<HTMLDivElement>(null);
+  const successRef = useRef<HTMLDivElement>(null);
+  const usernameFieldRef = useRef<HTMLDivElement>(null);
+  const passwordFieldRef = useRef<HTMLDivElement>(null);
+  const loginButtonRef = useRef<HTMLButtonElement>(null);
+  const loginTitleRef = useRef<HTMLHeadingElement>(null);
+  const villageTextRef = useRef<HTMLParagraphElement>(null);
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     setLoading(true);
@@ -112,13 +121,74 @@ const Page: React.FC = () => {
 
       console.log("Login successful");
       toast.success("Login successful!");
-      setShouldRedirect(true);
+
+      // Trigger success animation
+      animateLoginSuccess();
+
     } catch (err: any) {
       toast.error(err.message || "Something went wrong");
-    } finally {
       setLoading(false);
     }
   }
+
+  const animateLoginSuccess = () => {
+    const tl = gsap.timeline();
+
+    // Get the center position between username and password fields
+    const usernameRect = usernameFieldRef.current?.getBoundingClientRect();
+    const passwordRect = passwordFieldRef.current?.getBoundingClientRect();
+
+    if (usernameRect && passwordRect) {
+      const centerY = (usernameRect.top + passwordRect.top) / 2 - usernameRect.top;
+
+      // Fade out Login title and Village Management System text while fields are moving
+      tl.to([loginTitleRef.current, villageTextRef.current], {
+        opacity: 0,
+        duration: 0.4,
+        ease: "power2.inOut"
+      })
+        // Hide button
+        .to(loginButtonRef.current, {
+          opacity: 0,
+          duration: 0.3,
+          ease: "power2.inOut"
+        }, "<")
+        // Move both fields to overlap at center position
+        .to(usernameFieldRef.current, {
+          y: centerY,
+          duration: 0.6,
+          ease: "power2.inOut"
+        }, "-=0.2")
+        .to(passwordFieldRef.current, {
+          y: centerY - (passwordRect.top - usernameRect.top),
+          duration: 0.6,
+          ease: "power2.inOut"
+        }, "<")
+        // Fade out both fields together
+        .to([usernameFieldRef.current, passwordFieldRef.current], {
+          opacity: 0,
+          duration: 0.4,
+          ease: "power2.inOut"
+        })
+        // Position success message in center of square
+        .set(successRef.current, {
+          display: "flex",
+          opacity: 0
+        })
+        // Fade in success message
+        .to(successRef.current, {
+          opacity: 1,
+          duration: 0.6,
+          ease: "power2.out"
+        })
+        // Wait then redirect
+        .call(() => {
+          setTimeout(() => {
+            setShouldRedirect(true);
+          }, 1500);
+        });
+    }
+  };
 
   useEffect(() => {
     if (shouldRedirect) {
@@ -187,7 +257,7 @@ const Page: React.FC = () => {
       <div ref={loginGroupRef} className="relative flex flex-col items-stretch w-full z-[5]">
         <div ref={triRef} className="opacity-0 w-full h-[120px] bg-white flex justify-center items-end z-[2] mt-[50px] rounded-t-[22px]"
           style={{ clipPath: 'polygon(20px 100%, 50% 0%, calc(100% - 20px) 100%, 100% 100%, 0% 100%)' }}>
-          <h2 className="text-[#253050] m-0 mb-[30px] text-[1.8rem] font-black tracking-[1.5px]">Login</h2>
+          <h2 ref={loginTitleRef} className="text-[#253050] m-0 mb-[30px] text-[1.8rem] font-black tracking-[1.5px]">Login</h2>
         </div>
         <div ref={squareRef} className="w-full h-screen bg-white rounded-[22px] flex flex-col items-center opacity-0 z-[1]">
           <div ref={loginRef} className="mt-8 w-[85%] max-w-[350px] opacity-0 transition-opacity duration-200">
@@ -197,7 +267,7 @@ const Page: React.FC = () => {
                   control={form.control}
                   name="username"
                   render={({ field }) => (
-                    <FormItem className="mb-3">
+                    <FormItem ref={usernameFieldRef} className="mb-3">
                       <FormLabel
                         htmlFor="username"
                         className="font-bold text-[#253050]"
@@ -225,7 +295,7 @@ const Page: React.FC = () => {
                   control={form.control}
                   name="password"
                   render={({ field }) => (
-                    <FormItem className="mb-3">
+                    <FormItem ref={passwordFieldRef} className="mb-3">
                       <FormLabel
                         htmlFor="password"
                         className="font-bold text-[#253050]"
@@ -250,14 +320,40 @@ const Page: React.FC = () => {
                   )}
                 />
 
-                <Gsaploginbutton type="submit" disabled={loading} className="w-full bg-[#253050] text-white rounded-xl text-[1.1rem] py-3 shadow-[0px_6px_24px_1px_rgba(50,56,168,0.09)] font-semibold disabled:opacity-50">
+                <Gsaploginbutton ref={loginButtonRef} type="submit" disabled={loading} className="w-full bg-[#253050] text-white rounded-xl text-[1.1rem] py-3 shadow-[0px_6px_24px_1px_rgba(50,56,168,0.09)] font-semibold disabled:opacity-50">
                   {loading ? "Logging in..." : "Login"}
                 </Gsaploginbutton>
               </form>
             </Form>
-            <p className="mt-10 text-center text-[#aaa] text-[0.97em]">
+            <p ref={villageTextRef} className="mt-10 text-center text-[#aaa] text-[0.97em]">
               Village Management System <br /> v.x.x
             </p>
+          </div>
+
+          {/* Success Message */}
+          <div
+            ref={successRef}
+            className="absolute inset-0 hidden flex-col items-center justify-center opacity-0"
+          >
+            <div className="text-center">
+              <div className="w-20 h-20 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center">
+                <svg
+                  className="w-10 h-10 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-3xl font-bold text-[#253050] mb-2">Success!</h2>
+              <p className="text-[#666] text-lg">Login successful. Redirecting...</p>
+            </div>
           </div>
         </div>
       </div>
