@@ -104,12 +104,26 @@ export default function UserManagementTable() {
   
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    // Get saved itemsPerPage from localStorage, default to 5
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = localStorage.getItem('userTable_itemsPerPage');
+      return saved ? parseInt(saved, 10) : 5;
+    }
+    return 5;
+  });
+  
+  // State สำหรับการ refresh ข้อมูล
+  const [refreshing, setRefreshing] = useState(false);
 
   // Fetch data from API
-  const fetchUsers = async () => {
+  const fetchUsers = async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
       
       const response = await fetch("/api/userTable");
@@ -130,6 +144,7 @@ export default function UserManagementTable() {
       console.error("Error fetching users:", err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -176,14 +191,16 @@ export default function UserManagementTable() {
     user.fname.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.lname.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.phone.includes(searchTerm)
+    user.phone.includes(searchTerm) ||
+    user.status.includes(searchTerm)
   );
 
   // Filter guards by search term
   const filteredGuards = guardsData.filter(user =>
     user.fname.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.lname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.status.includes(searchTerm)
   );
 
   // Function to get current page residents
@@ -238,8 +255,14 @@ export default function UserManagementTable() {
 
   // Function to change items per page
   const handleItemsPerPageChange = (value: string) => {
-    setItemsPerPage(Number(value));
+    const newValue = Number(value);
+    setItemsPerPage(newValue);
     setCurrentPage(1);
+    
+    // Save to localStorage for persistence
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem('userTable_itemsPerPage', newValue.toString());
+    }
   };
 
   // Function to handle form submission
@@ -248,7 +271,7 @@ export default function UserManagementTable() {
       console.log("Updating user:", selectedUser?.id, 'with data:', formData);
       
       // Refresh data after successful update
-      await fetchUsers();
+      await fetchUsers(true);
       
       setIsEditFormOpen(false);
       setSelectedUser(null);
@@ -275,7 +298,7 @@ export default function UserManagementTable() {
           <div className="text-red-500 text-xl mb-2">⚠️</div>
           <p className="text-red-600">เกิดข้อผิดพลาด: {error}</p>
           <button 
-            onClick={fetchUsers} 
+            onClick={() => fetchUsers()} 
             className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             ลองใหม่
@@ -320,16 +343,26 @@ export default function UserManagementTable() {
             </button>
           </div>
           
-          {/* Search box */}
-          <div className="relative w-full sm:w-auto">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="ค้นหาผู้ใช้..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-64 text-sm"
-            />
+          {/* Search box and refresh indicator */}
+          <div className="flex items-center gap-3">
+            <div className="relative w-full sm:w-auto">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="ค้นหาผู้ใช้..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-64 text-sm"
+              />
+            </div>
+            
+            {/* Refresh indicator */}
+            {refreshing && (
+              <div className="flex items-center gap-1 text-blue-600 text-sm">
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                <span>กำลังอัปเดต...</span>
+              </div>
+            )}
           </div>
         </div>
 

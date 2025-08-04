@@ -1,9 +1,6 @@
-import {
-  Home,
-  Settings,
-  BookUser,
-  Building,
-} from "lucide-react";
+"use client";
+
+import { Home, Settings, BookUser, Building, LogOut } from "lucide-react";
 
 import {
   Sidebar,
@@ -18,7 +15,11 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import Link from "next/link";
-import { MenuShowColor } from "@/components/animation";
+import { useRouter } from "next/navigation"; // For app directory (Next.js 13+)
+
+import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+// import { MenuShowColor } from "@/components/animation";
 
 const items = [
   {
@@ -44,6 +45,33 @@ const items = [
 ];
 
 export function AppSidebar() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [shouldRedirect, setShouldRedirect] = useState(false);
+  async function onSubmit() {
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "GET",
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData?.message || "Login failed");
+      }
+
+      console.log("Login successful");
+      setShouldRedirect(true);
+    } catch (err: any) {
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+      if (shouldRedirect) {
+        router.push("/login");
+      }
+    }, [shouldRedirect, router]);
+
   return (
     <Sidebar>
       <SidebarContent>
@@ -81,8 +109,19 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              <SidebarMenuItem key="logout" className="">
+                <SidebarMenuButton
+                  asChild
+                  className="py-3 md:py-4 px-2 md:px-3 h-auto text-sm md:text-base font-bold text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors"
+                >
+                  <Link href="" onClick={onSubmit}>
+                    <LogOut className="w-4 h-4 md:w-5 md:h-5" />
+                    <span>ออกจากระบบ</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
-            <MenuShowColor items={items}/>  
+            {/* <MenuShowColor items={items}/>   */}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
