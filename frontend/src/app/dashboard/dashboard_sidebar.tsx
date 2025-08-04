@@ -18,6 +18,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import Link from "next/link";
+import { MenuShowColor } from "@/components/animation";
 
 const items = [
   {
@@ -36,7 +37,7 @@ const items = [
     icon: Building,
   },
   {
-    title: "Settings",
+    title: "การตั้งค่า",
     url: "/dashboard/setting_manage",
     icon: Settings,
   },
@@ -81,6 +82,7 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
+            <MenuShowColor items={items}/>  
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
