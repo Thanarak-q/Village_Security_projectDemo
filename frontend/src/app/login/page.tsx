@@ -171,26 +171,24 @@ const Page: React.FC = () => {
           duration: 0.3,
           ease: "power2.inOut"
         }, "<")
-        // Fade out both fields together (faster)
+        // Fade out both fields together (faster) and show success message simultaneously
         .to([usernameFieldRef.current, passwordFieldRef.current], {
           opacity: 0,
           duration: 0.2,
           ease: "power2.inOut"
         })
-        // Position success message at top middle of square
         .set(successRef.current, {
           display: "block",
           position: "absolute",
-          top: "200px",
-          left: "50%",
-          transform: "translateX(-50%)",
+          top: "25%",
+         
           opacity: 1,
           zIndex: 10
-        })
+        }, "<")
         // Trigger faster scramble text animation
         .call(() => {
           gsap.to(scrambleSuccessRef.current, {
-            duration: 0.8,
+            duration: 2,
             scrambleText: {
               text: "Success!",
               chars: "XO#@$%",
@@ -357,7 +355,6 @@ const Page: React.FC = () => {
               ref={scrambleSuccessRef}
               className="text-2xl font-bold text-[#253050] tracking-[1.5px]"
             >
-              Loading...
             </h2>
           </div>
         </div>
