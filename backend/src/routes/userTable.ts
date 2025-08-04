@@ -157,6 +157,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           house_address: houses.address,
           createdAt: residents.createdAt,
           updatedAt: residents.updatedAt,
+          profile_image_url: residents.profile_image_url
         })
         .from(residents)
         .where(sql`${residents.status} != 'pending'`)
@@ -177,6 +178,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           house_address: sql`NULL`.as('house_address'),
           createdAt: guards.createdAt,
           updatedAt: guards.updatedAt,
+          profile_image_url: guards.profile_image_url
         })
         .from(guards)
         .where(sql`${guards.status} != 'pending'`);

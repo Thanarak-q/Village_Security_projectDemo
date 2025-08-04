@@ -48,6 +48,7 @@ interface PendingResident {
   house_address: string | null;
   createdAt: string;
   updatedAt: string;
+  profile_image_url: string | null;
 }
 
 // Interface for Pending Guard from API
@@ -63,6 +64,7 @@ interface PendingGuard {
   house_address: string | null;
   createdAt: string;
   updatedAt: string;
+  profile_image_url: string | null;
 }
 
 // Interface สำหรับกำหนดโครงสร้างข้อมูลผู้ใช้ที่รออนุมัติ
@@ -77,6 +79,7 @@ interface PendingUser {
   houseNumber: string;  // บ้านเลขที่
   requestDate: string;  // วันที่สมัคร
   status: string;       // สถานะ
+  profile_image_url?: string | null;  // รูปโปรไฟล์
 }
 
 // Interface สำหรับข้อมูลฟอร์มการอนุมัติ
@@ -225,13 +228,12 @@ export default function PendingTable() {
   const getAvatarColor = (userId: string) => {
     const colors = [
       "bg-blue-500",
-      "bg-green-500", 
+      "bg-green-500",
       "bg-purple-500",
       "bg-yellow-500",
       "bg-red-500",
       "bg-indigo-500",
     ];
-    // ใช้ ASCII code ของตัวอักษรแรกของ ID เพื่อเลือกสี
     const index = userId.charCodeAt(0) % colors.length;
     return colors[index];
   };
@@ -257,7 +259,8 @@ export default function PendingTable() {
       role: data.role,
       houseNumber: data.house_address || "-",
       requestDate: data.createdAt,
-      status: data.status
+      status: data.status,
+      profile_image_url: data.profile_image_url
     };
   };
 

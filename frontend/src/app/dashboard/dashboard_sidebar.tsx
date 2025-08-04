@@ -1,9 +1,4 @@
-import {
-  Home,
-  Settings,
-  BookUser,
-  Building,
-} from "lucide-react";
+import { Home, Settings, BookUser, Building, LogOut } from "lucide-react";
 
 import {
   Sidebar,
@@ -22,7 +17,7 @@ import Link from "next/link";
 const items = [
   {
     title: "หน้าหลัก",
-    url: "/dashboard",
+    url: "/dashboard/main",
     icon: Home,
   },
   {
@@ -80,6 +75,17 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              <SidebarMenuItem key="logout" className="">
+                <SidebarMenuButton
+                  asChild
+                  className="py-3 md:py-4 px-2 md:px-3 h-auto text-sm md:text-base font-bold text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors"
+                >
+                  <Link href="/login">
+                    <LogOut className="w-4 h-4 md:w-5 md:h-5" />
+                    <span>ออกจากระบบ</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
