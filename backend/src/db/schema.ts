@@ -79,7 +79,7 @@ export const admins = pgTable("admins", {
   phone: text("phone").notNull(), 
   village_key: text("village_key").references(() => villages.village_key), // connect village
   status: text("status").$type<"verified" | "pending" | "disable">().default("pending"),
-  
+  role: text("role").$type<"admin" | "staff" | "superadmin">().default("admin").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -117,3 +117,10 @@ export const visitor_records = pgTable("visitor_records", {
 
 });
 export type Visitor_record = typeof visitor_records.$inferSelect;
+export const schema = {
+  admins,
+  residents,
+  guards,
+  houses,
+  visitor_records
+};

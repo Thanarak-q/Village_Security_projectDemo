@@ -4,14 +4,14 @@ import React, { useEffect } from "react";
 import gsap from "gsap";
 import { ScrollTrigger,SplitText, ScrambleTextPlugin } from "gsap/all";
 
-gsap.registerPlugin(ScrollTrigger,SplitText,ScrambleTextPlugin);
+gsap.registerPlugin(ScrambleTextPlugin);
 
 const ScrambleTextExample = () => {
   useEffect(() => {
     gsap.to("#secound", {
       duration: 1,
       scrambleText: {
-        text: "Please log in",
+        text: "Please Login",
         chars: "XO",
         revealDelay: 0.5,
         speed: 0.5,
@@ -23,9 +23,9 @@ const ScrambleTextExample = () => {
   
 
   return (
-    <div className="text-center text-bold text-2xl mt-8">
-      <p id="first">Welcome to Village</p>
-      <p id="secound">Please log in</p>
+    <div className="text-center font-bold mt-8">
+      <p id="first" className="text-xl sm:text-2xl md:text-3xl lg:text-4xl">Welcome to Village</p>
+      <p id="secound" className="text-xl sm:text-2xl md:text-3xl lg:text-4xl">Please Login</p>
     </div>
   );
 };
