@@ -54,7 +54,7 @@ export default function Page() {
             </p>
           </div>
           <div className="flex justify-start sm:justify-end">
-            <NotificationComponent />
+            {/* <NotificationComponent /> */}
           </div>
         </div>
 
