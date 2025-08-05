@@ -27,11 +27,11 @@ import { ScrambleTextPlugin } from "gsap/all";
 gsap.registerPlugin(ScrambleTextPlugin);
 
 const FormSchema = z.object({
-  username: z.string().min(2, {
-    message: "Username must be at least 2 characters.",
+  username: z.string().min(0, {
+    // message: "Username must be at least 6 characters.",
   }),
-  password: z.string().min(2, {
-    message: "Password must be at least 2 characters.",
+  password: z.string().min(6, {
+    message: "Password must be at least 6 characters.",
   }),
 });
 
@@ -106,34 +106,79 @@ const Page: React.FC = () => {
   const loginTitleRef = useRef<HTMLHeadingElement>(null);
   const villageTextRef = useRef<HTMLParagraphElement>(null);
   const scrambleSuccessRef = useRef<HTMLHeadingElement>(null);
+  const errorMessageRef = useRef<HTMLParagraphElement>(null);
 
   const animateLoginFailure = () => {
     const tl = gsap.timeline();
 
+    // Determine screen size for responsive adjustments
+    const isSmallPhone = window.innerWidth < 480;
+    const isMobile = window.innerWidth < 640;
+
+    // Keep error message consistent across all devices
+    const errorText = "Invalid Username or Password";
+
+    // Determine login fail text size based on screen size
+    let loginFailText = "Login Fail";
+    // if (isSmallPhone) {
+    //   loginFailText = "Fail"; 
+    // }
+
     // Create a pop-up scale animation with color change
     tl.to(loginTitleRef.current, {
-      scale: 1.2,
+      scale: isSmallPhone ? 1.1 : isMobile ? 1.15 : 1.2,
       color: "#ef4b6c",
       duration: 0.3,
       ease: "back.out(1.7)",
     })
-      // Scramble text to "Login fail"
+      // Scramble text to "Login fail" or "Fail" for small phones
       .to(loginTitleRef.current, {
         duration: 0.8,
         scrambleText: {
-          text: "Login fail",
+          text: loginFailText,
           chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
           revealDelay: 0.1,
           speed: 0.8,
         },
       }, "-=0.2")
+      // Show error message with animation
+      .set(errorMessageRef.current, {
+        display: "block",
+        opacity: 0,
+        y: isSmallPhone ? -6 : isMobile ? -8 : -10,
+      }, "-=0.4")
+      .to(errorMessageRef.current, {
+        opacity: 1,
+        y: 0,
+        duration: 0.5,
+        ease: "power2.out",
+      })
+      // Animate error message text with scramble effect
+      .to(errorMessageRef.current, {
+        duration: 0.5,
+        scrambleText: {
+          text: errorText,
+          chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+          revealDelay: 0.05,
+          speed: 0.1,
+        },
+      }, "-=0.3")
       // Scale back to normal size but keep red color
       .to(loginTitleRef.current, {
         scale: 1,
         duration: 0.4,
         ease: "power2.out",
-      }, "-=0.4")
-      // After 2 seconds, revert back to original "Login" text and color
+      }, "-=0.8")
+      // After 4 seconds, hide error message and revert back to original "Login" text and color
+      .to(errorMessageRef.current, {
+        opacity: 0,
+        y: isSmallPhone ? -6 : isMobile ? -8 : -10,
+        duration: 0.4,
+        ease: "power2.inOut",
+      }, "+=3.5")
+      .set(errorMessageRef.current, {
+        display: "none",
+      })
       .to(loginTitleRef.current, {
         duration: 0.8,
         scrambleText: {
@@ -143,7 +188,7 @@ const Page: React.FC = () => {
           speed: 0.8,
         },
         color: "#253050",
-      }, "+=1.5");
+      }, "-=0.2");
   };
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
@@ -312,9 +357,11 @@ const Page: React.FC = () => {
         <ScrambleTextExample />
       </div>
       <div ref={loginGroupRef} className="relative flex flex-col items-stretch w-full z-[5]">
-        <div ref={triRef} className="opacity-0 w-full h-[120px] bg-white flex justify-center items-end z-[2] mt-[50px] rounded-t-[22px]"
+        <div ref={triRef} className="opacity-0 w-full h-[120px] sm:h-[130px] md:h-[140px] bg-white flex flex-col justify-center items-center z-[2] mt-[50px] rounded-t-[22px] relative"
           style={{ clipPath: 'polygon(20px 100%, 50% 0%, calc(100% - 20px) 100%, 100% 100%, 0% 100%)' }}>
-          <h2 ref={loginTitleRef} className="text-[#253050] m-0 mb-[30px] text-[1.8rem] font-black tracking-[1.5px]">Login</h2>
+          <h2 ref={loginTitleRef} className="text-[#253050] m-0 text-[1.2rem] xs:text-[1.3rem] sm:text-[1.6rem] md:text-[1.8rem] lg:text-[2rem] font-black tracking-[1.5px]">Login</h2>
+          <p ref={errorMessageRef} className="hidden text-[#ef4b6c] text-[0.7rem] sm:text-[0.75rem] md:text-[0.85rem] lg:text-[0.9rem] font-medium mt-1 sm:mt-2 text-center px-2 sm:px-3 md:px-4 leading-tight max-w-[280px] sm:max-w-[320px] md:max-w-[360px]">
+          </p>
         </div>
         <div ref={squareRef} className="w-full h-screen bg-white rounded-[22px] flex flex-col items-center opacity-0 z-[1]">
           <div ref={loginRef} className="mt-8 w-[85%] max-w-[350px] opacity-0 transition-opacity duration-200">
