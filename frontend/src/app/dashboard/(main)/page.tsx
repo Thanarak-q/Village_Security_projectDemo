@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
 import WeeklyAccessBarChart from "./chart";
-import NotificationComponent from "./notification";
 import PendingTable from "./pending_table";
 import {
   TotalUsersCard,
@@ -43,7 +42,7 @@ export default function Page() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 lg:mb-8">
           <div className="space-y-1">
             <h1 className="scroll-m-20 text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-gray-900">
-              สวัสดี, คุณผู้จัดการ {data.username} 👋
+              {/* สวัสดี, คุณผู้จัดการ {data.username} 👋 */}
             </h1>
             <p className="text-xs sm:text-sm md:text-base text-gray-500">
               {new Date().toLocaleDateString("th-TH", {

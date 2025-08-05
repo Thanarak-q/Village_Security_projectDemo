@@ -101,10 +101,10 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-6">
       <div className="container mx-auto px-4 max-w-2xl">
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">การตั้งค่า</h1>
           <p className="text-gray-600">จัดการข้อมูลส่วนตัวและการตั้งค่าบัญชี</p>
-        </div>
+        </div> */}
 
         <form onSubmit={handleSubmit}>
           <Card className="shadow-sm">
