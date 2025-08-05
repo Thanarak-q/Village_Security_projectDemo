@@ -107,6 +107,45 @@ const Page: React.FC = () => {
   const villageTextRef = useRef<HTMLParagraphElement>(null);
   const scrambleSuccessRef = useRef<HTMLHeadingElement>(null);
 
+  const animateLoginFailure = () => {
+    const tl = gsap.timeline();
+
+    // Create a pop-up scale animation with color change
+    tl.to(loginTitleRef.current, {
+      scale: 1.2,
+      color: "#ef4b6c",
+      duration: 0.3,
+      ease: "back.out(1.7)",
+    })
+      // Scramble text to "Login fail"
+      .to(loginTitleRef.current, {
+        duration: 0.8,
+        scrambleText: {
+          text: "Login fail",
+          chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+          revealDelay: 0.1,
+          speed: 0.8,
+        },
+      }, "-=0.2")
+      // Scale back to normal size but keep red color
+      .to(loginTitleRef.current, {
+        scale: 1,
+        duration: 0.4,
+        ease: "power2.out",
+      }, "-=0.4")
+      // After 2 seconds, revert back to original "Login" text and color
+      .to(loginTitleRef.current, {
+        duration: 0.8,
+        scrambleText: {
+          text: "Login",
+          chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+          revealDelay: 0.1,
+          speed: 0.8,
+        },
+        color: "#253050",
+      }, "+=1.5");
+  };
+
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     setLoading(true);
     try {
@@ -131,6 +170,8 @@ const Page: React.FC = () => {
 
     } catch (err: any) {
       toast.error(err.message || "Something went wrong");
+      // Trigger login failure animation
+      animateLoginFailure();
       setLoading(false);
     }
   }
@@ -181,19 +222,19 @@ const Page: React.FC = () => {
           display: "block",
           position: "absolute",
           top: "25%",
-         
+
           opacity: 1,
           zIndex: 10
         }, "<")
         // Trigger faster scramble text animation
         .call(() => {
           gsap.to(scrambleSuccessRef.current, {
-            duration: 2,
+            duration: 1,
             scrambleText: {
-              text: "Success!",
-              chars: "XO#@$%",
+              text: "Successfully!!!",
+              chars: "YOU ARE RIGHT!!!",
               revealDelay: 0.1,
-              speed: 0.6,
+              speed: 1,
             },
           });
         })
