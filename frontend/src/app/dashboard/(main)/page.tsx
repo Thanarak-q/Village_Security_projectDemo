@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { gsap } from "gsap";
 import WeeklyAccessBarChart from "./chart";
 import PendingTable from "./pending_table";
 import {
@@ -10,24 +11,83 @@ import {
 } from "./statistic";
 
 export default function Page() {
-
   const [data, setData] = useState<any>(null);
+  const cardsRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-      fetch("/api/auth/me", {
-        credentials: "include",
+    fetch("/api/auth/me", {
+      credentials: "include",
+    })
+      .then((res) => {
+        if (res.status === 401) {
+          window.location.href = "/login";
+          return;
+        }
+        return res.json();
       })
-        .then((res) => {
-          if (res.status === 401) {
-            window.location.href = "/login";
-            return;
-          }
-          return res.json();
-        })
-        .then((json) => {
-          if (json) setData(json);
-        });
-    }, []);
+      .then((json) => {
+        if (json) setData(json);
+      });
+  }, []);
+
+  // GSAP smooth scroll-up animations
+  useEffect(() => {
+    if (!data) return;
+
+    // Set initial state for chart and table only
+    gsap.set([chartRef.current, tableRef.current], {
+      opacity: 0,
+      y: 50
+    });
+
+    // Individual cards initial state
+    const cards = cardsRef.current?.children;
+    if (cards) {
+      gsap.set(Array.from(cards), {
+        opacity: 0,
+        y: 60
+      });
+    }
+
+    // Create smooth scroll-up timeline
+    const tl = gsap.timeline();
+
+    // Animate individual cards first
+    if (cards) {
+      Array.from(cards).forEach((card, index) => {
+        tl.to(card, {
+          duration: 0.6,
+          opacity: 1,
+          y: 0,
+          ease: "power2.inOut"
+        }, index * 0.1);
+      });
+    }
+
+    // Then animate chart
+    tl.to(chartRef.current, {
+      duration: 0.8,
+      opacity: 1,
+      y: 0,
+      ease: "power2.inOut"
+    }, "-=0.2")
+      // Finally animate table
+      .to(tableRef.current, {
+        duration: 0.8,
+        opacity: 1,
+        y: 0,
+        ease: "power2.inOut"
+      }, "-=0.4");
+
+    return () => {
+      gsap.killTweensOf([chartRef.current, tableRef.current]);
+      if (cards) {
+        gsap.killTweensOf(Array.from(cards));
+      }
+    };
+  }, [data]);
 
   if (!data) return <p>Loading...</p>;
   // if (data.role !== "admin") {
@@ -41,7 +101,10 @@ export default function Page() {
         {/* Header - Content moved to navbar */}
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6 lg:mb-8">
+        <div
+          ref={cardsRef}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6 lg:mb-8"
+        >
           <TotalUsersCard />
           <DailyAccessCard />
           <PendingTasksCard />
@@ -49,12 +112,18 @@ export default function Page() {
         </div>
 
         {/* Chart */}
-        <div className="mb-4 sm:mb-6 lg:mb-8">
+        <div
+          ref={chartRef}
+          className="mb-4 sm:mb-6 lg:mb-8"
+        >
           <WeeklyAccessBarChart />
         </div>
 
         {/* Pending Table */}
-        <div className="mb-4 sm:mb-6">
+        <div
+          ref={tableRef}
+          className="mb-4 sm:mb-6"
+        >
           <PendingTable />
         </div>
       </div>

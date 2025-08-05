@@ -1,12 +1,25 @@
 "use client"
 import { User } from "lucide-react"
 import { usePathname } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
+import { gsap } from "gsap"
 import NotificationComponent from "./(main)/notification"
 
 function Navbar() {
   const pathname = usePathname()
   const [userData, setUserData] = useState<any>(null)
+  const textRef = useRef<HTMLSpanElement>(null)
+  const [currentTextIndex, setCurrentTextIndex] = useState(0)
+
+  // Array of spinning texts
+  const spinningTexts = [
+    "currentpage",
+    "goodmorning",
+    "สวัสดี",
+    "คุณผู้จัดการ",
+    "admin_phachange",
+    "สวัสดี"
+  ]
 
   const currentDate = new Date()
   const thaiDate = new Intl.DateTimeFormat('th-TH', {
@@ -29,6 +42,66 @@ function Navbar() {
       .then((json) => {
         if (json) setUserData(json)
       })
+  }, [])
+
+  // GSAP smooth spin-up text animation with power2.inOut
+  useEffect(() => {
+    if (!textRef.current) return
+
+    // Set initial state
+    gsap.set(textRef.current, {
+      y: 20,
+      opacity: 0,
+      rotationX: -90,
+      transformOrigin: "center bottom"
+    })
+
+    const animateText = () => {
+      const tl = gsap.timeline({
+        repeat: -1,
+        repeatDelay: 0.3
+      })
+
+      spinningTexts.forEach((_, index: number) => {
+        tl.to(textRef.current, {
+          duration: 0.4,
+          y: -10,
+          opacity: 0,
+          rotationX: 90,
+          ease: "power2.inOut",
+          onComplete: () => {
+            setCurrentTextIndex(index)
+          }
+        })
+          .to(textRef.current, {
+            duration: 0.5,
+            y: 0,
+            opacity: 1,
+            rotationX: 0,
+            ease: "power2.inOut"
+          })
+          .to({}, { duration: 2 }) // Hold the text for 2 seconds
+      })
+
+      return tl
+    }
+
+    // Initial entrance animation
+    gsap.to(textRef.current, {
+      duration: 0.8,
+      y: 0,
+      opacity: 1,
+      rotationX: 0,
+      ease: "power2.inOut",
+      delay: 0.5,
+      onComplete: () => {
+        animateText()
+      }
+    })
+
+    return () => {
+      gsap.killTweensOf(textRef.current)
+    }
   }, [])
 
   // Dynamic content based on current route
@@ -85,9 +158,24 @@ function Navbar() {
       <div className="bg-white p-4 flex justify-between items-center border-b border-gray-200">
         {/* ด้านซ้าย - ข้อความ */}
         <div className="flex flex-col">
-          <h1 className={pageContent.titleClass}>
-            {pageContent.title}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className={pageContent.titleClass}>
+              {pageContent.title}
+            </h1>
+            {/* GSAP Smooth Spin-Up Text */}
+            <div className="relative overflow-hidden h-8 flex items-center">
+              <span
+                ref={textRef}
+                className="inline-block text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent transform-gpu"
+                style={{
+                  transformStyle: 'preserve-3d',
+                  perspective: '1000px'
+                }}
+              >
+                {spinningTexts[currentTextIndex]}
+              </span>
+            </div>
+          </div>
           <p className={pageContent.subtitleClass}>
             {pageContent.subtitle}
           </p>
