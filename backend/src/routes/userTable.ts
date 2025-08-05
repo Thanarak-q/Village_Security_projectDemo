@@ -38,7 +38,7 @@ async function getResident(userId: string) {
     .where(eq(residents.resident_id, userId));
   return result[0] || null;
 }
-
+// ok
 async function getGuard(userId: string) {
   const result = await db
     .select()
@@ -47,6 +47,8 @@ async function getGuard(userId: string) {
   return result[0] || null;
 }
 
+// ok
+// delete house member table of resident that we want
 async function removeHouseRelationships(userId: string) {
   const houseMemberData = await db
     .select()
@@ -60,6 +62,7 @@ async function removeHouseRelationships(userId: string) {
   return houseMemberData[0] || null;
 }
 
+// ok
 async function cleanupVisitorRecords(
   userId: string,
   role: "resident" | "guard"
@@ -75,6 +78,8 @@ async function cleanupVisitorRecords(
   }
 }
 
+// not ok yet
+// need to delete old table (resident table) because we dont need it anymore
 async function createGuardFromResident(resident: any, status: string) {
   const result = await db
     .insert(guards)
@@ -94,6 +99,8 @@ async function createGuardFromResident(resident: any, status: string) {
   return result[0] || null;
 }
 
+// not ok yet
+// need to delete old table (guard table) because we dont need it anymore
 async function createResidentFromGuard(guard: any, status: string) {
   const result = await db
     .insert(residents)
@@ -113,6 +120,9 @@ async function createResidentFromGuard(guard: any, status: string) {
   return result[0] || null;
 }
 
+// not ok
+// delete houses that have 0 resident 
+// what if that house just waiting to be rented
 async function cleanupOrphanedHouse(houseId: string) {
   const remainingResidents = await db
     .select()
