@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
 import WeeklyAccessBarChart from "./chart";
-import NotificationComponent from "./notification";
 import PendingTable from "./pending_table";
 import {
   TotalUsersCard,
