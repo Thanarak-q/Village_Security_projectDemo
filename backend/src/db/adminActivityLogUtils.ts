@@ -1,18 +1,12 @@
 import db from "./drizzle";
-import { admin_activity_logs, AdminActivityLogInsert } from "./schema";
+import { admin_activity_logs, admins, AdminActivityLogInsert } from "./schema";
 import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
 
 // Interface for creating activity log
 export interface CreateActivityLogParams {
   admin_id: string;
   action_type: AdminActivityLogInsert["action_type"];
-  target_type: AdminActivityLogInsert["target_type"];
-  target_id?: string;
-  old_value?: string;
-  new_value?: string;
   description: string;
-  ip_address?: string;
-  user_agent?: string;
 }
 
 // Create new activity log
@@ -23,13 +17,7 @@ export const createActivityLog = async (params: CreateActivityLogParams) => {
       .values({
         admin_id: params.admin_id,
         action_type: params.action_type,
-        target_type: params.target_type,
-        target_id: params.target_id || null,
-        old_value: params.old_value || null,
-        new_value: params.new_value || null,
         description: params.description,
-        ip_address: params.ip_address || null,
-        user_agent: params.user_agent || null,
       })
       .returning();
 
@@ -49,47 +37,49 @@ export const getAllActivityLogs = async (
   try {
     const offset = (page - 1) * limit;
     
-    let query = db
-      .select({
-        log_id: admin_activity_logs.log_id,
-        admin_id: admin_activity_logs.admin_id,
-        action_type: admin_activity_logs.action_type,
-        target_type: admin_activity_logs.target_type,
-        target_id: admin_activity_logs.target_id,
-        old_value: admin_activity_logs.old_value,
-        new_value: admin_activity_logs.new_value,
-        description: admin_activity_logs.description,
-        ip_address: admin_activity_logs.ip_address,
-        user_agent: admin_activity_logs.user_agent,
-        created_at: admin_activity_logs.created_at,
-        admin_username: sql<string>`admins.username`.as("admin_username"),
-        admin_fname: sql<string>`admins.fname`.as("admin_fname"),
-        admin_lname: sql<string>`admins.lname`.as("admin_lname"),
-      })
-      .from(admin_activity_logs)
-      .leftJoin(db.admins, eq(admin_activity_logs.admin_id, db.admins.admin_id))
-      .orderBy(desc(admin_activity_logs.created_at))
-      .limit(limit)
-      .offset(offset);
-
-    // Filter by village if provided
-    if (village_key) {
-      query = query.where(eq(db.admins.village_key, village_key));
-    }
-
-    const logs = await query;
+    // Build the logs query
+    const logs = village_key 
+      ? await db
+          .select({
+            log_id: admin_activity_logs.log_id,
+            admin_id: admin_activity_logs.admin_id,
+            action_type: admin_activity_logs.action_type,
+            description: admin_activity_logs.description,
+            created_at: admin_activity_logs.created_at,
+            admin_username: sql<string>`admins.username`.as("admin_username"),
+          })
+          .from(admin_activity_logs)
+          .leftJoin(admins, eq(admin_activity_logs.admin_id, admins.admin_id))
+          .where(eq(admins.village_key, village_key))
+          .orderBy(desc(admin_activity_logs.created_at))
+          .limit(limit)
+          .offset(offset)
+      : await db
+          .select({
+            log_id: admin_activity_logs.log_id,
+            admin_id: admin_activity_logs.admin_id,
+            action_type: admin_activity_logs.action_type,
+            description: admin_activity_logs.description,
+            created_at: admin_activity_logs.created_at,
+            admin_username: sql<string>`admins.username`.as("admin_username"),
+          })
+          .from(admin_activity_logs)
+          .leftJoin(admins, eq(admin_activity_logs.admin_id, admins.admin_id))
+          .orderBy(desc(admin_activity_logs.created_at))
+          .limit(limit)
+          .offset(offset);
     
     // Get total count
-    let countQuery = db
-      .select({ count: sql<number>`count(*)`.as("count") })
-      .from(admin_activity_logs)
-      .leftJoin(db.admins, eq(admin_activity_logs.admin_id, db.admins.admin_id));
-
-    if (village_key) {
-      countQuery = countQuery.where(eq(db.admins.village_key, village_key));
-    }
-
-    const [{ count }] = await countQuery;
+    const [{ count }] = village_key
+      ? await db
+          .select({ count: sql<number>`count(*)`.as("count") })
+          .from(admin_activity_logs)
+          .leftJoin(admins, eq(admin_activity_logs.admin_id, admins.admin_id))
+          .where(eq(admins.village_key, village_key))
+      : await db
+          .select({ count: sql<number>`count(*)`.as("count") })
+          .from(admin_activity_logs)
+          .leftJoin(admins, eq(admin_activity_logs.admin_id, admins.admin_id));
 
     return {
       logs,
@@ -120,20 +110,12 @@ export const getActivityLogsByAdmin = async (
         log_id: admin_activity_logs.log_id,
         admin_id: admin_activity_logs.admin_id,
         action_type: admin_activity_logs.action_type,
-        target_type: admin_activity_logs.target_type,
-        target_id: admin_activity_logs.target_id,
-        old_value: admin_activity_logs.old_value,
-        new_value: admin_activity_logs.new_value,
         description: admin_activity_logs.description,
-        ip_address: admin_activity_logs.ip_address,
-        user_agent: admin_activity_logs.user_agent,
         created_at: admin_activity_logs.created_at,
         admin_username: sql<string>`admins.username`.as("admin_username"),
-        admin_fname: sql<string>`admins.fname`.as("admin_fname"),
-        admin_lname: sql<string>`admins.lname`.as("admin_lname"),
       })
       .from(admin_activity_logs)
-      .leftJoin(db.admins, eq(admin_activity_logs.admin_id, db.admins.admin_id))
+      .leftJoin(admins, eq(admin_activity_logs.admin_id, admins.admin_id))
       .where(eq(admin_activity_logs.admin_id, admin_id))
       .orderBy(desc(admin_activity_logs.created_at))
       .limit(limit)
@@ -169,47 +151,32 @@ export const getActivityLogsByActionType = async (
   try {
     const offset = (page - 1) * limit;
     
-    let query = db
+    let whereConditions = [eq(admin_activity_logs.action_type, action_type)];
+    if (village_key) {
+      whereConditions.push(eq(admins.village_key, village_key));
+    }
+
+    const logs = await db
       .select({
         log_id: admin_activity_logs.log_id,
         admin_id: admin_activity_logs.admin_id,
         action_type: admin_activity_logs.action_type,
-        target_type: admin_activity_logs.target_type,
-        target_id: admin_activity_logs.target_id,
-        old_value: admin_activity_logs.old_value,
-        new_value: admin_activity_logs.new_value,
         description: admin_activity_logs.description,
-        ip_address: admin_activity_logs.ip_address,
-        user_agent: admin_activity_logs.user_agent,
         created_at: admin_activity_logs.created_at,
         admin_username: sql<string>`admins.username`.as("admin_username"),
-        admin_fname: sql<string>`admins.fname`.as("admin_fname"),
-        admin_lname: sql<string>`admins.lname`.as("admin_lname"),
       })
       .from(admin_activity_logs)
-      .leftJoin(db.admins, eq(admin_activity_logs.admin_id, db.admins.admin_id))
-      .where(eq(admin_activity_logs.action_type, action_type))
+      .leftJoin(admins, eq(admin_activity_logs.admin_id, admins.admin_id))
+      .where(and(...whereConditions))
       .orderBy(desc(admin_activity_logs.created_at))
       .limit(limit)
       .offset(offset);
-
-    if (village_key) {
-      query = query.where(eq(db.admins.village_key, village_key));
-    }
-
-    const logs = await query;
     
-    let countQuery = db
+    const [{ count }] = await db
       .select({ count: sql<number>`count(*)`.as("count") })
       .from(admin_activity_logs)
-      .leftJoin(db.admins, eq(admin_activity_logs.admin_id, db.admins.admin_id))
-      .where(eq(admin_activity_logs.action_type, action_type));
-
-    if (village_key) {
-      countQuery = countQuery.where(eq(db.admins.village_key, village_key));
-    }
-
-    const [{ count }] = await countQuery;
+      .leftJoin(admins, eq(admin_activity_logs.admin_id, admins.admin_id))
+      .where(and(...whereConditions));
 
     return {
       logs,
@@ -237,57 +204,35 @@ export const getActivityLogsByDateRange = async (
   try {
     const offset = (page - 1) * limit;
     
-    let query = db
+    let whereConditions = [
+      gte(admin_activity_logs.created_at, start_date),
+      lte(admin_activity_logs.created_at, end_date)
+    ];
+    if (village_key) {
+      whereConditions.push(eq(admins.village_key, village_key));
+    }
+
+    const logs = await db
       .select({
         log_id: admin_activity_logs.log_id,
         admin_id: admin_activity_logs.admin_id,
         action_type: admin_activity_logs.action_type,
-        target_type: admin_activity_logs.target_type,
-        target_id: admin_activity_logs.target_id,
-        old_value: admin_activity_logs.old_value,
-        new_value: admin_activity_logs.new_value,
         description: admin_activity_logs.description,
-        ip_address: admin_activity_logs.ip_address,
-        user_agent: admin_activity_logs.user_agent,
         created_at: admin_activity_logs.created_at,
         admin_username: sql<string>`admins.username`.as("admin_username"),
-        admin_fname: sql<string>`admins.fname`.as("admin_fname"),
-        admin_lname: sql<string>`admins.lname`.as("admin_lname"),
       })
       .from(admin_activity_logs)
-      .leftJoin(db.admins, eq(admin_activity_logs.admin_id, db.admins.admin_id))
-      .where(
-        and(
-          gte(admin_activity_logs.created_at, start_date),
-          lte(admin_activity_logs.created_at, end_date)
-        )
-      )
+      .leftJoin(admins, eq(admin_activity_logs.admin_id, admins.admin_id))
+      .where(and(...whereConditions))
       .orderBy(desc(admin_activity_logs.created_at))
       .limit(limit)
       .offset(offset);
-
-    if (village_key) {
-      query = query.where(eq(db.admins.village_key, village_key));
-    }
-
-    const logs = await query;
     
-    let countQuery = db
+    const [{ count }] = await db
       .select({ count: sql<number>`count(*)`.as("count") })
       .from(admin_activity_logs)
-      .leftJoin(db.admins, eq(admin_activity_logs.admin_id, db.admins.admin_id))
-      .where(
-        and(
-          gte(admin_activity_logs.created_at, start_date),
-          lte(admin_activity_logs.created_at, end_date)
-        )
-      );
-
-    if (village_key) {
-      countQuery = countQuery.where(eq(db.admins.village_key, village_key));
-    }
-
-    const [{ count }] = await countQuery;
+      .leftJoin(admins, eq(admin_activity_logs.admin_id, admins.admin_id))
+      .where(and(...whereConditions));
 
     return {
       logs,
@@ -307,32 +252,36 @@ export const getActivityLogsByDateRange = async (
 // Get activity statistics
 export const getActivityStatistics = async (village_key?: string) => {
   try {
-    let query = db
-      .select({
-        action_type: admin_activity_logs.action_type,
-        count: sql<number>`count(*)`.as("count"),
-      })
-      .from(admin_activity_logs)
-      .leftJoin(db.admins, eq(admin_activity_logs.admin_id, db.admins.admin_id))
-      .groupBy(admin_activity_logs.action_type);
-
-    if (village_key) {
-      query = query.where(eq(db.admins.village_key, village_key));
-    }
-
-    const stats = await query;
+    const stats = village_key
+      ? await db
+          .select({
+            action_type: admin_activity_logs.action_type,
+            count: sql<number>`count(*)`.as("count"),
+          })
+          .from(admin_activity_logs)
+          .leftJoin(admins, eq(admin_activity_logs.admin_id, admins.admin_id))
+          .where(eq(admins.village_key, village_key))
+          .groupBy(admin_activity_logs.action_type)
+      : await db
+          .select({
+            action_type: admin_activity_logs.action_type,
+            count: sql<number>`count(*)`.as("count"),
+          })
+          .from(admin_activity_logs)
+          .leftJoin(admins, eq(admin_activity_logs.admin_id, admins.admin_id))
+          .groupBy(admin_activity_logs.action_type);
 
     // Get total logs
-    let totalQuery = db
-      .select({ count: sql<number>`count(*)`.as("count") })
-      .from(admin_activity_logs)
-      .leftJoin(db.admins, eq(admin_activity_logs.admin_id, db.admins.admin_id));
-
-    if (village_key) {
-      totalQuery = totalQuery.where(eq(db.admins.village_key, village_key));
-    }
-
-    const [{ count: total }] = await totalQuery;
+    const [{ count: total }] = village_key
+      ? await db
+          .select({ count: sql<number>`count(*)`.as("count") })
+          .from(admin_activity_logs)
+          .leftJoin(admins, eq(admin_activity_logs.admin_id, admins.admin_id))
+          .where(eq(admins.village_key, village_key))
+      : await db
+          .select({ count: sql<number>`count(*)`.as("count") })
+          .from(admin_activity_logs)
+          .leftJoin(admins, eq(admin_activity_logs.admin_id, admins.admin_id));
 
     return {
       total,

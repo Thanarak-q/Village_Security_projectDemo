@@ -2,8 +2,11 @@ import { Elysia } from "elysia";
 import db from "../db/drizzle";
 import { admins, villages } from "../db/schema";
 import { eq } from "drizzle-orm";
+import { requireRole } from "../hooks/requireRole";
+import { hashPassword } from "../utils/passwordUtils";
 
 export const adminRoutes = new Elysia({ prefix: "/api" })
+  .onBeforeHandle(requireRole(["admin", "superadmin"]))
   // Get all admins
   .get("/admins", async () => {
     try {
@@ -164,10 +167,13 @@ export const adminRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
+      // Hash password before inserting
+      const hashedPassword = await hashPassword(password_hash);
+
       const result = await db.insert(admins).values({
         email,
         username,
-        password_hash,
+        password_hash: hashedPassword,
         phone,
         village_key,
         status: status || "pending"
@@ -263,7 +269,10 @@ export const adminRoutes = new Elysia({ prefix: "/api" })
       const updateData: any = {};
       if (email !== undefined) updateData.email = email;
       if (username !== undefined) updateData.username = username;
-      if (password_hash !== undefined) updateData.password_hash = password_hash;
+      if (password_hash !== undefined) {
+        // Hash password if it's being updated
+        updateData.password_hash = await hashPassword(password_hash);
+      }
       if (phone !== undefined) updateData.phone = phone;
       if (village_key !== undefined) updateData.village_key = village_key;
       if (status !== undefined) updateData.status = status;

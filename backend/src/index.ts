@@ -18,6 +18,7 @@ import { userTableRoutes } from "./routes/userTable";
 import { pendingUsersRoutes } from "./routes/pendingUsers";
 import { authRoutes } from "./routes/auth";
 import { adminActivityLogsRoutes } from "./routes/adminActivityLogs";
+import { adminSettingsRoutes } from "./routes/adminSettings";
 // Health check endpoint
 const healthCheck = new Elysia()
   .get("/api/health", async () => {
@@ -67,6 +68,7 @@ const app = new Elysia()
   .use(pendingUsersRoutes)
   .use(authRoutes)
   .use(adminActivityLogsRoutes)
+  .use(adminSettingsRoutes)
   .get("/", () => "Hello Village Security API!");
 
 // Initialize database connection and start server

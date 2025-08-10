@@ -130,20 +130,9 @@ export const admin_activity_logs = pgTable("admin_activity_logs", {
     | "change_user_status" | "change_user_role"
     | "create_admin" | "update_admin" | "delete_admin"
     | "create_village" | "update_village" | "delete_village"
-    | "view_resident" | "view_guard" | "view_visitor_records"
     | "export_data" | "system_config"
   >(),
-  target_type: text("target_type").notNull().$type<
-    | "resident" | "guard" | "admin"
-    | "house" | "house_member" | "village"
-    | "visitor_records" | "system"
-  >(),
-  target_id: uuid("target_id"), // ID ของสิ่งที่ถูกจัดการ (อาจเป็น null สำหรับ view actions)
-  old_value: text("old_value"), // ค่าก่อนการเปลี่ยนแปลง
-  new_value: text("new_value"), // ค่าหลังการเปลี่ยนแปลง
   description: text("description").notNull(), // รายละเอียดการกระทำ
-  ip_address: text("ip_address"),
-  user_agent: text("user_agent"),
   created_at: timestamp("created_at").defaultNow(),
 });
 
