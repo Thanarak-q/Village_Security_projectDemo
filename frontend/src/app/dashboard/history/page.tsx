@@ -1,10 +1,10 @@
 import HistoryTable from "./HistoryTable";
 
-function page() {
+function HistoryPage() {
   return (
     <>
       <HistoryTable />
     </>
   );
 }
-export default page;
+export default HistoryPage;
