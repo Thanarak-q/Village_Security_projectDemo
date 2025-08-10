@@ -191,7 +191,6 @@ export default function HistoryTable() {
           guard_email: record.guard_email,
           house_address: record.house_address,
           picture_key: record.picture_key,
-          exit_time: undefined // Not provided in API response
         }));
         
         setVisitorHistoryData(transformedVisitorHistory);
@@ -255,7 +254,6 @@ export default function HistoryTable() {
 
   // Filter visitor history by search term
   const filteredVisitorHistory = visitorHistoryData.filter(item =>
-    item.license_plate.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.resident_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.guard_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.visit_purpose.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -348,7 +346,7 @@ export default function HistoryTable() {
   }
 
   return (
-    <div className="flex flex-col gap-4 m-20">
+    <div className="flex flex-col gap-4 mx-20 mt-10">
       {/* Main table section */}
       <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
         {/* Header with tabs and search */}
@@ -493,7 +491,8 @@ export default function HistoryTable() {
               {/* Visitor History table header */}
               <TableHeader>
                 <TableRow className="bg-gray-50">
-                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">ข้อมูลผู้เยี่ยม</TableHead>
+                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">ข้อมูลผู้เข้าเยี่ยม</TableHead>
+                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden sm:table-cell">ชื่อผู้อยู่อาศัย</TableHead>
                   <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden sm:table-cell">วัตถุประสงค์</TableHead>
                   <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden md:table-cell">บ้านที่เยี่ยม</TableHead>
                   <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden lg:table-cell">เวลาที่เข้า</TableHead>
@@ -517,9 +516,6 @@ export default function HistoryTable() {
                           <div className="font-medium text-gray-900 text-sm sm:text-base">
                             {item.license_plate}
                           </div>
-                          <div className="text-xs sm:text-sm text-gray-500">
-                            เยี่ยม: {item.resident_name}
-                          </div>
                           {/* Show purpose on mobile */}
                           <div className="sm:hidden text-xs text-gray-500 mt-1">
                             {item.visit_purpose}<br/>
@@ -529,6 +525,11 @@ export default function HistoryTable() {
                       </div>
                     </TableCell>
                     
+                    {/* Purpose column */}
+                    <TableCell className="hidden sm:table-cell">
+                      <div className="text-sm text-gray-900">{item.resident_name}</div>
+                    </TableCell>
+
                     {/* Purpose column */}
                     <TableCell className="hidden sm:table-cell">
                       <div className="text-sm text-gray-900">{item.visit_purpose}</div>
