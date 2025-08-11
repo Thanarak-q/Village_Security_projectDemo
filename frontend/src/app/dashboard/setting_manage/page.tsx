@@ -58,11 +58,11 @@ export default function SettingsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-    
+
     try {
       // Mock API call
       await new Promise(resolve => setTimeout(resolve, 1000))
-      
+
       // Validate password change
       if (passwordData.newPassword || passwordData.confirmPassword || passwordData.currentPassword) {
         if (!passwordData.currentPassword) {
@@ -82,9 +82,9 @@ export default function SettingsPage() {
           return
         }
       }
-      
+
       alert("บันทึกการเปลี่ยนแปลงเรียบร้อย")
-      
+
       // Reset password fields
       setPasswordData({
         currentPassword: "",
