@@ -2,6 +2,7 @@ import { Elysia } from "elysia";
 import db from "../db/drizzle";
 import { villages } from "../db/schema";
 import { eq } from "drizzle-orm";
+import { requireRole } from "../hooks/requireRole";
 
 // Types
 interface CreateVillageBody {
@@ -25,6 +26,7 @@ const validateVillageData = (data: CreateVillageBody) => {
 };
 
 export const villageRoutes = new Elysia({ prefix: "/api" })
+.onBeforeHandle(requireRole(["admin", "staff"]))
   // Get all villages
   .get("/villages", async () => {
     try {

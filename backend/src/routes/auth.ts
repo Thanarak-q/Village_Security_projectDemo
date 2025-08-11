@@ -3,7 +3,7 @@ import { Elysia, t } from "elysia";
 import { admins, villages } from "../db/schema";
 import db from "../db/drizzle";
 import { eq } from "drizzle-orm";
-import bcrypt from "bcryptjs";
+import { verifyPassword } from "../utils/passwordUtils";
 import { requireRole } from "../hooks/requireRole";
 
 export const authRoutes = new Elysia({ prefix: "/api/auth" })
@@ -16,7 +16,14 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
         where: eq(admins.username, username),
       });
 
-      if (!user || password !== user.password_hash) {
+      if (!user) {
+        set.status = 401;
+        return { error: "Invalid credentials" };
+      }
+
+      // Verify password using bcrypt
+      const isPasswordValid = await verifyPassword(password, user.password_hash);
+      if (!isPasswordValid) {
         set.status = 401;
         return { error: "Invalid credentials" };
       }
@@ -62,3 +69,4 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
     };
   });
 
+ 

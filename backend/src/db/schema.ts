@@ -117,10 +117,33 @@ export const visitor_records = pgTable("visitor_records", {
 
 });
 export type Visitor_record = typeof visitor_records.$inferSelect;
+
+// ---------------------------------------------------------------------------------
+
+export const admin_activity_logs = pgTable("admin_activity_logs", {
+  log_id: uuid("log_id").primaryKey().defaultRandom(),
+  admin_id: uuid("admin_id").references(() => admins.admin_id).notNull(),
+  action_type: text("action_type").notNull().$type<
+    | "approve_user" | "reject_user"
+    | "create_house" | "update_house" | "delete_house" | "change_house_status"
+    | "add_house_member" | "remove_house_member"
+    | "change_user_status" | "change_user_role"
+    | "create_admin" | "update_admin" | "delete_admin"
+    | "create_village" | "update_village" | "delete_village"
+    | "export_data" | "system_config"
+  >(),
+  description: text("description").notNull(), // รายละเอียดการกระทำ
+  created_at: timestamp("created_at").defaultNow(),
+});
+
+export type AdminActivityLog = typeof admin_activity_logs.$inferSelect;
+export type AdminActivityLogInsert = typeof admin_activity_logs.$inferInsert;
+
 export const schema = {
   admins,
   residents,
   guards,
   houses,
-  visitor_records
+  visitor_records,
+  admin_activity_logs
 };
