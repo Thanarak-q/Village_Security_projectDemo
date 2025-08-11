@@ -2,8 +2,11 @@ import { Elysia } from "elysia";
 import db from "../db/drizzle";
 import { residents, villages } from "../db/schema";
 import { eq } from "drizzle-orm";
+import { requireRole } from "../hooks/requireRole";
+import { hashPassword } from "../utils/passwordUtils";
 
 export const residentRoutes = new Elysia({ prefix: "/api" })
+.onBeforeHandle(requireRole(["admin", "staff"]))
   // Get all residents
   .get("/residents", async () => {
     try {
@@ -180,6 +183,9 @@ export const residentRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
+      // Hash password before inserting
+      const hashedPassword = await hashPassword(password_hash.trim());
+
       // Insert new resident
       const [newResident] = await db
         .insert(residents)
@@ -188,7 +194,7 @@ export const residentRoutes = new Elysia({ prefix: "/api" })
           fname: fname.trim(),
           lname: lname.trim(),
           username: username.trim(),
-          password_hash: password_hash.trim(),
+          password_hash: hashedPassword,
           phone: phone.trim(),
           village_key: village_key.trim(),
           status: status || "pending",
@@ -338,7 +344,10 @@ export const residentRoutes = new Elysia({ prefix: "/api" })
       if (fname !== undefined) updateData.fname = fname.trim();
       if (lname !== undefined) updateData.lname = lname.trim();
       if (username !== undefined) updateData.username = username.trim();
-      if (password_hash !== undefined) updateData.password_hash = password_hash.trim();
+      if (password_hash !== undefined) {
+        // Hash password if it's being updated
+        updateData.password_hash = await hashPassword(password_hash.trim());
+      }
       if (phone !== undefined) updateData.phone = phone.trim();
       if (village_key !== undefined) updateData.village_key = village_key.trim();
       if (status !== undefined) updateData.status = status;

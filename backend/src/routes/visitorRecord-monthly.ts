@@ -1,7 +1,9 @@
 import { Elysia } from "elysia";
 import { getMonthlyVisitorRecords } from "../db/visitorRecordUtils";
+import { requireRole } from "../hooks/requireRole";
 
 export const visitorRecordMonthlyRoutes = new Elysia({ prefix: "/api" })
+.onBeforeHandle(requireRole(["admin", "staff"]))
   // Get monthly visitor records statistics for current year
   .get("/visitor-record-monthly", async () => {
     try {

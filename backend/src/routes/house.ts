@@ -63,8 +63,8 @@ const validateStatus = (
 };
 
 export const houseRoutes = new Elysia({ prefix: "/api" })
-  // Get all houses
   .onBeforeHandle(requireRole("admin"))
+  // Get all houses
   .get("/houses", async ({ currentUser }: any) => {
     try {
       const { village_key } = currentUser;
