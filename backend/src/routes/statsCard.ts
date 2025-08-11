@@ -2,6 +2,7 @@ import { Elysia } from "elysia";
 import db from "../db/drizzle";
 import { residents, visitor_records, guards } from "../db/schema";
 import { eq, count, and, gte, lt } from "drizzle-orm";
+import { requireRole } from "../hooks/requireRole";
 
 // Types
 interface StatsData {
@@ -27,6 +28,7 @@ const getCountFromResult = (result: any[]): number => {
 };
 
 export const statsCardRoutes = new Elysia({ prefix: "/api" })
+  .onBeforeHandle(requireRole(["admin", "staff"]))
   // Get resident count and visitor record stats for today
   .get("/statsCard", async () => {
     try {
