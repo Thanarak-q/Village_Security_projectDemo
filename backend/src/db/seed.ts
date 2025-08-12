@@ -1,6 +1,7 @@
 import db from "./drizzle";
-import { villages, houses, residents, guards, admins, house_members, visitor_records } from "./schema";
+import { villages, houses, residents, guards, admins, house_members, visitor_records, admin_activity_logs } from "./schema";
 import { eq, sql } from "drizzle-orm";
+import { hashPassword } from "../utils/passwordUtils";
 
 const villageData = [
   {
@@ -613,6 +614,12 @@ export async function clearDb() {
   // Check if villages or houses exist before deleting
   console.log("Clearing database");
 
+  console.log("Clearing admin_activity_logs");
+  const existingAdminActivityLogs = await db.select().from(admin_activity_logs).limit(1);
+  if (existingAdminActivityLogs.length > 0) {
+    await db.delete(admin_activity_logs);
+  }
+
   console.log("Clearing visitor_records");
   const existingVisitorRecords = await db.select().from(visitor_records).limit(1);
   if (existingVisitorRecords.length > 0) {
@@ -814,6 +821,8 @@ async function createVisitorRecordsData() {
   return visitorRecordsData;
 }
 
+// Function to create admin_activity_logs data by fetching existing data
+
 
 
 async function seed() {
@@ -828,15 +837,36 @@ async function seed() {
   console.log("Completed inserting houses");
 
   console.log("Inserting residents");
-  await db.insert(residents).values(residentData as any);
+  // Hash passwords before inserting residents
+  const hashedResidentData = await Promise.all(
+    residentData.map(async (resident) => ({
+      ...resident,
+      password_hash: await hashPassword(resident.password_hash)
+    }))
+  );
+  await db.insert(residents).values(hashedResidentData as any);
   console.log("Completed inserting residents");
 
   console.log("Inserting guards");
-  await db.insert(guards).values(guardData as any);
+  // Hash passwords before inserting guards
+  const hashedGuardData = await Promise.all(
+    guardData.map(async (guard) => ({
+      ...guard,
+      password_hash: await hashPassword(guard.password_hash)
+    }))
+  );
+  await db.insert(guards).values(hashedGuardData as any);
   console.log("Completed inserting guards");
 
   console.log("Inserting admins");
-  await db.insert(admins).values(adminData as any);
+  // Hash passwords before inserting admins
+  const hashedAdminData = await Promise.all(
+    adminData.map(async (admin) => ({
+      ...admin,
+      password_hash: await hashPassword(admin.password_hash)
+    }))
+  );
+  await db.insert(admins).values(hashedAdminData as any);
   console.log("Completed inserting admins");
 
   console.log("Creating and inserting house_members");
@@ -856,6 +886,8 @@ async function seed() {
   } else {
     console.log("No visitor_records data to insert");
   }
+
+
 }
 
 

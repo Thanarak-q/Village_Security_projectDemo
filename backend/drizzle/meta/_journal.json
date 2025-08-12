@@ -15,6 +15,13 @@
       "when": 1753946286751,
       "tag": "0001_grey_sway",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1753946286752,
+      "tag": "0002_admin_activity_logs",
+      "breakpoints": true
     }
   ]
 }

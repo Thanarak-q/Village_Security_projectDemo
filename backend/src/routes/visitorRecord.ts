@@ -13,12 +13,12 @@ import {
 
 // Types
 interface CreateVisitorRecordBody {
-  visitor_name: string;
-  visitor_phone: string;
-  visitor_purpose: string;
   resident_id: string;
+  guard_id: string;
   house_id: string;
-  village_key: string;
+  picture_key?: string;
+  license_plate?: string;
+  visit_purpose?: string;
 }
 
 interface UpdateStatusBody {
@@ -29,28 +29,16 @@ interface UpdateStatusBody {
 const validateVisitorRecordData = (data: CreateVisitorRecordBody) => {
   const errors: string[] = [];
   
-  if (!data.visitor_name?.trim()) {
-    errors.push("Visitor name is required");
-  }
-  
-  if (!data.visitor_phone?.trim()) {
-    errors.push("Visitor phone is required");
-  }
-  
-  if (!data.visitor_purpose?.trim()) {
-    errors.push("Visitor purpose is required");
-  }
-  
   if (!data.resident_id?.trim()) {
     errors.push("Resident ID is required");
   }
   
-  if (!data.house_id?.trim()) {
-    errors.push("House ID is required");
+  if (!data.guard_id?.trim()) {
+    errors.push("Guard ID is required");
   }
   
-  if (!data.village_key?.trim()) {
-    errors.push("Village key is required");
+  if (!data.house_id?.trim()) {
+    errors.push("House ID is required");
   }
   
   return errors;
