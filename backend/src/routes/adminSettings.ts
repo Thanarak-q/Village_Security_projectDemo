@@ -8,10 +8,10 @@ import { hashPassword, verifyPassword } from "../utils/passwordUtils";
 export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
   .onBeforeHandle(requireRole("admin"))
   
-  // Get admin profile for settings page
-  .get("/admin/profile/:admin_id", async ({ params }) => {
+  // Get admin profile for settings page - current user only
+  .get("/admin/profile", async ({ currentUser }: any) => {
     try {
-      const { admin_id } = params;
+      const admin_id = currentUser.admin_id;
       
       const result = await db
         .select({
@@ -39,10 +39,10 @@ export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
     }
   })
   
-  // Update admin profile settings (username, email, phone)
-  .put("/admin/profile/:admin_id", async ({ params, body }) => {
+  // Update admin profile settings (username, email, phone) - current user only
+  .put("/admin/profile", async ({ currentUser, body }: any) => {
     try {
-      const { admin_id } = params;
+      const admin_id = currentUser.admin_id;
       const { username, email, phone } = body as {
         username?: string;
         email?: string;
@@ -123,10 +123,10 @@ export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
     }
   })
   
-  // Change admin password
-  .put("/admin/password/:admin_id", async ({ params, body }) => {
+  // Change admin password - current user only
+  .put("/admin/password", async ({ currentUser, body }: any) => {
     try {
-      const { admin_id } = params;
+      const admin_id = currentUser.admin_id;
       const { currentPassword, newPassword } = body as {
         currentPassword: string;
         newPassword: string;
@@ -196,10 +196,10 @@ export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
     }
   })
   
-  // Update admin profile and password together
-  .put("/admin/settings/:admin_id", async ({ params, body }) => {
+  // Update admin profile and password together - current user only
+  .put("/admin/settings", async ({ currentUser, body }: any) => {
     try {
-      const { admin_id } = params;
+      const admin_id = currentUser.admin_id;
       const { 
         username, 
         email, 

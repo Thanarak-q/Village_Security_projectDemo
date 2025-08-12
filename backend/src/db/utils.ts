@@ -22,4 +22,6 @@ export function isValidUUID(uuid: string): boolean {
  */
 export function isCustomResidentId(residentId: string): boolean {
   return !isValidUUID(residentId);
-} 
+}
+
+
