@@ -28,7 +28,7 @@ interface RejectUserRequest {
 }
 
 export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
-  .onBeforeHandle(requireRole("admin"))
+  .onBeforeHandle(requireRole(["admin", "staff"]))
   .get("/pendingUsers", async ({ currentUser }: any) => {
     try {
       const { village_key } = currentUser;

@@ -2,8 +2,10 @@ import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import jwt from "@elysiajs/jwt";
 import cookie from "@elysiajs/cookie";
+import "dotenv/config";
 import { villageRoutes } from "./routes/village";
 import { houseRoutes } from "./routes/house";
+import { houseManageRoutes } from "./routes/houseManage";
 import { residentRoutes } from "./routes/resident";
 import { guardRoutes } from "./routes/guard";
 import { adminRoutes } from "./routes/admin";
@@ -17,42 +19,121 @@ import { statsCardRoutes } from "./routes/statsCard";
 import { userTableRoutes } from "./routes/userTable";
 import { pendingUsersRoutes } from "./routes/pendingUsers";
 import { authRoutes } from "./routes/auth";
-// Health check endpoint
-const healthCheck = new Elysia()
-  .get("/api/health", async () => {
-    try {
-      await testConnection();
-      const poolStats = getPoolStats();
-      
-      return { 
-        status: "healthy", 
-        timestamp: new Date().toISOString(),
-        service: "Village Security API",
-        database: {
-          status: "connected",
-          pool: poolStats
-        }
-      };
-    } catch (error) {
-      return { 
-        status: "unhealthy", 
-        timestamp: new Date().toISOString(),
-        service: "Village Security API",
-        database: {
-          status: "disconnected",
-          error: error instanceof Error ? error.message : "Unknown error"
-        }
-      };
-    }
-  });
+import { adminActivityLogsRoutes } from "./routes/adminActivityLogs";
+import { adminSettingsRoutes } from "./routes/adminSettings";
+/**
+ * SECURITY ENHANCEMENT: Secure Health Check Endpoint
+ * 
+ * Changes made:
+ * - Removed database pool statistics from response (information disclosure)
+ * - Removed detailed error messages from response (information leakage)
+ * - Keep error logging for internal monitoring only
+ * 
+ * Security benefit: Prevents attackers from gathering internal system information
+ */
+const healthCheck = new Elysia().get("/api/health", async () => {
+  try {
+    await testConnection();
+
+    return {
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      service: "Village Security API",
+      // REMOVED: database pool stats (security - information disclosure)
+    };
+  } catch (error) {
+    // SECURITY: Log error internally but don't expose details to client
+    console.error("Health check failed:", error);
+    return {
+      status: "unhealthy",
+      timestamp: new Date().toISOString(),
+      service: "Village Security API",
+      // REMOVED: error details from response (security - information leakage)
+    };
+  }
+});
 
 const app = new Elysia()
-  .use(cors())
-  .use(cookie())
+  .use(
+    cors({
+      origin:
+        process.env.NODE_ENV === "production"
+          ? ["https://yourdomain.com"] // เปลี่ยนเป็น domain จริงของคุณ
+          : process.env.ALLOWED_ORIGINS?.split(",") || [
+              "http://localhost",
+              "http://localhost:80",
+              "http://127.0.0.1",
+              "http://127.0.0.1:80",
+              "http://localhost:3000", // fallback for direct frontend access
+            ],
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+      allowedHeaders: [
+        "Content-Type",
+        "Authorization",
+        "Cookie",
+        "X-Requested-With",
+        "X-Forwarded-For",
+        "X-Real-IP",
+      ],
+    })
+  )
+  .use(
+    cookie({
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+    })
+  )
   .use(jwt({ name: "jwt", secret: "super-secret", exp: "7d" }))
+  /**
+   * SECURITY ENHANCEMENT: Comprehensive Security Headers Middleware
+   * 
+   * Added security headers to protect against various attacks:
+   * - MIME type sniffing attacks
+   * - Clickjacking attacks  
+   * - XSS attacks
+   * - Information leakage
+   * - Unauthorized API access
+   * - Man-in-the-middle attacks (production)
+   */
+  .onBeforeHandle(({ set }) => {
+    // SECURITY: Prevent MIME type sniffing attacks
+    set.headers["X-Content-Type-Options"] = "nosniff";
+    
+    // SECURITY: Prevent clickjacking attacks
+    set.headers["X-Frame-Options"] = "DENY";
+    
+    // SECURITY: Enable XSS protection in browsers
+    set.headers["X-XSS-Protection"] = "1; mode=block";
+    
+    // SECURITY: Control referrer information leakage
+    set.headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    
+    // SECURITY: Restrict browser API access
+    set.headers["Permissions-Policy"] =
+      "camera=(), microphone=(), geolocation=(), payment=()";
+    
+    // SECURITY: Prevent cross-domain policy files
+    set.headers["X-Permitted-Cross-Domain-Policies"] = "none";
+
+    // SECURITY: Force HTTPS in production (HSTS)
+    if (process.env.NODE_ENV === "production") {
+      set.headers["Strict-Transport-Security"] =
+        "max-age=31536000; includeSubDomains; preload";
+    }
+
+    // SECURITY: Content Security Policy to prevent XSS and injection attacks
+    set.headers["Content-Security-Policy"] =
+      process.env.NODE_ENV === "production"
+        ? "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self';"
+        : "default-src 'self' 'unsafe-eval' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self';";
+  })
   .use(healthCheck)
   .use(villageRoutes)
   .use(houseRoutes)
+  .use(houseManageRoutes)
   .use(residentRoutes)
   .use(guardRoutes)
   .use(adminRoutes)
@@ -65,6 +146,8 @@ const app = new Elysia()
   .use(userTableRoutes)
   .use(pendingUsersRoutes)
   .use(authRoutes)
+  .use(adminActivityLogsRoutes)
+  .use(adminSettingsRoutes)
   .get("/", () => "Hello Village Security API!");
 
 // Initialize database connection and start server
@@ -72,10 +155,16 @@ async function startServer() {
   try {
     // Test database connection before starting server
     await testConnection();
-    
-    app.listen(3001, () => {
-      console.log("🦊 Village Security API is running at http://localhost:3001");
-      console.log("📊 Health check available at http://localhost:3001/health");
+
+    const port = parseInt(process.env.PORT || "3001");
+    app.listen(port, () => {
+      console.log(
+        `🦊 Village Security API is running at http://localhost:${port}`
+      );
+      console.log(
+        `📊 Health check available at http://localhost:${port}/api/health`
+      );
+      console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
     });
   } catch (error) {
     console.error("❌ Failed to start server:", error);
@@ -84,18 +173,17 @@ async function startServer() {
 }
 
 // Graceful shutdown handling
-process.on('SIGINT', async () => {
-  console.log('\n🛑 Shutting down gracefully...');
+process.on("SIGINT", async () => {
+  console.log("\n🛑 Shutting down gracefully...");
   await closeConnection();
   process.exit(0);
 });
 
-process.on('SIGTERM', async () => {
-  console.log('\n🛑 Shutting down gracefully...');
+process.on("SIGTERM", async () => {
+  console.log("\n🛑 Shutting down gracefully...");
   await closeConnection();
   process.exit(0);
 });
 
 // Start the server
 startServer();
-

@@ -10,8 +10,10 @@ import {
   createHouseMember,
   deleteHouseMember
 } from "../db/houseMemberUtils";
+import { requireRole } from "../hooks/requireRole";
 
 export const houseMemberRoutes = new Elysia({ prefix: "/api" })
+  .onBeforeHandle(requireRole(["admin", "staff"])) 
   // Get all house members
   .get("/house-members", async () => {
     try {
