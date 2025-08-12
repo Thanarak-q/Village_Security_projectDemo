@@ -13,9 +13,9 @@ http://localhost:3001/api
 ## Endpoints
 
 ### 1. Get Admin Profile
-**GET** `/admin/profile/:admin_id`
+**GET** `/admin/profile`
 
-ดึงข้อมูลโปรไฟล์ของ admin สำหรับหน้า settings
+ดึงข้อมูลโปรไฟล์ของ admin ปัจจุบันที่ login อยู่ (แก้ไขข้อมูลของตัวเองเท่านั้น)
 
 **Response:**
 ```json
@@ -36,9 +36,9 @@ http://localhost:3001/api
 ```
 
 ### 2. Update Admin Profile
-**PUT** `/admin/profile/:admin_id`
+**PUT** `/admin/profile`
 
-อัปเดตข้อมูลโปรไฟล์ของ admin (username, email, phone)
+อัปเดตข้อมูลโปรไฟล์ของ admin ปัจจุบัน (username, email, phone)
 
 **Request Body:**
 ```json
@@ -66,9 +66,9 @@ http://localhost:3001/api
 ```
 
 ### 3. Change Admin Password
-**PUT** `/admin/password/:admin_id`
+**PUT** `/admin/password`
 
-เปลี่ยนรหัสผ่านของ admin
+เปลี่ยนรหัสผ่านของ admin ปัจจุบัน
 
 **Request Body:**
 ```json
@@ -93,9 +93,9 @@ http://localhost:3001/api
 ```
 
 ### 4. Update Admin Settings (Complete)
-**PUT** `/admin/settings/:admin_id`
+**PUT** `/admin/settings`
 
-อัปเดตข้อมูลโปรไฟล์และรหัสผ่านพร้อมกัน
+อัปเดตข้อมูลโปรไฟล์และรหัสผ่านพร้อมกันของ admin ปัจจุบัน
 
 **Request Body:**
 ```json
@@ -176,14 +176,25 @@ http://localhost:3001/api
 - รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร
 - ต้องกรอกรหัสผ่านปัจจุบันให้ถูกต้อง
 
+## Security Features
+
+### ✅ **แก้ไขข้อมูลของตัวเองเท่านั้น**
+- ไม่ต้องส่ง admin_id ใน URL หรือ request body
+- ระบบจะใช้ admin_id จาก JWT token อัตโนมัติ
+- แอดมินไม่สามารถแก้ไขข้อมูลของแอดมินคนอื่นได้
+
+### ✅ **Authentication Required**
+- ต้องมี JWT token ที่ถูกต้อง
+- ต้องมี role เป็น admin หรือ superadmin
+
 ## Usage Examples
 
 ### Frontend Integration
 
 ```typescript
-// Get admin profile
-const getProfile = async (adminId: string) => {
-  const response = await fetch(`/api/admin/profile/${adminId}`, {
+// Get admin profile (current user)
+const getProfile = async () => {
+  const response = await fetch(`/api/admin/profile`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
@@ -192,9 +203,9 @@ const getProfile = async (adminId: string) => {
   return response.json();
 };
 
-// Update profile
-const updateProfile = async (adminId: string, data: any) => {
-  const response = await fetch(`/api/admin/profile/${adminId}`, {
+// Update profile (current user)
+const updateProfile = async (data: any) => {
+  const response = await fetch(`/api/admin/profile`, {
     method: 'PUT',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -205,9 +216,9 @@ const updateProfile = async (adminId: string, data: any) => {
   return response.json();
 };
 
-// Change password
-const changePassword = async (adminId: string, currentPassword: string, newPassword: string) => {
-  const response = await fetch(`/api/admin/password/${adminId}`, {
+// Change password (current user)
+const changePassword = async (currentPassword: string, newPassword: string) => {
+  const response = await fetch(`/api/admin/password`, {
     method: 'PUT',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -218,9 +229,9 @@ const changePassword = async (adminId: string, currentPassword: string, newPassw
   return response.json();
 };
 
-// Update all settings
-const updateSettings = async (adminId: string, settings: any) => {
-  const response = await fetch(`/api/admin/settings/${adminId}`, {
+// Update all settings (current user)
+const updateSettings = async (settings: any) => {
+  const response = await fetch(`/api/admin/settings`, {
     method: 'PUT',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -237,4 +248,5 @@ const updateSettings = async (adminId: string, settings: any) => {
 - ทุก endpoint จะอัปเดต `updatedAt` field อัตโนมัติ
 - การเปลี่ยนรหัสผ่านจะ hash รหัสผ่านใหม่ก่อนบันทึกลงฐานข้อมูล
 - สามารถอัปเดตข้อมูลบางส่วนได้โดยไม่ต้องส่งข้อมูลทั้งหมด
-- ระบบจะตรวจสอบความถูกต้องของรหัสผ่านปัจจุบันก่อนอนุญาตให้เปลี่ยนรหัสผ่านใหม่ 
+- ระบบจะตรวจสอบความถูกต้องของรหัสผ่านปัจจุบันก่อนอนุญาตให้เปลี่ยนรหัสผ่านใหม่
+- **แอดมินแก้ไขได้เฉพาะข้อมูลของตัวเองเท่านั้น ไม่สามารถแก้ไขข้อมูลของแอดมินคนอื่นได้** 
