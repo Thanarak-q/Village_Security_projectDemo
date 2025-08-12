@@ -42,9 +42,6 @@ const formSchema = z.object({
   status: z.string().min(1, {
     message: "กรุณาเลือกสถานะ",
   }),
-  village_key: z.string().min(1, {
-    message: "กรุณากรอกรหัสหมู่บ้าน",
-  }),
   notes: z.string().optional(),
 })
 
@@ -69,7 +66,6 @@ export default function EditHouseDialog({ house, children, onUpdate }: EditHouse
     defaultValues: {
       address: house.address === '-' ? '' : house.address,
       status: house.status,
-      village_key: house.village_key,
       notes: "",
     },
   })
@@ -90,33 +86,20 @@ export default function EditHouseDialog({ house, children, onUpdate }: EditHouse
     }
   }
 
-  // แปลงสถานะภาษาไทยเป็นภาษาอังกฤษ
-  const getStatusValue = (statusText: string) => {
-    switch (statusText) {
-      case 'ว่าง':
-        return 'available'
-      case 'มีผู้อยู่อาศัย':
-        return 'occupied'
-      case 'ไม่ใช้งาน':
-        return 'disable'
-      default:
-        return 'available'
-    }
-  }
+
 
   async function onSubmit(data: FormData) {
     setIsSubmitting(true)
     try {
       // Make API call to update house data
-      const response = await fetch(`/api/houses/${house.house_id}`, {
+      const response = await fetch(`/api/house-manage/${house.house_id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           address: data.address,
-          village_key: data.village_key,
-          status: getStatusValue(data.status)
+          status: data.status
         })
       })
 
@@ -198,26 +181,18 @@ export default function EditHouseDialog({ house, children, onUpdate }: EditHouse
               )}
             />
 
-            {/* รหัสหมู่บ้าน */}
-            <FormField
-              control={form.control}
-              name="village_key"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">
-                    รหัสหมู่บ้าน
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="thonglor-village-015"
-                      {...field}
-                      className="placeholder:text-gray-400"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* หมู่บ้าน (แสดงเฉพาะข้อมูล ไม่สามารถแก้ไขได้) */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                หมู่บ้าน
+              </label>
+              <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-600">
+                {house.village_key.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              </div>
+              <p className="text-xs text-gray-500">
+                ไม่สามารถเปลี่ยนหมู่บ้านของบ้านได้
+              </p>
+            </div>
 
             {/* สถานะ */}
             <FormField
