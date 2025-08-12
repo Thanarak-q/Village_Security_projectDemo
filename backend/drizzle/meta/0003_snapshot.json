@@ -1,0 +1,570 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "admin_activity_logs": {
+      "name": "admin_activity_logs",
+      "schema": "",
+      "columns": [
+        {
+          "name": "log_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "hasDefault": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "admin_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "action_type",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "hasDefault": true,
+          "default": "now()"
+        }
+      ],
+      "indexes": [],
+      "foreignKeys": [
+        {
+          "name": "admin_activity_logs_admin_id_admin_id_fk",
+          "tableName": "admin_activity_logs",
+          "columnName": "admin_id",
+          "referencedTableName": "admins",
+          "referencedColumnName": "admin_id",
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      ]
+    },
+    "admins": {
+      "name": "admins",
+      "schema": "",
+      "columns": [
+        {
+          "name": "admin_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "hasDefault": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "village_key",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": true,
+          "default": "'pending'"
+        },
+        {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": true,
+          "default": "'admin'"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "hasDefault": true,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "hasDefault": true,
+          "default": "now()"
+        }
+      ],
+      "indexes": [],
+      "foreignKeys": [
+        {
+          "name": "admins_village_key_villages_village_key_fk",
+          "tableName": "admins",
+          "columnName": "village_key",
+          "referencedTableName": "villages",
+          "referencedColumnName": "village_key",
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      ]
+    },
+    "guards": {
+      "name": "guards",
+      "schema": "",
+      "columns": [
+        {
+          "name": "guard_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "hasDefault": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "line_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "fname",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "lname",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "phone",
+          "type": "text",
+          "primary_key": false,
+          "hasDefault": false
+        },
+        {
+          "name": "village_key",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": true,
+          "default": "'pending'"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "hasDefault": true,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "hasDefault": true,
+          "default": "now()"
+        },
+        {
+          "name": "profile_image_url",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        }
+      ],
+      "indexes": [],
+      "foreignKeys": [
+        {
+          "name": "guards_village_key_villages_village_key_fk",
+          "tableName": "guards",
+          "columnName": "village_key",
+          "referencedTableName": "villages",
+          "referencedColumnName": "village_key",
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      ]
+    },
+    "house_members": {
+      "name": "house_members",
+      "schema": "",
+      "columns": [
+        {
+          "name": "house_member_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "hasDefault": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "house_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "resident_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "hasDefault": false
+        }
+      ],
+      "indexes": [],
+      "foreignKeys": [
+        {
+          "name": "house_members_house_id_houses_house_id_fk",
+          "tableName": "house_members",
+          "columnName": "house_id",
+          "referencedTableName": "houses",
+          "referencedColumnName": "house_id",
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        {
+          "name": "house_members_resident_id_residents_resident_id_fk",
+          "tableName": "house_members",
+          "columnName": "resident_id",
+          "referencedTableName": "residents",
+          "referencedColumnName": "resident_id",
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      ]
+    },
+    "houses": {
+      "name": "houses",
+      "schema": "",
+      "columns": [
+        {
+          "name": "house_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "hasDefault": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "address",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": true,
+          "default": "'available'"
+        },
+        {
+          "name": "village_key",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        }
+      ],
+      "indexes": [],
+      "foreignKeys": [
+        {
+          "name": "houses_village_key_villages_village_key_fk",
+          "tableName": "houses",
+          "columnName": "village_key",
+          "referencedTableName": "villages",
+          "referencedColumnName": "village_key",
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      ]
+    },
+    "residents": {
+      "name": "residents",
+      "schema": "",
+      "columns": [
+        {
+          "name": "resident_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "hasDefault": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "line_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "fname",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "lname",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "village_key",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": true,
+          "default": "'pending'"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "hasDefault": true,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": true,
+          "default": "now()"
+        },
+        {
+          "name": "profile_image_url",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        }
+      ],
+      "indexes": [],
+      "foreignKeys": [
+        {
+          "name": "residents_village_key_villages_village_key_fk",
+          "tableName": "residents",
+          "columnName": "village_key",
+          "referencedTableName": "villages",
+          "referencedColumnName": "village_key",
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      ]
+    },
+    "villages": {
+      "name": "villages",
+      "schema": "",
+      "columns": [
+        {
+          "name": "village_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "hasDefault": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "village_name",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "village_key",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        }
+      ],
+      "indexes": [],
+      "foreignKeys": []
+    },
+    "visitor_records": {
+      "name": "visitor_records",
+      "schema": "",
+      "columns": [
+        {
+          "name": "visitor_record_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "hasDefault": true,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "resident_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "guard_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "house_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "picture_key",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "license_plate",
+          "type": "text",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "entry_time",
+          "type": "timestamp",
+          "primaryKey": false,
+          "hasDefault": true,
+          "default": "now()"
+        },
+        {
+          "name": "exit_time",
+          "type": "timestamp",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "record_status",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": true,
+          "default": "'pending'"
+        },
+        {
+          "name": "visit_purpose",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "hasDefault": true,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "hasDefault": true,
+          "default": "now()"
+        }
+      ],
+      "indexes": [],
+      "foreignKeys": [
+        {
+          "name": "visitor_records_resident_id_residents_resident_id_fk",
+          "tableName": "visitor_records",
+          "columnName": "resident_id",
+          "referencedTableName": "residents",
+          "referencedColumnName": "resident_id",
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        {
+          "name": "visitor_records_guard_id_guards_guard_id_fk",
+          "tableName": "visitor_records",
+          "columnName": "guard_id",
+          "referencedTable_file": "guards",
+          "referencedColumnName": "guard_id",
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        {
+          "name": "visitor_records_house_id_houses_house_id_fk",
+          "tableName": "visitor_records",
+          "columnName": "house_id",
+          "referencedTableName": "houses",
+          "referencedColumnName": "house_id",
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      ]
+    }
+  }
+} 

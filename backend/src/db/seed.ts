@@ -739,6 +739,8 @@ async function createVisitorRecordsData() {
     license_plate?: string;
     record_status: "approved" | "pending" | "rejected";
     visit_purpose?: string;
+    entry_time?: Date;
+    exit_time?: Date;
   }> = [];
   
   // Sample data for non-ID fields
@@ -752,33 +754,34 @@ async function createVisitorRecordsData() {
   ];
   
   const sampleLicensePlates = [
-    "กข-1234",
-    "คง-5678", 
-    "จฉ-9012",
-    "ชซ-3456",
-    "ญฎ-7890",
-    "ฏฐ-1234",
-    "ฑฒ-5678",
-    "ณด-9012",
-    "ตถ-3456",
-    "ทธ-7890",
+    "กข-1234", "คง-5678", "จฉ-9012", "ชซ-3456", "ญฎ-7890",
+    "ฏฐ-1234", "ฑฒ-5678", "ณด-9012", "ตถ-3456", "ทธ-7890",
+    "นบ-1234", "ปผ-5678", "ฝพ-9012", "ฟภ-3456", "มย-7890",
+    "รล-1234", "วศ-5678", "สษ-9012", "หส-3456", "ฬอ-7890",
     null
   ];
   
   const sampleVisitPurposes = [
-    "เยี่ยมญาติ",
-    "ส่งของ",
-    "ซ่อมแซม",
-    "ทำความสะอาด",
-    "ตรวจสอบ",
-    "ประชุม",
-    "ติดตั้งอุปกรณ์",
-    "ตรวจสอบระบบ",
-    "เยี่ยมเพื่อน",
-    "ธุรกิจ"
+    "เยี่ยมญาติ", "ส่งของ", "ซ่อมแซม", "ทำความสะอาด", "ตรวจสอบ",
+    "ประชุม", "ติดตั้งอุปกรณ์", "ตรวจสอบระบบ", "เยี่ยมเพื่อน", "ธุรกิจ",
+    "ส่งเอกสาร", "ตรวจสอบมิเตอร์", "ซ่อมแซมไฟฟ้า", "ทำสวน", "ส่งพัสดุ"
   ];
   
   const recordStatuses: Array<"approved" | "pending" | "rejected"> = ["approved", "pending", "rejected"];
+  
+  // Generate realistic timestamps for the last 30 days
+  function generateRandomTimestamp(): Date {
+    const now = new Date();
+    const randomDaysAgo = Math.floor(Math.random() * 30);
+    const randomHours = Math.floor(Math.random() * 24);
+    const randomMinutes = Math.floor(Math.random() * 60);
+    
+    const timestamp = new Date(now);
+    timestamp.setDate(timestamp.getDate() - randomDaysAgo);
+    timestamp.setHours(randomHours, randomMinutes, 0, 0);
+    
+    return timestamp;
+  }
   
   // Create visitor records for each resident
   for (const resident of allResidents) {
@@ -793,8 +796,8 @@ async function createVisitorRecordsData() {
     );
     
     if (guardsInSameVillage.length > 0 && housesInSameVillage.length > 0) {
-      // Create 1-3 visitor records per resident
-      const numRecords = Math.floor(Math.random() * 3) + 1;
+      // Create 1-4 visitor records per resident (increased variety)
+      const numRecords = Math.floor(Math.random() * 4) + 1;
       
       for (let i = 0; i < numRecords; i++) {
         const randomGuard = guardsInSameVillage[Math.floor(Math.random() * guardsInSameVillage.length)];
@@ -804,6 +807,19 @@ async function createVisitorRecordsData() {
         const randomVisitPurpose = sampleVisitPurposes[Math.floor(Math.random() * sampleVisitPurposes.length)];
         const randomStatus = recordStatuses[Math.floor(Math.random() * recordStatuses.length)];
         
+        // Generate realistic timestamps
+        const entryTime = generateRandomTimestamp();
+        let exitTime: Date | undefined;
+        
+        // For approved records, generate exit time (1-8 hours later)
+        if (randomStatus === "approved") {
+          exitTime = new Date(entryTime);
+          exitTime.setHours(exitTime.getHours() + Math.floor(Math.random() * 8) + 1);
+        }
+        
+        // For rejected records, no exit time
+        // For pending records, no exit time
+        
         visitorRecordsData.push({
           resident_id: resident.resident_id,
           guard_id: randomGuard.guard_id,
@@ -812,6 +828,8 @@ async function createVisitorRecordsData() {
           license_plate: randomLicensePlate || undefined,
           record_status: randomStatus,
           visit_purpose: randomVisitPurpose,
+          entry_time: entryTime,
+          exit_time: exitTime,
         });
       }
     }

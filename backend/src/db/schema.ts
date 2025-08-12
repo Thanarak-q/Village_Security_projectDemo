@@ -108,13 +108,13 @@ export const visitor_records = pgTable("visitor_records", {
   picture_key: text("picture_key"),
   license_plate: text("license_plate"),
   entry_time: timestamp("entry_time").defaultNow(),
+  exit_time: timestamp("exit_time"),
   record_status: text("record_status")
     .$type<"approved" | "pending" | "rejected">()
     .default("pending"),
   visit_purpose: text("visit_purpose"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-
 });
 export type Visitor_record = typeof visitor_records.$inferSelect;
 
