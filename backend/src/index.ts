@@ -4,6 +4,7 @@ import jwt from "@elysiajs/jwt";
 import cookie from "@elysiajs/cookie";
 import { villageRoutes } from "./routes/village";
 import { houseRoutes } from "./routes/house";
+import { houseManageRoutes } from "./routes/houseManage";
 import { residentRoutes } from "./routes/resident";
 import { guardRoutes } from "./routes/guard";
 import { adminRoutes } from "./routes/admin";
@@ -55,6 +56,7 @@ const app = new Elysia()
   .use(healthCheck)
   .use(villageRoutes)
   .use(houseRoutes)
+  .use(houseManageRoutes)
   .use(residentRoutes)
   .use(guardRoutes)
   .use(adminRoutes)
