@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 
@@ -13,101 +13,247 @@ import {
 } from "@/components/ui/select"
 import { Bar, BarChart, XAxis, CartesianGrid } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart"
-import { Users, Calendar} from "lucide-react"
+import { Users, Calendar, Loader2 } from "lucide-react"
 
-// ข้อมูลการเข้าออกตามช่วงเวลาต่างๆ - ข้อมูลที่ดูง่ายขึ้น
-const weeklyData = [
-  { period: "จันทร์", entry: 45, exit: 42 },
-  { period: "อังคาร", entry: 58, exit: 49 },
-  { period: "พุธ", entry: 62, exit: 57 },
-  { period: "พฤหัสบดี", entry: 43, exit: 38 },
-  { period: "ศุกร์", entry: 67, exit: 62 },
-  { period: "เสาร์", entry: 89, exit: 84 },
-  { period: "อาทิตย์", entry: 101, exit: 95 }
-]
+// Types for API responses
+interface WeeklyData {
+  day: string;
+  approved: number;
+  pending: number;
+  rejected: number;
+  total: number;
+}
 
-const monthlyData = [
-  { period: "ม.ค.", entry: 1250, exit: 1200 },
-  { period: "ก.พ.", entry: 1180, exit: 1150 },
-  { period: "มี.ค.", entry: 1350, exit: 1300 },
-  { period: "เม.ย.", entry: 1150, exit: 1100 },
-  { period: "พ.ค.", entry: 1450, exit: 1400 },
-  { period: "มิ.ย.", entry: 1200, exit: 1150 },
-  { period: "ก.ค.", entry: 1600, exit: 1550 },
-  { period: "ส.ค.", entry: 1300, exit: 1250 },
-  { period: "ก.ย.", entry: 1250, exit: 1200 },
-  { period: "ต.ค.", entry: 1400, exit: 1350 },
-  { period: "พ.ย.", entry: 1350, exit: 1300 },
-  { period: "ธ.ค.", entry: 1500, exit: 1450 }
-]
+interface MonthlyData {
+  month: string;
+  monthNumber: number;
+  approved: number;
+  pending: number;
+  rejected: number;
+  total: number;
+}
 
-const yearlyData = [
-  { period: "2020", entry: 15000, exit: 14200 },
-  { period: "2021", entry: 18500, exit: 17800 },
-  { period: "2022", entry: 22000, exit: 21200 },
-  { period: "2023", entry: 24500, exit: 23700 },
-  { period: "2024", entry: 26800, exit: 25900 }
-]
+interface YearlyData {
+  year: number;
+  approved: number;
+  pending: number;
+  rejected: number;
+  total: number;
+}
+
+interface ChartDataPoint {
+  period: string;
+  approved: number;
+  rejected: number;
+}
 
 
 
 // Chart config
 const chartConfig = {
-  entry: {
-    label: "เข้าหมู่บ้าน",
-    color: "hsl(220, 70%, 50%)", // Blue
-  },
-  exit: {
-    label: "ออกหมู่บ้าน",
+  approved: {
+    label: "อนุมัติ",
     color: "hsl(142, 76%, 36%)", // Green
+  },
+  rejected: {
+    label: "ปฏิเสธ",
+    color: "hsl(0, 84%, 60%)", // Red
   },
 }
 
 export default function WeeklyAccessBarChart() {
   const [selectedPeriod, setSelectedPeriod] = useState("week")
-  
-  // Function to get data based on selected period
-  const getChartData = () => {
-    switch(selectedPeriod) {
-      case "week": return weeklyData
-      case "month": return monthlyData
-      case "year": return yearlyData
-      default: return weeklyData
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [usingFallbackData, setUsingFallbackData] = useState(false)
+
+  // Thai day names mapping
+  const dayNames: { [key: string]: string } = {
+    'Sunday': 'อาทิตย์',
+    'Monday': 'จันทร์',
+    'Tuesday': 'อังคาร',
+    'Wednesday': 'พุธ',
+    'Thursday': 'พฤหัสบดี',
+    'Friday': 'ศุกร์',
+    'Saturday': 'เสาร์'
+  }
+
+  // Thai month names mapping
+  const monthNames: { [key: string]: string } = {
+    'January': 'ม.ค.',
+    'February': 'ก.พ.',
+    'March': 'มี.ค.',
+    'April': 'เม.ย.',
+    'May': 'พ.ค.',
+    'June': 'มิ.ย.',
+    'July': 'ก.ค.',
+    'August': 'ส.ค.',
+    'September': 'ก.ย.',
+    'October': 'ต.ค.',
+    'November': 'พ.ย.',
+    'December': 'ธ.ค.'
+  }
+
+  // Fetch data from API
+  const fetchData = async (period: string) => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      let endpoint = ''
+      switch (period) {
+        case 'week':
+          endpoint = '/api/visitor-record-weekly'
+          break
+        case 'month':
+          endpoint = '/api/visitor-record-monthly'
+          break
+        case 'year':
+          endpoint = '/api/visitor-record-yearly'
+          break
+        default:
+          endpoint = '/api/visitor-record-weekly'
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        credentials: 'include', // Include cookies for authentication
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('ไม่ได้รับอนุญาต กรุณาเข้าสู่ระบบใหม่')
+        }
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch data')
+      }
+
+      // Transform data based on period
+      let transformedData: ChartDataPoint[] = []
+
+      if (period === 'week' && result.data.weeklyData) {
+        transformedData = result.data.weeklyData.map((item: WeeklyData) => ({
+          period: dayNames[item.day] || item.day,
+          approved: item.approved,
+          rejected: item.rejected
+        }))
+      } else if (period === 'month' && result.data.monthlyData) {
+        transformedData = result.data.monthlyData.map((item: MonthlyData) => ({
+          period: monthNames[item.month] || item.month,
+          approved: item.approved,
+          rejected: item.rejected
+        }))
+      } else if (period === 'year' && result.data.yearlyData) {
+        transformedData = result.data.yearlyData.map((item: YearlyData) => ({
+          period: item.year.toString(),
+          approved: item.approved,
+          rejected: item.rejected
+        }))
+      }
+
+      setChartData(transformedData)
+      setUsingFallbackData(false)
+    } catch (err) {
+      console.error('Error fetching data:', err)
+      setError(err instanceof Error ? err.message : 'Unknown error occurred')
+
+      // Set fallback data for demo purposes
+      const fallbackData = getFallbackData(period)
+      setChartData(fallbackData)
+      setUsingFallbackData(true)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const chartData = getChartData()
-  const totalEntry = chartData.reduce((sum, item) => sum + item.entry, 0)
-  const totalExit = chartData.reduce((sum, item) => sum + item.exit, 0)
+  // Fallback data for demo purposes
+  const getFallbackData = (period: string): ChartDataPoint[] => {
+    switch (period) {
+      case 'week':
+        return [
+          { period: "จันทร์", approved: 12, rejected: 3 },
+          { period: "อังคาร", approved: 18, rejected: 2 },
+          { period: "พุธ", approved: 15, rejected: 4 },
+          { period: "พฤหัสบดี", approved: 22, rejected: 1 },
+          { period: "ศุกร์", approved: 28, rejected: 5 },
+          { period: "เสาร์", approved: 35, rejected: 3 },
+          { period: "อาทิตย์", approved: 31, rejected: 2 }
+        ]
+      case 'month':
+        return [
+          { period: "ม.ค.", approved: 245, rejected: 15 },
+          { period: "ก.พ.", approved: 198, rejected: 12 },
+          { period: "มี.ค.", approved: 267, rejected: 18 },
+          { period: "เม.ย.", approved: 223, rejected: 14 },
+          { period: "พ.ค.", approved: 289, rejected: 21 },
+          { period: "มิ.ย.", approved: 234, rejected: 16 },
+          { period: "ก.ค.", approved: 312, rejected: 19 },
+          { period: "ส.ค.", approved: 278, rejected: 17 },
+          { period: "ก.ย.", approved: 256, rejected: 13 },
+          { period: "ต.ค.", approved: 298, rejected: 22 },
+          { period: "พ.ย.", approved: 267, rejected: 18 },
+          { period: "ธ.ค.", approved: 334, rejected: 25 }
+        ]
+      case 'year':
+        return [
+          { period: "2020", approved: 2890, rejected: 145 },
+          { period: "2021", approved: 3245, rejected: 178 },
+          { period: "2022", approved: 3567, rejected: 203 },
+          { period: "2023", approved: 3891, rejected: 234 },
+          { period: "2024", approved: 4123, rejected: 267 }
+        ]
+      default:
+        return []
+    }
+  }
+
+  // Fetch data when component mounts or period changes
+  useEffect(() => {
+    fetchData(selectedPeriod)
+  }, [selectedPeriod])
+
+  const totalApproved = chartData.reduce((sum, item) => sum + item.approved, 0)
+  const totalRejected = chartData.reduce((sum, item) => sum + item.rejected, 0)
 
   // Get average text based on period
   const getAverageText = () => {
-    const total = totalEntry + totalExit
+    const total = totalApproved + totalRejected
     const count = chartData.length
+
+    if (count === 0) return "ไม่มีข้อมูล"
+
     const average = Math.round(total / count)
 
-    switch(selectedPeriod) {
+    switch (selectedPeriod) {
       case "week":
-        return `เฉลี่ย: ${Math.round(total / 7)} คน/วัน`
+        return `เฉลี่ย: ${average} คน/วัน`
       case "month":
-        return `เฉลี่ย: ${Math.round(average)} คน/เดือน`
+        return `เฉลี่ย: ${average} คน/เดือน`
       case "year":
-        return `เฉลี่ย: ${Math.round(average).toLocaleString()} คน/ปี`
+        return `เฉลี่ย: ${average.toLocaleString()} คน/ปี`
       default:
-        return `เฉลี่ย: ${Math.round(total / 7)} คน/วัน`
+        return `เฉลี่ย: ${average} คน/วัน`
     }
   }
 
   // Function to handle period change
   const handlePeriodChange = (value: string) => {
     setSelectedPeriod(value)
-    console.log("Selected period:", value)
   }
 
   // Get period display text
   const getPeriodText = () => {
     const currentDate = new Date()
-    switch(selectedPeriod) {
+    switch (selectedPeriod) {
       case "week":
         return `สัปดาห์ที่ ${currentDate.getDate() - 6} - ${currentDate.getDate()} ${currentDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })}`
       case "month":
@@ -121,7 +267,7 @@ export default function WeeklyAccessBarChart() {
 
   // Get axis label formatter
   const getAxisFormatter = (value: string) => {
-    switch(selectedPeriod) {
+    switch (selectedPeriod) {
       case "week":
         return value.slice(0, 3) // จันทร์ -> จัน
       case "month":
@@ -140,9 +286,9 @@ export default function WeeklyAccessBarChart() {
           <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-blue-500" />
-              <span className="text-base sm:text-lg">สถิติการเข้า/ออก</span>
+              <span className="text-base sm:text-lg">สถิติผู้มาเยือน</span>
             </div>
-            
+
             <div className="flex items-center gap-2 self-start sm:self-auto">
               <span className="text-xs sm:text-sm text-gray-500">ช่วงเวลา:</span>
               <Select value={selectedPeriod} onValueChange={handlePeriodChange}>
@@ -157,53 +303,99 @@ export default function WeeklyAccessBarChart() {
               </Select>
             </div>
           </CardTitle>
-          
-          <CardDescription className="flex items-center gap-1 mt-2 text-xs sm:text-sm">
-            <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
-            {getPeriodText()}
+
+          <CardDescription className="flex flex-col gap-1 mt-2">
+            <div className="flex items-center gap-1 text-xs sm:text-sm">
+              <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+              {getPeriodText()}
+            </div>
+            {usingFallbackData && (
+              <div className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                ⚠️ แสดงข้อมูลจำลอง (ไม่สามารถเชื่อมต่อ API ได้)
+              </div>
+            )}
           </CardDescription>
         </div>
-        
+
         {/* Stats Summary */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 pt-4">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          {loading ? (
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
-              <span className="text-xs sm:text-sm text-gray-600">เข้า: {totalEntry.toLocaleString()} คน</span>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-xs sm:text-sm text-gray-600">กำลังโหลดข้อมูล...</span>
             </div>
+          ) : error ? (
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-600 rounded-full"></div>
-              <span className="text-xs sm:text-sm text-gray-600">ออก: {totalExit.toLocaleString()} คน</span>
+              <span className="text-xs sm:text-sm text-red-600">เกิดข้อผิดพลาด: {error}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
-              <span className="text-xs sm:text-sm text-gray-600">รวม: {(totalEntry + totalExit).toLocaleString()} คน</span>
-            </div>
-          </div>
-          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs sm:text-sm w-fit">
-            {getAverageText()}
-          </Badge>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-green-600 rounded-full"></div>
+                  <span className="text-xs sm:text-sm text-gray-600">อนุมัติ: {totalApproved.toLocaleString()} คน</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-600 rounded-full"></div>
+                  <span className="text-xs sm:text-sm text-gray-600">ปฏิเสธ: {totalRejected.toLocaleString()} คน</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+                  <span className="text-xs sm:text-sm text-gray-600">รวม: {(totalApproved + totalRejected).toLocaleString()} คน</span>
+                </div>
+              </div>
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs sm:text-sm w-fit">
+                {getAverageText()}
+              </Badge>
+            </>
+          )}
         </div>
       </CardHeader>
-      
+
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-[250px] sm:h-[300px] lg:h-[350px] w-full">
-          <BarChart accessibilityLayer data={chartData}>
-            <CartesianGrid vertical={false} strokeDasharray="3 3" />
-            <XAxis
-              dataKey="period"
-              tickLine={false}
-              tickMargin={10}
-              axisLine={false}
-              tickFormatter={getAxisFormatter}
-              fontSize={10}
-            />
-            <ChartTooltip content={<ChartTooltipContent />} />
-            <ChartLegend content={<ChartLegendContent />} />
-            <Bar dataKey="entry" fill="var(--color-entry)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="exit" fill="var(--color-exit)" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ChartContainer>
+        {loading ? (
+          <div className="h-[250px] sm:h-[300px] lg:h-[350px] w-full flex items-center justify-center">
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+              <span className="text-sm text-gray-600">กำลังโหลดข้อมูล...</span>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="h-[250px] sm:h-[300px] lg:h-[350px] w-full flex items-center justify-center">
+            <div className="flex flex-col items-center gap-2 text-center">
+              <span className="text-sm text-red-600">เกิดข้อผิดพลาดในการโหลดข้อมูล</span>
+              <span className="text-xs text-gray-500">{error}</span>
+              <button
+                onClick={() => fetchData(selectedPeriod)}
+                className="mt-2 px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                ลองใหม่
+              </button>
+            </div>
+          </div>
+        ) : chartData.length === 0 ? (
+          <div className="h-[250px] sm:h-[300px] lg:h-[350px] w-full flex items-center justify-center">
+            <span className="text-sm text-gray-600">ไม่มีข้อมูลในช่วงเวลานี้</span>
+          </div>
+        ) : (
+          <ChartContainer config={chartConfig} className="h-[250px] sm:h-[300px] lg:h-[350px] w-full">
+            <BarChart accessibilityLayer data={chartData}>
+              <CartesianGrid vertical={false} strokeDasharray="3 3" />
+              <XAxis
+                dataKey="period"
+                tickLine={false}
+                tickMargin={10}
+                axisLine={false}
+                tickFormatter={getAxisFormatter}
+                fontSize={10}
+              />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <ChartLegend content={<ChartLegendContent />} />
+              <Bar dataKey="approved" fill="var(--color-approved)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="rejected" fill="var(--color-rejected)" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ChartContainer>
+        )}
       </CardContent>
     </Card>
   )
