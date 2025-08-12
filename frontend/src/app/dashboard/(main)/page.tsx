@@ -8,10 +8,12 @@ import {
   DailyAccessCard,
   PendingTasksCard,
   EmptyCard,
+  useStatsData,
 } from "./statistic";
 
 export default function Page() {
   const [data, setData] = useState<any>(null);
+  const { data: statsData, loading: statsLoading, error: statsError } = useStatsData();
   const cardsRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
@@ -105,10 +107,10 @@ export default function Page() {
           ref={cardsRef}
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6 lg:mb-8"
         >
-          <TotalUsersCard />
-          <DailyAccessCard />
-          <PendingTasksCard />
-          <EmptyCard />
+          <TotalUsersCard data={statsData} loading={statsLoading} error={statsError} />
+          <DailyAccessCard data={statsData} loading={statsLoading} error={statsError} />
+          <PendingTasksCard data={statsData} loading={statsLoading} error={statsError} />
+          <EmptyCard data={statsData} loading={statsLoading} error={statsError} />
         </div>
 
         {/* Chart */}
