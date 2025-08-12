@@ -18,7 +18,6 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 const profileSchema = z.object({
-  admin_id: z.string().optional(),
   email: z.string().min(1, "กรุณากรอกอีเมล").email("อีเมลไม่ถูกต้อง"),
   username: z.string().min(1, "กรุณากรอกชื่อผู้ใช้งาน"),
   phone: z.string().min(1, "กรุณากรอกหมายเลขโทรศัพท์"),
@@ -44,7 +43,6 @@ function SettingForm() {
     // This would normally fetch from your API
     console.log("Fetching admin data...");
     return {
-      admin_id: "123",
       email: "john_doe@gmail.com",
       username: "John Doe",
       phone: "1111111111",
@@ -54,7 +52,6 @@ function SettingForm() {
   const profileForm = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      admin_id: "",
       email: "john_doe@gmail.com",
       username: "John Doe",
       phone: "1111111111",
@@ -102,9 +99,6 @@ function SettingForm() {
 
   return (
     <div className="container mx-auto p-6 max-w-6xl">
-      {/* <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-      </div> */}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <div className="lg:col-span-3 space-y-8">
@@ -265,10 +259,6 @@ function SettingForm() {
               </Form>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Right Column - Account Info */}
-        <div className="space-y-6">
         </div>
       </div>
     </div>
