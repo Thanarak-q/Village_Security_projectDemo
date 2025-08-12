@@ -27,28 +27,40 @@ import { ScrambleTextPlugin } from "gsap/all";
 gsap.registerPlugin(ScrambleTextPlugin);
 
 const FormSchema = z.object({
-  username: z.string().min(0, {
-    // message: "Username must be at least 6 characters.",
-  }),
-  password: z.string().min(6, {
-    message: "Password must be at least 6 characters.",
-  }),
+  username: z
+    .string()
+    .min(3, {
+      message: "Username must be at least 3 characters.",
+    })
+    .max(50, {
+      message: "Username must not exceed 50 characters.",
+    })
+    .regex(/^[a-zA-Z0-9_]+$/, {
+      message: "Username can only contain letters, numbers, and underscores.",
+    }),
+  password: z
+    .string()
+    .min(6, {
+      message: "Password must be at least 6 characters.",
+    })
+    .max(100, {
+      message: "Password must not exceed 100 characters.",
+    }),
 });
 
 type GsaploginbuttonProps = ButtonProps & {
   children: React.ReactNode;
 };
 
-const Gsaploginbutton = React.forwardRef<HTMLButtonElement, GsaploginbuttonProps>(({
-  className,
-  children,
-  ...props
-}, ref) => {
+const Gsaploginbutton = React.forwardRef<
+  HTMLButtonElement,
+  GsaploginbuttonProps
+>(({ className, children, ...props }, ref) => {
   const internalRef = useRef<HTMLButtonElement>(null);
   const buttonRef = ref || internalRef;
 
   const handleMouseEnter = () => {
-    if (buttonRef && 'current' in buttonRef && buttonRef.current) {
+    if (buttonRef && "current" in buttonRef && buttonRef.current) {
       gsap.to(buttonRef.current, {
         scale: 1.07,
         duration: 0.25,
@@ -57,7 +69,7 @@ const Gsaploginbutton = React.forwardRef<HTMLButtonElement, GsaploginbuttonProps
     }
   };
   const handleMouseLeave = () => {
-    if (buttonRef && 'current' in buttonRef && buttonRef.current) {
+    if (buttonRef && "current" in buttonRef && buttonRef.current) {
       gsap.to(buttonRef.current, {
         scale: 1,
         duration: 0.25,
@@ -119,9 +131,9 @@ const Page: React.FC = () => {
     const errorText = "Invalid Username or Password";
 
     // Determine login fail text size based on screen size
-    let loginFailText = "Login Fail";
+    const loginFailText = "Login Fail";
     // if (isSmallPhone) {
-    //   loginFailText = "Fail"; 
+    //   loginFailText = "Fail";
     // }
 
     // Create a pop-up scale animation with color change
@@ -132,21 +144,29 @@ const Page: React.FC = () => {
       ease: "back.out(1.7)",
     })
       // Scramble text to "Login fail" or "Fail" for small phones
-      .to(loginTitleRef.current, {
-        duration: 0.8,
-        scrambleText: {
-          text: loginFailText,
-          chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-          revealDelay: 0.1,
-          speed: 0.8,
+      .to(
+        loginTitleRef.current,
+        {
+          duration: 0.8,
+          scrambleText: {
+            text: loginFailText,
+            chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+            revealDelay: 0.1,
+            speed: 0.8,
+          },
         },
-      }, "-=0.2")
+        "-=0.2"
+      )
       // Show error message with animation
-      .set(errorMessageRef.current, {
-        display: "block",
-        opacity: 0,
-        y: isSmallPhone ? -6 : isMobile ? -8 : -10,
-      }, "-=0.4")
+      .set(
+        errorMessageRef.current,
+        {
+          display: "block",
+          opacity: 0,
+          y: isSmallPhone ? -6 : isMobile ? -8 : -10,
+        },
+        "-=0.4"
+      )
       .to(errorMessageRef.current, {
         opacity: 1,
         y: 0,
@@ -154,41 +174,57 @@ const Page: React.FC = () => {
         ease: "power2.out",
       })
       // Animate error message text with scramble effect
-      .to(errorMessageRef.current, {
-        duration: 0.5,
-        scrambleText: {
-          text: errorText,
-          chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-          revealDelay: 0.05,
-          speed: 0.1,
+      .to(
+        errorMessageRef.current,
+        {
+          duration: 0.5,
+          scrambleText: {
+            text: errorText,
+            chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+            revealDelay: 0.05,
+            speed: 0.1,
+          },
         },
-      }, "-=0.3")
+        "-=0.3"
+      )
       // Scale back to normal size but keep red color
-      .to(loginTitleRef.current, {
-        scale: 1,
-        duration: 0.4,
-        ease: "power2.out",
-      }, "-=0.8")
+      .to(
+        loginTitleRef.current,
+        {
+          scale: 1,
+          duration: 0.4,
+          ease: "power2.out",
+        },
+        "-=0.8"
+      )
       // After 4 seconds, hide error message and revert back to original "Login" text and color
-      .to(errorMessageRef.current, {
-        opacity: 0,
-        y: isSmallPhone ? -6 : isMobile ? -8 : -10,
-        duration: 0.4,
-        ease: "power2.inOut",
-      }, "+=3.5")
+      .to(
+        errorMessageRef.current,
+        {
+          opacity: 0,
+          y: isSmallPhone ? -6 : isMobile ? -8 : -10,
+          duration: 0.4,
+          ease: "power2.inOut",
+        },
+        "+=3.5"
+      )
       .set(errorMessageRef.current, {
         display: "none",
       })
-      .to(loginTitleRef.current, {
-        duration: 0.8,
-        scrambleText: {
-          text: "Login",
-          chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-          revealDelay: 0.1,
-          speed: 0.8,
+      .to(
+        loginTitleRef.current,
+        {
+          duration: 0.8,
+          scrambleText: {
+            text: "Login",
+            chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+            revealDelay: 0.1,
+            speed: 0.8,
+          },
+          color: "#253050",
         },
-        color: "#253050",
-      }, "-=0.2");
+        "-=0.2"
+      );
   };
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
@@ -203,8 +239,37 @@ const Page: React.FC = () => {
       });
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData?.message || "Login failed");
+        let errData;
+        try {
+          errData = await response.json();
+        } catch (parseError) {
+          console.error("Failed to parse error response:", parseError);
+          throw new Error(`Login failed (${response.status})`);
+        }
+        
+        console.error("Login error:", {
+          status: response.status,
+          statusText: response.statusText,
+          data: errData
+        });
+        
+        // Handle different error formats
+        let errorMessage = "Login failed";
+        if (errData?.error) {
+          errorMessage = errData.error;
+        } else if (errData?.message) {
+          errorMessage = errData.message;
+        } else if (errData?.details && Array.isArray(errData.details)) {
+          errorMessage = errData.details.join(", ");
+        } else if (response.status === 429) {
+          errorMessage = "Too many login attempts. Please try again later.";
+        } else if (response.status === 401) {
+          errorMessage = "Invalid username or password";
+        } else if (response.status === 403) {
+          errorMessage = "Account not verified";
+        }
+        
+        throw new Error(errorMessage);
       }
 
       console.log("Login successful");
@@ -212,8 +277,7 @@ const Page: React.FC = () => {
 
       // Trigger success animation
       animateLoginSuccess();
-
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err.message || "Something went wrong");
       // Trigger login failure animation
       animateLoginFailure();
@@ -230,47 +294,65 @@ const Page: React.FC = () => {
     const squareRect = squareRef.current?.getBoundingClientRect();
 
     if (usernameRect && passwordRect && squareRect) {
-      const centerY = (usernameRect.top + passwordRect.top) / 2 - usernameRect.top;
+      const centerY =
+        (usernameRect.top + passwordRect.top) / 2 - usernameRect.top;
       // Calculate exact position relative to the square container
-      const squareCenterY = (usernameRect.top + passwordRect.top) / 2 - squareRect.top;
+      const squareCenterY =
+        (usernameRect.top + passwordRect.top) / 2 - squareRect.top;
 
       // Fade out Login title and Village Management System text while fields are moving
       tl.to([loginTitleRef.current, villageTextRef.current], {
         opacity: 0,
         duration: 0.2,
-        ease: "power2.inOut"
+        ease: "power2.inOut",
       })
         // Hide button
-        .to(loginButtonRef.current, {
-          opacity: 0,
-          duration: 0.2,
-          ease: "power2.inOut"
-        }, "<")
+        .to(
+          loginButtonRef.current,
+          {
+            opacity: 0,
+            duration: 0.2,
+            ease: "power2.inOut",
+          },
+          "<"
+        )
         // Move both fields to overlap at center position (faster)
-        .to(usernameFieldRef.current, {
-          y: centerY,
-          duration: 0.3,
-          ease: "power2.inOut"
-        }, "-=0.1")
-        .to(passwordFieldRef.current, {
-          y: centerY - (passwordRect.top - usernameRect.top),
-          duration: 0.3,
-          ease: "power2.inOut"
-        }, "<")
+        .to(
+          usernameFieldRef.current,
+          {
+            y: centerY,
+            duration: 0.3,
+            ease: "power2.inOut",
+          },
+          "-=0.1"
+        )
+        .to(
+          passwordFieldRef.current,
+          {
+            y: centerY - (passwordRect.top - usernameRect.top),
+            duration: 0.3,
+            ease: "power2.inOut",
+          },
+          "<"
+        )
         // Fade out both fields together (faster) and show success message simultaneously
         .to([usernameFieldRef.current, passwordFieldRef.current], {
           opacity: 0,
           duration: 0.2,
-          ease: "power2.inOut"
+          ease: "power2.inOut",
         })
-        .set(successRef.current, {
-          display: "block",
-          position: "absolute",
-          top: "25%",
+        .set(
+          successRef.current,
+          {
+            display: "block",
+            position: "absolute",
+            top: "25%",
 
-          opacity: 1,
-          zIndex: 10
-        }, "<")
+            opacity: 1,
+            zIndex: 10,
+          },
+          "<"
+        )
         // Trigger faster scramble text animation
         .call(() => {
           gsap.to(scrambleSuccessRef.current, {
@@ -299,8 +381,11 @@ const Page: React.FC = () => {
   }, [shouldRedirect, router]);
 
   useEffect(() => {
-    const isLowPerformance = window.innerWidth < 768 || navigator.hardwareConcurrency < 4;
-    const preferReducedMotion = window.matchMedia("(prefers-reduced-motion:reduce").matches;
+    const isLowPerformance =
+      window.innerWidth < 768 || navigator.hardwareConcurrency < 4;
+    const preferReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion:reduce"
+    ).matches;
     const isShortScreen = window.innerHeight < 800;
     const tl = gsap.timeline();
 
@@ -337,36 +422,68 @@ const Page: React.FC = () => {
           "-=0.3"
         );
     } else if (isLowPerformance) {
-      gsap.set(welcomeRef.current, { top: "18%", y: "-50%" })
-      gsap.set(loginGroupRef.current, { bottom: isShortScreen ? "35%" : "45%", y: "50%" })
-      gsap.set(squareRef.current, { opacity: 1 })
-      gsap.set(loginRef.current, { opacity: 1 })
-
+      gsap.set(welcomeRef.current, { top: "18%", y: "-50%" });
+      gsap.set(loginGroupRef.current, {
+        bottom: isShortScreen ? "35%" : "45%",
+        y: "50%",
+      });
+      gsap.set(squareRef.current, { opacity: 1 });
+      gsap.set(loginRef.current, { opacity: 1 });
     } else {
-      gsap.set(welcomeRef.current, { top: "18%", y: "-50%" })
-      gsap.set(loginGroupRef.current, { bottom: isShortScreen ? "35%" : "45%", y: "50%" })
-      gsap.set(squareRef.current, { opacity: 1 })
-      gsap.set(loginRef.current, { opacity: 1 })
-
+      gsap.set(welcomeRef.current, { top: "18%", y: "-50%" });
+      gsap.set(loginGroupRef.current, {
+        bottom: isShortScreen ? "35%" : "45%",
+        y: "50%",
+      });
+      gsap.set(squareRef.current, { opacity: 1 });
+      gsap.set(loginRef.current, { opacity: 1 });
     }
   }, []);
 
   return (
     <div className="w-screen h-screen bg-[#4fa3f2] flex flex-col justify-center items-center overflow-hidden">
-      <div ref={welcomeRef} className="absolute text-white text-4xl tracking-[2px] z-10">
+      <div
+        ref={welcomeRef}
+        className="absolute text-white text-4xl tracking-[2px] z-10"
+      >
         <ScrambleTextExample />
       </div>
-      <div ref={loginGroupRef} className="relative flex flex-col items-stretch w-full z-[5]">
-        <div ref={triRef} className="opacity-0 w-full h-[120px] sm:h-[130px] md:h-[140px] bg-white flex flex-col justify-center items-center z-[2] mt-[50px] rounded-t-[22px] relative"
-          style={{ clipPath: 'polygon(20px 100%, 50% 0%, calc(100% - 20px) 100%, 100% 100%, 0% 100%)' }}>
-          <h2 ref={loginTitleRef} className="text-[#253050] m-0 text-[1.2rem] xs:text-[1.3rem] sm:text-[1.6rem] md:text-[1.8rem] lg:text-[2rem] font-black tracking-[1.5px]">Login</h2>
-          <p ref={errorMessageRef} className="hidden text-[#ef4b6c] text-[0.7rem] sm:text-[0.75rem] md:text-[0.85rem] lg:text-[0.9rem] font-medium mt-1 sm:mt-2 text-center px-2 sm:px-3 md:px-4 leading-tight max-w-[280px] sm:max-w-[320px] md:max-w-[360px]">
-          </p>
+      <div
+        ref={loginGroupRef}
+        className="relative flex flex-col items-stretch w-full z-[5]"
+      >
+        <div
+          ref={triRef}
+          className="opacity-0 w-full h-[120px] sm:h-[130px] md:h-[140px] bg-white flex flex-col justify-center items-center z-[2] mt-[50px] rounded-t-[22px] relative"
+          style={{
+            clipPath:
+              "polygon(20px 100%, 50% 0%, calc(100% - 20px) 100%, 100% 100%, 0% 100%)",
+          }}
+        >
+          <h2
+            ref={loginTitleRef}
+            className="text-[#253050] m-0 text-[1.2rem] xs:text-[1.3rem] sm:text-[1.6rem] md:text-[1.8rem] lg:text-[2rem] font-black tracking-[1.5px]"
+          >
+            Login
+          </h2>
+          <p
+            ref={errorMessageRef}
+            className="hidden text-[#ef4b6c] text-[0.7rem] sm:text-[0.75rem] md:text-[0.85rem] lg:text-[0.9rem] font-medium mt-1 sm:mt-2 text-center px-2 sm:px-3 md:px-4 leading-tight max-w-[280px] sm:max-w-[320px] md:max-w-[360px]"
+          ></p>
         </div>
-        <div ref={squareRef} className="w-full h-screen bg-white rounded-[22px] flex flex-col items-center opacity-0 z-[1]">
-          <div ref={loginRef} className="mt-8 w-[85%] max-w-[350px] opacity-0 transition-opacity duration-200">
+        <div
+          ref={squareRef}
+          className="w-full h-screen bg-white rounded-[22px] flex flex-col items-center opacity-0 z-[1]"
+        >
+          <div
+            ref={loginRef}
+            className="mt-8 w-[85%] max-w-[350px] opacity-0 transition-opacity duration-200"
+          >
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6"
+              >
                 <FormField
                   control={form.control}
                   name="username"
@@ -424,26 +541,30 @@ const Page: React.FC = () => {
                   )}
                 />
 
-                <Gsaploginbutton ref={loginButtonRef} type="submit" disabled={loading} className="w-full bg-[#253050] text-white rounded-xl text-[1.1rem] py-3 shadow-[0px_6px_24px_1px_rgba(50,56,168,0.09)] font-semibold disabled:opacity-50">
+                <Gsaploginbutton
+                  ref={loginButtonRef}
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-[#253050] text-white rounded-xl text-[1.1rem] py-3 shadow-[0px_6px_24px_1px_rgba(50,56,168,0.09)] font-semibold disabled:opacity-50"
+                >
                   {loading ? "Logging in..." : "Login"}
                 </Gsaploginbutton>
               </form>
             </Form>
-            <p ref={villageTextRef} className="mt-10 text-center text-[#aaa] text-[0.97em]">
+            <p
+              ref={villageTextRef}
+              className="mt-10 text-center text-[#aaa] text-[0.97em]"
+            >
               Village Management System <br /> v.x.x
             </p>
           </div>
 
           {/* Success Message with Scramble Text */}
-          <div
-            ref={successRef}
-            className="hidden text-center"
-          >
+          <div ref={successRef} className="hidden text-center">
             <h2
               ref={scrambleSuccessRef}
               className="text-2xl font-bold text-[#253050] tracking-[1.5px]"
-            >
-            </h2>
+            ></h2>
           </div>
         </div>
       </div>
@@ -451,6 +572,4 @@ const Page: React.FC = () => {
   );
 };
 
-
 export default Page;
-
