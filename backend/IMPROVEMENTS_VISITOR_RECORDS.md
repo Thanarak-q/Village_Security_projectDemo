@@ -15,18 +15,52 @@
 ### 3. การเพิ่มข้อมูลตัวอย่าง
 - เพิ่มป้ายทะเบียนรถจาก 10 เป็น 20 แบบ
 - เพิ่มวัตถุประสงค์การเยี่ยมจาก 10 เป็น 15 แบบ
-- เพิ่มความหลากหลายของ visitor records จาก 1-3 เป็น 1-4 รายการต่อ resident
+- เพิ่มความหลากหลายของ visitor records จาก 1-3 เป็น 2-8 รายการต่อ resident
+- เพิ่มการสร้างข้อมูลเพิ่มเติมสำหรับหมู่บ้านที่มีข้อมูลน้อย เพื่อให้มีข้อมูลครบถ้วน
 
 ### 4. การปรับปรุงฟังก์ชัน `createVisitorRecordsData()`
 
 #### คุณสมบัติใหม่:
 ```typescript
-// สร้างเวลาที่สมจริง
+// สร้างเวลาที่สมจริงและกระจายข้อมูลทั่วช่วงเวลา
 function generateRandomTimestamp(): Date {
   const now = new Date();
-  const randomDaysAgo = Math.floor(Math.random() * 30);
-  const randomHours = Math.floor(Math.random() * 24);
-  const randomMinutes = Math.floor(Math.random() * 60);
+  
+  // Randomly choose time period: 70% recent (this week), 20% this month, 10% this year
+  const periodChoice = Math.random();
+  let randomDaysAgo: number;
+  
+  if (periodChoice < 0.7) {
+    // 70% - This week (0-7 days ago)
+    randomDaysAgo = Math.floor(Math.random() * 7);
+  } else if (periodChoice < 0.9) {
+    // 20% - This month (8-30 days ago)
+    randomDaysAgo = Math.floor(Math.random() * 22) + 8;
+  } else {
+    // 10% - This year (31-365 days ago)
+    randomDaysAgo = Math.floor(Math.random() * 334) + 31;
+  }
+  
+  // Generate random time with more realistic distribution
+  let randomHours: number;
+  const hourChoice = Math.random();
+  
+  if (hourChoice < 0.4) {
+    // 40% - Business hours (8:00-18:00)
+    randomHours = Math.floor(Math.random() * 10) + 8;
+  } else if (hourChoice < 0.7) {
+    // 30% - Evening hours (18:00-22:00)
+    randomHours = Math.floor(Math.random() * 4) + 18;
+  } else if (hourChoice < 0.85) {
+    // 15% - Morning hours (6:00-8:00)
+    randomHours = Math.floor(Math.random() * 2) + 6;
+  } else if (hourChoice < 0.95) {
+    // 10% - Late night (22:00-24:00)
+    randomHours = Math.floor(Math.random() * 2) + 22;
+  } else {
+    // 5% - Early morning (0:00-6:00)
+    randomHours = Math.floor(Math.random() * 6);
+  }
   
   const timestamp = new Date(now);
   timestamp.setDate(timestamp.getDate() - randomDaysAgo);
@@ -66,9 +100,19 @@ npm run db:seed
 ## ผลลัพธ์ที่คาดหวัง
 
 - Visitor records จะมีข้อมูลที่สมจริงมากขึ้น
-- Timestamps จะกระจายในช่วง 30 วันย้อนหลัง
+- **Timestamps จะกระจายทั่วช่วงเวลา:**
+  - 70% สัปดาห์นี้ (0-7 วันย้อนหลัง)
+  - 20% เดือนนี้ (8-30 วันย้อนหลัง)  
+  - 10% ปีนี้ (31-365 วันย้อนหลัง)
+- **การกระจายเวลาตามช่วงเวลาจริง:**
+  - 40% ชั่วโมงทำงาน (8:00-18:00)
+  - 30% ช่วงเย็น (18:00-22:00)
+  - 15% ช่วงเช้า (6:00-8:00)
+  - 10% ดึก (22:00-24:00)
+  - 5% เช้ามืด (0:00-6:00)
 - Record ที่ approved จะมี exit_time
 - ข้อมูลตัวอย่างมีความหลากหลายมากขึ้น
+- มีข้อมูลครบถ้วนสำหรับทุกหมู่บ้าน
 
 ## ข้อควรระวัง
 

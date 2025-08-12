@@ -769,11 +769,46 @@ async function createVisitorRecordsData() {
   
   const recordStatuses: Array<"approved" | "pending" | "rejected"> = ["approved", "pending", "rejected"];
   
-  // Generate realistic timestamps for the last 30 days
+  // Generate realistic timestamps distributed across different time periods
   function generateRandomTimestamp(): Date {
     const now = new Date();
-    const randomDaysAgo = Math.floor(Math.random() * 30);
-    const randomHours = Math.floor(Math.random() * 24);
+    
+    // Randomly choose time period: 70% recent (this week), 20% this month, 10% this year
+    const periodChoice = Math.random();
+    let randomDaysAgo: number;
+    
+    if (periodChoice < 0.7) {
+      // 70% - This week (0-7 days ago)
+      randomDaysAgo = Math.floor(Math.random() * 7);
+    } else if (periodChoice < 0.9) {
+      // 20% - This month (8-30 days ago)
+      randomDaysAgo = Math.floor(Math.random() * 22) + 8;
+    } else {
+      // 10% - This year (31-365 days ago)
+      randomDaysAgo = Math.floor(Math.random() * 334) + 31;
+    }
+    
+    // Generate random time with more realistic distribution
+    let randomHours: number;
+    const hourChoice = Math.random();
+    
+    if (hourChoice < 0.4) {
+      // 40% - Business hours (8:00-18:00)
+      randomHours = Math.floor(Math.random() * 10) + 8;
+    } else if (hourChoice < 0.7) {
+      // 30% - Evening hours (18:00-22:00)
+      randomHours = Math.floor(Math.random() * 4) + 18;
+    } else if (hourChoice < 0.85) {
+      // 15% - Morning hours (6:00-8:00)
+      randomHours = Math.floor(Math.random() * 2) + 6;
+    } else if (hourChoice < 0.95) {
+      // 10% - Late night (22:00-24:00)
+      randomHours = Math.floor(Math.random() * 2) + 22;
+    } else {
+      // 5% - Early morning (0:00-6:00)
+      randomHours = Math.floor(Math.random() * 6);
+    }
+    
     const randomMinutes = Math.floor(Math.random() * 60);
     
     const timestamp = new Date(now);
@@ -796,8 +831,8 @@ async function createVisitorRecordsData() {
     );
     
     if (guardsInSameVillage.length > 0 && housesInSameVillage.length > 0) {
-      // Create 1-4 visitor records per resident (increased variety)
-      const numRecords = Math.floor(Math.random() * 4) + 1;
+      // Create 2-8 visitor records per resident for more data variety
+      const numRecords = Math.floor(Math.random() * 7) + 2;
       
       for (let i = 0; i < numRecords; i++) {
         const randomGuard = guardsInSameVillage[Math.floor(Math.random() * guardsInSameVillage.length)];
@@ -836,6 +871,65 @@ async function createVisitorRecordsData() {
   }
   
   console.log(`Created ${visitorRecordsData.length} visitor_records`);
+  
+  // Add additional records for villages with fewer residents to ensure data coverage
+  console.log("Adding additional records for data coverage...");
+  
+  // Get all villages
+  const allVillages = await db.select().from(villages);
+  
+  for (const village of allVillages) {
+    const villageResidents = allResidents.filter(r => r.village_key === village.village_key);
+    const villageGuards = allGuards.filter(g => g.village_key === village.village_key);
+    const villageHouses = allHouses.filter(h => h.village_key === village.village_key);
+    
+    // If village has very few records, add some more
+    const existingRecordsForVillage = visitorRecordsData.filter(record => {
+      const resident = allResidents.find(r => r.resident_id === record.resident_id);
+      return resident?.village_key === village.village_key;
+    });
+    
+    if (existingRecordsForVillage.length < 10 && villageResidents.length > 0 && villageGuards.length > 0 && villageHouses.length > 0) {
+      // Add 5-15 more records for this village
+      const additionalRecords = Math.floor(Math.random() * 11) + 5;
+      
+      for (let i = 0; i < additionalRecords; i++) {
+        const randomResident = villageResidents[Math.floor(Math.random() * villageResidents.length)];
+        const randomGuard = villageGuards[Math.floor(Math.random() * villageGuards.length)];
+        const randomHouse = villageHouses[Math.floor(Math.random() * villageHouses.length)];
+        const randomPictureKey = samplePictureKeys[Math.floor(Math.random() * samplePictureKeys.length)];
+        const randomLicensePlate = sampleLicensePlates[Math.floor(Math.random() * sampleLicensePlates.length)];
+        const randomVisitPurpose = sampleVisitPurposes[Math.floor(Math.random() * sampleVisitPurposes.length)];
+        const randomStatus = recordStatuses[Math.floor(Math.random() * recordStatuses.length)];
+        
+        // Generate realistic timestamps
+        const entryTime = generateRandomTimestamp();
+        let exitTime: Date | undefined;
+        
+        // For approved records, generate exit time (1-8 hours later)
+        if (randomStatus === "approved") {
+          exitTime = new Date(entryTime);
+          exitTime.setHours(exitTime.getHours() + Math.floor(Math.random() * 8) + 1);
+        }
+        
+        visitorRecordsData.push({
+          resident_id: randomResident.resident_id,
+          guard_id: randomGuard.guard_id,
+          house_id: randomHouse.house_id,
+          picture_key: randomPictureKey || undefined,
+          license_plate: randomLicensePlate || undefined,
+          record_status: randomStatus,
+          visit_purpose: randomVisitPurpose,
+          entry_time: entryTime,
+          exit_time: exitTime,
+        });
+      }
+      
+      console.log(`Added ${additionalRecords} additional records for village: ${village.village_name}`);
+    }
+  }
+  
+  console.log(`Total visitor records after coverage: ${visitorRecordsData.length}`);
   return visitorRecordsData;
 }
 
