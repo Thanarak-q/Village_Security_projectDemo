@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -11,157 +11,168 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Home, Filter, Plus, Loader2, ChevronLeft, ChevronRight, Edit } from "lucide-react"
-import EditHouseDialog from "./popup_edithouse"
+} from "@/components/ui/select";
+import {
+  Home,
+  Filter,
+  Plus,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Edit,
+} from "lucide-react";
+import EditHouseDialog from "./popup_edithouse";
+import AddHouseDialog from "./popup_addhouse";
 
 // ข้อมูลบ้านจาก API
 interface HouseData {
-  house_id: string
-  address: string
-  status: string
-  village_key: string
+  house_id: string;
+  address: string;
+  status: string;
+  village_key: string;
 }
 
 export default function HouseManagementTable() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("ทั้งหมด")
-  const [houses, setHouses] = useState<HouseData[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ทั้งหมด");
+  const [houses, setHouses] = useState<HouseData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   // State for pagination
-  const [currentPage, setCurrentPage] = useState(1)
+  const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(() => {
     // Get saved itemsPerPage from localStorage, default to 5
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const saved = localStorage.getItem('houseTable_itemsPerPage');
+    if (typeof window !== "undefined" && window.localStorage) {
+      const saved = localStorage.getItem("houseTable_itemsPerPage");
       return saved ? parseInt(saved, 10) : 5;
     }
     return 5;
-  })
-  
+  });
+
   // State สำหรับการ refresh ข้อมูล
-  const [refreshing, setRefreshing] = useState(false)
+  const [refreshing, setRefreshing] = useState(false);
 
   // Fetch data from API
   const fetchHouses = async (isRefresh = false) => {
     try {
       if (isRefresh) {
-        setRefreshing(true)
+        setRefreshing(true);
       } else {
-        setLoading(true)
+        setLoading(true);
       }
-      const response = await fetch('/api/houses')
-      const result = await response.json()
-      
+      const response = await fetch("/api/houses");
+      const result = await response.json();
+
       if (result.success) {
-        setHouses(result.data)
+        setHouses(result.data);
       } else {
-        setError('ไม่สามารถโหลดข้อมูลได้')
+        setError("ไม่สามารถโหลดข้อมูลได้");
       }
     } catch (err) {
-      setError('เกิดข้อผิดพลาดในการเชื่อมต่อ')
-      console.error('Error fetching houses:', err)
+      setError("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+      console.error("Error fetching houses:", err);
     } finally {
-      setLoading(false)
-      setRefreshing(false)
+      setLoading(false);
+      setRefreshing(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchHouses()
-  }, [])
+    fetchHouses();
+  }, []);
 
   // แปลงสถานะเป็นภาษาไทย
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'available':
-        return 'ว่าง'
-      case 'occupied':
-        return 'มีผู้อยู่อาศัย'
-      case 'disable':
-        return 'ไม่ใช้งาน'
+      case "available":
+        return "ว่าง";
+      case "occupied":
+        return "มีผู้อยู่อาศัย";
+      case "disable":
+        return "ไม่ใช้งาน";
       default:
-        return status
+        return status;
     }
-  }
+  };
 
   // สีของสถานะ
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'available':
-        return 'bg-gray-100 text-gray-800'
-      case 'occupied':
-        return 'bg-green-100 text-green-800'
-      case 'disable':
-        return 'bg-red-100 text-red-800'
+      case "available":
+        return "bg-gray-100 text-gray-800";
+      case "occupied":
+        return "bg-green-100 text-green-800";
+      case "disable":
+        return "bg-red-100 text-red-800";
       default:
-        return 'bg-gray-100 text-gray-800'
+        return "bg-gray-100 text-gray-800";
     }
-  }
+  };
 
   // นับจำนวนบ้านตามสถานะ
   const getStatusCount = (status: string) => {
-    return houses.filter(house => house.status === status).length
-  }
+    return houses.filter((house) => house.status === status).length;
+  };
 
-  const filteredData = houses.filter(house => {
-    const matchesSearch = house.address.includes(searchTerm) || 
-                         house.village_key.includes(searchTerm)
-    const matchesStatus = statusFilter === "ทั้งหมด" || 
-                         getStatusText(house.status) === statusFilter
-    return matchesSearch && matchesStatus
-  })
+  const filteredData = houses.filter((house) => {
+    const matchesSearch =
+      house.address.includes(searchTerm) ||
+      house.village_key.includes(searchTerm);
+    const matchesStatus =
+      statusFilter === "ทั้งหมด" ||
+      getStatusText(house.status) === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   // Calculate pagination data
-  const totalItems = filteredData.length
-  const totalPages = Math.ceil(totalItems / itemsPerPage)
+  const totalItems = filteredData.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   // Reset to first page when changing search or filter
   useEffect(() => {
-    setCurrentPage(1)
-  }, [searchTerm, statusFilter])
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
 
   // Function to go to next page
   const goToNextPage = () => {
     if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1)
+      setCurrentPage(currentPage + 1);
     }
-  }
+  };
 
   // Function to go to previous page
   const goToPreviousPage = () => {
     if (currentPage > 1) {
-      setCurrentPage(currentPage - 1)
+      setCurrentPage(currentPage - 1);
     }
-  }
+  };
 
   // Function to change items per page
   const handleItemsPerPageChange = (value: string) => {
-    const newValue = Number(value)
-    setItemsPerPage(newValue)
-    setCurrentPage(1)
-    
+    const newValue = Number(value);
+    setItemsPerPage(newValue);
+    setCurrentPage(1);
+
     // Save to localStorage for persistence
-    if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.setItem('houseTable_itemsPerPage', newValue.toString());
+    if (typeof window !== "undefined" && window.localStorage) {
+      localStorage.setItem("houseTable_itemsPerPage", newValue.toString());
     }
-  }
+  };
 
   // Get current page data
   const getCurrentPageData = () => {
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = startIndex + itemsPerPage
-    return filteredData.slice(startIndex, endIndex)
-  }
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredData.slice(startIndex, endIndex);
+  };
 
   if (loading) {
     return (
@@ -171,7 +182,7 @@ export default function HouseManagementTable() {
           <span>กำลังโหลดข้อมูล...</span>
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -179,12 +190,10 @@ export default function HouseManagementTable() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={() => fetchHouses()}>
-            ลองใหม่
-          </Button>
+          <Button onClick={() => fetchHouses()}>ลองใหม่</Button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -195,23 +204,20 @@ export default function HouseManagementTable() {
           <h1 className="scroll-m-20 text-2xl font-semibold tracking-tight text-gray-900 mb-6">
             การจัดการบ้าน
           </h1>
-          
+
           {/* Top Actions */}
           <div className="flex items-center justify-between mb-6">
-            <Button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700">
-              <Plus className="h-4 w-4" />
-              เพิ่มบ้านใหม่
-            </Button>
-            
+            <AddHouseDialog onAdd={() => fetchHouses(true)} />
+
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-2 rounded-md">
-                <span>มีผู้อยู่อาศัย ({getStatusCount('occupied')})</span>
+                <span>มีผู้อยู่อาศัย ({getStatusCount("occupied")})</span>
               </div>
               <div className="flex items-center gap-2 bg-gray-100 text-gray-800 px-3 py-2 rounded-md">
-                <span>ว่าง ({getStatusCount('available')})</span>
+                <span>ว่าง ({getStatusCount("available")})</span>
               </div>
               <div className="flex items-center gap-2 bg-red-100 text-red-800 px-3 py-2 rounded-md">
-                <span>ไม่ใช้งาน ({getStatusCount('disable')})</span>
+                <span>ไม่ใช้งาน ({getStatusCount("disable")})</span>
               </div>
             </div>
           </div>
@@ -226,7 +232,7 @@ export default function HouseManagementTable() {
                 className="w-full"
               />
             </div>
-            
+
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-gray-500" />
               <span className="text-sm text-gray-600">ตัวกรอง</span>
@@ -242,7 +248,7 @@ export default function HouseManagementTable() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             {/* Refresh indicator */}
             {refreshing && (
               <div className="flex items-center gap-1 text-blue-600 text-sm">
@@ -274,15 +280,20 @@ export default function HouseManagementTable() {
                         <Home className="h-4 w-4 text-blue-600" />
                       </div>
                       <span className="font-medium">
-                        {house.address === '-' ? 'ไม่ระบุ' : house.address}
+                        {house.address === "-" ? "ไม่ระบุ" : house.address}
                       </span>
                     </div>
                   </TableCell>
                   <TableCell className="text-gray-600">
-                    {house.village_key.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    {house.village_key
+                      .replace(/-/g, " ")
+                      .replace(/\b\w/g, (l) => l.toUpperCase())}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className={`${getStatusColor(house.status)} font-normal`}>
+                    <Badge
+                      variant="secondary"
+                      className={`${getStatusColor(house.status)} font-normal`}
+                    >
                       {getStatusText(house.status)}
                     </Badge>
                   </TableCell>
@@ -290,7 +301,10 @@ export default function HouseManagementTable() {
                     {house.house_id.slice(0, 8)}...
                   </TableCell>
                   <TableCell>
-                    <EditHouseDialog house={house} onUpdate={() => fetchHouses(true)}>
+                    <EditHouseDialog
+                      house={house}
+                      onUpdate={() => fetchHouses(true)}
+                    >
                       <Button
                         variant="ghost"
                         size="sm"
@@ -327,15 +341,19 @@ export default function HouseManagementTable() {
                       <SelectItem value="20">20</SelectItem>
                     </SelectContent>
                   </Select>
-                  <span className="text-xs sm:text-sm text-gray-600">รายการต่อหน้า</span>
+                  <span className="text-xs sm:text-sm text-gray-600">
+                    รายการต่อหน้า
+                  </span>
                 </div>
-                
+
                 {/* Pagination info */}
                 <div className="text-xs sm:text-sm text-gray-600">
-                  แสดง {((currentPage - 1) * itemsPerPage) + 1} ถึง {Math.min(currentPage * itemsPerPage, totalItems)} จาก {totalItems} รายการ
+                  แสดง {(currentPage - 1) * itemsPerPage + 1} ถึง{" "}
+                  {Math.min(currentPage * itemsPerPage, totalItems)} จาก{" "}
+                  {totalItems} รายการ
                 </div>
               </div>
-              
+
               {/* Right section - Navigation buttons */}
               <div className="flex items-center space-x-2">
                 {/* Previous page button */}
@@ -350,7 +368,7 @@ export default function HouseManagementTable() {
                   <span className="hidden sm:inline">ก่อนหน้า</span>
                   <span className="sm:hidden">ก่อน</span>
                 </Button>
-                
+
                 {/* Page number buttons */}
                 <div className="flex items-center space-x-1">
                   {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
@@ -364,16 +382,18 @@ export default function HouseManagementTable() {
                     } else {
                       pageNum = currentPage - 2 + i;
                     }
-                    
+
                     return (
                       <Button
                         key={pageNum}
-                        variant={currentPage === pageNum ? "default" : "outline"}
+                        variant={
+                          currentPage === pageNum ? "default" : "outline"
+                        }
                         size="sm"
                         onClick={() => setCurrentPage(pageNum)}
                         className={`w-6 h-6 sm:w-8 sm:h-8 p-0 text-xs sm:text-sm ${
-                          currentPage === pageNum 
-                            ? "bg-blue-600 text-white" 
+                          currentPage === pageNum
+                            ? "bg-blue-600 text-white"
                             : "text-gray-600 hover:bg-gray-100"
                         }`}
                       >
@@ -382,7 +402,7 @@ export default function HouseManagementTable() {
                     );
                   })}
                 </div>
-                
+
                 {/* Next page button */}
                 <Button
                   variant="outline"
@@ -401,5 +421,5 @@ export default function HouseManagementTable() {
         </div>
       </div>
     </div>
-  )
-} 
+  );
+}

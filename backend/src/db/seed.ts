@@ -739,6 +739,8 @@ async function createVisitorRecordsData() {
     license_plate?: string;
     record_status: "approved" | "pending" | "rejected";
     visit_purpose?: string;
+    entry_time?: Date;
+    exit_time?: Date;
   }> = [];
   
   // Sample data for non-ID fields
@@ -752,33 +754,69 @@ async function createVisitorRecordsData() {
   ];
   
   const sampleLicensePlates = [
-    "กข-1234",
-    "คง-5678", 
-    "จฉ-9012",
-    "ชซ-3456",
-    "ญฎ-7890",
-    "ฏฐ-1234",
-    "ฑฒ-5678",
-    "ณด-9012",
-    "ตถ-3456",
-    "ทธ-7890",
+    "กข-1234", "คง-5678", "จฉ-9012", "ชซ-3456", "ญฎ-7890",
+    "ฏฐ-1234", "ฑฒ-5678", "ณด-9012", "ตถ-3456", "ทธ-7890",
+    "นบ-1234", "ปผ-5678", "ฝพ-9012", "ฟภ-3456", "มย-7890",
+    "รล-1234", "วศ-5678", "สษ-9012", "หส-3456", "ฬอ-7890",
     null
   ];
   
   const sampleVisitPurposes = [
-    "เยี่ยมญาติ",
-    "ส่งของ",
-    "ซ่อมแซม",
-    "ทำความสะอาด",
-    "ตรวจสอบ",
-    "ประชุม",
-    "ติดตั้งอุปกรณ์",
-    "ตรวจสอบระบบ",
-    "เยี่ยมเพื่อน",
-    "ธุรกิจ"
+    "เยี่ยมญาติ", "ส่งของ", "ซ่อมแซม", "ทำความสะอาด", "ตรวจสอบ",
+    "ประชุม", "ติดตั้งอุปกรณ์", "ตรวจสอบระบบ", "เยี่ยมเพื่อน", "ธุรกิจ",
+    "ส่งเอกสาร", "ตรวจสอบมิเตอร์", "ซ่อมแซมไฟฟ้า", "ทำสวน", "ส่งพัสดุ"
   ];
   
   const recordStatuses: Array<"approved" | "pending" | "rejected"> = ["approved", "pending", "rejected"];
+  
+  // Generate realistic timestamps distributed across different time periods
+  function generateRandomTimestamp(): Date {
+    const now = new Date();
+    
+    // Randomly choose time period: 70% recent (this week), 20% this month, 10% this year
+    const periodChoice = Math.random();
+    let randomDaysAgo: number;
+    
+    if (periodChoice < 0.7) {
+      // 70% - This week (0-7 days ago)
+      randomDaysAgo = Math.floor(Math.random() * 7);
+    } else if (periodChoice < 0.9) {
+      // 20% - This month (8-30 days ago)
+      randomDaysAgo = Math.floor(Math.random() * 22) + 8;
+    } else {
+      // 10% - This year (31-365 days ago)
+      randomDaysAgo = Math.floor(Math.random() * 334) + 31;
+    }
+    
+    // Generate random time with more realistic distribution
+    let randomHours: number;
+    const hourChoice = Math.random();
+    
+    if (hourChoice < 0.4) {
+      // 40% - Business hours (8:00-18:00)
+      randomHours = Math.floor(Math.random() * 10) + 8;
+    } else if (hourChoice < 0.7) {
+      // 30% - Evening hours (18:00-22:00)
+      randomHours = Math.floor(Math.random() * 4) + 18;
+    } else if (hourChoice < 0.85) {
+      // 15% - Morning hours (6:00-8:00)
+      randomHours = Math.floor(Math.random() * 2) + 6;
+    } else if (hourChoice < 0.95) {
+      // 10% - Late night (22:00-24:00)
+      randomHours = Math.floor(Math.random() * 2) + 22;
+    } else {
+      // 5% - Early morning (0:00-6:00)
+      randomHours = Math.floor(Math.random() * 6);
+    }
+    
+    const randomMinutes = Math.floor(Math.random() * 60);
+    
+    const timestamp = new Date(now);
+    timestamp.setDate(timestamp.getDate() - randomDaysAgo);
+    timestamp.setHours(randomHours, randomMinutes, 0, 0);
+    
+    return timestamp;
+  }
   
   // Create visitor records for each resident
   for (const resident of allResidents) {
@@ -793,8 +831,8 @@ async function createVisitorRecordsData() {
     );
     
     if (guardsInSameVillage.length > 0 && housesInSameVillage.length > 0) {
-      // Create 1-3 visitor records per resident
-      const numRecords = Math.floor(Math.random() * 3) + 1;
+      // Create 8-25 visitor records per resident for massive data variety
+      const numRecords = Math.floor(Math.random() * 18) + 8;
       
       for (let i = 0; i < numRecords; i++) {
         const randomGuard = guardsInSameVillage[Math.floor(Math.random() * guardsInSameVillage.length)];
@@ -804,6 +842,19 @@ async function createVisitorRecordsData() {
         const randomVisitPurpose = sampleVisitPurposes[Math.floor(Math.random() * sampleVisitPurposes.length)];
         const randomStatus = recordStatuses[Math.floor(Math.random() * recordStatuses.length)];
         
+        // Generate realistic timestamps
+        const entryTime = generateRandomTimestamp();
+        let exitTime: Date | undefined;
+        
+        // For approved records, generate exit time (1-8 hours later)
+        if (randomStatus === "approved") {
+          exitTime = new Date(entryTime);
+          exitTime.setHours(exitTime.getHours() + Math.floor(Math.random() * 8) + 1);
+        }
+        
+        // For rejected records, no exit time
+        // For pending records, no exit time
+        
         visitorRecordsData.push({
           resident_id: resident.resident_id,
           guard_id: randomGuard.guard_id,
@@ -812,12 +863,200 @@ async function createVisitorRecordsData() {
           license_plate: randomLicensePlate || undefined,
           record_status: randomStatus,
           visit_purpose: randomVisitPurpose,
+          entry_time: entryTime,
+          exit_time: exitTime,
         });
       }
     }
   }
   
   console.log(`Created ${visitorRecordsData.length} visitor_records`);
+  
+  // Add additional records for villages with fewer residents to ensure data coverage
+  console.log("Adding additional records for data coverage...");
+  
+  // Get all villages
+  const allVillages = await db.select().from(villages);
+  
+  for (const village of allVillages) {
+    const villageResidents = allResidents.filter(r => r.village_key === village.village_key);
+    const villageGuards = allGuards.filter(g => g.village_key === village.village_key);
+    const villageHouses = allHouses.filter(h => h.village_key === village.village_key);
+    
+    // If village has very few records, add some more
+    const existingRecordsForVillage = visitorRecordsData.filter(record => {
+      const resident = allResidents.find(r => r.resident_id === record.resident_id);
+      return resident?.village_key === village.village_key;
+    });
+    
+    if (existingRecordsForVillage.length < 40 && villageResidents.length > 0 && villageGuards.length > 0 && villageHouses.length > 0) {
+      // Add 25-50 more records for this village
+      const additionalRecords = Math.floor(Math.random() * 26) + 25;
+      
+      for (let i = 0; i < additionalRecords; i++) {
+        const randomResident = villageResidents[Math.floor(Math.random() * villageResidents.length)];
+        const randomGuard = villageGuards[Math.floor(Math.random() * villageGuards.length)];
+        const randomHouse = villageHouses[Math.floor(Math.random() * villageHouses.length)];
+        const randomPictureKey = samplePictureKeys[Math.floor(Math.random() * samplePictureKeys.length)];
+        const randomLicensePlate = sampleLicensePlates[Math.floor(Math.random() * sampleLicensePlates.length)];
+        const randomVisitPurpose = sampleVisitPurposes[Math.floor(Math.random() * sampleVisitPurposes.length)];
+        const randomStatus = recordStatuses[Math.floor(Math.random() * recordStatuses.length)];
+        
+        // Generate realistic timestamps
+        const entryTime = generateRandomTimestamp();
+        let exitTime: Date | undefined;
+        
+        // For approved records, generate exit time (1-8 hours later)
+        if (randomStatus === "approved") {
+          exitTime = new Date(entryTime);
+          exitTime.setHours(exitTime.getHours() + Math.floor(Math.random() * 8) + 1);
+        }
+        
+        visitorRecordsData.push({
+          resident_id: randomResident.resident_id,
+          guard_id: randomGuard.guard_id,
+          house_id: randomHouse.house_id,
+          picture_key: randomPictureKey || undefined,
+          license_plate: randomLicensePlate || undefined,
+          record_status: randomStatus,
+          visit_purpose: randomVisitPurpose,
+          entry_time: entryTime,
+          exit_time: exitTime,
+        });
+      }
+      
+      console.log(`Added ${additionalRecords} additional records for village: ${village.village_name}`);
+    }
+  }
+  
+  console.log(`Total visitor records after coverage: ${visitorRecordsData.length}`);
+  
+  // Add extra records for villages with very few residents to boost data volume
+  console.log("Adding extra records for data volume boost...");
+  
+  for (const village of allVillages) {
+    const villageResidents = allResidents.filter(r => r.village_key === village.village_key);
+    const villageGuards = allGuards.filter(g => g.village_key === village.village_key);
+    const villageHouses = allHouses.filter(h => h.village_key === village.village_key);
+    
+    if (villageResidents.length > 0 && villageGuards.length > 0 && villageHouses.length > 0) {
+      // Add extra records based on village size
+      let extraRecords = 0;
+      
+      if (villageResidents.length <= 2) {
+        // Small villages: add 60-90 extra records
+        extraRecords = Math.floor(Math.random() * 31) + 60;
+      } else if (villageResidents.length <= 5) {
+        // Medium villages: add 45-75 extra records
+        extraRecords = Math.floor(Math.random() * 31) + 45;
+      } else {
+        // Large villages: add 35-65 extra records
+        extraRecords = Math.floor(Math.random() * 31) + 35;
+      }
+      
+      for (let i = 0; i < extraRecords; i++) {
+        const randomResident = villageResidents[Math.floor(Math.random() * villageResidents.length)];
+        const randomGuard = villageGuards[Math.floor(Math.random() * villageGuards.length)];
+        const randomHouse = villageHouses[Math.floor(Math.random() * villageHouses.length)];
+        const randomPictureKey = samplePictureKeys[Math.floor(Math.random() * samplePictureKeys.length)];
+        const randomLicensePlate = sampleLicensePlates[Math.floor(Math.random() * sampleLicensePlates.length)];
+        const randomVisitPurpose = sampleVisitPurposes[Math.floor(Math.random() * sampleVisitPurposes.length)];
+        const randomStatus = recordStatuses[Math.floor(Math.random() * recordStatuses.length)];
+        
+        // Generate realistic timestamps
+        const entryTime = generateRandomTimestamp();
+        let exitTime: Date | undefined;
+        
+        // For approved records, generate exit time (1-8 hours later)
+        if (randomStatus === "approved") {
+          exitTime = new Date(entryTime);
+          exitTime.setHours(exitTime.getHours() + Math.floor(Math.random() * 8) + 1);
+        }
+        
+        visitorRecordsData.push({
+          resident_id: randomResident.resident_id,
+          guard_id: randomGuard.guard_id,
+          house_id: randomHouse.house_id,
+          picture_key: randomPictureKey || undefined,
+          license_plate: randomLicensePlate || undefined,
+          record_status: randomStatus,
+          visit_purpose: randomVisitPurpose,
+          entry_time: entryTime,
+          exit_time: exitTime,
+        });
+      }
+      
+      console.log(`Added ${extraRecords} extra records for village: ${village.village_name}`);
+    }
+  }
+  
+  console.log(`Final total visitor records: ${visitorRecordsData.length}`);
+  
+  // Add final boost records to reach target volume
+  console.log("Adding final boost records to reach target volume...");
+  
+  // Calculate how many more records we need to reach target
+  const targetRecords = 1000; // Target for 1000 records total
+  const currentRecords = visitorRecordsData.length;
+  const neededRecords = Math.max(0, targetRecords - currentRecords);
+  
+  if (neededRecords > 0) {
+    console.log(`Adding ${neededRecords} final boost records...`);
+    
+    // Add records in batches for better performance
+    const batchSize = 100; // Increased batch size for 1000 records
+    const batches = Math.ceil(neededRecords / batchSize);
+    
+    for (let batch = 0; batch < batches; batch++) {
+      const currentBatchSize = Math.min(batchSize, neededRecords - (batch * batchSize));
+      console.log(`Processing batch ${batch + 1}/${batches} with ${currentBatchSize} records...`);
+      
+      for (let i = 0; i < currentBatchSize; i++) {
+        // Randomly select a village
+        const randomVillage = allVillages[Math.floor(Math.random() * allVillages.length)];
+        const villageResidents = allResidents.filter(r => r.village_key === randomVillage.village_key);
+        const villageGuards = allGuards.filter(g => g.village_key === randomVillage.village_key);
+        const villageHouses = allHouses.filter(h => h.village_key === randomVillage.village_key);
+        
+        if (villageResidents.length > 0 && villageGuards.length > 0 && villageHouses.length > 0) {
+          const randomResident = villageResidents[Math.floor(Math.random() * villageResidents.length)];
+          const randomGuard = villageGuards[Math.floor(Math.random() * villageGuards.length)];
+          const randomHouse = villageHouses[Math.floor(Math.random() * villageHouses.length)];
+          const randomPictureKey = samplePictureKeys[Math.floor(Math.random() * samplePictureKeys.length)];
+          const randomLicensePlate = sampleLicensePlates[Math.floor(Math.random() * sampleLicensePlates.length)];
+          const randomVisitPurpose = sampleVisitPurposes[Math.floor(Math.random() * sampleVisitPurposes.length)];
+          const randomStatus = recordStatuses[Math.floor(Math.random() * recordStatuses.length)];
+          
+          // Generate realistic timestamps
+          const entryTime = generateRandomTimestamp();
+          let exitTime: Date | undefined;
+          
+          // For approved records, generate exit time (1-8 hours later)
+          if (randomStatus === "approved") {
+            exitTime = new Date(entryTime);
+            exitTime.setHours(exitTime.getHours() + Math.floor(Math.random() * 8) + 1);
+          }
+          
+          visitorRecordsData.push({
+            resident_id: randomResident.resident_id,
+            guard_id: randomGuard.guard_id,
+            house_id: randomHouse.house_id,
+            picture_key: randomPictureKey || undefined,
+            license_plate: randomLicensePlate || undefined,
+            record_status: randomStatus,
+            visit_purpose: randomVisitPurpose,
+            entry_time: entryTime,
+            exit_time: exitTime,
+          });
+        }
+      }
+      
+      console.log(`Batch ${batch + 1} complete. Current total: ${visitorRecordsData.length}`);
+    }
+    
+    console.log(`Final boost complete. Total records: ${visitorRecordsData.length}`);
+  }
+  
   return visitorRecordsData;
 }
 
