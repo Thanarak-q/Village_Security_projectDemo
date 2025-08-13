@@ -1,6 +1,6 @@
 "use client";
 
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "./dashboard_sidebar";
 import React, { useEffect, useState } from "react";
 import Navbar from "./navbar";
@@ -26,12 +26,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   if (!data) return <p>Loading...</p>;
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
       <AppSidebar />
-      <main className="w-full">
+      <SidebarInset>
         <Navbar />
         {children}
-      </main>
+      </SidebarInset>
     </SidebarProvider>
   );
 }
