@@ -1,6 +1,13 @@
 "use client";
 
-import { Home, Settings, BookUser, Building, LogOut } from "lucide-react";
+import {
+  Home,
+  Settings,
+  BookUser,
+  Building,
+  LogOut,
+  History,
+} from "lucide-react";
 
 import {
   Sidebar,
@@ -17,6 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useSidebar } from "@/components/ui/sidebar";
 // import { MenuShowColor } from "@/components/animation";
 
 const items = [
@@ -36,6 +44,11 @@ const items = [
     icon: Building,
   },
   {
+    title: "ประวัติ",
+    url: "/dashboard/history",
+    icon: History,
+  },
+  {
     title: "การตั้งค่า",
     url: "/dashboard/setting_manage",
     icon: Settings,
@@ -46,6 +59,7 @@ export function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const [shouldRedirect, setShouldRedirect] = useState(false);
+  const { setOpen } = useSidebar();
 
   async function onSubmit() {
     try {
@@ -60,7 +74,8 @@ export function AppSidebar() {
 
       console.log("Login successful");
       setShouldRedirect(true);
-    } catch (err: any) {
+    } catch (error) {
+      console.error("Logout failed:", error);
     }
   }
 
@@ -98,15 +113,31 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.title} className="">
                   <SidebarMenuButton
                     asChild
-                    className={`py-3 md:py-4 px-2 md:px-3 h-auto text-sm md:text-base transition-all duration-200 ${pathname === item.url
-                      ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-500'
-                      : 'hover:bg-gray-50'
-                      }`}
+                    className={`py-3 md:py-4 px-2 md:px-3 h-auto text-sm md:text-base transition-all duration-200 ${
+                      pathname === item.url
+                        ? "bg-blue-50 text-blue-700 border-r-2 border-blue-500"
+                        : "hover:bg-gray-50"
+                    }`}
                   >
-                    <Link href={item.url}>
-                      <item.icon className={`w-4 h-4 md:w-5 md:h-5 ${pathname === item.url ? 'text-blue-600' : ''
-                        }`} />
-                      <span className={pathname === item.url ? 'font-semibold' : ''}>{item.title}</span>
+                    <Link 
+                      href={item.url}
+                      onClick={() => {
+                        // Close sidebar on mobile when menu item is clicked
+                        if (window.innerWidth < 768) {
+                          setOpen(false);
+                        }
+                      }}
+                    >
+                      <item.icon
+                        className={`w-4 h-4 md:w-5 md:h-5 ${
+                          pathname === item.url ? "text-blue-600" : ""
+                        }`}
+                      />
+                      <span
+                        className={pathname === item.url ? "font-semibold" : ""}
+                      >
+                        {item.title}
+                      </span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

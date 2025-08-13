@@ -22,6 +22,13 @@
       "when": 1753946286752,
       "tag": "0002_admin_activity_logs",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1753946286753,
+      "tag": "0003_add_exit_time_to_visitor_records",
+      "breakpoints": true
     }
   ]
 }

@@ -1,8 +1,9 @@
 "use client"
-import { User } from "lucide-react"
+import { User, Menu, X } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { useEffect, useState, useRef } from "react"
 import { gsap } from "gsap"
+import { useSidebar, SidebarTrigger } from "@/components/ui/sidebar"
 import NotificationComponent from "./(main)/notification"
 
 function Navbar() {
@@ -12,6 +13,12 @@ function Navbar() {
   const [currentTitleIndex, setCurrentTitleIndex] = useState(0)
   const animationRef = useRef<gsap.core.Timeline | null>(null)
   const isAnimatingRef = useRef(false)
+  const { open, setOpen } = useSidebar()
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('Sidebar open state:', open)
+  }, [open])
 
   const currentDate = new Date()
   const thaiDate = new Intl.DateTimeFormat('th-TH', {
@@ -194,8 +201,17 @@ function Navbar() {
       {/* ส่วนเนื้อหาสีขาว */}
       <div className="bg-white p-4 flex justify-between items-center border-b border-gray-200">
         {/* ด้านซ้าย - ข้อความ */}
-        <div className="flex flex-col">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
+          {/* Sidebar Toggle with Custom Icon */}
+          <SidebarTrigger className="p-2 hover:bg-gray-100 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500">
+            {open ? (
+              <X className="h-5 w-5 text-gray-600" />
+            ) : (
+              <Menu className="h-5 w-5 text-gray-600" />
+            )}
+          </SidebarTrigger>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-3">
             {/* Dashboard Title with Spinning Animation */}
             {pathname === '/dashboard' ? (
               <div className="relative overflow-hidden h-10 flex items-center">
@@ -215,10 +231,11 @@ function Navbar() {
                 {pageContent.title}
               </h1>
             )}
+            </div>
+            <p className={pageContent.subtitleClass}>
+              {pageContent.subtitle}
+            </p>
           </div>
-          <p className={pageContent.subtitleClass}>
-            {pageContent.subtitle}
-          </p>
         </div>
 
         {/* ด้านขวา - ไอคอนและโปรไฟล์ */}
