@@ -10,7 +10,8 @@ function Navbar() {
   const [userData, setUserData] = useState<any>(null)
   const titleSpinRef = useRef<HTMLSpanElement>(null)
   const [currentTitleIndex, setCurrentTitleIndex] = useState(0)
-
+  const animationRef = useRef<gsap.core.Timeline | null>(null)
+  const isAnimatingRef = useRef(false)
 
   const currentDate = new Date()
   const thaiDate = new Intl.DateTimeFormat('th-TH', {
@@ -35,11 +36,10 @@ function Navbar() {
       })
   }, [])
 
-  // GSAP spinning title animation for dashboard page
-  useEffect(() => {
-    if (pathname !== '/dashboard' || !titleSpinRef.current || !userData) return
+  // Function to start animation
+  const startAnimation = () => {
+    if (!titleSpinRef.current || !userData || isAnimatingRef.current) return
 
-    // Create title spinning texts array
     const titleTexts = [
       "สวัสดีคุณผู้จัดการ",
       `${userData.username} 👋`
@@ -53,53 +53,91 @@ function Navbar() {
       transformOrigin: "center bottom"
     })
 
-    const animateTitleText = () => {
-      const tl = gsap.timeline({
-        repeat: -1,
-        repeatDelay: 0.5
-      })
+    // Reset index
+    setCurrentTitleIndex(0)
+    isAnimatingRef.current = true
 
-      titleTexts.forEach((_, index: number) => {
-        tl.to(titleSpinRef.current, {
-          duration: 0.4,
-          y: -10,
-          opacity: 0,
-          rotationX: 90,
-          ease: "power2.inOut",
-          onComplete: () => {
-            setCurrentTitleIndex(index)
-          }
-        })
-          .to(titleSpinRef.current, {
-            duration: 0.5,
-            y: 0,
-            opacity: 1,
-            rotationX: 0,
-            ease: "power2.inOut"
-          })
-          .to({}, { duration: 2.5 }) // Hold the text for 2.5 seconds
-      })
-
-      return tl
-    }
-
-    // Initial entrance animation
-    gsap.to(titleSpinRef.current, {
-      duration: 0.8,
-      y: 0,
-      opacity: 1,
-      rotationX: 0,
-      ease: "power2.inOut",
-      delay: 0.3,
+    // Create timeline
+    const tl = gsap.timeline({
+      repeat: -1,
+      repeatDelay: 0.5,
       onComplete: () => {
-        animateTitleText()
+        isAnimatingRef.current = false
       }
     })
 
-    return () => {
-      gsap.killTweensOf(titleSpinRef.current)
+    // Initial entrance
+    // tl.to(titleSpinRef.current, {
+    //   duration: 0.8,
+    //   y: 0,
+    //   opacity: 1,
+    //   rotationX: 0,
+    //   ease: "power2.inOut",
+    //   delay: 0.3
+    // })
+
+    // Loop animation
+    titleTexts.forEach((_, index: number) => {
+      tl.to(titleSpinRef.current, {
+        duration: 0.2,
+        y: -10,
+        opacity: 0,
+        rotationX: 90,
+        ease: "power2.inOut",
+        onComplete: () => {
+          setCurrentTitleIndex(index)
+        }
+      })
+        .to(titleSpinRef.current, {
+          duration: 0.5,
+          y: 0,
+          opacity: 1,
+          rotationX: 0,
+          ease: "power2.inOut"
+        })
+        .to({}, { duration: 2.5 })
+    })
+
+    animationRef.current = tl
+  }
+
+  // Function to stop animation
+  const stopAnimation = () => {
+    if (animationRef.current) {
+      animationRef.current.kill()
+      animationRef.current = null
     }
-  }, [pathname, userData])
+    if (titleSpinRef.current) {
+      gsap.killTweensOf(titleSpinRef.current)
+      gsap.set(titleSpinRef.current, { clearProps: "all" })
+    }
+    isAnimatingRef.current = false
+    setCurrentTitleIndex(0)
+  }
+
+  // Effect for pathname changes
+  useEffect(() => {
+    if (pathname === '/dashboard' && userData) {
+      // Start animation only if not already running
+      if (!isAnimatingRef.current) {
+        startAnimation()
+      }
+    } else {
+      // Stop animation when leaving dashboard
+      stopAnimation()
+    }
+
+    return () => {
+      stopAnimation()
+    }
+  }, [pathname])
+
+  // Effect for userData changes (only when on dashboard)
+  useEffect(() => {
+    if (pathname === '/dashboard' && userData && !isAnimatingRef.current) {
+      startAnimation()
+    }
+  }, [userData])
 
 
 
