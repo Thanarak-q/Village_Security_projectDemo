@@ -201,10 +201,6 @@ export default function HouseManagementTable() {
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="scroll-m-20 text-2xl font-semibold tracking-tight text-gray-900 mb-6">
-            การจัดการบ้าน
-          </h1>
-
           {/* Top Actions */}
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
             <AddHouseDialog onAdd={() => fetchHouses(true)} />
