@@ -122,3 +122,41 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Triangle shape with Windows compatibility */
+.triangle-shape {
+  /* Primary clipPath for modern browsers */
+  clip-path: polygon(20px 100%, 50% 0%, calc(100% - 20px) 100%, 100% 100%, 0% 100%);
+  -webkit-clip-path: polygon(20px 100%, 50% 0%, calc(100% - 20px) 100%, 100% 100%, 0% 100%);
+}
+
+/* Fallback for browsers that don't support calc() in clipPath */
+@supports not (clip-path: polygon(20px 100%, 50% 0%, calc(100% - 20px) 100%, 100% 100%, 0% 100%)) {
+  .triangle-shape {
+    clip-path: polygon(20px 100%, 50% 0%, 80% 100%, 100% 100%, 0% 100%);
+    -webkit-clip-path: polygon(20px 100%, 50% 0%, 80% 100%, 100% 100%, 0% 100%);
+  }
+}
+
+/* Additional fallback using pseudo-elements for very old browsers */
+@supports not (clip-path: polygon(0 0, 0 0, 0 0)) {
+  .triangle-shape {
+    position: relative;
+    background: white;
+    border-radius: 22px 22px 0 0;
+  }
+  
+  .triangle-shape::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 50px solid transparent;
+    border-right: 50px solid transparent;
+    border-bottom: 60px solid white;
+    z-index: 1;
+  }
+}

@@ -246,13 +246,13 @@ const Page: React.FC = () => {
           console.error("Failed to parse error response:", parseError);
           throw new Error(`Login failed (${response.status})`);
         }
-        
+
         console.error("Login error:", {
           status: response.status,
           statusText: response.statusText,
-          data: errData
+          data: errData,
         });
-        
+
         // Handle different error formats
         let errorMessage = "Login failed";
         if (errData?.error) {
@@ -268,7 +268,7 @@ const Page: React.FC = () => {
         } else if (response.status === 403) {
           errorMessage = "Account not verified";
         }
-        
+
         throw new Error(errorMessage);
       }
 
@@ -278,7 +278,9 @@ const Page: React.FC = () => {
       // Trigger success animation
       animateLoginSuccess();
     } catch (err: unknown) {
-      toast.error(err.message || "Something went wrong");
+      const errorMessage =
+        err instanceof Error ? err.message : "Something went wrong";
+      toast.error(errorMessage);
       // Trigger login failure animation
       animateLoginFailure();
       setLoading(false);
@@ -296,9 +298,6 @@ const Page: React.FC = () => {
     if (usernameRect && passwordRect && squareRect) {
       const centerY =
         (usernameRect.top + passwordRect.top) / 2 - usernameRect.top;
-      // Calculate exact position relative to the square container
-      const squareCenterY =
-        (usernameRect.top + passwordRect.top) / 2 - squareRect.top;
 
       // Fade out Login title and Village Management System text while fields are moving
       tl.to([loginTitleRef.current, villageTextRef.current], {
@@ -387,56 +386,64 @@ const Page: React.FC = () => {
       "(prefers-reduced-motion:reduce"
     ).matches;
     const isShortScreen = window.innerHeight < 800;
-    const tl = gsap.timeline();
 
     // Set initial position based on screen height
     const initialBottom = isShortScreen ? "-250px" : "-350px";
-    gsap.set(loginGroupRef.current, { bottom: initialBottom });
 
-    if (!preferReducedMotion) {
-      tl.to(welcomeRef.current, {
-        top: "10%",
-        // y: "-50%",
-        duration: 0.8,
-        ease: "power2.inOut",
-      })
-        .to(
-          triRef.current,
-          {
-            opacity: 1,
-            duration: 1,
-            ease: "power2.inOut",
-          },
-          "<"
-        )
-        // fade in square at same time as triangle
-        .to(
-          squareRef.current,
-          { opacity: 1, duration: 1, ease: "power2.inOut" },
-          "<"
-        )
-        // fade in loginBox
-        .to(
-          loginRef.current,
-          { opacity: 1, duration: 0.4, ease: "power2.inOut" },
-          "-=0.3"
-        );
-    } else if (isLowPerformance) {
-      gsap.set(welcomeRef.current, { top: "18%", y: "-50%" });
-      gsap.set(loginGroupRef.current, {
-        bottom: isShortScreen ? "35%" : "45%",
-        y: "50%",
-      });
-      gsap.set(squareRef.current, { opacity: 1 });
-      gsap.set(loginRef.current, { opacity: 1 });
-    } else {
-      gsap.set(welcomeRef.current, { top: "18%", y: "-50%" });
-      gsap.set(loginGroupRef.current, {
-        bottom: isShortScreen ? "35%" : "45%",
-        y: "50%",
-      });
-      gsap.set(squareRef.current, { opacity: 1 });
-      gsap.set(loginRef.current, { opacity: 1 });
+    try {
+      gsap.set(loginGroupRef.current, { bottom: initialBottom });
+
+      if (!preferReducedMotion && !isLowPerformance) {
+        const tl = gsap.timeline();
+        tl.to(welcomeRef.current, {
+          top: "10%",
+          duration: 0.8,
+          ease: "power2.inOut",
+        })
+          .to(
+            triRef.current,
+            {
+              opacity: 1,
+              duration: 1,
+              ease: "power2.inOut",
+            },
+            "<"
+          )
+          .to(
+            squareRef.current,
+            { opacity: 1, duration: 1, ease: "power2.inOut" },
+            "<"
+          )
+          .to(
+            loginRef.current,
+            { opacity: 1, duration: 0.4, ease: "power2.inOut" },
+            "-=0.3"
+          );
+      } else {
+        // Fallback for low performance devices or reduced motion preference
+        gsap.set(welcomeRef.current, { top: "10%", y: "-50%" });
+        gsap.set(loginGroupRef.current, {
+          bottom: isShortScreen ? "35%" : "45%",
+          y: "50%",
+        });
+        gsap.set(triRef.current, { opacity: 1 });
+        gsap.set(squareRef.current, { opacity: 1 });
+        gsap.set(loginRef.current, { opacity: 1 });
+      }
+    } catch (error) {
+      // Fallback if GSAP fails - ensure elements are visible
+      console.warn("GSAP animation failed, using fallback:", error);
+      if (triRef.current) triRef.current.style.opacity = "1";
+      if (squareRef.current) squareRef.current.style.opacity = "1";
+      if (loginRef.current) loginRef.current.style.opacity = "1";
+      if (welcomeRef.current) {
+        welcomeRef.current.style.top = "10%";
+        welcomeRef.current.style.transform = "translateY(-50%)";
+      }
+      if (loginGroupRef.current) {
+        loginGroupRef.current.style.bottom = isShortScreen ? "35%" : "45%";
+        loginGroupRef.current.style.transform = "translateY(50%)";
+      }
     }
   }, []);
 
@@ -454,11 +461,7 @@ const Page: React.FC = () => {
       >
         <div
           ref={triRef}
-          className="opacity-0 w-full h-[120px] sm:h-[130px] md:h-[140px] bg-white flex flex-col justify-center items-center z-[2] mt-[50px] rounded-t-[22px] relative"
-          style={{
-            clipPath:
-              "polygon(20px 100%, 50% 0%, calc(100% - 20px) 100%, 100% 100%, 0% 100%)",
-          }}
+          className="opacity-0 w-full h-[120px] sm:h-[130px] md:h-[140px] bg-white flex flex-col justify-center items-center z-[2] mt-[50px] rounded-t-[22px] relative triangle-shape"
         >
           <h2
             ref={loginTitleRef}
