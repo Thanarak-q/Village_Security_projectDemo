@@ -201,30 +201,26 @@ export default function HouseManagementTable() {
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="scroll-m-20 text-2xl font-semibold tracking-tight text-gray-900 mb-6">
-            การจัดการบ้าน
-          </h1>
-
           {/* Top Actions */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
             <AddHouseDialog onAdd={() => fetchHouses(true)} />
 
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-2 rounded-md">
+            <div className="flex flex-wrap items-center gap-2 lg:gap-4">
+              <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-2 rounded-md text-sm">
                 <span>มีผู้อยู่อาศัย ({getStatusCount("occupied")})</span>
               </div>
-              <div className="flex items-center gap-2 bg-gray-100 text-gray-800 px-3 py-2 rounded-md">
+              <div className="flex items-center gap-2 bg-gray-100 text-gray-800 px-3 py-2 rounded-md text-sm">
                 <span>ว่าง ({getStatusCount("available")})</span>
               </div>
-              <div className="flex items-center gap-2 bg-red-100 text-red-800 px-3 py-2 rounded-md">
+              <div className="flex items-center gap-2 bg-red-100 text-red-800 px-3 py-2 rounded-md text-sm">
                 <span>ไม่ใช้งาน ({getStatusCount("disable")})</span>
               </div>
             </div>
           </div>
 
           {/* Search and Filter */}
-          <div className="flex items-center gap-4 mb-6">
-            <div className="flex-1 max-w-md">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+            <div className="flex-1 w-full sm:max-w-md">
               <Input
                 placeholder="ค้นหาบ้านเลขที่หรือหมู่บ้าน..."
                 value={searchTerm}
@@ -233,11 +229,11 @@ export default function HouseManagementTable() {
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-gray-500" />
-              <span className="text-sm text-gray-600">ตัวกรอง</span>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Filter className="h-4 w-4 text-gray-500 flex-shrink-0" />
+              <span className="text-sm text-gray-600 hidden sm:inline">ตัวกรอง</span>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-full sm:w-40">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -251,7 +247,7 @@ export default function HouseManagementTable() {
 
             {/* Refresh indicator */}
             {refreshing && (
-              <div className="flex items-center gap-1 text-blue-600 text-sm">
+              <div className="flex items-center gap-1 text-blue-600 text-sm w-full sm:w-auto justify-center sm:justify-start">
                 <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
                 <span>กำลังอัปเดต...</span>
               </div>
@@ -260,70 +256,72 @@ export default function HouseManagementTable() {
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-gray-50">
-                <TableHead className="w-24">บ้านเลขที่</TableHead>
-                <TableHead>หมู่บ้าน</TableHead>
-                <TableHead className="w-32">สถานะ</TableHead>
-                <TableHead className="w-32">รหัสบ้าน</TableHead>
-                <TableHead className="w-16">แก้ไข</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {getCurrentPageData().map((house) => (
-                <TableRow key={house.house_id} className="hover:bg-gray-50">
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                        <Home className="h-4 w-4 text-blue-600" />
-                      </div>
-                      <span className="font-medium">
-                        {house.address === "-" ? "ไม่ระบุ" : house.address}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-gray-600">
-                    {house.village_key
-                      .replace(/-/g, " ")
-                      .replace(/\b\w/g, (l) => l.toUpperCase())}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="secondary"
-                      className={`${getStatusColor(house.status)} font-normal`}
-                    >
-                      {getStatusText(house.status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-gray-600 text-sm font-mono">
-                    {house.house_id.slice(0, 8)}...
-                  </TableCell>
-                  <TableCell>
-                    <EditHouseDialog
-                      house={house}
-                      onUpdate={() => fetchHouses(true)}
-                    >
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 text-xs sm:text-sm"
-                      >
-                        <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
-                      </Button>
-                    </EditHouseDialog>
-                  </TableCell>
+        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="w-24 min-w-[120px]">บ้านเลขที่</TableHead>
+                  <TableHead className="min-w-[150px]">หมู่บ้าน</TableHead>
+                  <TableHead className="w-32 min-w-[120px]">สถานะ</TableHead>
+                  <TableHead className="w-32 min-w-[120px]">รหัสบ้าน</TableHead>
+                  <TableHead className="w-16 min-w-[80px]">แก้ไข</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {getCurrentPageData().map((house) => (
+                  <TableRow key={house.house_id} className="hover:bg-gray-50">
+                    <TableCell className="min-w-[120px]">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                          <Home className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
+                        </div>
+                        <span className="font-medium text-sm sm:text-base truncate">
+                          {house.address === "-" ? "ไม่ระบุ" : house.address}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-gray-600 min-w-[150px] text-sm sm:text-base">
+                      {house.village_key
+                        .replace(/-/g, " ")
+                        .replace(/\b\w/g, (l) => l.toUpperCase())}
+                    </TableCell>
+                    <TableCell className="min-w-[120px]">
+                      <Badge
+                        variant="secondary"
+                        className={`${getStatusColor(house.status)} font-normal text-xs sm:text-sm`}
+                      >
+                        {getStatusText(house.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-gray-600 text-xs sm:text-sm font-mono min-w-[120px]">
+                      {house.house_id.slice(0, 8)}...
+                    </TableCell>
+                    <TableCell className="min-w-[80px]">
+                      <EditHouseDialog
+                        house={house}
+                        onUpdate={() => fetchHouses(true)}
+                      >
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 text-xs sm:text-sm w-full sm:w-auto"
+                        >
+                          <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                        </Button>
+                      </EditHouseDialog>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
 
           {/* Pagination controls */}
           {totalItems > 0 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between px-4 sm:px-6 py-4 border-t bg-gray-50 gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between px-3 sm:px-4 lg:px-6 py-4 border-t bg-gray-50 gap-4">
               {/* Left section - Items per page and pagination info */}
-              <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+              <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto">
                 {/* Items per page selector */}
                 <div className="flex items-center space-x-2">
                   <span className="text-xs sm:text-sm text-gray-600">แสดง</span>
@@ -347,7 +345,7 @@ export default function HouseManagementTable() {
                 </div>
 
                 {/* Pagination info */}
-                <div className="text-xs sm:text-sm text-gray-600">
+                <div className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
                   แสดง {(currentPage - 1) * itemsPerPage + 1} ถึง{" "}
                   {Math.min(currentPage * itemsPerPage, totalItems)} จาก{" "}
                   {totalItems} รายการ
@@ -355,7 +353,7 @@ export default function HouseManagementTable() {
               </div>
 
               {/* Right section - Navigation buttons */}
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 w-full sm:w-auto justify-center sm:justify-end">
                 {/* Previous page button */}
                 <Button
                   variant="outline"
