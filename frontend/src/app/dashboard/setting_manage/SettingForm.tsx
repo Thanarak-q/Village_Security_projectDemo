@@ -180,10 +180,8 @@ function SettingForm() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <div className="lg:col-span-3 space-y-8">
+    <div className="container mx-auto p-6 max-w-4xl">
+      <div className="space-y-8">
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl font-semibold">Profile Information</CardTitle>
@@ -359,7 +357,6 @@ function SettingForm() {
               </Form>
             </CardContent>
           </Card>
-        </div>
       </div>
     </div>
   );

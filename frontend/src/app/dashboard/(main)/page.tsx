@@ -12,7 +12,7 @@ import {
 } from "./statistic";
 
 export default function Page() {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<unknown>(null);
   const { data: statsData, loading: statsLoading, error: statsError } = useStatsData();
   const cardsRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
@@ -91,7 +91,7 @@ export default function Page() {
     };
   }, [data]);
 
-  if (!data) return <p>Loading...</p>;
+  // if (!data) return <p>Loading...</p>;
   // if (data.role !== "admin") {
   //   window.location.href = "/login";
   //   return null; // Prevent rendering if not admin
@@ -106,14 +106,14 @@ export default function Page() {
             <h1 className="scroll-m-20 text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-gray-900">
               {/* สวัสดี, คุณผู้จัดการ {data.username} 👋 */}
             </h1>
-            <p className="text-xs sm:text-sm md:text-base text-gray-500">
-              {new Date().toLocaleDateString("th-TH", {
+            {/* <p className="text-xs sm:text-sm md:text-base text-gray-500">
+              วันนี้ {new Date().toLocaleDateString("th-TH", {
                 weekday: "long",
                 year: "numeric",
                 month: "long",
                 day: "numeric",
               })}
-            </p>
+            </p> */}
           </div>
           <div className="flex justify-start sm:justify-end">
             {/* <NotificationComponent /> */}

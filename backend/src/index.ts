@@ -23,12 +23,12 @@ import { adminActivityLogsRoutes } from "./routes/adminActivityLogs";
 import { adminSettingsRoutes } from "./routes/adminSettings";
 /**
  * SECURITY ENHANCEMENT: Secure Health Check Endpoint
- * 
+ *
  * Changes made:
  * - Removed database pool statistics from response (information disclosure)
  * - Removed detailed error messages from response (information leakage)
  * - Keep error logging for internal monitoring only
- * 
+ *
  * Security benefit: Prevents attackers from gathering internal system information
  */
 const healthCheck = new Elysia().get("/api/health", async () => {
@@ -89,10 +89,10 @@ const app = new Elysia()
   .use(jwt({ name: "jwt", secret: "super-secret", exp: "7d" }))
   /**
    * SECURITY ENHANCEMENT: Comprehensive Security Headers Middleware
-   * 
+   *
    * Added security headers to protect against various attacks:
    * - MIME type sniffing attacks
-   * - Clickjacking attacks  
+   * - Clickjacking attacks
    * - XSS attacks
    * - Information leakage
    * - Unauthorized API access
@@ -101,20 +101,20 @@ const app = new Elysia()
   .onBeforeHandle(({ set }) => {
     // SECURITY: Prevent MIME type sniffing attacks
     set.headers["X-Content-Type-Options"] = "nosniff";
-    
+
     // SECURITY: Prevent clickjacking attacks
     set.headers["X-Frame-Options"] = "DENY";
-    
+
     // SECURITY: Enable XSS protection in browsers
     set.headers["X-XSS-Protection"] = "1; mode=block";
-    
+
     // SECURITY: Control referrer information leakage
     set.headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-    
+
     // SECURITY: Restrict browser API access
     set.headers["Permissions-Policy"] =
       "camera=(), microphone=(), geolocation=(), payment=()";
-    
+
     // SECURITY: Prevent cross-domain policy files
     set.headers["X-Permitted-Cross-Domain-Policies"] = "none";
 

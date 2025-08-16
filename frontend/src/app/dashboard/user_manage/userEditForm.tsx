@@ -105,6 +105,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
 
       if (result.success) {
         console.log(roleChanged ? 'User role changed successfully:' : 'User updated successfully:', result);
+        alert(roleChanged ? 'เปลี่ยนบทบาทผู้ใช้สำเร็จแล้ว!' : 'อัปเดตข้อมูลผู้ใช้สำเร็จแล้ว!');
         onSubmit(formData);
       } else {
         console.error('Failed to update user:', result.error);
