@@ -1,48 +1,8 @@
-# Database data
-dbdata/
+# Ignore everything
+*
 
-# Node modules
-node_modules/
+# Except README.md
+!README.md
 
-# Lock files
-package-lock.json
-*/package-lock.json
-**/package-lock.json
-bun.lock
-*/bun.lock
-**/bun.lock
-yarn.lock
-*/yarn.lock
-**/yarn.lock
-
-# Environment variables
-.env
-.env.local
-.env.production
-
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# Keep .gitignore itself
+!.gitignore
