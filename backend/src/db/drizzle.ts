@@ -3,8 +3,11 @@ import { Pool } from 'pg';
 import 'dotenv/config';
 import { schema } from '../db/schema'; // 👈 import schema
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'; // 👈 import type
- 
-// Database configuration
+
+/**
+ * The configuration for the database connection.
+ * @type {Object}
+ */
 const databaseConfig = {
   url: process.env.DATABASE_URL,
   pool: {
@@ -14,24 +17,30 @@ const databaseConfig = {
   }
 };
 
-// Validate required environment variables
+/**
+ * Validates the database configuration.
+ * @throws {Error} If the DATABASE_URL environment variable is not set or is invalid.
+ */
 function validateDatabaseConfig() {
   if (!databaseConfig.url) {
     throw new Error('DATABASE_URL environment variable is required');
   }
-  
+
   // Validate DATABASE_URL format
   if (!databaseConfig.url.startsWith('postgresql://')) {
     throw new Error('DATABASE_URL must be a valid PostgreSQL connection string');
   }
-  
+
   console.log('✅ Database configuration validated');
 }
 
 // Validate configuration before creating connection
 validateDatabaseConfig();
 
-// Create a PostgreSQL connection pool
+/**
+ * The PostgreSQL connection pool.
+ * @type {Pool}
+ */
 const pool = new Pool({
   connectionString: databaseConfig.url,
   max: databaseConfig.pool.max,
@@ -45,10 +54,17 @@ pool.on('error', (err) => {
   process.exit(-1);
 });
 
-// Create drizzle instance with the pool
+/**
+ * The Drizzle ORM instance.
+ * @type {NodePgDatabase<typeof schema>}
+ */
 const db: NodePgDatabase<typeof schema> = drizzle(pool, { schema });
 
-// Test database connection on startup
+/**
+ * Tests the database connection.
+ * @returns {Promise<Object>} A promise that resolves to the result of the test query.
+ * @throws {Error} If the database connection fails.
+ */
 export async function testConnection() {
   try {
     const result = await db.execute('SELECT 1 as test');
@@ -60,7 +76,10 @@ export async function testConnection() {
   }
 }
 
-// Get database pool stats
+/**
+ * Gets the statistics of the database connection pool.
+ * @returns {Object} An object containing the pool statistics.
+ */
 export function getPoolStats() {
   return {
     totalCount: pool.totalCount,
@@ -69,7 +88,11 @@ export function getPoolStats() {
   };
 }
 
-// Graceful shutdown function
+/**
+ * Closes the database connection.
+ * @returns {Promise<void>} A promise that resolves when the connection is closed.
+ * @throws {Error} If there is an error closing the connection.
+ */
 export async function closeConnection() {
   try {
     await pool.end();

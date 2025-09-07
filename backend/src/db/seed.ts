@@ -1,253 +1,262 @@
 import db from "./drizzle";
-import { villages, houses, residents, guards, admins, house_members, visitor_records, admin_activity_logs } from "./schema";
+import {
+  villages,
+  houses,
+  residents,
+  guards,
+  admins,
+  house_members,
+  visitor_records,
+  admin_activity_logs,
+} from "./schema";
 import { eq, sql } from "drizzle-orm";
 import { hashPassword } from "../utils/passwordUtils";
 
 const villageData = [
   {
     village_name: "หมู่บ้านผาสุก",
-    village_key: "pha-suk-village-001"
+    village_key: "pha-suk-village-001",
   },
   {
     village_name: "หมู่บ้านสุขสันต์",
-    village_key: "suk-san-village-002"
+    village_key: "suk-san-village-002",
   },
   {
     village_name: "หมู่บ้านร่มเย็น",
-    village_key: "rom-yen-village-003"
+    village_key: "rom-yen-village-003",
   },
   {
     village_name: "หมู่บ้านสวนทอง",
-    village_key: "suan-thong-village-004"
+    village_key: "suan-thong-village-004",
   },
   {
     village_name: "หมู่บ้านลุมพินี",
-    village_key: "lumphini-village-005"
+    village_key: "lumphini-village-005",
   },
   {
     village_name: "หมู่บ้านรัตนา",
-    village_key: "rattana-village-006"
+    village_key: "rattana-village-006",
   },
   {
     village_name: "หมู่บ้านศรีสุข",
-    village_key: "sri-suk-village-007"
+    village_key: "sri-suk-village-007",
   },
   {
     village_name: "หมู่บ้านธนารมย์",
-    village_key: "thanarom-village-008"
+    village_key: "thanarom-village-008",
   },
   {
     village_name: "หมู่บ้านสวนสวรรค์",
-    village_key: "suan-sawan-village-009"
+    village_key: "suan-sawan-village-009",
   },
   {
     village_name: "หมู่บ้านสุขุมวิท",
-    village_key: "sukhumvit-village-010"
+    village_key: "sukhumvit-village-010",
   },
   {
     village_name: "หมู่บ้านรัชดา",
-    village_key: "ratchada-village-011"
+    village_key: "ratchada-village-011",
   },
   {
     village_name: "หมู่บ้านลาดพร้าว",
-    village_key: "ladprao-village-012"
+    village_key: "ladprao-village-012",
   },
   {
     village_name: "หมู่บ้านบางนา",
-    village_key: "bangna-village-013"
+    village_key: "bangna-village-013",
   },
   {
     village_name: "หมู่บ้านอโศก",
-    village_key: "asoke-village-014"
+    village_key: "asoke-village-014",
   },
   {
     village_name: "หมู่บ้านทองหล่อ",
-    village_key: "thonglor-village-015"
-  }
+    village_key: "thonglor-village-015",
+  },
 ];
 
 const houseData = [
   // หมู่บ้านผาสุก
   {
     address: "123/45",
-    village_key: "pha-suk-village-001"
+    village_key: "pha-suk-village-001",
   },
   {
     address: "67/89",
-    village_key: "pha-suk-village-001"
+    village_key: "pha-suk-village-001",
   },
   {
     address: "12/34",
-    village_key: "pha-suk-village-001"
+    village_key: "pha-suk-village-001",
   },
 
   // หมู่บ้านสุขสันต์
   {
     address: "456/78",
-    village_key: "suk-san-village-002"
+    village_key: "suk-san-village-002",
   },
   {
     address: "90/12",
-    village_key: "suk-san-village-002"
+    village_key: "suk-san-village-002",
   },
 
   // หมู่บ้านร่มเย็น
   {
     address: "789/01",
-    village_key: "rom-yen-village-003"
+    village_key: "rom-yen-village-003",
   },
   {
     address: "23/45",
-    village_key: "rom-yen-village-003"
+    village_key: "rom-yen-village-003",
   },
   {
     address: "67/89",
-    village_key: "rom-yen-village-003"
+    village_key: "rom-yen-village-003",
   },
 
   // หมู่บ้านสวนทอง
   {
     address: "234/56",
-    village_key: "suan-thong-village-004"
+    village_key: "suan-thong-village-004",
   },
   {
     address: "78/90",
-    village_key: "suan-thong-village-004"
+    village_key: "suan-thong-village-004",
   },
 
   // หมู่บ้านลุมพินี
   {
     address: "345/67",
-    village_key: "lumphini-village-005"
+    village_key: "lumphini-village-005",
   },
   {
     address: "89/01",
-    village_key: "lumphini-village-005"
+    village_key: "lumphini-village-005",
   },
   {
     address: "12/34",
-    village_key: "lumphini-village-005"
+    village_key: "lumphini-village-005",
   },
 
   // หมู่บ้านรัตนา
   {
     address: "456/78",
-    village_key: "rattana-village-006"
+    village_key: "rattana-village-006",
   },
   {
     address: "90/12",
-    village_key: "rattana-village-006"
+    village_key: "rattana-village-006",
   },
 
   // หมู่บ้านศรีสุข
   {
     address: "567/89",
-    village_key: "sri-suk-village-007"
+    village_key: "sri-suk-village-007",
   },
   {
     address: "01/23",
-    village_key: "sri-suk-village-007"
+    village_key: "sri-suk-village-007",
   },
   {
     address: "45/67",
-    village_key: "sri-suk-village-007"
+    village_key: "sri-suk-village-007",
   },
 
   // หมู่บ้านธนารมย์
   {
     address: "678/90",
-    village_key: "thanarom-village-008"
+    village_key: "thanarom-village-008",
   },
   {
     address: "12/34",
-    village_key: "thanarom-village-008"
+    village_key: "thanarom-village-008",
   },
 
   // หมู่บ้านสวนสวรรค์
   {
     address: "789/01",
-    village_key: "suan-sawan-village-009"
+    village_key: "suan-sawan-village-009",
   },
   {
     address: "23/45",
-    village_key: "suan-sawan-village-009"
+    village_key: "suan-sawan-village-009",
   },
   {
     address: "67/89",
-    village_key: "suan-sawan-village-009"
+    village_key: "suan-sawan-village-009",
   },
 
   // หมู่บ้านสุขุมวิท
   {
     address: "890/12",
-    village_key: "sukhumvit-village-010"
+    village_key: "sukhumvit-village-010",
   },
   {
     address: "34/56",
-    village_key: "sukhumvit-village-010"
+    village_key: "sukhumvit-village-010",
   },
 
   // หมู่บ้านรัชดา
   {
     address: "901/23",
-    village_key: "ratchada-village-011"
+    village_key: "ratchada-village-011",
   },
   {
     address: "45/67",
-    village_key: "ratchada-village-011"
+    village_key: "ratchada-village-011",
   },
   {
     address: "89/01",
-    village_key: "ratchada-village-011"
+    village_key: "ratchada-village-011",
   },
 
   // หมู่บ้านลาดพร้าว
   {
     address: "012/34",
-    village_key: "ladprao-village-012"
+    village_key: "ladprao-village-012",
   },
   {
     address: "56/78",
-    village_key: "ladprao-village-012"
+    village_key: "ladprao-village-012",
   },
 
   // หมู่บ้านบางนา
   {
     address: "123/45",
-    village_key: "bangna-village-013"
+    village_key: "bangna-village-013",
   },
   {
     address: "67/89",
-    village_key: "bangna-village-013"
+    village_key: "bangna-village-013",
   },
   {
     address: "01/23",
-    village_key: "bangna-village-013"
+    village_key: "bangna-village-013",
   },
 
   // หมู่บ้านอโศก
   {
     address: "234/56",
-    village_key: "asoke-village-014"
+    village_key: "asoke-village-014",
   },
   {
     address: "78/90",
-    village_key: "asoke-village-014"
+    village_key: "asoke-village-014",
   },
 
   // หมู่บ้านทองหล่อ
   {
     address: "345/67",
-    village_key: "thonglor-village-015"
+    village_key: "thonglor-village-015",
   },
   {
     address: "89/01",
-    village_key: "thonglor-village-015"
+    village_key: "thonglor-village-015",
   },
   {
     address: "12/34",
-    village_key: "thonglor-village-015"
-  }
+    village_key: "thonglor-village-015",
+  },
 ];
 
 const residentData = [
@@ -260,7 +269,7 @@ const residentData = [
     password_hash: "password123",
     phone: "0812345678",
     village_key: "pha-suk-village-001",
-    status: "verified"
+    status: "verified",
   },
   {
     email: "somying.pha@email.com",
@@ -270,7 +279,7 @@ const residentData = [
     password_hash: "password123",
     phone: "0812345678",
     village_key: "pha-suk-village-001",
-    status: "verified"
+    status: "verified",
   },
   // หมู่บ้านรัตนา
   {
@@ -281,7 +290,7 @@ const residentData = [
     password_hash: "password123",
     phone: "0823456789",
     village_key: "rattana-village-006",
-    status: "verified"
+    status: "verified",
   },
 
   // หมู่บ้านศรีสุข
@@ -293,7 +302,7 @@ const residentData = [
     password_hash: "password123",
     phone: "0845678901",
     village_key: "sri-suk-village-007",
-    status: "verified"
+    status: "verified",
   },
   {
     email: "pimchanok.sri@email.com",
@@ -303,7 +312,7 @@ const residentData = [
     password_hash: "password123",
     phone: "0856789012",
     village_key: "sri-suk-village-007",
-    status: "verified"
+    status: "verified",
   },
 
   // หมู่บ้านธนารมย์
@@ -315,7 +324,7 @@ const residentData = [
     password_hash: "password123",
     phone: "0867890123",
     village_key: "thanarom-village-008",
-    status: "verified"
+    status: "verified",
   },
   {
     email: "kanokwan.thana@email.com",
@@ -325,7 +334,7 @@ const residentData = [
     password_hash: "password123",
     phone: "0878901234",
     village_key: "thanarom-village-008",
-    status: "verified"
+    status: "verified",
   },
 
   // หมู่บ้านสวนสวรรค์
@@ -337,7 +346,7 @@ const residentData = [
     password_hash: "password123",
     phone: "0889012345",
     village_key: "suan-sawan-village-009",
-    status: "verified"
+    status: "verified",
   },
   {
     email: "supaporn.suan@email.com",
@@ -347,7 +356,7 @@ const residentData = [
     password_hash: "password123",
     phone: "0890123456",
     village_key: "suan-sawan-village-009",
-    status: "verified"
+    status: "verified",
   },
 
   // หมู่บ้านสุขุมวิท
@@ -359,7 +368,7 @@ const residentData = [
     password_hash: "password123",
     phone: "0801234567",
     village_key: "sukhumvit-village-010",
-    status: "pending"
+    status: "pending",
   },
   {
     email: "benjawan.suk@email.com",
@@ -369,7 +378,7 @@ const residentData = [
     password_hash: "password123",
     phone: "0812345679",
     village_key: "sukhumvit-village-010",
-    status: "verified"
+    status: "verified",
   },
 
   // หมู่บ้านรัชดา
@@ -381,7 +390,7 @@ const residentData = [
     password_hash: "password123",
     phone: "0823456790",
     village_key: "ratchada-village-011",
-    status: "verified"
+    status: "verified",
   },
   {
     email: "sirilak.ratc@email.com",
@@ -391,7 +400,7 @@ const residentData = [
     password_hash: "password123",
     phone: "0834567901",
     village_key: "ratchada-village-011",
-    status: "verified"
+    status: "verified",
   },
 
   // หมู่บ้านลาดพร้าว
@@ -403,7 +412,7 @@ const residentData = [
     password_hash: "password123",
     phone: "0845679012",
     village_key: "ladprao-village-012",
-    status: "pending"
+    status: "pending",
   },
 
   // หมู่บ้านบางนา
@@ -415,7 +424,7 @@ const residentData = [
     password_hash: "password123",
     phone: "0856790123",
     village_key: "bangna-village-013",
-    status: "pending"
+    status: "pending",
   },
 
   // หมู่บ้านทองหล่อ
@@ -427,8 +436,8 @@ const residentData = [
     password_hash: "password123",
     phone: "0867901234",
     village_key: "thonglor-village-015",
-    status: "pending"
-  }
+    status: "pending",
+  },
 ];
 
 const guardData = [
@@ -441,7 +450,7 @@ const guardData = [
     password_hash: "password123",
     phone: "0891234567",
     village_key: "pha-suk-village-001",
-    status: "verified"
+    status: "verified",
   },
   // หมู่บ้านรัตนา
   {
@@ -452,7 +461,7 @@ const guardData = [
     password_hash: "password123",
     phone: "0892345678",
     village_key: "rattana-village-006",
-    status: "verified"
+    status: "verified",
   },
   // หมู่บ้านทองหล่อ
   {
@@ -463,9 +472,8 @@ const guardData = [
     password_hash: "password123",
     phone: "0893456789",
     village_key: "thonglor-village-015",
-    status: "verified"
-  }
-
+    status: "verified",
+  },
 ];
 
 const adminData = [
@@ -476,7 +484,7 @@ const adminData = [
     password_hash: "password123",
     phone: "0891234567",
     village_key: "pha-suk-village-001",
-    status: "verified"
+    status: "verified",
   },
   // หมู่บ้านสุขสันต์
   {
@@ -485,7 +493,7 @@ const adminData = [
     password_hash: "password123",
     phone: "0891234568",
     village_key: "suk-san-village-002",
-    status: "verified"
+    status: "verified",
   },
   // หมู่บ้านร่มเย็น
   {
@@ -494,7 +502,7 @@ const adminData = [
     password_hash: "password123",
     phone: "0891234569",
     village_key: "rom-yen-village-003",
-    status: "verified"
+    status: "verified",
   },
   // หมู่บ้านสวนทอง
   {
@@ -503,7 +511,7 @@ const adminData = [
     password_hash: "password123",
     phone: "0891234570",
     village_key: "suan-thong-village-004",
-    status: "verified"
+    status: "verified",
   },
   // หมู่บ้านลุมพินี
   {
@@ -512,7 +520,7 @@ const adminData = [
     password_hash: "password123",
     phone: "0891234571",
     village_key: "lumphini-village-005",
-    status: "verified"
+    status: "verified",
   },
   // หมู่บ้านรัตนา
   {
@@ -521,7 +529,7 @@ const adminData = [
     password_hash: "password123",
     phone: "0891234572",
     village_key: "rattana-village-006",
-    status: "verified"
+    status: "verified",
   },
   // หมู่บ้านศรีสุข
   {
@@ -530,7 +538,7 @@ const adminData = [
     password_hash: "password123",
     phone: "0891234573",
     village_key: "sri-suk-village-007",
-    status: "verified"
+    status: "verified",
   },
   // หมู่บ้านธนารมย์
   {
@@ -539,7 +547,7 @@ const adminData = [
     password_hash: "password123",
     phone: "0891234574",
     village_key: "thanarom-village-008",
-    status: "verified"
+    status: "verified",
   },
   // หมู่บ้านสวนสวรรค์
   {
@@ -548,7 +556,7 @@ const adminData = [
     password_hash: "password123",
     phone: "0891234575",
     village_key: "suan-sawan-village-009",
-    status: "verified"
+    status: "verified",
   },
   // หมู่บ้านสุขุมวิท
   {
@@ -557,7 +565,7 @@ const adminData = [
     password_hash: "password123",
     phone: "0891234576",
     village_key: "sukhumvit-village-010",
-    status: "verified"
+    status: "verified",
   },
   // หมู่บ้านรัชดา
   {
@@ -566,7 +574,7 @@ const adminData = [
     password_hash: "password123",
     phone: "0891234577",
     village_key: "ratchada-village-011",
-    status: "verified"
+    status: "verified",
   },
   // หมู่บ้านลาดพร้าว
   {
@@ -575,7 +583,7 @@ const adminData = [
     password_hash: "password123",
     phone: "0891234578",
     village_key: "ladprao-village-012",
-    status: "verified"
+    status: "verified",
   },
   // หมู่บ้านบางนา
   {
@@ -584,7 +592,7 @@ const adminData = [
     password_hash: "password123",
     phone: "0891234579",
     village_key: "bangna-village-013",
-    status: "pending"
+    status: "pending",
   },
   // หมู่บ้านอโศก
   {
@@ -593,7 +601,7 @@ const adminData = [
     password_hash: "password123",
     phone: "0891234580",
     village_key: "asoke-village-014",
-    status: "pending"
+    status: "pending",
   },
   // หมู่บ้านทองหล่อ
   {
@@ -602,26 +610,32 @@ const adminData = [
     password_hash: "password123",
     phone: "0891234581",
     village_key: "thonglor-village-015",
-    status: "pending"
-  }
+    status: "pending",
+  },
 ];
 
-
-
-
-
+/**
+ * Clears all data from the database.
+ * @returns {Promise<void>}
+ */
 export async function clearDb() {
   // Check if villages or houses exist before deleting
   console.log("Clearing database");
 
   console.log("Clearing admin_activity_logs");
-  const existingAdminActivityLogs = await db.select().from(admin_activity_logs).limit(1);
+  const existingAdminActivityLogs = await db
+    .select()
+    .from(admin_activity_logs)
+    .limit(1);
   if (existingAdminActivityLogs.length > 0) {
     await db.delete(admin_activity_logs);
   }
 
   console.log("Clearing visitor_records");
-  const existingVisitorRecords = await db.select().from(visitor_records).limit(1);
+  const existingVisitorRecords = await db
+    .select()
+    .from(visitor_records)
+    .limit(1);
   if (existingVisitorRecords.length > 0) {
     await db.delete(visitor_records);
   }
@@ -655,7 +669,7 @@ export async function clearDb() {
   if (existingHouses.length > 0) {
     await db.delete(houses);
   }
-  
+
   console.log("Clearing villages");
   const existingVillages = await db.select().from(villages).limit(1);
   if (existingVillages.length > 0) {
@@ -663,16 +677,19 @@ export async function clearDb() {
   }
 }
 
-// Function to create house_members data by fetching existing houses and residents
+/**
+ * Creates house members data by fetching existing houses and residents.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of house members data.
+ */
 async function createHouseMembersData() {
   console.log("Creating house_members data...");
-  
+
   // Fetch all houses and residents from database
   const allHouses = await db.select().from(houses);
   const allResidents = await db.select().from(residents);
-  
+
   const houseMembersData: Array<{ house_id: string; resident_id: string }> = [];
-  
+
   // Group residents by village
   const residentsByVillage: Record<string, typeof allResidents> = {};
   for (const resident of allResidents) {
@@ -683,7 +700,7 @@ async function createHouseMembersData() {
       residentsByVillage[resident.village_key].push(resident);
     }
   }
-  
+
   // Group houses by village
   const housesByVillage: Record<string, typeof allHouses> = {};
   for (const house of allHouses) {
@@ -694,43 +711,46 @@ async function createHouseMembersData() {
       housesByVillage[house.village_key].push(house);
     }
   }
-  
+
   // Assign residents to houses in their village
   for (const villageKey in residentsByVillage) {
     const villageResidents = residentsByVillage[villageKey];
     const villageHouses = housesByVillage[villageKey] || [];
-    
+
     if (villageHouses.length === 0) {
       console.log(`No houses found for village: ${villageKey}`);
       continue;
     }
-    
+
     // Distribute residents across houses in the village
     for (let i = 0; i < villageResidents.length; i++) {
       const resident = villageResidents[i];
       const houseIndex = i % villageHouses.length; // Round-robin distribution
       const assignedHouse = villageHouses[houseIndex];
-      
+
       houseMembersData.push({
         house_id: assignedHouse.house_id,
         resident_id: resident.resident_id,
       });
     }
   }
-  
+
   console.log(`Created ${houseMembersData.length} house_members records`);
   return houseMembersData;
 }
 
-// Function to create visitor_records data by fetching existing data
+/**
+ * Creates visitor records data by fetching existing data.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of visitor records data.
+ */
 async function createVisitorRecordsData() {
   console.log("Creating visitor_records data...");
-  
+
   // Fetch all required data from database
   const allResidents = await db.select().from(residents);
   const allGuards = await db.select().from(guards);
   const allHouses = await db.select().from(houses);
-  
+
   const visitorRecordsData: Array<{
     resident_id: string;
     guard_id: string;
@@ -742,41 +762,73 @@ async function createVisitorRecordsData() {
     entry_time?: Date;
     exit_time?: Date;
   }> = [];
-  
+
   // Sample data for non-ID fields
   const samplePictureKeys = [
     "visitor_photo_001.jpg",
-    "visitor_photo_002.jpg", 
+    "visitor_photo_002.jpg",
     "visitor_photo_003.jpg",
     "visitor_photo_004.jpg",
     "visitor_photo_005.jpg",
-    null
+    null,
   ];
-  
+
   const sampleLicensePlates = [
-    "กข-1234", "คง-5678", "จฉ-9012", "ชซ-3456", "ญฎ-7890",
-    "ฏฐ-1234", "ฑฒ-5678", "ณด-9012", "ตถ-3456", "ทธ-7890",
-    "นบ-1234", "ปผ-5678", "ฝพ-9012", "ฟภ-3456", "มย-7890",
-    "รล-1234", "วศ-5678", "สษ-9012", "หส-3456", "ฬอ-7890",
-    null
+    "กข-1234",
+    "คง-5678",
+    "จฉ-9012",
+    "ชซ-3456",
+    "ญฎ-7890",
+    "ฏฐ-1234",
+    "ฑฒ-5678",
+    "ณด-9012",
+    "ตถ-3456",
+    "ทธ-7890",
+    "นบ-1234",
+    "ปผ-5678",
+    "ฝพ-9012",
+    "ฟภ-3456",
+    "มย-7890",
+    "รล-1234",
+    "วศ-5678",
+    "สษ-9012",
+    "หส-3456",
+    "ฬอ-7890",
+    null,
   ];
-  
+
   const sampleVisitPurposes = [
-    "เยี่ยมญาติ", "ส่งของ", "ซ่อมแซม", "ทำความสะอาด", "ตรวจสอบ",
-    "ประชุม", "ติดตั้งอุปกรณ์", "ตรวจสอบระบบ", "เยี่ยมเพื่อน", "ธุรกิจ",
-    "ส่งเอกสาร", "ตรวจสอบมิเตอร์", "ซ่อมแซมไฟฟ้า", "ทำสวน", "ส่งพัสดุ"
+    "เยี่ยมญาติ",
+    "ส่งของ",
+    "ซ่อมแซม",
+    "ทำความสะอาด",
+    "ตรวจสอบ",
+    "ประชุม",
+    "ติดตั้งอุปกรณ์",
+    "ตรวจสอบระบบ",
+    "เยี่ยมเพื่อน",
+    "ธุรกิจ",
+    "ส่งเอกสาร",
+    "ตรวจสอบมิเตอร์",
+    "ซ่อมแซมไฟฟ้า",
+    "ทำสวน",
+    "ส่งพัสดุ",
   ];
-  
-  const recordStatuses: Array<"approved" | "pending" | "rejected"> = ["approved", "pending", "rejected"];
-  
+
+  const recordStatuses: Array<"approved" | "pending" | "rejected"> = [
+    "approved",
+    "pending",
+    "rejected",
+  ];
+
   // Generate realistic timestamps distributed across different time periods
   function generateRandomTimestamp(): Date {
     const now = new Date();
-    
+
     // Randomly choose time period: 70% recent (this week), 20% this month, 10% this year
     const periodChoice = Math.random();
     let randomDaysAgo: number;
-    
+
     if (periodChoice < 0.7) {
       // 70% - This week (0-7 days ago)
       randomDaysAgo = Math.floor(Math.random() * 7);
@@ -787,11 +839,11 @@ async function createVisitorRecordsData() {
       // 10% - This year (31-365 days ago)
       randomDaysAgo = Math.floor(Math.random() * 334) + 31;
     }
-    
+
     // Generate random time with more realistic distribution
     let randomHours: number;
     const hourChoice = Math.random();
-    
+
     if (hourChoice < 0.4) {
       // 40% - Business hours (8:00-18:00)
       randomHours = Math.floor(Math.random() * 10) + 8;
@@ -808,53 +860,69 @@ async function createVisitorRecordsData() {
       // 5% - Early morning (0:00-6:00)
       randomHours = Math.floor(Math.random() * 6);
     }
-    
+
     const randomMinutes = Math.floor(Math.random() * 60);
-    
+
     const timestamp = new Date(now);
     timestamp.setDate(timestamp.getDate() - randomDaysAgo);
     timestamp.setHours(randomHours, randomMinutes, 0, 0);
-    
+
     return timestamp;
   }
-  
+
   // Create visitor records for each resident
   for (const resident of allResidents) {
     // Find guards in the same village as the resident
     const guardsInSameVillage = allGuards.filter(
-      guard => guard.village_key === resident.village_key
+      (guard) => guard.village_key === resident.village_key
     );
-    
+
     // Find houses in the same village as the resident
     const housesInSameVillage = allHouses.filter(
-      house => house.village_key === resident.village_key
+      (house) => house.village_key === resident.village_key
     );
-    
+
     if (guardsInSameVillage.length > 0 && housesInSameVillage.length > 0) {
       // Create 8-25 visitor records per resident for massive data variety
       const numRecords = Math.floor(Math.random() * 18) + 8;
-      
+
       for (let i = 0; i < numRecords; i++) {
-        const randomGuard = guardsInSameVillage[Math.floor(Math.random() * guardsInSameVillage.length)];
-        const randomHouse = housesInSameVillage[Math.floor(Math.random() * housesInSameVillage.length)];
-        const randomPictureKey = samplePictureKeys[Math.floor(Math.random() * samplePictureKeys.length)];
-        const randomLicensePlate = sampleLicensePlates[Math.floor(Math.random() * sampleLicensePlates.length)];
-        const randomVisitPurpose = sampleVisitPurposes[Math.floor(Math.random() * sampleVisitPurposes.length)];
-        const randomStatus = recordStatuses[Math.floor(Math.random() * recordStatuses.length)];
-        
+        const randomGuard =
+          guardsInSameVillage[
+            Math.floor(Math.random() * guardsInSameVillage.length)
+          ];
+        const randomHouse =
+          housesInSameVillage[
+            Math.floor(Math.random() * housesInSameVillage.length)
+          ];
+        const randomPictureKey =
+          samplePictureKeys[Math.floor(Math.random() * samplePictureKeys.length)];
+        const randomLicensePlate =
+          sampleLicensePlates[
+            Math.floor(Math.random() * sampleLicensePlates.length)
+          ];
+        const randomVisitPurpose =
+          sampleVisitPurposes[
+            Math.floor(Math.random() * sampleVisitPurposes.length)
+          ];
+        const randomStatus =
+          recordStatuses[Math.floor(Math.random() * recordStatuses.length)];
+
         // Generate realistic timestamps
         const entryTime = generateRandomTimestamp();
         let exitTime: Date | undefined;
-        
+
         // For approved records, generate exit time (1-8 hours later)
         if (randomStatus === "approved") {
           exitTime = new Date(entryTime);
-          exitTime.setHours(exitTime.getHours() + Math.floor(Math.random() * 8) + 1);
+          exitTime.setHours(
+            exitTime.getHours() + Math.floor(Math.random() * 8) + 1
+          );
         }
-        
+
         // For rejected records, no exit time
         // For pending records, no exit time
-        
+
         visitorRecordsData.push({
           resident_id: resident.resident_id,
           guard_id: randomGuard.guard_id,
@@ -869,49 +937,75 @@ async function createVisitorRecordsData() {
       }
     }
   }
-  
+
   console.log(`Created ${visitorRecordsData.length} visitor_records`);
-  
+
   // Add additional records for villages with fewer residents to ensure data coverage
   console.log("Adding additional records for data coverage...");
-  
+
   // Get all villages
   const allVillages = await db.select().from(villages);
-  
+
   for (const village of allVillages) {
-    const villageResidents = allResidents.filter(r => r.village_key === village.village_key);
-    const villageGuards = allGuards.filter(g => g.village_key === village.village_key);
-    const villageHouses = allHouses.filter(h => h.village_key === village.village_key);
-    
+    const villageResidents = allResidents.filter(
+      (r) => r.village_key === village.village_key
+    );
+    const villageGuards = allGuards.filter(
+      (g) => g.village_key === village.village_key
+    );
+    const villageHouses = allHouses.filter(
+      (h) => h.village_key === village.village_key
+    );
+
     // If village has very few records, add some more
-    const existingRecordsForVillage = visitorRecordsData.filter(record => {
-      const resident = allResidents.find(r => r.resident_id === record.resident_id);
+    const existingRecordsForVillage = visitorRecordsData.filter((record) => {
+      const resident = allResidents.find(
+        (r) => r.resident_id === record.resident_id
+      );
       return resident?.village_key === village.village_key;
     });
-    
-    if (existingRecordsForVillage.length < 40 && villageResidents.length > 0 && villageGuards.length > 0 && villageHouses.length > 0) {
+
+    if (
+      existingRecordsForVillage.length < 40 &&
+      villageResidents.length > 0 &&
+      villageGuards.length > 0 &&
+      villageHouses.length > 0
+    ) {
       // Add 25-50 more records for this village
       const additionalRecords = Math.floor(Math.random() * 26) + 25;
-      
+
       for (let i = 0; i < additionalRecords; i++) {
-        const randomResident = villageResidents[Math.floor(Math.random() * villageResidents.length)];
-        const randomGuard = villageGuards[Math.floor(Math.random() * villageGuards.length)];
-        const randomHouse = villageHouses[Math.floor(Math.random() * villageHouses.length)];
-        const randomPictureKey = samplePictureKeys[Math.floor(Math.random() * samplePictureKeys.length)];
-        const randomLicensePlate = sampleLicensePlates[Math.floor(Math.random() * sampleLicensePlates.length)];
-        const randomVisitPurpose = sampleVisitPurposes[Math.floor(Math.random() * sampleVisitPurposes.length)];
-        const randomStatus = recordStatuses[Math.floor(Math.random() * recordStatuses.length)];
-        
+        const randomResident =
+          villageResidents[Math.floor(Math.random() * villageResidents.length)];
+        const randomGuard =
+          villageGuards[Math.floor(Math.random() * villageGuards.length)];
+        const randomHouse =
+          villageHouses[Math.floor(Math.random() * villageHouses.length)];
+        const randomPictureKey =
+          samplePictureKeys[Math.floor(Math.random() * samplePictureKeys.length)];
+        const randomLicensePlate =
+          sampleLicensePlates[
+            Math.floor(Math.random() * sampleLicensePlates.length)
+          ];
+        const randomVisitPurpose =
+          sampleVisitPurposes[
+            Math.floor(Math.random() * sampleVisitPurposes.length)
+          ];
+        const randomStatus =
+          recordStatuses[Math.floor(Math.random() * recordStatuses.length)];
+
         // Generate realistic timestamps
         const entryTime = generateRandomTimestamp();
         let exitTime: Date | undefined;
-        
+
         // For approved records, generate exit time (1-8 hours later)
         if (randomStatus === "approved") {
           exitTime = new Date(entryTime);
-          exitTime.setHours(exitTime.getHours() + Math.floor(Math.random() * 8) + 1);
+          exitTime.setHours(
+            exitTime.getHours() + Math.floor(Math.random() * 8) + 1
+          );
         }
-        
+
         visitorRecordsData.push({
           resident_id: randomResident.resident_id,
           guard_id: randomGuard.guard_id,
@@ -924,25 +1018,39 @@ async function createVisitorRecordsData() {
           exit_time: exitTime,
         });
       }
-      
-      console.log(`Added ${additionalRecords} additional records for village: ${village.village_name}`);
+
+      console.log(
+        `Added ${additionalRecords} additional records for village: ${village.village_name}`
+      );
     }
   }
-  
-  console.log(`Total visitor records after coverage: ${visitorRecordsData.length}`);
-  
+
+  console.log(
+    `Total visitor records after coverage: ${visitorRecordsData.length}`
+  );
+
   // Add extra records for villages with very few residents to boost data volume
   console.log("Adding extra records for data volume boost...");
-  
+
   for (const village of allVillages) {
-    const villageResidents = allResidents.filter(r => r.village_key === village.village_key);
-    const villageGuards = allGuards.filter(g => g.village_key === village.village_key);
-    const villageHouses = allHouses.filter(h => h.village_key === village.village_key);
-    
-    if (villageResidents.length > 0 && villageGuards.length > 0 && villageHouses.length > 0) {
+    const villageResidents = allResidents.filter(
+      (r) => r.village_key === village.village_key
+    );
+    const villageGuards = allGuards.filter(
+      (g) => g.village_key === village.village_key
+    );
+    const villageHouses = allHouses.filter(
+      (h) => h.village_key === village.village_key
+    );
+
+    if (
+      villageResidents.length > 0 &&
+      villageGuards.length > 0 &&
+      villageHouses.length > 0
+    ) {
       // Add extra records based on village size
       let extraRecords = 0;
-      
+
       if (villageResidents.length <= 2) {
         // Small villages: add 60-90 extra records
         extraRecords = Math.floor(Math.random() * 31) + 60;
@@ -953,26 +1061,39 @@ async function createVisitorRecordsData() {
         // Large villages: add 35-65 extra records
         extraRecords = Math.floor(Math.random() * 31) + 35;
       }
-      
+
       for (let i = 0; i < extraRecords; i++) {
-        const randomResident = villageResidents[Math.floor(Math.random() * villageResidents.length)];
-        const randomGuard = villageGuards[Math.floor(Math.random() * villageGuards.length)];
-        const randomHouse = villageHouses[Math.floor(Math.random() * villageHouses.length)];
-        const randomPictureKey = samplePictureKeys[Math.floor(Math.random() * samplePictureKeys.length)];
-        const randomLicensePlate = sampleLicensePlates[Math.floor(Math.random() * sampleLicensePlates.length)];
-        const randomVisitPurpose = sampleVisitPurposes[Math.floor(Math.random() * sampleVisitPurposes.length)];
-        const randomStatus = recordStatuses[Math.floor(Math.random() * recordStatuses.length)];
-        
+        const randomResident =
+          villageResidents[Math.floor(Math.random() * villageResidents.length)];
+        const randomGuard =
+          villageGuards[Math.floor(Math.random() * villageGuards.length)];
+        const randomHouse =
+          villageHouses[Math.floor(Math.random() * villageHouses.length)];
+        const randomPictureKey =
+          samplePictureKeys[Math.floor(Math.random() * samplePictureKeys.length)];
+        const randomLicensePlate =
+          sampleLicensePlates[
+            Math.floor(Math.random() * sampleLicensePlates.length)
+          ];
+        const randomVisitPurpose =
+          sampleVisitPurposes[
+            Math.floor(Math.random() * sampleVisitPurposes.length)
+          ];
+        const randomStatus =
+          recordStatuses[Math.floor(Math.random() * recordStatuses.length)];
+
         // Generate realistic timestamps
         const entryTime = generateRandomTimestamp();
         let exitTime: Date | undefined;
-        
+
         // For approved records, generate exit time (1-8 hours later)
         if (randomStatus === "approved") {
           exitTime = new Date(entryTime);
-          exitTime.setHours(exitTime.getHours() + Math.floor(Math.random() * 8) + 1);
+          exitTime.setHours(
+            exitTime.getHours() + Math.floor(Math.random() * 8) + 1
+          );
         }
-        
+
         visitorRecordsData.push({
           resident_id: randomResident.resident_id,
           guard_id: randomGuard.guard_id,
@@ -985,58 +1106,93 @@ async function createVisitorRecordsData() {
           exit_time: exitTime,
         });
       }
-      
-      console.log(`Added ${extraRecords} extra records for village: ${village.village_name}`);
+
+      console.log(
+        `Added ${extraRecords} extra records for village: ${village.village_name}`
+      );
     }
   }
-  
+
   console.log(`Final total visitor records: ${visitorRecordsData.length}`);
-  
+
   // Add final boost records to reach target volume
   console.log("Adding final boost records to reach target volume...");
-  
+
   // Calculate how many more records we need to reach target
   const targetRecords = 1000; // Target for 1000 records total
   const currentRecords = visitorRecordsData.length;
   const neededRecords = Math.max(0, targetRecords - currentRecords);
-  
+
   if (neededRecords > 0) {
     console.log(`Adding ${neededRecords} final boost records...`);
-    
+
     // Add records in batches for better performance
     const batchSize = 100; // Increased batch size for 1000 records
     const batches = Math.ceil(neededRecords / batchSize);
-    
+
     for (let batch = 0; batch < batches; batch++) {
-      const currentBatchSize = Math.min(batchSize, neededRecords - (batch * batchSize));
-      console.log(`Processing batch ${batch + 1}/${batches} with ${currentBatchSize} records...`);
-      
+      const currentBatchSize = Math.min(
+        batchSize,
+        neededRecords - batch * batchSize
+      );
+      console.log(
+        `Processing batch ${batch + 1}/${batches} with ${currentBatchSize} records...`
+      );
+
       for (let i = 0; i < currentBatchSize; i++) {
         // Randomly select a village
-        const randomVillage = allVillages[Math.floor(Math.random() * allVillages.length)];
-        const villageResidents = allResidents.filter(r => r.village_key === randomVillage.village_key);
-        const villageGuards = allGuards.filter(g => g.village_key === randomVillage.village_key);
-        const villageHouses = allHouses.filter(h => h.village_key === randomVillage.village_key);
-        
-        if (villageResidents.length > 0 && villageGuards.length > 0 && villageHouses.length > 0) {
-          const randomResident = villageResidents[Math.floor(Math.random() * villageResidents.length)];
-          const randomGuard = villageGuards[Math.floor(Math.random() * villageGuards.length)];
-          const randomHouse = villageHouses[Math.floor(Math.random() * villageHouses.length)];
-          const randomPictureKey = samplePictureKeys[Math.floor(Math.random() * samplePictureKeys.length)];
-          const randomLicensePlate = sampleLicensePlates[Math.floor(Math.random() * sampleLicensePlates.length)];
-          const randomVisitPurpose = sampleVisitPurposes[Math.floor(Math.random() * sampleVisitPurposes.length)];
-          const randomStatus = recordStatuses[Math.floor(Math.random() * recordStatuses.length)];
-          
+        const randomVillage =
+          allVillages[Math.floor(Math.random() * allVillages.length)];
+        const villageResidents = allResidents.filter(
+          (r) => r.village_key === randomVillage.village_key
+        );
+        const villageGuards = allGuards.filter(
+          (g) => g.village_key === randomVillage.village_key
+        );
+        const villageHouses = allHouses.filter(
+          (h) => h.village_key === randomVillage.village_key
+        );
+
+        if (
+          villageResidents.length > 0 &&
+          villageGuards.length > 0 &&
+          villageHouses.length > 0
+        ) {
+          const randomResident =
+            villageResidents[
+              Math.floor(Math.random() * villageResidents.length)
+            ];
+          const randomGuard =
+            villageGuards[Math.floor(Math.random() * villageGuards.length)];
+          const randomHouse =
+            villageHouses[Math.floor(Math.random() * villageHouses.length)];
+          const randomPictureKey =
+            samplePictureKeys[
+              Math.floor(Math.random() * samplePictureKeys.length)
+            ];
+          const randomLicensePlate =
+            sampleLicensePlates[
+              Math.floor(Math.random() * sampleLicensePlates.length)
+            ];
+          const randomVisitPurpose =
+            sampleVisitPurposes[
+              Math.floor(Math.random() * sampleVisitPurposes.length)
+            ];
+          const randomStatus =
+            recordStatuses[Math.floor(Math.random() * recordStatuses.length)];
+
           // Generate realistic timestamps
           const entryTime = generateRandomTimestamp();
           let exitTime: Date | undefined;
-          
+
           // For approved records, generate exit time (1-8 hours later)
           if (randomStatus === "approved") {
             exitTime = new Date(entryTime);
-            exitTime.setHours(exitTime.getHours() + Math.floor(Math.random() * 8) + 1);
+            exitTime.setHours(
+              exitTime.getHours() + Math.floor(Math.random() * 8) + 1
+            );
           }
-          
+
           visitorRecordsData.push({
             resident_id: randomResident.resident_id,
             guard_id: randomGuard.guard_id,
@@ -1050,20 +1206,26 @@ async function createVisitorRecordsData() {
           });
         }
       }
-      
-      console.log(`Batch ${batch + 1} complete. Current total: ${visitorRecordsData.length}`);
+
+      console.log(
+        `Batch ${batch + 1} complete. Current total: ${visitorRecordsData.length}`
+      );
     }
-    
-    console.log(`Final boost complete. Total records: ${visitorRecordsData.length}`);
+
+    console.log(
+      `Final boost complete. Total records: ${visitorRecordsData.length}`
+    );
   }
-  
+
   return visitorRecordsData;
 }
 
 // Function to create admin_activity_logs data by fetching existing data
 
-
-
+/**
+ * Seeds the database with initial data.
+ * @returns {Promise<void>}
+ */
 async function seed() {
   await clearDb();
   console.log("Cleared database");
@@ -1080,7 +1242,7 @@ async function seed() {
   const hashedResidentData = await Promise.all(
     residentData.map(async (resident) => ({
       ...resident,
-      password_hash: await hashPassword(resident.password_hash)
+      password_hash: await hashPassword(resident.password_hash),
     }))
   );
   await db.insert(residents).values(hashedResidentData as any);
@@ -1091,7 +1253,7 @@ async function seed() {
   const hashedGuardData = await Promise.all(
     guardData.map(async (guard) => ({
       ...guard,
-      password_hash: await hashPassword(guard.password_hash)
+      password_hash: await hashPassword(guard.password_hash),
     }))
   );
   await db.insert(guards).values(hashedGuardData as any);
@@ -1102,7 +1264,7 @@ async function seed() {
   const hashedAdminData = await Promise.all(
     adminData.map(async (admin) => ({
       ...admin,
-      password_hash: await hashPassword(admin.password_hash)
+      password_hash: await hashPassword(admin.password_hash),
     }))
   );
   await db.insert(admins).values(hashedAdminData as any);
@@ -1125,11 +1287,7 @@ async function seed() {
   } else {
     console.log("No visitor_records data to insert");
   }
-
-
 }
-
-
 
 // Run the seeding
 seed().catch(console.error);

@@ -5,14 +5,23 @@ import { eq } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { hashPassword, verifyPassword } from "../utils/passwordUtils";
 
+/**
+ * The admin settings routes.
+ * @type {Elysia}
+ */
 export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
   .onBeforeHandle(requireRole("admin"))
-  
-  // Get admin profile for settings page - current user only
+
+  /**
+   * Get the current admin's profile for the settings page.
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.currentUser - The current user.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the admin's profile.
+   */
   .get("/admin/profile", async ({ currentUser }: any) => {
     try {
       const admin_id = currentUser.admin_id;
-      
+
       const result = await db
         .select({
           admin_id: admins.admin_id,
@@ -23,23 +32,29 @@ export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
           status: admins.status,
           village_key: admins.village_key,
           createdAt: admins.createdAt,
-          updatedAt: admins.updatedAt
+          updatedAt: admins.updatedAt,
         })
         .from(admins)
         .where(eq(admins.admin_id, admin_id));
-      
+
       if (result.length === 0) {
         return { success: false, error: "Admin not found" };
       }
-      
+
       return { success: true, data: result[0] };
     } catch (error) {
       console.error("Error fetching admin profile:", error);
       return { success: false, error: "Failed to fetch admin profile" };
     }
   })
-  
-  // Update admin profile settings (username, email, phone) - current user only
+
+  /**
+   * Update the current admin's profile settings (username, email, phone).
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.currentUser - The current user.
+   * @param {Object} context.body - The body of the request.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the updated admin profile.
+   */
   .put("/admin/profile", async ({ currentUser, body }: any) => {
     try {
       const admin_id = currentUser.admin_id;
@@ -113,7 +128,7 @@ export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
           phone: admins.phone,
           role: admins.role,
           status: admins.status,
-          updatedAt: admins.updatedAt
+          updatedAt: admins.updatedAt,
         });
 
       return { success: true, data: result[0] };
@@ -122,8 +137,14 @@ export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
       return { success: false, error: "Failed to update admin profile" };
     }
   })
-  
-  // Change admin password - current user only
+
+  /**
+   * Change the current admin's password.
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.currentUser - The current user.
+   * @param {Object} context.body - The body of the request.
+   * @returns {Promise<Object>} A promise that resolves to an object containing a success message.
+   */
   .put("/admin/password", async ({ currentUser, body }: any) => {
     try {
       const admin_id = currentUser.admin_id;
@@ -134,16 +155,16 @@ export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
 
       // Validation
       if (!currentPassword || !newPassword) {
-        return { 
-          success: false, 
-          error: "Current password and new password are required!" 
+        return {
+          success: false,
+          error: "Current password and new password are required!",
         };
       }
 
       if (newPassword.trim().length < 6) {
-        return { 
-          success: false, 
-          error: "New password must be at least 6 characters long!" 
+        return {
+          success: false,
+          error: "New password must be at least 6 characters long!",
         };
       }
 
@@ -159,7 +180,7 @@ export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
 
       // Verify current password
       const isCurrentPasswordValid = await verifyPassword(
-        currentPassword, 
+        currentPassword,
         existingAdmin[0].password_hash
       );
 
@@ -173,40 +194,40 @@ export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
       // Update password
       const result = await db
         .update(admins)
-        .set({ 
-          password_hash: hashedNewPassword, 
-          updatedAt: new Date() 
+        .set({
+          password_hash: hashedNewPassword,
+          updatedAt: new Date(),
         })
         .where(eq(admins.admin_id, admin_id))
         .returning({
           admin_id: admins.admin_id,
           username: admins.username,
           email: admins.email,
-          updatedAt: admins.updatedAt
+          updatedAt: admins.updatedAt,
         });
 
-      return { 
-        success: true, 
+      return {
+        success: true,
         message: "Password changed successfully",
-        data: result[0]
+        data: result[0],
       };
     } catch (error) {
       console.error("Error changing admin password:", error);
       return { success: false, error: "Failed to change password" };
     }
   })
-  
-  // Update admin profile and password together - current user only
+
+  /**
+   * Update the current admin's profile and password together.
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.currentUser - The current user.
+   * @param {Object} context.body - The body of the request.
+   * @returns {Promise<Object>} A promise that resolves to an object containing a success message.
+   */
   .put("/admin/settings", async ({ currentUser, body }: any) => {
     try {
       const admin_id = currentUser.admin_id;
-      const { 
-        username, 
-        email, 
-        phone, 
-        currentPassword, 
-        newPassword 
-      } = body as {
+      const { username, email, phone, currentPassword, newPassword } = body as {
         username?: string;
         email?: string;
         phone?: string;
@@ -267,15 +288,15 @@ export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
       // Handle password change
       if (currentPassword && newPassword) {
         if (newPassword.trim().length < 6) {
-          return { 
-            success: false, 
-            error: "New password must be at least 6 characters long!" 
+          return {
+            success: false,
+            error: "New password must be at least 6 characters long!",
           };
         }
 
         // Verify current password
         const isCurrentPasswordValid = await verifyPassword(
-          currentPassword, 
+          currentPassword,
           existingAdmin[0].password_hash
         );
 
@@ -307,13 +328,15 @@ export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
           phone: admins.phone,
           role: admins.role,
           status: admins.status,
-          updatedAt: admins.updatedAt
+          updatedAt: admins.updatedAt,
         });
 
-      return { 
-        success: true, 
-        message: passwordChanged ? "Profile and password updated successfully" : "Profile updated successfully",
-        data: result[0]
+      return {
+        success: true,
+        message: passwordChanged
+          ? "Profile and password updated successfully"
+          : "Profile updated successfully",
+        data: result[0],
       };
     } catch (error) {
       console.error("Error updating admin settings:", error);

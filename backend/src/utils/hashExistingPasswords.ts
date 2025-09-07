@@ -4,8 +4,10 @@ import { hashPassword } from "./passwordUtils";
 import { eq } from "drizzle-orm";
 
 /**
- * Script to hash existing plain text passwords in the database
- * This should be run once to migrate existing plain text passwords to hashed ones
+ * Hashes existing plain text passwords in the database.
+ * This should be run once to migrate existing plain text passwords to hashed ones.
+ * @returns {Promise<void>}
+ * @throws {Error} If there is an error during the migration.
  */
 export async function hashExistingPasswords() {
   try {
@@ -15,7 +17,7 @@ export async function hashExistingPasswords() {
     const existingResidents = await db.select().from(residents);
     for (const resident of existingResidents) {
       // Check if password is already hashed
-      if (!resident.password_hash.startsWith('$2b$')) {
+      if (!resident.password_hash.startsWith("$2b$")) {
         const hashedPassword = await hashPassword(resident.password_hash);
         await db
           .update(residents)
@@ -29,7 +31,7 @@ export async function hashExistingPasswords() {
     const existingGuards = await db.select().from(guards);
     for (const guard of existingGuards) {
       // Check if password is already hashed
-      if (!guard.password_hash.startsWith('$2b$')) {
+      if (!guard.password_hash.startsWith("$2b$")) {
         const hashedPassword = await hashPassword(guard.password_hash);
         await db
           .update(guards)
@@ -43,7 +45,7 @@ export async function hashExistingPasswords() {
     const existingAdmins = await db.select().from(admins);
     for (const admin of existingAdmins) {
       // Check if password is already hashed
-      if (!admin.password_hash.startsWith('$2b$')) {
+      if (!admin.password_hash.startsWith("$2b$")) {
         const hashedPassword = await hashPassword(admin.password_hash);
         await db
           .update(admins)

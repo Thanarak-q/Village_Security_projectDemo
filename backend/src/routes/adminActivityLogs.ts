@@ -8,7 +8,10 @@ import {
   getActivityStatistics,
 } from "../db/adminActivityLogUtils";
 
-// Types
+/**
+ * Interface for the query parameters for getting logs.
+ * @interface
+ */
 interface GetLogsQuery {
   page?: string;
   limit?: string;
@@ -18,10 +21,20 @@ interface GetLogsQuery {
   end_date?: string;
 }
 
+/**
+ * The admin activity logs routes.
+ * @type {Elysia}
+ */
 export const adminActivityLogsRoutes = new Elysia({ prefix: "/api" })
   .onBeforeHandle(requireRole("admin"))
-  
-  // Get all activity logs with pagination and filters
+
+  /**
+   * Get all activity logs with pagination and filters.
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.query - The query parameters.
+   * @param {Object} context.currentUser - The current user.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the activity logs and pagination information.
+   */
   .get("/admin-activity-logs", async ({ query, currentUser }: any) => {
     try {
       const {
@@ -41,7 +54,8 @@ export const adminActivityLogsRoutes = new Elysia({ prefix: "/api" })
       if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
         return {
           success: false,
-          error: "Invalid pagination parameters. Page must be >= 1, limit must be between 1-100",
+          error:
+            "Invalid pagination parameters. Page must be >= 1, limit must be between 1-100",
         };
       }
 
@@ -100,183 +114,235 @@ export const adminActivityLogsRoutes = new Elysia({ prefix: "/api" })
     }
   })
 
-  // Get activity logs by specific admin
-  .get("/admin-activity-logs/admin/:admin_id", async ({ params, query, currentUser }: any) => {
-    try {
-      const { admin_id } = params;
-      const { page = "1", limit = "20" } = query;
-      const { village_key } = currentUser;
+  /**
+   * Get activity logs by specific admin.
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.params - The route parameters.
+   * @param {string} context.params.admin_id - The admin ID.
+   * @param {Object} context.query - The query parameters.
+   * @param {Object} context.currentUser - The current user.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the activity logs and pagination information.
+   */
+  .get(
+    "/admin-activity-logs/admin/:admin_id",
+    async ({ params, query, currentUser }: any) => {
+      try {
+        const { admin_id } = params;
+        const { page = "1", limit = "20" } = query;
+        const { village_key } = currentUser;
 
-      const pageNum = parseInt(page);
-      const limitNum = parseInt(limit);
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
 
-      // Validate pagination parameters
-      if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
+        // Validate pagination parameters
+        if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
+          return {
+            success: false,
+            error:
+              "Invalid pagination parameters. Page must be >= 1, limit must be between 1-100",
+          };
+        }
+
+        // Validate admin_id
+        if (!admin_id?.trim()) {
+          return {
+            success: false,
+            error: "Admin ID is required",
+          };
+        }
+
+        const result = await getActivityLogsByAdmin(admin_id, pageNum, limitNum);
+
+        return {
+          success: true,
+          data: result.logs,
+          pagination: result.pagination,
+        };
+      } catch (error) {
+        console.error("Error fetching activity logs by admin:", error);
         return {
           success: false,
-          error: "Invalid pagination parameters. Page must be >= 1, limit must be between 1-100",
+          error: "Failed to fetch activity logs by admin",
+          details: error instanceof Error ? error.message : "Unknown error",
         };
       }
-
-      // Validate admin_id
-      if (!admin_id?.trim()) {
-        return {
-          success: false,
-          error: "Admin ID is required",
-        };
-      }
-
-      const result = await getActivityLogsByAdmin(admin_id, pageNum, limitNum);
-
-      return {
-        success: true,
-        data: result.logs,
-        pagination: result.pagination,
-      };
-    } catch (error) {
-      console.error("Error fetching activity logs by admin:", error);
-      return {
-        success: false,
-        error: "Failed to fetch activity logs by admin",
-        details: error instanceof Error ? error.message : "Unknown error",
-      };
     }
-  })
+  )
 
-  // Get activity logs by action type
-  .get("/admin-activity-logs/action/:action_type", async ({ params, query, currentUser }: any) => {
-    try {
-      const { action_type } = params;
-      const { page = "1", limit = "20" } = query;
-      const { village_key } = currentUser;
+  /**
+   * Get activity logs by action type.
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.params - The route parameters.
+   * @param {string} context.params.action_type - The action type.
+   * @param {Object} context.query - The query parameters.
+   * @param {Object} context.currentUser - The current user.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the activity logs and pagination information.
+   */
+  .get(
+    "/admin-activity-logs/action/:action_type",
+    async ({ params, query, currentUser }: any) => {
+      try {
+        const { action_type } = params;
+        const { page = "1", limit = "20" } = query;
+        const { village_key } = currentUser;
 
-      const pageNum = parseInt(page);
-      const limitNum = parseInt(limit);
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
 
-      // Validate pagination parameters
-      if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
+        // Validate pagination parameters
+        if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
+          return {
+            success: false,
+            error:
+              "Invalid pagination parameters. Page must be >= 1, limit must be between 1-100",
+          };
+        }
+
+        // Validate action_type
+        if (!action_type?.trim()) {
+          return {
+            success: false,
+            error: "Action type is required",
+          };
+        }
+
+        // Validate action_type values
+        const validActionTypes = [
+          "approve_user",
+          "reject_user",
+          "create_house",
+          "update_house",
+          "delete_house",
+          "change_house_status",
+          "add_house_member",
+          "remove_house_member",
+          "change_user_status",
+          "change_user_role",
+          "create_admin",
+          "update_admin",
+          "delete_admin",
+          "create_village",
+          "update_village",
+          "delete_village",
+          "view_resident",
+          "view_guard",
+          "view_visitor_records",
+          "export_data",
+          "system_config",
+        ];
+
+        if (!validActionTypes.includes(action_type)) {
+          return {
+            success: false,
+            error: "Invalid action type",
+            validActionTypes,
+          };
+        }
+
+        const result = await getActivityLogsByActionType(
+          action_type as any,
+          pageNum,
+          limitNum,
+          village_key
+        );
+
+        return {
+          success: true,
+          data: result.logs,
+          pagination: result.pagination,
+        };
+      } catch (error) {
+        console.error("Error fetching activity logs by action type:", error);
         return {
           success: false,
-          error: "Invalid pagination parameters. Page must be >= 1, limit must be between 1-100",
+          error: "Failed to fetch activity logs by action type",
+          details: error instanceof Error ? error.message : "Unknown error",
         };
       }
-
-      // Validate action_type
-      if (!action_type?.trim()) {
-        return {
-          success: false,
-          error: "Action type is required",
-        };
-      }
-
-      // Validate action_type values
-      const validActionTypes = [
-        "approve_user", "reject_user",
-        "create_house", "update_house", "delete_house", "change_house_status",
-        "add_house_member", "remove_house_member",
-        "change_user_status", "change_user_role",
-        "create_admin", "update_admin", "delete_admin",
-        "create_village", "update_village", "delete_village",
-        "view_resident", "view_guard", "view_visitor_records",
-        "export_data", "system_config"
-      ];
-
-      if (!validActionTypes.includes(action_type)) {
-        return {
-          success: false,
-          error: "Invalid action type",
-          validActionTypes,
-        };
-      }
-
-      const result = await getActivityLogsByActionType(
-        action_type as any,
-        pageNum,
-        limitNum,
-        village_key
-      );
-
-      return {
-        success: true,
-        data: result.logs,
-        pagination: result.pagination,
-      };
-    } catch (error) {
-      console.error("Error fetching activity logs by action type:", error);
-      return {
-        success: false,
-        error: "Failed to fetch activity logs by action type",
-        details: error instanceof Error ? error.message : "Unknown error",
-      };
     }
-  })
+  )
 
-  // Get activity logs by date range
-  .get("/admin-activity-logs/date-range", async ({ query, currentUser }: any) => {
-    try {
-      const { start_date, end_date, page = "1", limit = "20" } = query;
-      const { village_key } = currentUser;
+  /**
+   * Get activity logs by date range.
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.query - The query parameters.
+   * @param {Object} context.currentUser - The current user.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the activity logs and pagination information.
+   */
+  .get(
+    "/admin-activity-logs/date-range",
+    async ({ query, currentUser }: any) => {
+      try {
+        const { start_date, end_date, page = "1", limit = "20" } = query;
+        const { village_key } = currentUser;
 
-      const pageNum = parseInt(page);
-      const limitNum = parseInt(limit);
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
 
-      // Validate required parameters
-      if (!start_date || !end_date) {
+        // Validate required parameters
+        if (!start_date || !end_date) {
+          return {
+            success: false,
+            error: "Start date and end date are required",
+          };
+        }
+
+        // Validate pagination parameters
+        if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
+          return {
+            success: false,
+            error:
+              "Invalid pagination parameters. Page must be >= 1, limit must be between 1-100",
+          };
+        }
+
+        const startDate = new Date(start_date);
+        const endDate = new Date(end_date);
+
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          return {
+            success: false,
+            error: "Invalid date format. Use ISO 8601 format (YYYY-MM-DD)",
+          };
+        }
+
+        if (startDate > endDate) {
+          return {
+            success: false,
+            error: "Start date must be before or equal to end date",
+          };
+        }
+
+        const result = await getActivityLogsByDateRange(
+          startDate,
+          endDate,
+          pageNum,
+          limitNum,
+          village_key
+        );
+
+        return {
+          success: true,
+          data: result.logs,
+          pagination: result.pagination,
+        };
+      } catch (error) {
+        console.error("Error fetching activity logs by date range:", error);
         return {
           success: false,
-          error: "Start date and end date are required",
+          error: "Failed to fetch activity logs by date range",
+          details: error instanceof Error ? error.message : "Unknown error",
         };
       }
-
-      // Validate pagination parameters
-      if (pageNum < 1 || limitNum < 1 || limitNum > 100) {
-        return {
-          success: false,
-          error: "Invalid pagination parameters. Page must be >= 1, limit must be between 1-100",
-        };
-      }
-
-      const startDate = new Date(start_date);
-      const endDate = new Date(end_date);
-
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        return {
-          success: false,
-          error: "Invalid date format. Use ISO 8601 format (YYYY-MM-DD)",
-        };
-      }
-
-      if (startDate > endDate) {
-        return {
-          success: false,
-          error: "Start date must be before or equal to end date",
-        };
-      }
-
-      const result = await getActivityLogsByDateRange(
-        startDate,
-        endDate,
-        pageNum,
-        limitNum,
-        village_key
-      );
-
-      return {
-        success: true,
-        data: result.logs,
-        pagination: result.pagination,
-      };
-    } catch (error) {
-      console.error("Error fetching activity logs by date range:", error);
-      return {
-        success: false,
-        error: "Failed to fetch activity logs by date range",
-        details: error instanceof Error ? error.message : "Unknown error",
-      };
     }
-  })
+  )
 
-  // Get activity statistics
+  /**
+   * Get activity statistics.
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.currentUser - The current user.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the activity statistics.
+   */
   .get("/admin-activity-logs/statistics", async ({ currentUser }: any) => {
     try {
       const { village_key } = currentUser;
@@ -297,7 +363,10 @@ export const adminActivityLogsRoutes = new Elysia({ prefix: "/api" })
     }
   })
 
-  // Get available action types for filtering
+  /**
+   * Get available action types for filtering.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the available action types.
+   */
   .get("/admin-activity-logs/action-types", async () => {
     try {
       const actionTypes = [
@@ -321,7 +390,7 @@ export const adminActivityLogsRoutes = new Elysia({ prefix: "/api" })
         "view_guard",
         "view_visitor_records",
         "export_data",
-        "system_config"
+        "system_config",
       ];
 
       return {
