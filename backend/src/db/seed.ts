@@ -1,3 +1,11 @@
+/**
+ * @file This script seeds the database with a comprehensive set of mock data.
+ * It is designed to be run to populate a fresh database for development or testing purposes.
+ * The script clears existing data and then inserts new records for villages, houses,
+ * users (residents, guards, admins), and their relationships, ensuring a realistic
+ * and varied dataset.
+ */
+
 import db from "./drizzle";
 import {
   villages,
@@ -12,6 +20,10 @@ import {
 import { eq, sql } from "drizzle-orm";
 import { hashPassword } from "../utils/passwordUtils";
 
+/**
+ * An array of mock data for villages.
+ * @type {Array<Object>}
+ */
 const villageData = [
   {
     village_name: "หมู่บ้านผาสุก",
@@ -75,6 +87,10 @@ const villageData = [
   },
 ];
 
+/**
+ * An array of mock data for houses, associated with villages by `village_key`.
+ * @type {Array<Object>}
+ */
 const houseData = [
   // หมู่บ้านผาสุก
   {
@@ -259,6 +275,11 @@ const houseData = [
   },
 ];
 
+/**
+ * An array of mock data for residents. Passwords are provided in plain text
+ * and will be hashed before insertion.
+ * @type {Array<Object>}
+ */
 const residentData = [
   // หมู่บ้านผาสุก
   {
@@ -440,6 +461,10 @@ const residentData = [
   },
 ];
 
+/**
+ * An array of mock data for security guards.
+ * @type {Array<Object>}
+ */
 const guardData = [
   // หมู่บ้านผาสุก
   {
@@ -476,6 +501,10 @@ const guardData = [
   },
 ];
 
+/**
+ * An array of mock data for administrators.
+ * @type {Array<Object>}
+ */
 const adminData = [
   // หมู่บ้านผาสุก
   {
@@ -615,8 +644,9 @@ const adminData = [
 ];
 
 /**
- * Clears all data from the database.
- * @returns {Promise<void>}
+ * Clears all data from the database tables in the correct order to avoid foreign key constraints.
+ * This function is idempotent and checks for the existence of data before attempting to delete.
+ * @returns {Promise<void>} A promise that resolves when the database has been cleared.
  */
 export async function clearDb() {
   // Check if villages or houses exist before deleting
@@ -678,8 +708,9 @@ export async function clearDb() {
 }
 
 /**
- * Creates house members data by fetching existing houses and residents.
- * @returns {Promise<Array<Object>>} A promise that resolves to an array of house members data.
+ * Dynamically creates house member relationships by associating residents with houses
+ * within the same village using a round-robin distribution.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of house member data objects.
  */
 async function createHouseMembersData() {
   console.log("Creating house_members data...");
@@ -740,8 +771,12 @@ async function createHouseMembersData() {
 }
 
 /**
- * Creates visitor records data by fetching existing data.
- * @returns {Promise<Array<Object>>} A promise that resolves to an array of visitor records data.
+ * Generates a large and varied set of mock visitor records. This function creates
+ * realistic data by randomly assigning visitors to residents, guards, and houses
+ * within the same village, and by generating plausible timestamps and other details.
+ * It also includes logic to boost data volume for smaller villages to ensure
+ * comprehensive test coverage.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of visitor record data objects.
  */
 async function createVisitorRecordsData() {
   console.log("Creating visitor_records data...");
@@ -1223,8 +1258,9 @@ async function createVisitorRecordsData() {
 // Function to create admin_activity_logs data by fetching existing data
 
 /**
- * Seeds the database with initial data.
- * @returns {Promise<void>}
+ * Main function to seed the database. It orchestrates the process of clearing
+ * the database and then populating it with data in the correct order.
+ * @returns {Promise<void>} A promise that resolves when seeding is complete.
  */
 async function seed() {
   await clearDb();
@@ -1289,5 +1325,5 @@ async function seed() {
   }
 }
 
-// Run the seeding
+// Execute the seeding process and log any errors.
 seed().catch(console.error);

@@ -1,8 +1,21 @@
-import * as React from "react"
+/**
+ * @file This file provides a styled input component for use in forms and other UI elements.
+ *
+ * The `Input` component is a wrapper around the standard HTML `<input>` element,
+ * enhanced with consistent styling using Tailwind CSS. It supports all standard
+ * input types and properties.
+ */
 
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+/**
+ * A styled text input component.
+ *
+ * @param {React.ComponentProps<"input">} props - The props for the component, including `type`, `className`, etc.
+ * @returns {React.ReactElement} The styled input element.
+ */
+function Input({ className, type, ...props }: React.ComponentProps<"input">): React.ReactElement {
   return (
     <input
       type={type}
@@ -15,7 +28,7 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
       )}
       {...props}
     />
-  )
+  );
 }
 
-export { Input }
+export { Input };

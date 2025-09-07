@@ -1,14 +1,24 @@
+/**
+ * @file This file contains utility functions for logging admin activities.
+ * It provides a structured way to record actions performed by administrators,
+ * such as user management, house management, and system-level changes.
+ * These logs are essential for auditing, security monitoring, and debugging.
+ */
+
 import {
   createActivityLog,
   CreateActivityLogParams,
 } from "../db/adminActivityLogUtils";
 
 /**
- * Gets the client IP address from a request.
- * @param {any} request - The request object.
- * @returns {string | undefined} The client IP address.
+ * Extracts the client's IP address from an incoming request object.
+ * It checks several common headers where the IP address might be located,
+ * providing a reliable way to identify the source of a request.
+ *
+ * @param {any} request - The incoming request object, typically from a web framework.
+ * @returns {string} The client's IP address, or 'unknown' if it cannot be determined.
  */
-export const getClientIP = (request: any): string | undefined => {
+export const getClientIP = (request: any): string => {
   return (
     request.headers["x-forwarded-for"] ||
     request.headers["x-real-ip"] ||
@@ -19,24 +29,30 @@ export const getClientIP = (request: any): string | undefined => {
 };
 
 /**
- * Gets the user agent from a request.
- * @param {any} request - The request object.
- * @returns {string | undefined} The user agent.
+ * Retrieves the User-Agent string from a request object.
+ * The User-Agent provides information about the client's browser,
+ * operating system, and other details, which can be useful for logging.
+ *
+ * @param {any} request - The incoming request object.
+ * @returns {string} The User-Agent string, or 'unknown' if it's not available.
  */
-export const getUserAgent = (request: any): string | undefined => {
+export const getUserAgent = (request: any): string => {
   return request.headers["user-agent"] || "unknown";
 };
 
 /**
- * Logs an admin activity.
- * @param {Omit<CreateActivityLogParams, "ip_address" | "user_agent">} params - The parameters for the activity log.
- * @param {any} request - The request object.
- * @returns {Promise<void>}
+ * Logs an administrative activity to the database.
+ * This function gathers details about the action, including the administrator,
+ * the type of action, and metadata from the request like IP address and User-Agent.
+ *
+ * @param {Omit<CreateActivityLogParams, "ip_address" | "user_agent">} params - The core parameters for the activity log, such as admin ID and action type.
+ * @param {any} request - The request object associated with the activity.
+ * @returns {Promise<void>} A promise that resolves when the log has been created.
  */
 export const logAdminActivity = async (
   params: Omit<CreateActivityLogParams, "ip_address" | "user_agent">,
   request: any
-) => {
+): Promise<void> => {
   try {
     const ip_address = getClientIP(request);
     const user_agent = getUserAgent(request);
@@ -48,12 +64,14 @@ export const logAdminActivity = async (
     });
   } catch (error) {
     console.error("Error logging admin activity:", error);
-    // Don't throw error to avoid breaking the main functionality
+    // Errors are caught and logged without being re-thrown to ensure that logging failures
+    // do not disrupt the primary application functionality.
   }
 };
 
 /**
- * Predefined log descriptions for common actions.
+ * A dictionary of predefined, human-readable descriptions for common admin actions.
+ * This helps maintain consistency in log messages and supports internationalization.
  * @type {Object}
  */
 export const LOG_DESCRIPTIONS = {
@@ -98,14 +116,15 @@ export const LOG_DESCRIPTIONS = {
 } as const;
 
 /**
- * Logs a user action.
- * @param {string} admin_id - The ID of the admin performing the action.
- * @param {"approve_user" | "reject_user"} action - The action performed.
- * @param {"resident" | "guard"} target_type - The type of the target user.
- * @param {string} target_id - The ID of the target user.
- * @param {string} [additional_info] - Additional information about the action.
- * @param {any} [request] - The request object.
- * @returns {Promise<void>}
+ * Logs an action related to user approval or rejection.
+ *
+ * @param {string} admin_id - The UUID of the administrator performing the action.
+ * @param {"approve_user" | "reject_user"} action - The type of user-related action.
+ * @param {"resident" | "guard"} target_type - The role of the user being acted upon.
+ * @param {string} target_id - The UUID of the user being acted upon.
+ * @param {string} [additional_info] - Optional details about the action.
+ * @param {any} [request] - The request object, if available.
+ * @returns {Promise<void>} A promise that resolves when the action is logged.
  */
 export const logUserAction = async (
   admin_id: string,
@@ -114,7 +133,7 @@ export const logUserAction = async (
   target_id: string,
   additional_info?: string,
   request?: any
-) => {
+): Promise<void> => {
   const description = additional_info
     ? `${
         LOG_DESCRIPTIONS[
@@ -140,15 +159,16 @@ export const logUserAction = async (
 };
 
 /**
- * Logs a house action.
- * @param {string} admin_id - The ID of the admin performing the action.
- * @param {"create_house" | "update_house" | "delete_house" | "change_house_status"} action - The action performed.
- * @param {string} target_id - The ID of the target house.
- * @param {string} [old_value] - The old value of the data.
- * @param {string} [new_value] - The new value of the data.
- * @param {string} [additional_info] - Additional information about the action.
- * @param {any} [request] - The request object.
- * @returns {Promise<void>}
+ * Logs an action related to house management (create, update, delete, etc.).
+ *
+ * @param {string} admin_id - The UUID of the administrator.
+ * @param {"create_house" | "update_house" | "delete_house" | "change_house_status"} action - The type of house-related action.
+ * @param {string} target_id - The UUID of the house being managed.
+ * @param {string} [old_value] - The state of the data before the change.
+ * @param {string} [new_value] - The state of the data after the change.
+ * @param {string} [additional_info] - Optional details about the action.
+ * @param {any} [request] - The request object, if available.
+ * @returns {Promise<void>} A promise that resolves when the action is logged.
  */
 export const logHouseAction = async (
   admin_id: string,
@@ -162,7 +182,7 @@ export const logHouseAction = async (
   new_value?: string,
   additional_info?: string,
   request?: any
-) => {
+): Promise<void> => {
   const descriptions = {
     create_house: LOG_DESCRIPTIONS.CREATE_HOUSE,
     update_house: LOG_DESCRIPTIONS.UPDATE_HOUSE,
@@ -191,13 +211,14 @@ export const logHouseAction = async (
 };
 
 /**
- * Logs a house member action.
- * @param {string} admin_id - The ID of the admin performing the action.
- * @param {"add_house_member" | "remove_house_member"} action - The action performed.
- * @param {string} target_id - The ID of the target house member.
- * @param {string} [additional_info] - Additional information about the action.
- * @param {any} [request] - The request object.
- * @returns {Promise<void>}
+ * Logs an action related to managing house members (adding or removing).
+ *
+ * @param {string} admin_id - The UUID of the administrator.
+ * @param {"add_house_member" | "remove_house_member"} action - The type of member action.
+ * @param {string} target_id - The UUID of the house member record.
+ * @param {string} [additional_info] - Optional details about the action.
+ * @param {any} [request] - The request object, if available.
+ * @returns {Promise<void>} A promise that resolves when the action is logged.
  */
 export const logHouseMemberAction = async (
   admin_id: string,
@@ -205,7 +226,7 @@ export const logHouseMemberAction = async (
   target_id: string,
   additional_info?: string,
   request?: any
-) => {
+): Promise<void> => {
   const descriptions = {
     add_house_member: LOG_DESCRIPTIONS.ADD_HOUSE_MEMBER,
     remove_house_member: LOG_DESCRIPTIONS.REMOVE_HOUSE_MEMBER,
@@ -230,19 +251,20 @@ export const logHouseMemberAction = async (
 };
 
 /**
- * Logs a view action.
- * @param {string} admin_id - The ID of the admin performing the action.
- * @param {"resident" | "guard" | "visitor_records"} target_type - The type of the target being viewed.
- * @param {string} [additional_info] - Additional information about the action.
- * @param {any} [request] - The request object.
- * @returns {Promise<void>}
+ * Logs an action where an administrator views a list of resources.
+ *
+ * @param {string} admin_id - The UUID of the administrator.
+ * @param {"resident" | "guard" | "visitor_records"} target_type - The type of resource being viewed.
+ * @param {string} [additional_info] - Optional details about the view action.
+ * @param {any} [request] - The request object, if available.
+ * @returns {Promise<void>} A promise that resolves when the action is logged.
  */
 export const logViewAction = async (
   admin_id: string,
   target_type: "resident" | "guard" | "visitor_records",
   additional_info?: string,
   request?: any
-) => {
+): Promise<void> => {
   const descriptions = {
     resident: LOG_DESCRIPTIONS.VIEW_RESIDENTS,
     guard: LOG_DESCRIPTIONS.VIEW_GUARDS,
