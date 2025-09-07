@@ -5,9 +5,16 @@ import { eq } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { hashPassword } from "../utils/passwordUtils";
 
+/**
+ * The resident routes.
+ * @type {Elysia}
+ */
 export const residentRoutes = new Elysia({ prefix: "/api" })
-.onBeforeHandle(requireRole(["admin", "staff"]))
-  // Get all residents
+  .onBeforeHandle(requireRole(["admin", "staff"]))
+  /**
+   * Get all residents.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the residents.
+   */
   .get("/residents", async () => {
     try {
       const result = await db.select().from(residents);
@@ -16,67 +23,95 @@ export const residentRoutes = new Elysia({ prefix: "/api" })
       return { error: "Failed to fetch residents" };
     }
   })
-  
-  // Get residents by village
+
+  /**
+   * Get residents by village.
+   * @param {Object} params - The parameters for the request.
+   * @param {string} params.village_key - The village key.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the residents.
+   */
   .get("/residents/village/:village_key", async ({ params }) => {
     try {
       const { village_key } = params;
-      
+
       const result = await db
         .select()
         .from(residents)
         .where(eq(residents.village_key, village_key));
-      
+
       return { success: true, data: result };
     } catch (error) {
       return { error: "Failed to fetch residents for village" };
     }
   })
-  
-  // Get single resident by ID
+
+  /**
+   * Get a single resident by ID.
+   * @param {Object} params - The parameters for the request.
+   * @param {string} params.resident_id - The resident ID.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the resident.
+   */
   .get("/residents/:resident_id", async ({ params }) => {
     try {
       const { resident_id } = params;
-      
+
       const result = await db
         .select()
         .from(residents)
         .where(eq(residents.resident_id, resident_id));
-      
+
       if (result.length === 0) {
         return { success: false, error: "Resident not found" };
       }
-      
+
       return { success: true, data: result[0] };
     } catch (error) {
       return { error: "Failed to fetch resident" };
     }
   })
-  
-  // Get resident by username
+
+  /**
+   * Get a resident by username.
+   * @param {Object} params - The parameters for the request.
+   * @param {string} params.username - The username.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the resident.
+   */
   .get("/residents/username/:username", async ({ params }) => {
     try {
       const { username } = params;
-      
+
       const result = await db
         .select()
         .from(residents)
         .where(eq(residents.username, username));
-      
+
       if (result.length === 0) {
         return { success: false, error: "Resident not found" };
       }
-      
+
       return { success: true, data: result[0] };
     } catch (error) {
       return { error: "Failed to fetch resident" };
     }
   })
-  
-  // Create new resident
+
+  /**
+   * Create a new resident.
+   * @param {Object} body - The body of the request.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the new resident.
+   */
   .post("/residents", async ({ body }) => {
     try {
-      const { email, fname, lname, username, password_hash, phone, village_key, status } = body as {
+      const {
+        email,
+        fname,
+        lname,
+        username,
+        password_hash,
+        phone,
+        village_key,
+        status,
+      } = body as {
         email: string;
         fname: string;
         lname: string;
@@ -88,59 +123,68 @@ export const residentRoutes = new Elysia({ prefix: "/api" })
       };
 
       // Validation
-      if (!email || !fname || !lname || !username || !password_hash || !phone || !village_key) {
-        return { 
-          success: false, 
-          error: "Missing required fields! email, fname, lname, username, password_hash, phone, and village_key are required." 
+      if (
+        !email ||
+        !fname ||
+        !lname ||
+        !username ||
+        !password_hash ||
+        !phone ||
+        !village_key
+      ) {
+        return {
+          success: false,
+          error:
+            "Missing required fields! email, fname, lname, username, password_hash, phone, and village_key are required.",
         };
       }
 
       if (email.trim().length === 0) {
-        return { 
-          success: false, 
-          error: "Email cannot be empty!" 
+        return {
+          success: false,
+          error: "Email cannot be empty!",
         };
       }
 
       if (fname.trim().length === 0) {
-        return { 
-          success: false, 
-          error: "First name cannot be empty!" 
+        return {
+          success: false,
+          error: "First name cannot be empty!",
         };
       }
 
       if (lname.trim().length === 0) {
-        return { 
-          success: false, 
-          error: "Last name cannot be empty!" 
+        return {
+          success: false,
+          error: "Last name cannot be empty!",
         };
       }
 
       if (username.trim().length === 0) {
-        return { 
-          success: false, 
-          error: "Username cannot be empty!" 
+        return {
+          success: false,
+          error: "Username cannot be empty!",
         };
       }
 
       if (password_hash.trim().length === 0) {
-        return { 
-          success: false, 
-          error: "Password cannot be empty!" 
+        return {
+          success: false,
+          error: "Password cannot be empty!",
         };
       }
 
       if (phone.trim().length === 0) {
-        return { 
-          success: false, 
-          error: "Phone cannot be empty!" 
+        return {
+          success: false,
+          error: "Phone cannot be empty!",
         };
       }
 
       if (village_key.trim().length === 0) {
-        return { 
-          success: false, 
-          error: "Village key cannot be empty!" 
+        return {
+          success: false,
+          error: "Village key cannot be empty!",
         };
       }
 
@@ -151,9 +195,9 @@ export const residentRoutes = new Elysia({ prefix: "/api" })
         .where(eq(villages.village_key, village_key));
 
       if (existingVillage.length === 0) {
-        return { 
-          success: false, 
-          error: "Village not found! Please provide a valid village key." 
+        return {
+          success: false,
+          error: "Village not found! Please provide a valid village key.",
         };
       }
 
@@ -164,9 +208,9 @@ export const residentRoutes = new Elysia({ prefix: "/api" })
         .where(eq(residents.email, email));
 
       if (existingEmail.length > 0) {
-        return { 
-          success: false, 
-          error: "Email already exists! Please use a different email." 
+        return {
+          success: false,
+          error: "Email already exists! Please use a different email.",
         };
       }
 
@@ -177,9 +221,9 @@ export const residentRoutes = new Elysia({ prefix: "/api" })
         .where(eq(residents.username, username));
 
       if (existingUsername.length > 0) {
-        return { 
-          success: false, 
-          error: "Username already exists! Please use a different username." 
+        return {
+          success: false,
+          error: "Username already exists! Please use a different username.",
         };
       }
 
@@ -201,25 +245,40 @@ export const residentRoutes = new Elysia({ prefix: "/api" })
         })
         .returning();
 
-      return { 
-        success: true, 
-        message: "Resident created successfully!", 
-        data: newResident 
+      return {
+        success: true,
+        message: "Resident created successfully!",
+        data: newResident,
       };
     } catch (error) {
       console.error("Error creating resident:", error);
-      return { 
-        success: false, 
-        error: "Failed to create resident. Please try again." 
+      return {
+        success: false,
+        error: "Failed to create resident. Please try again.",
       };
     }
   })
-  
-  // Update resident
+
+  /**
+   * Update a resident.
+   * @param {Object} params - The parameters for the request.
+   * @param {string} params.resident_id - The resident ID.
+   * @param {Object} body - The body of the request.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the updated resident.
+   */
   .put("/residents/:resident_id", async ({ params, body }) => {
     try {
       const { resident_id } = params;
-      const { email, fname, lname, username, password_hash, phone, village_key, status } = body as {
+      const {
+        email,
+        fname,
+        lname,
+        username,
+        password_hash,
+        phone,
+        village_key,
+        status,
+      } = body as {
         email?: string;
         fname?: string;
         lname?: string;
@@ -237,60 +296,60 @@ export const residentRoutes = new Elysia({ prefix: "/api" })
         .where(eq(residents.resident_id, resident_id));
 
       if (existingResident.length === 0) {
-        return { 
-          success: false, 
-          error: "Resident not found!" 
+        return {
+          success: false,
+          error: "Resident not found!",
         };
       }
 
       // Validation
       if (email !== undefined && email.trim().length === 0) {
-        return { 
-          success: false, 
-          error: "Email cannot be empty!" 
+        return {
+          success: false,
+          error: "Email cannot be empty!",
         };
       }
 
       if (fname !== undefined && fname.trim().length === 0) {
-        return { 
-          success: false, 
-          error: "First name cannot be empty!" 
+        return {
+          success: false,
+          error: "First name cannot be empty!",
         };
       }
 
       if (lname !== undefined && lname.trim().length === 0) {
-        return { 
-          success: false, 
-          error: "Last name cannot be empty!" 
+        return {
+          success: false,
+          error: "Last name cannot be empty!",
         };
       }
 
       if (username !== undefined && username.trim().length === 0) {
-        return { 
-          success: false, 
-          error: "Username cannot be empty!" 
+        return {
+          success: false,
+          error: "Username cannot be empty!",
         };
       }
 
       if (password_hash !== undefined && password_hash.trim().length === 0) {
-        return { 
-          success: false, 
-          error: "Password cannot be empty!" 
+        return {
+          success: false,
+          error: "Password cannot be empty!",
         };
       }
 
       if (phone !== undefined && phone.trim().length === 0) {
-        return { 
-          success: false, 
-          error: "Phone cannot be empty!" 
+        return {
+          success: false,
+          error: "Phone cannot be empty!",
         };
       }
 
       if (village_key !== undefined) {
         if (village_key.trim().length === 0) {
-          return { 
-            success: false, 
-            error: "Village key cannot be empty!" 
+          return {
+            success: false,
+            error: "Village key cannot be empty!",
           };
         }
 
@@ -301,9 +360,9 @@ export const residentRoutes = new Elysia({ prefix: "/api" })
           .where(eq(villages.village_key, village_key));
 
         if (existingVillage.length === 0) {
-          return { 
-            success: false, 
-            error: "Village not found! Please provide a valid village key." 
+          return {
+            success: false,
+            error: "Village not found! Please provide a valid village key.",
           };
         }
       }
@@ -316,9 +375,9 @@ export const residentRoutes = new Elysia({ prefix: "/api" })
           .where(eq(residents.email, email));
 
         if (existingEmail.length > 0) {
-          return { 
-            success: false, 
-            error: "Email already exists! Please use a different email." 
+          return {
+            success: false,
+            error: "Email already exists! Please use a different email.",
           };
         }
       }
@@ -331,9 +390,9 @@ export const residentRoutes = new Elysia({ prefix: "/api" })
           .where(eq(residents.username, username));
 
         if (existingUsername.length > 0) {
-          return { 
-            success: false, 
-            error: "Username already exists! Please use a different username." 
+          return {
+            success: false,
+            error: "Username already exists! Please use a different username.",
           };
         }
       }
@@ -349,7 +408,8 @@ export const residentRoutes = new Elysia({ prefix: "/api" })
         updateData.password_hash = await hashPassword(password_hash.trim());
       }
       if (phone !== undefined) updateData.phone = phone.trim();
-      if (village_key !== undefined) updateData.village_key = village_key.trim();
+      if (village_key !== undefined)
+        updateData.village_key = village_key.trim();
       if (status !== undefined) updateData.status = status;
 
       const [updatedResident] = await db
@@ -358,21 +418,26 @@ export const residentRoutes = new Elysia({ prefix: "/api" })
         .where(eq(residents.resident_id, resident_id))
         .returning();
 
-      return { 
-        success: true, 
-        message: "Resident updated successfully!", 
-        data: updatedResident 
+      return {
+        success: true,
+        message: "Resident updated successfully!",
+        data: updatedResident,
       };
     } catch (error) {
       console.error("Error updating resident:", error);
-      return { 
-        success: false, 
-        error: "Failed to update resident. Please try again." 
+      return {
+        success: false,
+        error: "Failed to update resident. Please try again.",
       };
     }
   })
-  
-  // Delete resident
+
+  /**
+   * Delete a resident.
+   * @param {Object} params - The parameters for the request.
+   * @param {string} params.resident_id - The resident ID.
+   * @returns {Promise<Object>} A promise that resolves to an object containing a success message.
+   */
   .delete("/residents/:resident_id", async ({ params }) => {
     try {
       const { resident_id } = params;
@@ -384,9 +449,9 @@ export const residentRoutes = new Elysia({ prefix: "/api" })
         .where(eq(residents.resident_id, resident_id));
 
       if (existingResident.length === 0) {
-        return { 
-          success: false, 
-          error: "Resident not found!" 
+        return {
+          success: false,
+          error: "Resident not found!",
         };
       }
 
@@ -395,15 +460,15 @@ export const residentRoutes = new Elysia({ prefix: "/api" })
         .delete(residents)
         .where(eq(residents.resident_id, resident_id));
 
-      return { 
-        success: true, 
-        message: "Resident deleted successfully!" 
+      return {
+        success: true,
+        message: "Resident deleted successfully!",
       };
     } catch (error) {
       console.error("Error deleting resident:", error);
-      return { 
-        success: false, 
-        error: "Failed to delete resident. Please try again." 
+      return {
+        success: false,
+        error: "Failed to delete resident. Please try again.",
       };
     }
   }); 

@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 
 /**
  * SECURITY ENHANCEMENT: Role-based Access Control Middleware
- * 
+ *
  * Security improvements:
  * - Removed sensitive logging (user data exposure)
  * - Added token age validation
@@ -13,6 +13,11 @@ import { eq } from "drizzle-orm";
  * - Proper error handling without information disclosure
  */
 
+/**
+ * Middleware to require a specific role or roles for a route.
+ * @param {string | string[]} [required="*"] - The required role or roles.
+ * @returns {Function} An Elysia hook function.
+ */
 export const requireRole = (required: string | string[] = "*") => {
   const allowedRoles = Array.isArray(required) ? required : [required];
 
@@ -42,7 +47,8 @@ export const requireRole = (required: string | string[] = "*") => {
 
     // SECURITY: Check token age to prevent old token usage
     const tokenAge = Date.now() / 1000 - payload.iat;
-    if (tokenAge > 7 * 24 * 60 * 60) { // 7 days maximum
+    if (tokenAge > 7 * 24 * 60 * 60) {
+      // 7 days maximum
       set.status = 401;
       return { error: "Unauthorized: Token expired" };
     }
@@ -57,7 +63,7 @@ export const requireRole = (required: string | string[] = "*") => {
     }
 
     // SECURITY: Verify user account is still active
-    if (user.status !== 'verified') {
+    if (user.status !== "verified") {
       set.status = 403;
       return { error: "Forbidden: Account not active" };
     }

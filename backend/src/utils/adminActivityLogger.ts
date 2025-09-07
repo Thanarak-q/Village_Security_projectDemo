@@ -1,6 +1,13 @@
-import { createActivityLog, CreateActivityLogParams } from "../db/adminActivityLogUtils";
+import {
+  createActivityLog,
+  CreateActivityLogParams,
+} from "../db/adminActivityLogUtils";
 
-// Helper function to get client IP address
+/**
+ * Gets the client IP address from a request.
+ * @param {any} request - The request object.
+ * @returns {string | undefined} The client IP address.
+ */
 export const getClientIP = (request: any): string | undefined => {
   return (
     request.headers["x-forwarded-for"] ||
@@ -11,13 +18,25 @@ export const getClientIP = (request: any): string | undefined => {
   );
 };
 
-// Helper function to get user agent
+/**
+ * Gets the user agent from a request.
+ * @param {any} request - The request object.
+ * @returns {string | undefined} The user agent.
+ */
 export const getUserAgent = (request: any): string | undefined => {
   return request.headers["user-agent"] || "unknown";
 };
 
-// Helper function to create activity log entry
-export const logAdminActivity = async (params: Omit<CreateActivityLogParams, "ip_address" | "user_agent">, request: any) => {
+/**
+ * Logs an admin activity.
+ * @param {Omit<CreateActivityLogParams, "ip_address" | "user_agent">} params - The parameters for the activity log.
+ * @param {any} request - The request object.
+ * @returns {Promise<void>}
+ */
+export const logAdminActivity = async (
+  params: Omit<CreateActivityLogParams, "ip_address" | "user_agent">,
+  request: any
+) => {
   try {
     const ip_address = getClientIP(request);
     const user_agent = getUserAgent(request);
@@ -33,49 +52,61 @@ export const logAdminActivity = async (params: Omit<CreateActivityLogParams, "ip
   }
 };
 
-// Predefined log descriptions for common actions
+/**
+ * Predefined log descriptions for common actions.
+ * @type {Object}
+ */
 export const LOG_DESCRIPTIONS = {
   // User management
   APPROVE_RESIDENT: "อนุมัติ resident",
   REJECT_RESIDENT: "ปฏิเสธ resident",
   APPROVE_GUARD: "อนุมัติ guard",
   REJECT_GUARD: "ปฏิเสธ guard",
-  
+
   // House management
   CREATE_HOUSE: "เพิ่มบ้านใหม่",
   UPDATE_HOUSE: "แก้ไขข้อมูลบ้าน",
   DELETE_HOUSE: "ลบบ้าน",
   CHANGE_HOUSE_STATUS: "เปลี่ยนสถานะบ้าน",
-  
+
   // House member management
   ADD_HOUSE_MEMBER: "เพิ่มสมาชิกบ้าน",
   REMOVE_HOUSE_MEMBER: "ลบสมาชิกบ้าน",
-  
+
   // User status management
   CHANGE_USER_STATUS: "เปลี่ยนสถานะผู้ใช้",
   CHANGE_USER_ROLE: "เปลี่ยน role ของผู้ใช้",
-  
+
   // Admin management
   CREATE_ADMIN: "เพิ่ม admin ใหม่",
   UPDATE_ADMIN: "แก้ไขข้อมูล admin",
   DELETE_ADMIN: "ลบ admin",
-  
+
   // Village management
   CREATE_VILLAGE: "เพิ่มหมู่บ้านใหม่",
   UPDATE_VILLAGE: "แก้ไขข้อมูลหมู่บ้าน",
   DELETE_VILLAGE: "ลบหมู่บ้าน",
-  
+
   // View actions
   VIEW_RESIDENTS: "ดูข้อมูล residents",
   VIEW_GUARDS: "ดูข้อมูล guards",
   VIEW_VISITOR_RECORDS: "ดู visitor records",
-  
+
   // System actions
   EXPORT_DATA: "export ข้อมูล",
   SYSTEM_CONFIG: "ตั้งค่าระบบ",
 } as const;
 
-// Helper function to create log entry for user approval/rejection
+/**
+ * Logs a user action.
+ * @param {string} admin_id - The ID of the admin performing the action.
+ * @param {"approve_user" | "reject_user"} action - The action performed.
+ * @param {"resident" | "guard"} target_type - The type of the target user.
+ * @param {string} target_id - The ID of the target user.
+ * @param {string} [additional_info] - Additional information about the action.
+ * @param {any} [request] - The request object.
+ * @returns {Promise<void>}
+ */
 export const logUserAction = async (
   admin_id: string,
   action: "approve_user" | "reject_user",
@@ -84,25 +115,48 @@ export const logUserAction = async (
   additional_info?: string,
   request?: any
 ) => {
-  const description = additional_info 
-    ? `${LOG_DESCRIPTIONS[action === "approve_user" ? "APPROVE_RESIDENT" : "REJECT_RESIDENT"]} - ${additional_info}`
-    : LOG_DESCRIPTIONS[action === "approve_user" ? "APPROVE_RESIDENT" : "REJECT_RESIDENT"];
+  const description = additional_info
+    ? `${
+        LOG_DESCRIPTIONS[
+          action === "approve_user" ? "APPROVE_RESIDENT" : "REJECT_RESIDENT"
+        ]
+      } - ${additional_info}`
+    : LOG_DESCRIPTIONS[
+        action === "approve_user" ? "APPROVE_RESIDENT" : "REJECT_RESIDENT"
+      ];
 
   if (request) {
-    await logAdminActivity({
-      admin_id,
-      action_type: action,
-      target_type,
-      target_id,
-      description,
-    }, request);
+    await logAdminActivity(
+      {
+        admin_id,
+        action_type: action,
+        target_type,
+        target_id,
+        description,
+      },
+      request
+    );
   }
 };
 
-// Helper function to create log entry for house management
+/**
+ * Logs a house action.
+ * @param {string} admin_id - The ID of the admin performing the action.
+ * @param {"create_house" | "update_house" | "delete_house" | "change_house_status"} action - The action performed.
+ * @param {string} target_id - The ID of the target house.
+ * @param {string} [old_value] - The old value of the data.
+ * @param {string} [new_value] - The new value of the data.
+ * @param {string} [additional_info] - Additional information about the action.
+ * @param {any} [request] - The request object.
+ * @returns {Promise<void>}
+ */
 export const logHouseAction = async (
   admin_id: string,
-  action: "create_house" | "update_house" | "delete_house" | "change_house_status",
+  action:
+    | "create_house"
+    | "update_house"
+    | "delete_house"
+    | "change_house_status",
   target_id: string,
   old_value?: string,
   new_value?: string,
@@ -116,24 +170,35 @@ export const logHouseAction = async (
     change_house_status: LOG_DESCRIPTIONS.CHANGE_HOUSE_STATUS,
   };
 
-  const description = additional_info 
+  const description = additional_info
     ? `${descriptions[action]} - ${additional_info}`
     : descriptions[action];
 
   if (request) {
-    await logAdminActivity({
-      admin_id,
-      action_type: action,
-      target_type: "house",
-      target_id,
-      old_value,
-      new_value,
-      description,
-    }, request);
+    await logAdminActivity(
+      {
+        admin_id,
+        action_type: action,
+        target_type: "house",
+        target_id,
+        old_value,
+        new_value,
+        description,
+      },
+      request
+    );
   }
 };
 
-// Helper function to create log entry for house member management
+/**
+ * Logs a house member action.
+ * @param {string} admin_id - The ID of the admin performing the action.
+ * @param {"add_house_member" | "remove_house_member"} action - The action performed.
+ * @param {string} target_id - The ID of the target house member.
+ * @param {string} [additional_info] - Additional information about the action.
+ * @param {any} [request] - The request object.
+ * @returns {Promise<void>}
+ */
 export const logHouseMemberAction = async (
   admin_id: string,
   action: "add_house_member" | "remove_house_member",
@@ -146,22 +211,32 @@ export const logHouseMemberAction = async (
     remove_house_member: LOG_DESCRIPTIONS.REMOVE_HOUSE_MEMBER,
   };
 
-  const description = additional_info 
+  const description = additional_info
     ? `${descriptions[action]} - ${additional_info}`
     : descriptions[action];
 
   if (request) {
-    await logAdminActivity({
-      admin_id,
-      action_type: action,
-      target_type: "house_member",
-      target_id,
-      description,
-    }, request);
+    await logAdminActivity(
+      {
+        admin_id,
+        action_type: action,
+        target_type: "house_member",
+        target_id,
+        description,
+      },
+      request
+    );
   }
 };
 
-// Helper function to create log entry for view actions
+/**
+ * Logs a view action.
+ * @param {string} admin_id - The ID of the admin performing the action.
+ * @param {"resident" | "guard" | "visitor_records"} target_type - The type of the target being viewed.
+ * @param {string} [additional_info] - Additional information about the action.
+ * @param {any} [request] - The request object.
+ * @returns {Promise<void>}
+ */
 export const logViewAction = async (
   admin_id: string,
   target_type: "resident" | "guard" | "visitor_records",
@@ -174,16 +249,19 @@ export const logViewAction = async (
     visitor_records: LOG_DESCRIPTIONS.VIEW_VISITOR_RECORDS,
   };
 
-  const description = additional_info 
+  const description = additional_info
     ? `${descriptions[target_type]} - ${additional_info}`
     : descriptions[target_type];
 
   if (request) {
-    await logAdminActivity({
-      admin_id,
-      action_type: `view_${target_type}` as any,
-      target_type,
-      description,
-    }, request);
+    await logAdminActivity(
+      {
+        admin_id,
+        action_type: `view_${target_type}` as any,
+        target_type,
+        description,
+      },
+      request
+    );
   }
 }; 

@@ -10,7 +10,10 @@ import {
 import { eq, sql, and } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 
-// Interface for approve request
+/**
+ * Interface for the approve user request.
+ * @interface
+ */
 interface ApproveUserRequest {
   userId: string;
   currentRole: "resident" | "guard";
@@ -19,7 +22,10 @@ interface ApproveUserRequest {
   notes?: string;
 }
 
-// Interface for reject request
+/**
+ * Interface for the reject user request.
+ * @interface
+ */
 interface RejectUserRequest {
   userId: string;
   currentRole: "resident" | "guard";
@@ -27,8 +33,18 @@ interface RejectUserRequest {
   notes?: string;
 }
 
+/**
+ * The pending users routes.
+ * @type {Elysia}
+ */
 export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
   .onBeforeHandle(requireRole(["admin", "staff"]))
+  /**
+   * Get all pending users.
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.currentUser - The current user.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the pending users.
+   */
   .get("/pendingUsers", async ({ currentUser }: any) => {
     try {
       const { village_key } = currentUser;
@@ -54,9 +70,12 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             eq(residents.village_key, village_key)
           )
         )
-      // .where(sql`${residents.status} = 'pending'`)
-      .leftJoin(house_members, eq(residents.resident_id, house_members.resident_id))
-      .leftJoin(houses, eq(house_members.house_id, houses.house_id));
+        // .where(sql`${residents.status} = 'pending'`)
+        .leftJoin(
+          house_members,
+          eq(residents.resident_id, house_members.resident_id)
+        )
+        .leftJoin(houses, eq(house_members.house_id, houses.house_id));
 
       // Get pending guards data
       const pendingGuardsData = await db
@@ -96,6 +115,12 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
       };
     }
   })
+  /**
+   * Approve a user.
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.body - The body of the request.
+   * @returns {Promise<Object>} A promise that resolves to an object containing a success message.
+   */
   .put("/approveUser", async ({ body }) => {
     try {
       const {
@@ -328,6 +353,12 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
       };
     }
   })
+  /**
+   * Reject a user.
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.body - The body of the request.
+   * @returns {Promise<Object>} A promise that resolves to an object containing a success message.
+   */
   .put("/rejectUser", async ({ body }) => {
     try {
       const { userId, currentRole, reason, notes }: RejectUserRequest =

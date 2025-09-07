@@ -11,7 +11,10 @@ import {
 import { eq, sql, and } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 
-// Interface for update request
+/**
+ * Interface for the update user request.
+ * @interface
+ */
 interface UpdateUserRequest {
   userId: string;
   role: "resident" | "guard";
@@ -20,7 +23,10 @@ interface UpdateUserRequest {
   notes?: string;
 }
 
-// Interface for role change request
+/**
+ * Interface for the change role request.
+ * @interface
+ */
 interface ChangeRoleRequest {
   userId: string;
   currentRole: "resident" | "guard";
@@ -30,7 +36,11 @@ interface ChangeRoleRequest {
   notes?: string;
 }
 
-// Helper functions
+/**
+ * Gets a resident by user ID.
+ * @param {string} userId - The user ID.
+ * @returns {Promise<Object|null>} A promise that resolves to the resident object or null if not found.
+ */
 async function getResident(userId: string) {
   const result = await db
     .select()
@@ -38,7 +48,11 @@ async function getResident(userId: string) {
     .where(eq(residents.resident_id, userId));
   return result[0] || null;
 }
-// ok
+/**
+ * Gets a guard by user ID.
+ * @param {string} userId - The user ID.
+ * @returns {Promise<Object|null>} A promise that resolves to the guard object or null if not found.
+ */
 async function getGuard(userId: string) {
   const result = await db
     .select()
@@ -47,8 +61,11 @@ async function getGuard(userId: string) {
   return result[0] || null;
 }
 
-// ok
-// delete house member table of resident that we want
+/**
+ * Removes house relationships for a user.
+ * @param {string} userId - The user ID.
+ * @returns {Promise<Object|null>} A promise that resolves to the house member data or null if not found.
+ */
 async function removeHouseRelationships(userId: string) {
   const houseMemberData = await db
     .select()
@@ -62,7 +79,12 @@ async function removeHouseRelationships(userId: string) {
   return houseMemberData[0] || null;
 }
 
-// ok
+/**
+ * Cleans up visitor records for a user.
+ * @param {string} userId - The user ID.
+ * @param {"resident" | "guard"} role - The user's role.
+ * @returns {Promise<void>}
+ */
 async function cleanupVisitorRecords(
   userId: string,
   role: "resident" | "guard"
@@ -78,8 +100,12 @@ async function cleanupVisitorRecords(
   }
 }
 
-// not ok yet
-// need to delete old table (resident table) because we dont need it anymore
+/**
+ * Creates a guard from a resident.
+ * @param {any} resident - The resident object.
+ * @param {string} status - The status of the new guard.
+ * @returns {Promise<Object|null>} A promise that resolves to the new guard object or null if creation fails.
+ */
 async function createGuardFromResident(resident: any, status: string) {
   const result = await db
     .insert(guards)
@@ -99,8 +125,12 @@ async function createGuardFromResident(resident: any, status: string) {
   return result[0] || null;
 }
 
-// not ok yet
-// need to delete old table (guard table) because we dont need it anymore
+/**
+ * Creates a resident from a guard.
+ * @param {any} guard - The guard object.
+ * @param {string} status - The status of the new resident.
+ * @returns {Promise<Object|null>} A promise that resolves to the new resident object or null if creation fails.
+ */
 async function createResidentFromGuard(guard: any, status: string) {
   const result = await db
     .insert(residents)
@@ -120,9 +150,11 @@ async function createResidentFromGuard(guard: any, status: string) {
   return result[0] || null;
 }
 
-// not ok
-// delete houses that have 0 resident 
-// what if that house just waiting to be rented
+/**
+ * Cleans up orphaned houses.
+ * @param {string} houseId - The house ID.
+ * @returns {Promise<void>}
+ */
 async function cleanupOrphanedHouse(houseId: string) {
   const remainingResidents = await db
     .select()
@@ -134,6 +166,13 @@ async function cleanupOrphanedHouse(houseId: string) {
   }
 }
 
+/**
+ * Creates a house for a resident.
+ * @param {string} residentId - The resident ID.
+ * @param {string} houseNumber - The house number.
+ * @param {string | null} villageKey - The village key.
+ * @returns {Promise<Object|null>} A promise that resolves to the new house object or null if creation fails.
+ */
 async function createHouseForResident(
   residentId: string,
   houseNumber: string,
@@ -157,8 +196,18 @@ async function createHouseForResident(
   return newHouse[0];
 }
 
+/**
+ * The user table routes.
+ * @type {Elysia}
+ */
 export const userTableRoutes = new Elysia({ prefix: "/api" })
   .onBeforeHandle(requireRole(["admin"]))
+  /**
+   * Get all users for the current user's village.
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.currentUser - The current user.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the user data.
+   */
   .get("/userTable", async ({ currentUser }: any) => {
     try {
       const { village_key } = currentUser;
@@ -176,7 +225,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           house_address: houses.address,
           createdAt: residents.createdAt,
           updatedAt: residents.updatedAt,
-          profile_image_url: residents.profile_image_url
+          profile_image_url: residents.profile_image_url,
         })
         .from(residents)
         .where(
@@ -204,7 +253,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           house_address: sql`NULL`.as("house_address"),
           createdAt: guards.createdAt,
           updatedAt: guards.updatedAt,
-          profile_image_url: guards.profile_image_url
+          profile_image_url: guards.profile_image_url,
         })
         .from(guards)
         .where(
@@ -236,6 +285,12 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
     }
   })
 
+  /**
+   * Update a user.
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.body - The body of the request.
+   * @returns {Promise<Object>} A promise that resolves to an object containing a success message.
+   */
   .put("/updateUser", async ({ body }) => {
     try {
       const { userId, role, status, houseNumber, notes }: UpdateUserRequest =
@@ -346,6 +401,12 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
       };
     }
   })
+  /**
+   * Change a user's role.
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.body - The body of the request.
+   * @returns {Promise<Object>} A promise that resolves to an object containing a success message.
+   */
   .put("/changeUserRole", async ({ body }) => {
     try {
       const {
