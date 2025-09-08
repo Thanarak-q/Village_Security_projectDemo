@@ -4,9 +4,18 @@ import { houses } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 
+/**
+ * The house routes.
+ * @type {Elysia}
+ */
 export const houseRoutes = new Elysia({ prefix: "/api" })
   .onBeforeHandle(requireRole("admin"))
-  // Get all houses
+  /**
+   * Get all houses for the current user's village.
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.currentUser - The current user.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the houses.
+   */
   .get("/houses", async ({ currentUser }: any) => {
     try {
       const { village_key } = currentUser;
@@ -29,7 +38,12 @@ export const houseRoutes = new Elysia({ prefix: "/api" })
     }
   })
 
-  // Get houses by village
+  /**
+   * Get houses by village.
+   * @param {Object} params - The parameters for the request.
+   * @param {string} params.village_key - The village key.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the houses.
+   */
   .get("/houses/village/:village_key", async ({ params }) => {
     try {
       const { village_key } = params;
@@ -60,7 +74,12 @@ export const houseRoutes = new Elysia({ prefix: "/api" })
     }
   })
 
-  // Get single house by ID
+  /**
+   * Get a single house by ID.
+   * @param {Object} params - The parameters for the request.
+   * @param {string} params.house_id - The house ID.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the house.
+   */
   .get("/houses/:house_id", async ({ params }) => {
     try {
       const { house_id } = params;
@@ -95,12 +114,4 @@ export const houseRoutes = new Elysia({ prefix: "/api" })
         error: "Failed to fetch house",
       };
     }
-  })
-
-
-
-
-
-
-
-
+  });
