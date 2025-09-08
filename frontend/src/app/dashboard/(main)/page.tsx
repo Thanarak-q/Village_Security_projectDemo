@@ -38,8 +38,12 @@ export default function Page() {
   useEffect(() => {
     if (!data) return;
 
+    // Capture ref values to avoid stale closure issues
+    const chartElement = chartRef.current;
+    const tableElement = tableRef.current;
+
     // Set initial state for chart and table only
-    gsap.set([chartRef.current, tableRef.current], {
+    gsap.set([chartElement, tableElement], {
       opacity: 0,
       y: 50
     });
@@ -69,14 +73,14 @@ export default function Page() {
     }
 
     // Then animate chart
-    tl.to(chartRef.current, {
+    tl.to(chartElement, {
       duration: 0.8,
       opacity: 1,
       y: 0,
       ease: "power2.inOut"
     }, "-=0.2")
       // Finally animate table
-      .to(tableRef.current, {
+      .to(tableElement, {
         duration: 0.8,
         opacity: 1,
         y: 0,
@@ -84,7 +88,7 @@ export default function Page() {
       }, "-=0.4");
 
     return () => {
-      gsap.killTweensOf([chartRef.current, tableRef.current]);
+      gsap.killTweensOf([chartElement, tableElement]);
       if (cards) {
         gsap.killTweensOf(Array.from(cards));
       }
