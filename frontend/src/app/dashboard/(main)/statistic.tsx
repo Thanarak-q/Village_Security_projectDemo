@@ -20,7 +20,7 @@ export function TotalUsersCard({ data, loading, error }: { data: StatsData | nul
   return (
     <Card className="shadow transition-shadow hover:shadow-md">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">
+        <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
           จำนวนผู้อยู่อาศัยทั้งหมด
         </CardTitle>
         <Users className="h-4 w-4 sm:h-6 sm:w-6 text-blue-500" />
@@ -29,13 +29,13 @@ export function TotalUsersCard({ data, loading, error }: { data: StatsData | nul
         {loading ? (
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm text-gray-500">กำลังโหลด...</span>
+            <span className="text-sm text-muted-foreground">กำลังโหลด...</span>
           </div>
         ) : error ? (
           <div className="text-sm text-red-500">เกิดข้อผิดพลาด</div>
         ) : (
           <>
-            <div className="text-2xl sm:text-3xl font-bold text-gray-900">
+            <div className="text-2xl sm:text-3xl font-bold text-foreground">
               {data?.residentCount?.toLocaleString() || 0}
             </div>
             <div className="flex items-center mt-2">
@@ -56,7 +56,7 @@ export function DailyAccessCard({ data, loading, error }: { data: StatsData | nu
   return (
     <Card className="shadow transition-shadow hover:shadow-md">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">
+        <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
           ผู้มาเยือนวันนี้
         </CardTitle>
         <UserCheck className="h-4 w-4 sm:h-6 sm:w-6 text-cyan-500" />
@@ -65,13 +65,13 @@ export function DailyAccessCard({ data, loading, error }: { data: StatsData | nu
         {loading ? (
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm text-gray-500">กำลังโหลด...</span>
+            <span className="text-sm text-muted-foreground">กำลังโหลด...</span>
           </div>
         ) : error ? (
           <div className="text-sm text-red-500">เกิดข้อผิดพลาด</div>
         ) : (
           <>
-            <div className="text-2xl sm:text-3xl font-bold text-gray-900">
+            <div className="text-2xl sm:text-3xl font-bold text-foreground">
               {(data?.visitorApprovedToday || 0) + (data?.visitorRejectedToday || 0)}
             </div>
             <div className="flex items-center gap-3 mt-2">
@@ -100,7 +100,7 @@ export function PendingTasksCard({ data, loading, error }: { data: StatsData | n
   return (
     <Card className="shadow transition-shadow hover:shadow-md">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">
+        <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
           ผู้มาเยือนรอดำเนินการ
         </CardTitle>
         <AlertTriangle className="h-4 w-4 sm:h-6 sm:w-6 text-orange-500" />
@@ -109,13 +109,13 @@ export function PendingTasksCard({ data, loading, error }: { data: StatsData | n
         {loading ? (
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm text-gray-500">กำลังโหลด...</span>
+            <span className="text-sm text-muted-foreground">กำลังโหลด...</span>
           </div>
         ) : error ? (
           <div className="text-sm text-red-500">เกิดข้อผิดพลาด</div>
         ) : (
           <>
-            <div className="text-2xl sm:text-3xl font-bold text-gray-900">
+            <div className="text-2xl sm:text-3xl font-bold text-foreground">
               {data?.visitorPendingToday || 0}
             </div>
             <div className="flex items-center mt-2">
@@ -138,7 +138,7 @@ export function EmptyCard({ data, loading, error }: { data: StatsData | null, lo
   return (
     <Card className="shadow transition-shadow hover:shadow-md">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">
+        <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
           ผู้ใช้รอการอนุมัติ
         </CardTitle>
         <Plus className="h-4 w-4 sm:h-6 sm:w-6 text-purple-500" />
@@ -147,13 +147,13 @@ export function EmptyCard({ data, loading, error }: { data: StatsData | null, lo
         {loading ? (
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm text-gray-500">กำลังโหลด...</span>
+            <span className="text-sm text-muted-foreground">กำลังโหลด...</span>
           </div>
         ) : error ? (
           <div className="text-sm text-red-500">เกิดข้อผิดพลาด</div>
         ) : (
           <>
-            <div className="text-2xl sm:text-3xl font-bold text-gray-900">
+            <div className="text-2xl sm:text-3xl font-bold text-foreground">
               {totalPendingUsers}
             </div>
             <div className="flex items-center gap-3 mt-2">

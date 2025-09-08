@@ -118,19 +118,19 @@ export default function AddHouseDialog({
               name="address"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">
+                  <FormLabel className="text-sm font-medium text-foreground">
                     บ้านเลขที่ *
                   </FormLabel>
                   <FormControl>
                     <Input
                       placeholder="เช่น 123/45, 67/8, A-15"
                       {...field}
-                      className="placeholder:text-gray-400"
+                      className="placeholder:text-muted-foreground"
                       autoFocus
                     />
                   </FormControl>
                   <FormMessage />
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     บ้านจะถูกเพิ่มในหมู่บ้านของคุณโดยอัตโนมัติ
                   </p>
                 </FormItem>
