@@ -1,34 +1,41 @@
+/**
+ * @file This file contains database utility functions for managing admin activity logs.
+ * It provides an interface for creating, retrieving, and analyzing log entries,
+ * which are crucial for auditing and monitoring administrative actions within the system.
+ */
+
 import db from "./drizzle";
 import { admin_activity_logs, admins, AdminActivityLogInsert } from "./schema";
 import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
 
 /**
- * Interface for creating an activity log.
+ * Defines the structure for the parameters required to create a new activity log.
  * @interface
  */
 export interface CreateActivityLogParams {
   /**
-   * The ID of the admin performing the action.
+   * The UUID of the administrator who performed the action.
    * @type {string}
    */
   admin_id: string;
   /**
-   * The type of action performed.
+   * The type of action performed, conforming to the predefined action types in the schema.
    * @type {AdminActivityLogInsert["action_type"]}
    */
   action_type: AdminActivityLogInsert["action_type"];
   /**
-   * A description of the action.
+   * A detailed, human-readable description of the action.
    * @type {string}
    */
   description: string;
 }
 
 /**
- * Creates a new activity log.
- * @param {CreateActivityLogParams} params - The parameters for creating the activity log.
- * @returns {Promise<AdminActivityLog>} A promise that resolves to the newly created activity log.
- * @throws {Error} If there is an error creating the activity log.
+ * Inserts a new admin activity log into the database.
+ *
+ * @param {CreateActivityLogParams} params - The data for the new activity log entry.
+ * @returns {Promise<AdminActivityLog>} A promise that resolves to the newly created log record.
+ * @throws {Error} Throws an error if the database insertion fails.
  */
 export const createActivityLog = async (params: CreateActivityLogParams) => {
   try {
@@ -49,12 +56,13 @@ export const createActivityLog = async (params: CreateActivityLogParams) => {
 };
 
 /**
- * Gets all activity logs with pagination.
- * @param {number} [page=1] - The page number to retrieve.
- * @param {number} [limit=20] - The number of logs per page.
- * @param {string} [village_key] - The village key to filter by.
- * @returns {Promise<Object>} A promise that resolves to an object containing the logs and pagination information.
- * @throws {Error} If there is an error fetching the activity logs.
+ * Retrieves a paginated list of all admin activity logs, optionally filtered by village.
+ *
+ * @param {number} [page=1] - The page number to fetch.
+ * @param {number} [limit=20] - The number of logs to return per page.
+ * @param {string} [village_key] - An optional key to filter logs for a specific village.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the logs and pagination details.
+ * @throws {Error} Throws an error if fetching the logs fails.
  */
 export const getAllActivityLogs = async (
   page: number = 1,
@@ -124,12 +132,13 @@ export const getAllActivityLogs = async (
 };
 
 /**
- * Gets activity logs by admin.
- * @param {string} admin_id - The ID of the admin to retrieve logs for.
- * @param {number} [page=1] - The page number to retrieve.
- * @param {number} [limit=20] - The number of logs per page.
- * @returns {Promise<Object>} A promise that resolves to an object containing the logs and pagination information.
- * @throws {Error} If there is an error fetching the activity logs.
+ * Retrieves a paginated list of activity logs for a specific administrator.
+ *
+ * @param {string} admin_id - The UUID of the administrator.
+ * @param {number} [page=1] - The page number to fetch.
+ * @param {number} [limit=20] - The number of logs to return per page.
+ * @returns {Promise<Object>} A promise that resolves to an object with logs and pagination details.
+ * @throws {Error} Throws an error if fetching the logs fails.
  */
 export const getActivityLogsByAdmin = async (
   admin_id: string,
@@ -176,13 +185,14 @@ export const getActivityLogsByAdmin = async (
 };
 
 /**
- * Gets activity logs by action type.
- * @param {AdminActivityLogInsert["action_type"]} action_type - The action type to filter by.
- * @param {number} [page=1] - The page number to retrieve.
+ * Retrieves a paginated list of activity logs filtered by a specific action type.
+ *
+ * @param {AdminActivityLogInsert["action_type"]} action_type - The type of action to filter by.
+ * @param {number} [page=1] - The page number to fetch.
  * @param {number} [limit=20] - The number of logs per page.
- * @param {string} [village_key] - The village key to filter by.
- * @returns {Promise<Object>} A promise that resolves to an object containing the logs and pagination information.
- * @throws {Error} If there is an error fetching the activity logs.
+ * @param {string} [village_key] - An optional key to filter logs for a specific village.
+ * @returns {Promise<Object>} A promise that resolves to an object with logs and pagination details.
+ * @throws {Error} Throws an error if fetching the logs fails.
  */
 export const getActivityLogsByActionType = async (
   action_type: AdminActivityLogInsert["action_type"],
@@ -236,14 +246,15 @@ export const getActivityLogsByActionType = async (
 };
 
 /**
- * Gets activity logs by date range.
- * @param {Date} start_date - The start date of the date range.
- * @param {Date} end_date - The end date of the date range.
- * @param {number} [page=1] - The page number to retrieve.
+ * Retrieves a paginated list of activity logs within a specified date range.
+ *
+ * @param {Date} start_date - The start of the date range.
+ * @param {Date} end_date - The end of the date range.
+ * @param {number} [page=1] - The page number to fetch.
  * @param {number} [limit=20] - The number of logs per page.
- * @param {string} [village_key] - The village key to filter by.
- * @returns {Promise<Object>} A promise that resolves to an object containing the logs and pagination information.
- * @throws {Error} If there is an error fetching the activity logs.
+ * @param {string} [village_key] - An optional key to filter logs for a specific village.
+ * @returns {Promise<Object>} A promise that resolves to an object with logs and pagination details.
+ * @throws {Error} Throws an error if fetching the logs fails.
  */
 export const getActivityLogsByDateRange = async (
   start_date: Date,
@@ -301,10 +312,12 @@ export const getActivityLogsByDateRange = async (
 };
 
 /**
- * Gets activity statistics.
- * @param {string} [village_key] - The village key to filter by.
- * @returns {Promise<Object>} A promise that resolves to an object containing the total number of logs and a breakdown by action type.
- * @throws {Error} If there is an error fetching the activity statistics.
+ * Retrieves statistics about admin activities, such as the total number of logs
+ * and a breakdown of activities by action type.
+ *
+ * @param {string} [village_key] - An optional key to filter statistics for a specific village.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the total log count and a list of counts per action type.
+ * @throws {Error} Throws an error if fetching the statistics fails.
  */
 export const getActivityStatistics = async (village_key?: string) => {
   try {

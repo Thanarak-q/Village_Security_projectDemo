@@ -1,22 +1,32 @@
+/**
+ * @file This file provides a script for migrating plain text passwords to hashed passwords.
+ * It should be executed as a one-time operation to enhance security by ensuring all
+ * user passwords stored in the database are properly hashed. The script is designed
+ * to be idempotent, meaning it can be run multiple times without re-hashing already
+ * secured passwords.
+ */
+
 import db from "../db/drizzle";
 import { residents, guards, admins } from "../db/schema";
 import { hashPassword } from "./passwordUtils";
 import { eq } from "drizzle-orm";
 
 /**
- * Hashes existing plain text passwords in the database.
- * This should be run once to migrate existing plain text passwords to hashed ones.
- * @returns {Promise<void>}
- * @throws {Error} If there is an error during the migration.
+ * Iterates through resident, guard, and admin records in the database and
+ * hashes any passwords that are not already hashed. This function is intended
+ * for a one-time migration from plain text passwords to bcrypt-hashed passwords.
+ *
+ * @returns {Promise<void>} A promise that resolves when the migration is complete.
+ * @throws {Error} Throws an error if the database connection or hashing process fails.
  */
-export async function hashExistingPasswords() {
+export async function hashExistingPasswords(): Promise<void> {
   try {
     console.log("Starting password hashing migration...");
 
     // Hash existing resident passwords
     const existingResidents = await db.select().from(residents);
     for (const resident of existingResidents) {
-      // Check if password is already hashed
+      // Check if password is not already hashed (assumes bcrypt hashes start with '$2b$')
       if (!resident.password_hash.startsWith("$2b$")) {
         const hashedPassword = await hashPassword(resident.password_hash);
         await db
@@ -30,7 +40,7 @@ export async function hashExistingPasswords() {
     // Hash existing guard passwords
     const existingGuards = await db.select().from(guards);
     for (const guard of existingGuards) {
-      // Check if password is already hashed
+      // Check if password is not already hashed
       if (!guard.password_hash.startsWith("$2b$")) {
         const hashedPassword = await hashPassword(guard.password_hash);
         await db
@@ -44,7 +54,7 @@ export async function hashExistingPasswords() {
     // Hash existing admin passwords
     const existingAdmins = await db.select().from(admins);
     for (const admin of existingAdmins) {
-      // Check if password is already hashed
+      // Check if password is not already hashed
       if (!admin.password_hash.startsWith("$2b$")) {
         const hashedPassword = await hashPassword(admin.password_hash);
         await db

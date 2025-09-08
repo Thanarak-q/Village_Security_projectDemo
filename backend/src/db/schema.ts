@@ -1,10 +1,16 @@
+/**
+ * @file This file defines the database schema for the application using Drizzle ORM.
+ * It includes table definitions for all core entities, such as villages, houses, users (residents, guards, admins),
+ * and their relationships. It also exports TypeScript types inferred from the schema
+ * for type-safe database operations.
+ */
+
 import { unique } from "drizzle-orm/gel-core";
 import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { status } from "elysia";
 
 /**
- * The villages table schema.
- * @type {pgTable}
+ * Schema for the `villages` table. Represents a distinct village or community.
  */
 export const villages = pgTable("villages", {
   village_id: uuid("village_id").primaryKey().defaultRandom(),
@@ -12,21 +18,18 @@ export const villages = pgTable("villages", {
   village_key: text("village_key").notNull().unique(),
 });
 /**
- * The type for a village record.
+ * Represents a selectable village record from the database.
  * @type {typeof villages.$inferSelect}
  */
 export type Village = typeof villages.$inferSelect;
 /**
- * The type for a new village record.
+ * Represents a new village record to be inserted into the database.
  * @type {typeof villages.$inferInsert}
  */
 export type VillageInsert = typeof villages.$inferInsert;
 
-// -----------------------------------------------------------------------------------
-
 /**
- * The houses table schema.
- * @type {pgTable}
+ * Schema for the `houses` table. Represents a physical house within a village.
  */
 export const houses = pgTable("houses", {
   house_id: uuid("house_id").primaryKey().defaultRandom(),
@@ -37,20 +40,18 @@ export const houses = pgTable("houses", {
   village_key: text("village_key").references(() => villages.village_key),
 });
 /**
- * The type for a house record.
+ * Represents a selectable house record.
  * @type {typeof houses.$inferSelect}
  */
 export type House = typeof houses.$inferSelect;
 /**
- * The type for a new house record.
+ * Represents a new house record for insertion.
  * @type {typeof houses.$inferInsert}
  */
 export type HouseInsert = typeof houses.$inferInsert;
 
-// ----------------------------------------------------------------
 /**
- * The residents table schema.
- * @type {pgTable}
+ * Schema for the `residents` table. Represents an individual who resides in a house.
  */
 export const residents = pgTable("residents", {
   resident_id: uuid("resident_id").primaryKey().defaultRandom(),
@@ -61,7 +62,7 @@ export const residents = pgTable("residents", {
   username: text("username").notNull().unique(),
   password_hash: text("password_hash").notNull(),
   phone: text("phone").notNull(),
-  village_key: text("village_key").references(() => villages.village_key), // connect village
+  village_key: text("village_key").references(() => villages.village_key),
   status: text("status")
     .$type<"verified" | "pending" | "disable">()
     .default("pending"),
@@ -71,21 +72,18 @@ export const residents = pgTable("residents", {
 });
 
 /**
- * The type for a resident record.
+ * Represents a selectable resident record.
  * @type {typeof residents.$inferSelect}
  */
 export type Resident = typeof residents.$inferSelect;
 /**
- * The type for a new resident record.
+ * Represents a new resident for insertion.
  * @type {typeof residents.$inferInsert}
  */
 export type ResidentInsert = typeof residents.$inferInsert;
 
-// ----------------------------------------------------------------------------------
-
 /**
- * The guards table schema.
- * @type {pgTable}
+ * Schema for the `guards` table. Represents a security guard associated with a village.
  */
 export const guards = pgTable("guards", {
   guard_id: uuid("guard_id").primaryKey().defaultRandom(),
@@ -96,7 +94,7 @@ export const guards = pgTable("guards", {
   username: text("username").notNull().unique(),
   password_hash: text("password_hash").notNull(),
   phone: text("phone").notNull(),
-  village_key: text("village_key").references(() => villages.village_key), // connect village
+  village_key: text("village_key").references(() => villages.village_key),
   status: text("status")
     .$type<"verified" | "pending" | "disable">()
     .default("pending"),
@@ -106,29 +104,26 @@ export const guards = pgTable("guards", {
 });
 
 /**
- * The type for a guard record.
+ * Represents a selectable guard record.
  * @type {typeof guards.$inferSelect}
  */
 export type Guard = typeof guards.$inferSelect;
 /**
- * The type for a new guard record.
+ * Represents a new guard for insertion.
  * @type {typeof guards.$inferInsert}
  */
 export type GuardInsert = typeof guards.$inferInsert;
-// ----------------------------------------------------------------------------------
 
 /**
- * The admins table schema.
- * @type {pgTable}
+ * Schema for the `admins` table. Represents an administrator with system access.
  */
 export const admins = pgTable("admins", {
   admin_id: uuid("admin_id").primaryKey().defaultRandom(),
-
   email: text("email").notNull().unique(),
   username: text("username").notNull().unique(),
   password_hash: text("password_hash").notNull(),
   phone: text("phone").notNull(),
-  village_key: text("village_key").references(() => villages.village_key), // connect village
+  village_key: text("village_key").references(() => villages.village_key),
   status: text("status")
     .$type<"verified" | "pending" | "disable">()
     .default("pending"),
@@ -141,21 +136,19 @@ export const admins = pgTable("admins", {
 });
 
 /**
- * The type for an admin record.
+ * Represents a selectable admin record.
  * @type {typeof admins.$inferSelect}
  */
 export type Admin = typeof admins.$inferSelect;
 /**
- * The type for a new admin record.
+ * Represents a new admin for insertion.
  * @type {typeof admins.$inferInsert}
  */
 export type AdminInsert = typeof admins.$inferInsert;
 
-// ---------------------------------------------------------------------------------
-
 /**
- * The house_members table schema.
- * @type {pgTable}
+ * Schema for the `house_members` table. A join table representing the many-to-many
+ * relationship between houses and residents.
  */
 export const house_members = pgTable("house_members", {
   house_member_id: uuid("house_member_id").primaryKey().defaultRandom(),
@@ -163,19 +156,18 @@ export const house_members = pgTable("house_members", {
   resident_id: uuid("resident_id").references(() => residents.resident_id),
 });
 /**
- * The type for a house_member record.
+ * Represents a selectable house_member record.
  * @type {typeof house_members.$inferSelect}
  */
 export type House_member = typeof house_members.$inferSelect;
 /**
- * The type for a new house_member record.
+ * Represents a new house_member for insertion.
  * @type {typeof house_members.$inferInsert}
  */
 export type House_memberInsert = typeof house_members.$inferInsert;
 
 /**
- * The visitor_records table schema.
- * @type {pgTable}
+ * Schema for the `visitor_records` table. Logs entries and exits of visitors.
  */
 export const visitor_records = pgTable("visitor_records", {
   visitor_record_id: uuid("visitor_record_id").primaryKey().defaultRandom(),
@@ -194,16 +186,13 @@ export const visitor_records = pgTable("visitor_records", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 /**
- * The type for a visitor_record record.
+ * Represents a selectable visitor_record.
  * @type {typeof visitor_records.$inferSelect}
  */
 export type Visitor_record = typeof visitor_records.$inferSelect;
 
-// ---------------------------------------------------------------------------------
-
 /**
- * The admin_activity_logs table schema.
- * @type {pgTable}
+ * Schema for the `admin_activity_logs` table. Records actions taken by administrators.
  */
 export const admin_activity_logs = pgTable("admin_activity_logs", {
   log_id: uuid("log_id").primaryKey().defaultRandom(),
@@ -228,23 +217,23 @@ export const admin_activity_logs = pgTable("admin_activity_logs", {
     | "export_data"
     | "system_config"
   >(),
-  description: text("description").notNull(), // รายละเอียดการกระทำ
+  description: text("description").notNull(),
   created_at: timestamp("created_at").defaultNow(),
 });
 
 /**
- * The type for an admin_activity_log record.
+ * Represents a selectable admin_activity_log record.
  * @type {typeof admin_activity_logs.$inferSelect}
  */
 export type AdminActivityLog = typeof admin_activity_logs.$inferSelect;
 /**
- * The type for a new admin_activity_log record.
+ * Represents a new admin_activity_log for insertion.
  * @type {typeof admin_activity_logs.$inferInsert}
  */
 export type AdminActivityLogInsert = typeof admin_activity_logs.$inferInsert;
 
 /**
- * The database schema.
+ * An object containing all table schemas, used to initialize Drizzle ORM.
  * @type {Object}
  */
 export const schema = {

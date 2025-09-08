@@ -1,11 +1,18 @@
+/**
+ * @file This file sets up and configures the database connection using Drizzle ORM
+ * with a PostgreSQL backend. It establishes a connection pool, validates the
+ * configuration, and exports the Drizzle instance along with utility functions
+ * for managing the connection.
+ */
+
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import 'dotenv/config';
-import { schema } from '../db/schema'; // 👈 import schema
-import type { NodePgDatabase } from 'drizzle-orm/node-postgres'; // 👈 import type
+import { schema } from '../db/schema';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 /**
- * The configuration for the database connection.
+ * Holds the configuration for the database connection, read from environment variables.
  * @type {Object}
  */
 const databaseConfig = {
@@ -18,15 +25,15 @@ const databaseConfig = {
 };
 
 /**
- * Validates the database configuration.
- * @throws {Error} If the DATABASE_URL environment variable is not set or is invalid.
+ * Validates that the essential database configuration, such as the connection URL,
+ * is present and correctly formatted.
+ * @throws {Error} If the `DATABASE_URL` environment variable is missing or invalid.
  */
 function validateDatabaseConfig() {
   if (!databaseConfig.url) {
     throw new Error('DATABASE_URL environment variable is required');
   }
 
-  // Validate DATABASE_URL format
   if (!databaseConfig.url.startsWith('postgresql://')) {
     throw new Error('DATABASE_URL must be a valid PostgreSQL connection string');
   }
@@ -34,11 +41,12 @@ function validateDatabaseConfig() {
   console.log('✅ Database configuration validated');
 }
 
-// Validate configuration before creating connection
+// Immediately validate the configuration upon module initialization.
 validateDatabaseConfig();
 
 /**
- * The PostgreSQL connection pool.
+ * The PostgreSQL connection pool instance. It manages a set of active connections
+ * to the database, improving performance by reusing connections.
  * @type {Pool}
  */
 const pool = new Pool({
@@ -48,22 +56,24 @@ const pool = new Pool({
   connectionTimeoutMillis: databaseConfig.pool.connectionTimeoutMillis,
 });
 
-// Handle pool errors
+// Sets up an error listener on the pool to handle and log unexpected errors.
 pool.on('error', (err) => {
   console.error('❌ Unexpected error on idle client', err);
   process.exit(-1);
 });
 
 /**
- * The Drizzle ORM instance.
+ * The main Drizzle ORM instance, configured with the connection pool and database schema.
+ * This is the primary object used for all database interactions.
  * @type {NodePgDatabase<typeof schema>}
  */
 const db: NodePgDatabase<typeof schema> = drizzle(pool, { schema });
 
 /**
- * Tests the database connection.
- * @returns {Promise<Object>} A promise that resolves to the result of the test query.
- * @throws {Error} If the database connection fails.
+ * Executes a simple query to test the database connection and verify that it is active.
+ *
+ * @returns {Promise<Object>} A promise that resolves with the query result upon a successful connection.
+ * @throws {Error} Throws an error if the connection attempt fails.
  */
 export async function testConnection() {
   try {
@@ -77,8 +87,9 @@ export async function testConnection() {
 }
 
 /**
- * Gets the statistics of the database connection pool.
- * @returns {Object} An object containing the pool statistics.
+ * Retrieves statistics about the current state of the connection pool.
+ *
+ * @returns {{totalCount: number, idleCount: number, waitingCount: number}} An object containing the counts of total, idle, and waiting connections.
  */
 export function getPoolStats() {
   return {
@@ -89,9 +100,10 @@ export function getPoolStats() {
 }
 
 /**
- * Closes the database connection.
- * @returns {Promise<void>} A promise that resolves when the connection is closed.
- * @throws {Error} If there is an error closing the connection.
+ * Gracefully closes the database connection pool, ending all client connections.
+ *
+ * @returns {Promise<void>} A promise that resolves when the pool has been closed.
+ * @throws {Error} Throws an error if closing the connection fails.
  */
 export async function closeConnection() {
   try {
