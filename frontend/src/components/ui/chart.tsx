@@ -101,7 +101,7 @@ const ChartTooltip = RechartsPrimitive.Tooltip;
 /**
  * A custom content component for the chart tooltip, providing consistent styling.
  *
- * @param {React.ComponentProps<typeof RechartsPrimitive.Tooltip> & React.ComponentProps<"div"> & { /* ... */ }} props - The props for the component.
+ * @param {React.ComponentProps<typeof RechartsPrimitive.Tooltip> & React.ComponentProps<"div"> & { indicator?: "line" | "dot" | "dashed" }} props - The props for the component.
  * @returns {React.ReactElement | null} The styled tooltip content.
  */
 function ChartTooltipContent({ active, payload, className, indicator = "dot", ...props }: React.ComponentProps<typeof RechartsPrimitive.Tooltip> & React.ComponentProps<"div"> & { indicator?: "line" | "dot" | "dashed" }) {
@@ -114,7 +114,7 @@ const ChartLegend = RechartsPrimitive.Legend;
 /**
  * A custom content component for the chart legend, ensuring consistent styling.
  *
- * @param {React.ComponentProps<"div"> & Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & { /* ... */ }} props - The props for the component.
+ * @param {React.ComponentProps<"div"> & Pick<RechartsPrimitive.LegendProps, "payload"> & { hideIcon?: boolean }} props - The props for the component.
  * @returns {React.ReactElement | null} The styled legend content.
  */
 function ChartLegendContent({ className, hideIcon = false, payload, ...props }: React.ComponentProps<"div"> & Pick<RechartsPrimitive.LegendProps, "payload"> & { hideIcon?: boolean }) {
