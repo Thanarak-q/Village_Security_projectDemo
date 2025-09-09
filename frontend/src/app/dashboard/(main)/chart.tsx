@@ -290,7 +290,7 @@ export default function WeeklyAccessBarChart() {
             </div>
 
             <div className="flex items-center gap-2 self-start sm:self-auto">
-              <span className="text-xs sm:text-sm text-gray-500">ช่วงเวลา:</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">ช่วงเวลา:</span>
               <Select value={selectedPeriod} onValueChange={handlePeriodChange}>
                 <SelectTrigger className="w-24 sm:w-32 text-xs sm:text-sm">
                   <SelectValue />
@@ -322,7 +322,7 @@ export default function WeeklyAccessBarChart() {
           {loading ? (
             <div className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-xs sm:text-sm text-gray-600">กำลังโหลดข้อมูล...</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">กำลังโหลดข้อมูล...</span>
             </div>
           ) : error ? (
             <div className="flex items-center gap-2">
@@ -333,15 +333,15 @@ export default function WeeklyAccessBarChart() {
               <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-green-600 rounded-full"></div>
-                  <span className="text-xs sm:text-sm text-gray-600">อนุมัติ: {totalApproved.toLocaleString()} คน</span>
+                  <span className="text-xs sm:text-sm text-muted-foreground">อนุมัติ: {totalApproved.toLocaleString()} คน</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-red-600 rounded-full"></div>
-                  <span className="text-xs sm:text-sm text-gray-600">ปฏิเสธ: {totalRejected.toLocaleString()} คน</span>
+                  <span className="text-xs sm:text-sm text-muted-foreground">ปฏิเสธ: {totalRejected.toLocaleString()} คน</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
-                  <span className="text-xs sm:text-sm text-gray-600">รวม: {(totalApproved + totalRejected).toLocaleString()} คน</span>
+                  <span className="text-xs sm:text-sm text-muted-foreground">รวม: {(totalApproved + totalRejected).toLocaleString()} คน</span>
                 </div>
               </div>
               <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs sm:text-sm w-fit">
@@ -357,14 +357,14 @@ export default function WeeklyAccessBarChart() {
           <div className="h-[250px] sm:h-[300px] lg:h-[350px] w-full flex items-center justify-center">
             <div className="flex flex-col items-center gap-2">
               <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-              <span className="text-sm text-gray-600">กำลังโหลดข้อมูล...</span>
+              <span className="text-sm text-muted-foreground">กำลังโหลดข้อมูล...</span>
             </div>
           </div>
         ) : error ? (
           <div className="h-[250px] sm:h-[300px] lg:h-[350px] w-full flex items-center justify-center">
             <div className="flex flex-col items-center gap-2 text-center">
               <span className="text-sm text-red-600">เกิดข้อผิดพลาดในการโหลดข้อมูล</span>
-              <span className="text-xs text-gray-500">{error}</span>
+              <span className="text-xs text-muted-foreground">{error}</span>
               <button
                 onClick={() => fetchData(selectedPeriod)}
                 className="mt-2 px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -375,7 +375,7 @@ export default function WeeklyAccessBarChart() {
           </div>
         ) : chartData.length === 0 ? (
           <div className="h-[250px] sm:h-[300px] lg:h-[350px] w-full flex items-center justify-center">
-            <span className="text-sm text-gray-600">ไม่มีข้อมูลในช่วงเวลานี้</span>
+            <span className="text-sm text-muted-foreground">ไม่มีข้อมูลในช่วงเวลานี้</span>
           </div>
         ) : (
           <ChartContainer config={chartConfig} className="h-[250px] sm:h-[300px] lg:h-[350px] w-full">

@@ -22,8 +22,6 @@ import {
 import {
   Home,
   Filter,
-  Plus,
-  Loader2,
   ChevronLeft,
   ChevronRight,
   Edit,
@@ -107,13 +105,13 @@ export default function HouseManagementTable() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "available":
-        return "bg-gray-100 text-gray-800";
+        return "bg-muted text-foreground";
       case "occupied":
         return "bg-green-100 text-green-800";
       case "disable":
         return "bg-red-100 text-red-800";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-muted text-foreground";
     }
   };
 
@@ -176,10 +174,10 @@ export default function HouseManagementTable() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span>กำลังโหลดข้อมูล...</span>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">กำลังโหลดข้อมูล...</p>
         </div>
       </div>
     );
@@ -187,18 +185,25 @@ export default function HouseManagementTable() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={() => fetchHouses()}>ลองใหม่</Button>
+          <div className="text-red-500 text-xl mb-2">⚠️</div>
+          <p className="text-red-600">เกิดข้อผิดพลาด: {error}</p>
+          <button 
+            onClick={() => fetchHouses()} 
+            className="mt-2 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
+          >
+            ลองใหม่
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Main table section */}
+      <div className="bg-background rounded-lg shadow-sm border border-border p-4 sm:p-6">
         {/* Header */}
         <div className="mb-6">
           {/* Top Actions */}
@@ -209,7 +214,7 @@ export default function HouseManagementTable() {
               <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-2 rounded-md text-sm">
                 <span>มีผู้อยู่อาศัย ({getStatusCount("occupied")})</span>
               </div>
-              <div className="flex items-center gap-2 bg-gray-100 text-gray-800 px-3 py-2 rounded-md text-sm">
+              <div className="flex items-center gap-2 bg-muted text-foreground px-3 py-2 rounded-md text-sm">
                 <span>ว่าง ({getStatusCount("available")})</span>
               </div>
               <div className="flex items-center gap-2 bg-red-100 text-red-800 px-3 py-2 rounded-md text-sm">
@@ -230,8 +235,8 @@ export default function HouseManagementTable() {
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Filter className="h-4 w-4 text-gray-500 flex-shrink-0" />
-              <span className="text-sm text-gray-600 hidden sm:inline">ตัวกรอง</span>
+              <Filter className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <span className="text-sm text-muted-foreground hidden sm:inline">ตัวกรอง</span>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full sm:w-40">
                   <SelectValue />
@@ -256,45 +261,44 @@ export default function HouseManagementTable() {
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-          <div className="overflow-x-auto">
+        <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-gray-50">
-                  <TableHead className="w-24 min-w-[120px]">บ้านเลขที่</TableHead>
-                  <TableHead className="min-w-[150px]">หมู่บ้าน</TableHead>
-                  <TableHead className="w-32 min-w-[120px]">สถานะ</TableHead>
-                  <TableHead className="w-32 min-w-[120px]">รหัสบ้าน</TableHead>
-                  <TableHead className="w-16 min-w-[80px]">แก้ไข</TableHead>
+                <TableRow className="bg-muted/50 border-b border-border">
+                  <TableHead className="w-24 min-w-[120px] py-4 px-6 text-muted-foreground font-semibold text-sm">บ้านเลขที่</TableHead>
+                  <TableHead className="min-w-[150px] py-4 px-6 text-muted-foreground font-semibold text-sm">หมู่บ้าน</TableHead>
+                  <TableHead className="w-32 min-w-[120px] py-4 px-6 text-muted-foreground font-semibold text-sm">สถานะ</TableHead>
+                  <TableHead className="w-32 min-w-[120px] py-4 px-6 text-muted-foreground font-semibold text-sm">รหัสบ้าน</TableHead>
+                  <TableHead className="w-16 min-w-[80px] py-4 px-6 text-muted-foreground font-semibold text-sm">แก้ไข</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {getCurrentPageData().map((house) => (
-                  <TableRow key={house.house_id} className="hover:bg-gray-50">
-                    <TableCell className="min-w-[120px]">
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                          <Home className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
+                  <TableRow key={house.house_id} className="hover:bg-muted/30 transition-colors border-b border-border/50">
+                    <TableCell className="min-w-[120px] py-4 px-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Home className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                         </div>
-                        <span className="font-medium text-sm sm:text-base truncate">
+                        <span className="font-semibold text-sm sm:text-base truncate text-foreground">
                           {house.address === "-" ? "ไม่ระบุ" : house.address}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-gray-600 min-w-[150px] text-sm sm:text-base">
+                    <TableCell className="text-muted-foreground min-w-[150px] text-sm sm:text-base py-4 px-6">
                       {house.village_key
                         .replace(/-/g, " ")
                         .replace(/\b\w/g, (l) => l.toUpperCase())}
                     </TableCell>
-                    <TableCell className="min-w-[120px]">
+                    <TableCell className="min-w-[120px] py-4 px-6">
                       <Badge
                         variant="secondary"
-                        className={`${getStatusColor(house.status)} font-normal text-xs sm:text-sm`}
+                        className={`${getStatusColor(house.status)} font-medium text-xs sm:text-sm px-3 py-1`}
                       >
                         {getStatusText(house.status)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-gray-600 text-xs sm:text-sm font-mono min-w-[120px]">
+                    <TableCell className="text-muted-foreground text-xs sm:text-sm font-mono min-w-[120px] py-4 px-6">
                       {house.house_id.slice(0, 8)}...
                     </TableCell>
                     <TableCell className="min-w-[80px]">
@@ -315,16 +319,16 @@ export default function HouseManagementTable() {
                 ))}
               </TableBody>
             </Table>
-          </div>
+        </div>
 
-          {/* Pagination controls */}
-          {totalItems > 0 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between px-3 sm:px-4 lg:px-6 py-4 border-t bg-gray-50 gap-4">
-              {/* Left section - Items per page and pagination info */}
-              <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto">
-                {/* Items per page selector */}
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs sm:text-sm text-gray-600">แสดง</span>
+        {/* Pagination controls */}
+        {totalItems > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between px-3 sm:px-4 lg:px-6 py-4 border-t bg-muted gap-4">
+            {/* Left section - Items per page and pagination info */}
+            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto">
+              {/* Items per page selector */}
+              <div className="flex items-center space-x-2">
+                  <span className="text-xs sm:text-sm text-muted-foreground">แสดง</span>
                   <Select
                     value={itemsPerPage.toString()}
                     onValueChange={handleItemsPerPageChange}
@@ -339,13 +343,13 @@ export default function HouseManagementTable() {
                       <SelectItem value="20">20</SelectItem>
                     </SelectContent>
                   </Select>
-                  <span className="text-xs sm:text-sm text-gray-600">
+                  <span className="text-xs sm:text-sm text-muted-foreground">
                     รายการต่อหน้า
                   </span>
                 </div>
 
                 {/* Pagination info */}
-                <div className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
+                <div className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
                   แสดง {(currentPage - 1) * itemsPerPage + 1} ถึง{" "}
                   {Math.min(currentPage * itemsPerPage, totalItems)} จาก{" "}
                   {totalItems} รายการ
@@ -392,7 +396,7 @@ export default function HouseManagementTable() {
                         className={`w-6 h-6 sm:w-8 sm:h-8 p-0 text-xs sm:text-sm ${
                           currentPage === pageNum
                             ? "bg-blue-600 text-white"
-                            : "text-gray-600 hover:bg-gray-100"
+                            : "text-muted-foreground hover:bg-muted"
                         }`}
                       >
                         {pageNum}
@@ -416,7 +420,6 @@ export default function HouseManagementTable() {
               </div>
             </div>
           )}
-        </div>
       </div>
     </div>
   );
