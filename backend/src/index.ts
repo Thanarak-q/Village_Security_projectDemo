@@ -3,13 +3,7 @@ import { cors } from "@elysiajs/cors";
 import jwt from "@elysiajs/jwt";
 import cookie from "@elysiajs/cookie";
 import "dotenv/config";
-import { villageRoutes } from "./routes/village";
-import { houseRoutes } from "./routes/house";
 import { houseManageRoutes } from "./routes/houseManage";
-import { residentRoutes } from "./routes/resident";
-import { guardRoutes } from "./routes/guard";
-import { adminRoutes } from "./routes/admin";
-import { houseMemberRoutes } from "./routes/houseMember";
 import { visitorRecordRoutes } from "./routes/visitorRecord";
 import { visitorRecordWeeklyRoutes } from "./routes/visitorRecord-weekly";
 import { visitorRecordMonthlyRoutes } from "./routes/visitorRecord-monthly";
@@ -19,7 +13,6 @@ import { statsCardRoutes } from "./routes/statsCard";
 import { userTableRoutes } from "./routes/userTable";
 import { pendingUsersRoutes } from "./routes/pendingUsers";
 import { authRoutes } from "./routes/auth";
-import { adminActivityLogsRoutes } from "./routes/adminActivityLogs";
 import { adminSettingsRoutes } from "./routes/adminSettings";
 /**
  * SECURITY ENHANCEMENT: Secure Health Check Endpoint
@@ -131,13 +124,7 @@ const app = new Elysia()
         : "default-src 'self' 'unsafe-eval' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self';";
   })
   .use(healthCheck)
-  .use(villageRoutes)
-  .use(houseRoutes)
   .use(houseManageRoutes)
-  .use(residentRoutes)
-  .use(guardRoutes)
-  .use(adminRoutes)
-  .use(houseMemberRoutes)
   .use(visitorRecordRoutes)
   .use(visitorRecordWeeklyRoutes)
   .use(visitorRecordMonthlyRoutes)
@@ -146,7 +133,6 @@ const app = new Elysia()
   .use(userTableRoutes)
   .use(pendingUsersRoutes)
   .use(authRoutes)
-  .use(adminActivityLogsRoutes)
   .use(adminSettingsRoutes)
   .get("/", () => "Hello Village Security API!");
 
