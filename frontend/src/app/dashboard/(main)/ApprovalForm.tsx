@@ -158,7 +158,7 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
           <div className="space-y-4">
             {/* บทบาทที่อนุมัติ */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 บทบาทที่อนุมัติ
               </label>
               <Select
@@ -181,7 +181,7 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
             {/* บ้านเลขที่ */}
             {formData.approvedRole === "ลูกบ้าน" && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   บ้านเลขที่
                 </label>
                 <Input
@@ -191,7 +191,7 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
                     setFormData({ ...formData, houseNumber: e.target.value })
                   }
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   กรอกบ้านเลขที่สำหรับลูกบ้าน
                 </p>
               </div>
@@ -199,7 +199,7 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
 
             {/* หมายเหตุ */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 หมายเหตุ (ไม่บังคับ)
               </label>
               <Textarea

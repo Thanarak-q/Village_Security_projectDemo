@@ -180,7 +180,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
         <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
           {/* Status Field */}
           <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-2">
               สถานะ
             </label>
             <Select
@@ -199,7 +199,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
 
           {/* Role Field */}
           <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-2">
               บทบาท
             </label>
             <Select
@@ -219,7 +219,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
           {/* House Number Field (for residents only) */}
           {formData.role === 'resident' && (
             <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-2">
                 บ้านเลขที่
               </label>
               <Input
@@ -233,7 +233,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
 
           {/* Notes Field */}
           <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-2">
               หมายเหตุ (ไม่บังคับ)
             </label>
             <Textarea

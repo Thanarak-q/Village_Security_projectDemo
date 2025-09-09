@@ -323,7 +323,7 @@ export default function PendingTable() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">กำลังโหลดข้อมูล...</p>
+          <p className="mt-2 text-muted-foreground">กำลังโหลดข้อมูล...</p>
         </div>
       </div>
     );
@@ -347,14 +347,14 @@ export default function PendingTable() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border">
+    <div className="bg-background rounded-lg shadow-sm border">
       {/* ส่วนหัวของตาราง */}
       <div className="p-4 sm:p-6 border-b border-gray-200">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           {/* ส่วนแสดงชื่อและจำนวนรายการ */}
           <div className="flex items-center space-x-3">
             <UserPlus className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500" />
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+            <h2 className="text-lg sm:text-xl font-semibold text-foreground">
               ผู้ใช้ใหม่รออนุมัติ
             </h2>
             <Badge variant="secondary" className="bg-orange-100 text-orange-800 text-xs sm:text-sm">
@@ -372,11 +372,11 @@ export default function PendingTable() {
                 placeholder="ค้นหาผู้ใช้..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-64 text-sm"
+                className="pl-10 pr-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent w-full sm:w-64 text-sm"
               />
             </div>
             {/* แสดงเวลาอัปเดตล่าสุด */}
-            <div className="text-xs sm:text-sm text-gray-500 flex items-center gap-2">
+            <div className="text-xs sm:text-sm text-muted-foreground flex items-center gap-2">
               {refreshing && (
                 <div className="flex items-center gap-1 text-blue-600">
                   <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
@@ -389,48 +389,48 @@ export default function PendingTable() {
       </div>
 
       {/* ส่วนตารางแสดงข้อมูล */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-lg border border-border bg-background shadow-sm hover:shadow-md transition-shadow duration-200">
         <Table>
           {/* หัวตาราง */}
           <TableHeader>
-            <TableRow className="bg-gray-50">
-              <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">ผู้สมัคร</TableHead>
-              <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden sm:table-cell">ข้อมูลติดต่อ</TableHead>
-              <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">บทบาท</TableHead>
-              <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden md:table-cell">บ้านเลขที่</TableHead>
-              <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden lg:table-cell">วันที่สมัคร</TableHead>
-              {/* <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">สถานะ</TableHead> */}
-              <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">การดำเนินการ</TableHead>
+            <TableRow className="bg-muted/50 border-b border-border">
+              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">ผู้สมัคร</TableHead>
+              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden sm:table-cell">ข้อมูลติดต่อ</TableHead>
+              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">บทบาท</TableHead>
+              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden md:table-cell">บ้านเลขที่</TableHead>
+              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden lg:table-cell">วันที่สมัคร</TableHead>
+              {/* <TableHead className="text-muted-foreground font-medium text-xs sm:text-sm">สถานะ</TableHead> */}
+              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">การดำเนินการ</TableHead>
             </TableRow>
           </TableHeader>
           
           {/* เนื้อหาตาราง */}
           <TableBody>
             {currentUsers.map((user) => (
-              <TableRow key={user.id} className="hover:bg-gray-50">
+              <TableRow key={user.id} className="hover:bg-muted/30 transition-colors border-b border-border/50">
                 {/* คอลัมน์ผู้สมัคร - แสดง Avatar และชื่อ */}
-                <TableCell>
-                  <div className="flex items-center space-x-3">
+                <TableCell className="py-4 px-6">
+                  <div className="flex items-center space-x-4">
                     {/* Avatar วงกลมที่มีตัวอักษรย่อ */}
                     <div
-                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-medium text-xs sm:text-sm ${getAvatarColor(
+                      className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-sm ${getAvatarColor(
                         user.id
                       )}`}
                     >
                       {getAvatarInitials(user.fname, user.lname)}
                     </div>
                     {/* ชื่อและ username */}
-                    <div>
-                      <div className="font-medium text-gray-900 text-sm sm:text-base">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-foreground text-base">
                         {user.fname} {user.lname}
                       </div>
-                      <div className="text-xs sm:text-sm text-gray-500">
+                      <div className="text-sm text-muted-foreground">
                         @{user.username}
                       </div>
                       {/* แสดงข้อมูลติดต่อในมือถือ */}
-                      <div className="sm:hidden text-xs text-gray-500 mt-1">
-                        {user.email}<br/>
-                        {user.phone}
+                      <div className="sm:hidden text-xs text-muted-foreground mt-1 space-y-1">
+                        <div>{user.email}</div>
+                        <div>{user.phone}</div>
                       </div>
                     </div>
                   </div>
@@ -439,8 +439,8 @@ export default function PendingTable() {
                 {/* คอลัมน์ข้อมูลติดต่อ - แสดงอีเมลและเบอร์โทร */}
                 <TableCell className="hidden sm:table-cell">
                   <div className="space-y-1">
-                    <div className="text-sm text-gray-900">{user.email}</div>
-                    <div className="text-sm text-gray-500">{user.phone}</div>
+                    <div className="text-sm text-foreground">{user.email}</div>
+                    <div className="text-sm text-muted-foreground">{user.phone}</div>
                   </div>
                 </TableCell>
                 
@@ -464,7 +464,7 @@ export default function PendingTable() {
                 </TableCell>
                 
                 {/* คอลัมน์วันที่สมัคร - แสดงในรูปแบบภาษาไทย */}
-                <TableCell className="text-gray-600 hidden lg:table-cell text-sm">
+                <TableCell className="text-muted-foreground hidden lg:table-cell text-sm">
                   {formatDate(user.requestDate)}
                 </TableCell>
                 
@@ -498,10 +498,10 @@ export default function PendingTable() {
       {filteredUsers.length === 0 && (
         <div className="p-8 sm:p-12 text-center">
           <UserPlus className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
+          <h3 className="text-base sm:text-lg font-medium text-foreground mb-2">
             {searchTerm ? 'ไม่พบข้อมูลที่ค้นหา' : 'ไม่มีผู้ใช้ใหม่รออนุมัติ'}
           </h3>
-          <p className="text-sm sm:text-base text-gray-500">
+          <p className="text-sm sm:text-base text-muted-foreground">
             {searchTerm ? 'ลองค้นหาด้วยคำอื่น' : 'ผู้ใช้ใหม่ที่สมัครเข้ามาจะปรากฏที่นี่'}
           </p>
         </div>
@@ -509,12 +509,12 @@ export default function PendingTable() {
 
       {/* ส่วนควบคุมการแบ่งหน้า */}
       {totalItems > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between px-4 sm:px-6 py-4 border-t bg-gray-50 gap-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between px-4 sm:px-6 py-4 border-t bg-muted gap-4">
           {/* ส่วนซ้าย - แสดงการตั้งค่าจำนวนรายการต่อหน้าและข้อมูลการแสดงผล */}
           <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
             {/* ตัวเลือกจำนวนรายการต่อหน้า */}
             <div className="flex items-center space-x-2">
-              <span className="text-xs sm:text-sm text-gray-600">แสดง</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">แสดง</span>
               <Select
                 value={itemsPerPage.toString()}
                 onValueChange={handleItemsPerPageChange}
@@ -529,11 +529,11 @@ export default function PendingTable() {
                   <SelectItem value="10">10</SelectItem>
                 </SelectContent>
               </Select>
-              <span className="text-xs sm:text-sm text-gray-600">รายการต่อหน้า</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">รายการต่อหน้า</span>
             </div>
             
             {/* แสดงข้อมูลการแบ่งหน้า */}
-            <div className="text-xs sm:text-sm text-gray-600">
+            <div className="text-xs sm:text-sm text-muted-foreground">
               แสดง {startIndex + 1} ถึง {Math.min(endIndex, totalItems)} จาก {totalItems} รายการ
             </div>
           </div>
@@ -581,7 +581,7 @@ export default function PendingTable() {
                     className={`w-6 h-6 sm:w-8 sm:h-8 p-0 text-xs sm:text-sm ${
                       currentPage === pageNum 
                         ? "bg-blue-600 text-white" 
-                        : "text-gray-600 hover:bg-gray-100"
+                        : "text-muted-foreground hover:bg-gray-100"
                     }`}
                   >
                     {pageNum}
