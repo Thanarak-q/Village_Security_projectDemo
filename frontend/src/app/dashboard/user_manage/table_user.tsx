@@ -166,7 +166,7 @@ export default function UserManagementTable() {
   // Function to get avatar color based on user ID
   const getAvatarColor = (userId: string) => {
     const colors = [
-      "bg-blue-500",
+      "bg-primary",
       "bg-green-500",
       "bg-purple-500",
       "bg-yellow-500",
@@ -284,8 +284,8 @@ export default function UserManagementTable() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">กำลังโหลดข้อมูล...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">กำลังโหลดข้อมูล...</p>
         </div>
       </div>
     );
@@ -299,7 +299,7 @@ export default function UserManagementTable() {
           <p className="text-red-600">เกิดข้อผิดพลาด: {error}</p>
           <button 
             onClick={() => fetchUsers()} 
-            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="mt-2 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
           >
             ลองใหม่
           </button>
@@ -311,7 +311,7 @@ export default function UserManagementTable() {
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Main table section */}
-      <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
+      <div className="bg-background rounded-lg shadow-sm border border-border p-4 sm:p-6">
         {/* Header with tabs and search */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
           {/* User type tabs */}
@@ -321,8 +321,8 @@ export default function UserManagementTable() {
               onClick={() => setActiveTab('residents')}
               className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
                 activeTab === 'residents'
-                  ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  ? 'bg-primary/10 text-primary border border-primary/20'
+                  : 'text-muted-foreground hover:bg-muted'
               }`}
             >
               <Home className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -335,7 +335,7 @@ export default function UserManagementTable() {
               className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
                 activeTab === 'guards'
                   ? 'bg-green-100 text-green-700 border border-green-200'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  : 'text-muted-foreground hover:bg-muted'
               }`}
             >
               <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -346,20 +346,20 @@ export default function UserManagementTable() {
           {/* Search box and refresh indicator */}
           <div className="flex items-center gap-3">
             <div className="relative w-full sm:w-auto">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="ค้นหาผู้ใช้..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-64 text-sm"
+                className="pl-10 pr-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent w-full sm:w-64 text-sm"
               />
             </div>
             
             {/* Refresh indicator */}
             {refreshing && (
-              <div className="flex items-center gap-1 text-blue-600 text-sm">
-                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+              <div className="flex items-center gap-1 text-primary text-sm">
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary"></div>
                 <span>กำลังอัปเดต...</span>
               </div>
             )}
@@ -368,50 +368,50 @@ export default function UserManagementTable() {
 
         {/* Residents table */}
         {activeTab === 'residents' && (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-lg border border-border bg-background shadow-sm hover:shadow-md transition-shadow duration-200">
             <Table>
               {/* Residents table header */}
               <TableHeader>
-                <TableRow className="bg-gray-50">
-                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">ผู้ใช้งาน</TableHead>
-                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden sm:table-cell">ข้อมูลติดต่อ</TableHead>
-                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden md:table-cell">บ้านเลขที่</TableHead>
-                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden lg:table-cell">วันที่เข้าร่วม</TableHead>
-                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">สถานะ</TableHead>
-                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">จัดการ</TableHead>
+                <TableRow className="bg-muted/50 border-b border-border">
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">ผู้ใช้งาน</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden sm:table-cell">ข้อมูลติดต่อ</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden md:table-cell">บ้านเลขที่</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden lg:table-cell">วันที่เข้าร่วม</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">สถานะ</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
               
               {/* Residents table body */}
               <TableBody>
                 {getCurrentResidents().map((user) => (
-                  <TableRow key={user.id} className="hover:bg-gray-50">
+                  <TableRow key={user.id} className="hover:bg-muted/30 transition-colors border-b border-border/50">
                     {/* User column - Avatar and name */}
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
+                    <TableCell className="py-4 px-6">
+                      <div className="flex items-center space-x-4">
                         {/* Avatar circle with initials */}
                         <div
-                          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-medium text-xs sm:text-sm ${getAvatarColor(
+                          className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-sm ${getAvatarColor(
                             user.id
                           )}`}
                         >
                           {getAvatarInitials(user.fname, user.lname)}
                         </div>
                         {/* Name and username */}
-                        <div>
-                          <div className="font-medium text-gray-900 text-sm sm:text-base">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold text-foreground text-base">
                             {user.fname} {user.lname}
                           </div>
-                          <div className="text-xs sm:text-sm text-gray-500">
+                          <div className="text-sm text-muted-foreground">
                             @{user.username}
                           </div>
                           {/* Show contact info on mobile */}
-                          <div className="sm:hidden text-xs text-gray-500 mt-1">
-                            {user.email}<br/>
-                            {user.phone}
+                          <div className="sm:hidden text-xs text-muted-foreground mt-1 space-y-1">
+                            <div>{user.email}</div>
+                            <div>{user.phone}</div>
                           </div>
                           {/* Show house number on mobile */}
-                          <div className="md:hidden text-xs text-gray-500 mt-1">
+                          <div className="md:hidden text-xs text-muted-foreground mt-1">
                             บ้านเลขที่: {user.houseNumber}
                           </div>
                         </div>
@@ -419,20 +419,20 @@ export default function UserManagementTable() {
                     </TableCell>
                     
                     {/* Contact info column */}
-                    <TableCell className="hidden sm:table-cell">
-                      <div className="space-y-1">
-                        <div className="text-sm text-gray-900">{user.email}</div>
-                        <div className="text-sm text-gray-500">{user.phone}</div>
+                    <TableCell className="hidden sm:table-cell py-4 px-6">
+                      <div className="space-y-2">
+                        <div className="text-sm text-foreground font-medium">{user.email}</div>
+                        <div className="text-sm text-muted-foreground">{user.phone}</div>
                       </div>
                     </TableCell>
                     
                     {/* House number column */}
-                    <TableCell className="text-gray-700 font-medium hidden md:table-cell text-sm">
+                    <TableCell className="text-foreground font-semibold hidden md:table-cell text-sm py-4 px-6">
                       {user.houseNumber}
                     </TableCell>
                     
                     {/* Join date column */}
-                    <TableCell className="text-gray-600 hidden lg:table-cell text-sm">
+                    <TableCell className="text-muted-foreground hidden lg:table-cell text-sm py-4 px-6">
                       {formatDate(user.joinDate)}
                     </TableCell>
                     
@@ -457,7 +457,7 @@ export default function UserManagementTable() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 text-xs sm:text-sm"
+                        className="text-primary hover:text-primary/80 hover:bg-primary/5 text-xs sm:text-sm"
                         onClick={() => handleEdit(user)}
                       >
                         <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -472,24 +472,24 @@ export default function UserManagementTable() {
 
         {/* Guards table */}
         {activeTab === 'guards' && (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-lg border border-border bg-background shadow-sm hover:shadow-md transition-shadow duration-200">
             <Table>
               {/* Guards table header */}
               <TableHeader>
-                <TableRow className="bg-gray-50">
-                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">ผู้ใช้งาน</TableHead>
-                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden sm:table-cell">ข้อมูลติดต่อ</TableHead>
-                  {/* <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">กะ</TableHead> */}
-                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm hidden lg:table-cell">วันที่เข้าร่วม</TableHead>
-                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">สถานะ</TableHead>
-                  <TableHead className="text-gray-600 font-medium text-xs sm:text-sm">จัดการ</TableHead>
+                <TableRow className="bg-muted/50 border-b border-border">
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">ผู้ใช้งาน</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden sm:table-cell">ข้อมูลติดต่อ</TableHead>
+                  {/* <TableHead className="text-muted-foreground font-medium text-xs sm:text-sm">กะ</TableHead> */}
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden lg:table-cell">วันที่เข้าร่วม</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">สถานะ</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
               
               {/* Guards table body */}
               <TableBody>
                 {getCurrentGuards().map((user) => (
-                  <TableRow key={user.id} className="hover:bg-gray-50">
+                  <TableRow key={user.id} className="hover:bg-muted">
                     {/* User column - Avatar and name */}
                     <TableCell>
                       <div className="flex items-center space-x-3">
@@ -503,14 +503,14 @@ export default function UserManagementTable() {
                         </div>
                         {/* Name and username */}
                         <div>
-                          <div className="font-medium text-gray-900 text-sm sm:text-base">
+                          <div className="font-medium text-foreground text-sm sm:text-base">
                             {user.fname} {user.lname}
                           </div>
-                          <div className="text-xs sm:text-sm text-gray-500">
+                          <div className="text-xs sm:text-sm text-muted-foreground">
                             @{user.username}
                           </div>
                           {/* Show contact info on mobile */}
-                          <div className="sm:hidden text-xs text-gray-500 mt-1">
+                          <div className="sm:hidden text-xs text-muted-foreground mt-1">
                             {user.email}<br/>
                             {user.phone}
                           </div>
@@ -521,8 +521,8 @@ export default function UserManagementTable() {
                     {/* Contact info column */}
                     <TableCell className="hidden sm:table-cell">
                       <div className="space-y-1">
-                        <div className="text-sm text-gray-900">{user.email}</div>
-                        <div className="text-sm text-gray-500">{user.phone}</div>
+                        <div className="text-sm text-foreground">{user.email}</div>
+                        <div className="text-sm text-muted-foreground">{user.phone}</div>
                       </div>
                     </TableCell>
                     
@@ -532,7 +532,7 @@ export default function UserManagementTable() {
                         variant="outline" 
                         className={`text-xs sm:text-sm ${
                           user.shift === "กะเช้า" 
-                            ? "border-blue-200 text-blue-700 bg-blue-50" 
+                            ? "border-primary/20 text-primary bg-primary/5" 
                             : "border-purple-200 text-purple-700 bg-purple-50"
                         }`}
                       >
@@ -541,7 +541,7 @@ export default function UserManagementTable() {
                     </TableCell> */}
                     
                     {/* Join date column */}
-                    <TableCell className="text-gray-600 hidden lg:table-cell text-sm">
+                    <TableCell className="text-muted-foreground hidden lg:table-cell text-sm">
                       {formatDate(user.joinDate)}
                     </TableCell>
                     
@@ -566,7 +566,7 @@ export default function UserManagementTable() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 text-xs sm:text-sm"
+                        className="text-primary hover:text-primary/80 hover:bg-primary/5 text-xs sm:text-sm"
                         onClick={() => handleEdit(user)}
                       >
                         <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -583,11 +583,11 @@ export default function UserManagementTable() {
         {((activeTab === 'residents' && filteredResidents.length === 0) ||
           (activeTab === 'guards' && filteredGuards.length === 0)) && (
           <div className="p-8 sm:p-12 text-center">
-            <Users className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
+            <Users className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-base sm:text-lg font-medium text-foreground mb-2">
               ไม่พบข้อมูลผู้ใช้
             </h3>
-            <p className="text-sm sm:text-base text-gray-500">
+            <p className="text-sm sm:text-base text-muted-foreground">
               {searchTerm ? 'ลองค้นหาด้วยคำอื่น' : 'ยังไม่มีข้อมูลผู้ใช้ในหมวดหมู่นี้'}
             </p>
           </div>
@@ -595,12 +595,12 @@ export default function UserManagementTable() {
 
         {/* Pagination controls */}
         {totalItems > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between px-4 sm:px-6 py-4 border-t bg-gray-50 gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between px-4 sm:px-6 py-4 border-t bg-muted gap-4">
             {/* Left section - Items per page and pagination info */}
             <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
               {/* Items per page selector */}
               <div className="flex items-center space-x-2">
-                <span className="text-xs sm:text-sm text-gray-600">แสดง</span>
+                <span className="text-xs sm:text-sm text-muted-foreground">แสดง</span>
                 <Select
                   value={itemsPerPage.toString()}
                   onValueChange={handleItemsPerPageChange}
@@ -615,11 +615,11 @@ export default function UserManagementTable() {
                     <SelectItem value="20">20</SelectItem>
                   </SelectContent>
                 </Select>
-                <span className="text-xs sm:text-sm text-gray-600">รายการต่อหน้า</span>
+                <span className="text-xs sm:text-sm text-muted-foreground">รายการต่อหน้า</span>
               </div>
               
               {/* Pagination info */}
-              <div className="text-xs sm:text-sm text-gray-600">
+              <div className="text-xs sm:text-sm text-muted-foreground">
                 แสดง {((currentPage - 1) * itemsPerPage) + 1} ถึง {Math.min(currentPage * itemsPerPage, totalItems)} จาก {totalItems} รายการ
               </div>
             </div>
@@ -662,7 +662,7 @@ export default function UserManagementTable() {
                       className={`w-6 h-6 sm:w-8 sm:h-8 p-0 text-xs sm:text-sm ${
                         currentPage === pageNum 
                           ? "bg-blue-600 text-white" 
-                          : "text-gray-600 hover:bg-gray-100"
+                          : "text-muted-foreground hover:bg-muted"
                       }`}
                     >
                       {pageNum}

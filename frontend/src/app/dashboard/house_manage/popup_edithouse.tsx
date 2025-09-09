@@ -148,10 +148,10 @@ export default function EditHouseDialog({ house, children, onUpdate }: EditHouse
             <Home className="h-6 w-6 text-blue-600" />
           </div>
           <div>
-            <div className="font-medium text-gray-900">
+            <div className="font-medium text-foreground">
               {house.address === '-' ? 'ไม่ระบุ' : house.address}
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-muted-foreground">
               {house.village_key.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
             </div>
           </div>
@@ -166,14 +166,14 @@ export default function EditHouseDialog({ house, children, onUpdate }: EditHouse
               name="address"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">
+                  <FormLabel className="text-sm font-medium text-foreground">
                     บ้านเลขที่
                   </FormLabel>
                   <FormControl>
                     <Input
                       placeholder="123/45"
                       {...field}
-                      className="placeholder:text-gray-400"
+                      className="placeholder:text-muted-foreground"
                     />
                   </FormControl>
                   <FormMessage />
@@ -183,13 +183,13 @@ export default function EditHouseDialog({ house, children, onUpdate }: EditHouse
 
             {/* หมู่บ้าน (แสดงเฉพาะข้อมูล ไม่สามารถแก้ไขได้) */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
+              <label className="text-sm font-medium text-foreground">
                 หมู่บ้าน
               </label>
-              <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-600">
+              <div className="px-3 py-2 bg-muted border border-border rounded-md text-muted-foreground">
                 {house.village_key.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 ไม่สามารถเปลี่ยนหมู่บ้านของบ้านได้
               </p>
             </div>
@@ -200,7 +200,7 @@ export default function EditHouseDialog({ house, children, onUpdate }: EditHouse
               name="status"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">
+                  <FormLabel className="text-sm font-medium text-foreground">
                     สถานะ
                   </FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
@@ -226,14 +226,14 @@ export default function EditHouseDialog({ house, children, onUpdate }: EditHouse
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">
+                  <FormLabel className="text-sm font-medium text-foreground">
                     หมายเหตุ (ไม่บังคับ)
                   </FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="เพิ่มหมายเหตุหรือข้อมูลเพิ่มเติม..."
                       {...field}
-                      className="placeholder:text-gray-400 min-h-[60px]"
+                      className="placeholder:text-muted-foreground min-h-[60px]"
                     />
                   </FormControl>
                   <FormMessage />

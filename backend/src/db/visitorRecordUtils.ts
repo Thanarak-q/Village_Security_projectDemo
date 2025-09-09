@@ -1,8 +1,17 @@
+/**
+ * @file This file provides a comprehensive set of utility functions for managing visitor records.
+ * It includes functions for creating, retrieving, updating, and deleting records,
+ * as well as for generating detailed statistics on a weekly, monthly, and yearly basis.
+ */
+
 import db from "./drizzle";
 import { visitor_records, houses, residents, guards } from "./schema";
 import { eq, sql, and, gte, lte } from "drizzle-orm";
 
-// Utility function to get all visitor_records with related data
+/**
+ * Retrieves all visitor records, joining them with related resident, guard, and house information.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of all visitor records with detailed information.
+ */
 export async function getAllVisitorRecords() {
   const result = await db
     .select({
@@ -17,23 +26,26 @@ export async function getAllVisitorRecords() {
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
       updatedAt: visitor_records.updatedAt,
-      // Related data
       resident_name: sql`${residents.fname} || ' ' || ${residents.lname}`,
       resident_email: residents.email,
       guard_name: sql`${guards.fname} || ' ' || ${guards.lname}`,
       guard_email: guards.email,
       house_address: houses.address,
-      village_key: houses.village_key
+      village_key: houses.village_key,
     })
     .from(visitor_records)
     .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
     .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id));
-  
+
   return result;
 }
 
-// Utility function to get visitor_records by village
+/**
+ * Retrieves all visitor records for a specific village.
+ * @param {string} villageKey - The unique key of the village.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of visitor records for the specified village.
+ */
 export async function getVisitorRecordsByVillage(villageKey: string) {
   const result = await db
     .select({
@@ -48,24 +60,27 @@ export async function getVisitorRecordsByVillage(villageKey: string) {
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
       updatedAt: visitor_records.updatedAt,
-      // Related data
       resident_name: sql`${residents.fname} || ' ' || ${residents.lname}`,
       resident_email: residents.email,
       guard_name: sql`${guards.fname} || ' ' || ${guards.lname}`,
       guard_email: guards.email,
       house_address: houses.address,
-      village_key: houses.village_key
+      village_key: houses.village_key,
     })
     .from(visitor_records)
     .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
     .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
     .where(eq(houses.village_key, villageKey));
-  
+
   return result;
 }
 
-// Utility function to get visitor_records by resident
+/**
+ * Retrieves all visitor records associated with a specific resident.
+ * @param {string} residentId - The UUID of the resident.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of visitor records for the resident.
+ */
 export async function getVisitorRecordsByResident(residentId: string) {
   const result = await db
     .select({
@@ -80,24 +95,27 @@ export async function getVisitorRecordsByResident(residentId: string) {
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
       updatedAt: visitor_records.updatedAt,
-      // Related data
       resident_name: sql`${residents.fname} || ' ' || ${residents.lname}`,
       resident_email: residents.email,
       guard_name: sql`${guards.fname} || ' ' || ${guards.lname}`,
       guard_email: guards.email,
       house_address: houses.address,
-      village_key: houses.village_key
+      village_key: houses.village_key,
     })
     .from(visitor_records)
     .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
     .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
     .where(eq(visitor_records.resident_id, residentId));
-  
+
   return result;
 }
 
-// Utility function to get visitor_records by guard
+/**
+ * Retrieves all visitor records handled by a specific guard.
+ * @param {string} guardId - The UUID of the guard.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of visitor records for the guard.
+ */
 export async function getVisitorRecordsByGuard(guardId: string) {
   const result = await db
     .select({
@@ -112,24 +130,27 @@ export async function getVisitorRecordsByGuard(guardId: string) {
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
       updatedAt: visitor_records.updatedAt,
-      // Related data
       resident_name: sql`${residents.fname} || ' ' || ${residents.lname}`,
       resident_email: residents.email,
       guard_name: sql`${guards.fname} || ' ' || ${guards.lname}`,
       guard_email: guards.email,
       house_address: houses.address,
-      village_key: houses.village_key
+      village_key: houses.village_key,
     })
     .from(visitor_records)
     .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
     .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
     .where(eq(visitor_records.guard_id, guardId));
-  
+
   return result;
 }
 
-// Utility function to get visitor_records by house
+/**
+ * Retrieves all visitor records for a specific house.
+ * @param {string} houseId - The UUID of the house.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of visitor records for the house.
+ */
 export async function getVisitorRecordsByHouse(houseId: string) {
   const result = await db
     .select({
@@ -144,25 +165,30 @@ export async function getVisitorRecordsByHouse(houseId: string) {
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
       updatedAt: visitor_records.updatedAt,
-      // Related data
       resident_name: sql`${residents.fname} || ' ' || ${residents.lname}`,
       resident_email: residents.email,
       guard_name: sql`${guards.fname} || ' ' || ${guards.lname}`,
       guard_email: guards.email,
       house_address: houses.address,
-      village_key: houses.village_key
+      village_key: houses.village_key,
     })
     .from(visitor_records)
     .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
     .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
     .where(eq(visitor_records.house_id, houseId));
-  
+
   return result;
 }
 
-// Utility function to get visitor_records by status
-export async function getVisitorRecordsByStatus(status: "approved" | "pending" | "rejected") {
+/**
+ * Retrieves all visitor records matching a specific status.
+ * @param {"approved" | "pending" | "rejected"} status - The status to filter by.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of visitor records with the specified status.
+ */
+export async function getVisitorRecordsByStatus(
+  status: "approved" | "pending" | "rejected"
+) {
   const result = await db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
@@ -176,24 +202,34 @@ export async function getVisitorRecordsByStatus(status: "approved" | "pending" |
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
       updatedAt: visitor_records.updatedAt,
-      // Related data
       resident_name: sql`${residents.fname} || ' ' || ${residents.lname}`,
       resident_email: residents.email,
       guard_name: sql`${guards.fname} || ' ' || ${guards.lname}`,
       guard_email: guards.email,
       house_address: houses.address,
-      village_key: houses.village_key
+      village_key: houses.village_key,
     })
     .from(visitor_records)
     .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
     .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
     .where(eq(visitor_records.record_status, status));
-  
+
   return result;
 }
 
-// Utility function to create a new visitor record
+/**
+ * Creates a new visitor record in the database.
+ * @param {Object} data - The data for the new record.
+ * @param {string} data.resident_id - The UUID of the resident being visited.
+ * @param {string} data.guard_id - The UUID of the guard who logged the visit.
+ * @param {string} data.house_id - The UUID of the house being visited.
+ * @param {string} [data.picture_key] - An optional key for a visitor photo.
+ * @param {string} [data.license_plate] - An optional license plate number.
+ * @param {"approved" | "pending" | "rejected"} [data.record_status="pending"] - The initial status of the record.
+ * @param {string} [data.visit_purpose] - The purpose of the visit.
+ * @returns {Promise<Object>} A promise that resolves to the newly created visitor record.
+ */
 export async function createVisitorRecord(data: {
   resident_id: string;
   guard_id: string;
@@ -215,35 +251,50 @@ export async function createVisitorRecord(data: {
       visit_purpose: data.visit_purpose,
     })
     .returning();
-  
+
   return newVisitorRecord;
 }
 
-// Utility function to update visitor record status
-export async function updateVisitorRecordStatus(visitorRecordId: string, status: "approved" | "pending" | "rejected") {
+/**
+ * Updates the status of an existing visitor record.
+ * @param {string} visitorRecordId - The UUID of the visitor record to update.
+ * @param {"approved" | "pending" | "rejected"} status - The new status to set.
+ * @returns {Promise<Object>} A promise that resolves to the updated visitor record.
+ */
+export async function updateVisitorRecordStatus(
+  visitorRecordId: string,
+  status: "approved" | "pending" | "rejected"
+) {
   const [updatedVisitorRecord] = await db
     .update(visitor_records)
-    .set({ 
+    .set({
       record_status: status,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     })
     .where(eq(visitor_records.visitor_record_id, visitorRecordId))
     .returning();
-  
+
   return updatedVisitorRecord;
 }
 
-// Utility function to delete a visitor record
+/**
+ * Deletes a visitor record from the database.
+ * @param {string} visitorRecordId - The UUID of the visitor record to delete.
+ * @returns {Promise<Object>} A promise that resolves to the deleted visitor record.
+ */
 export async function deleteVisitorRecord(visitorRecordId: string) {
   const [deletedVisitorRecord] = await db
     .delete(visitor_records)
     .where(eq(visitor_records.visitor_record_id, visitorRecordId))
     .returning();
-  
-  return deletedVisitorRecord;
-} 
 
-// Utility function to get weekly visitor records statistics
+  return deletedVisitorRecord;
+}
+
+/**
+ * Retrieves and compiles statistics for visitor records for the current week (Sunday to Saturday).
+ * @returns {Promise<Object>} A promise that resolves to an object containing weekly statistics, including counts per day and a summary.
+ */
 export async function getWeeklyVisitorRecords() {
   // Calculate the start and end of current week (Sunday to Saturday)
   const now = new Date();
@@ -251,7 +302,7 @@ export async function getWeeklyVisitorRecords() {
   const startOfWeek = new Date(now);
   startOfWeek.setDate(now.getDate() - currentDay); // Go back to Sunday
   startOfWeek.setHours(0, 0, 0, 0);
-  
+
   const endOfWeek = new Date(startOfWeek);
   endOfWeek.setDate(startOfWeek.getDate() + 6); // Go to Saturday
   endOfWeek.setHours(23, 59, 59, 999);
@@ -273,22 +324,30 @@ export async function getWeeklyVisitorRecords() {
     );
 
   // Initialize data structure for each day of the week
-  const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const weeklyData = weekDays.map(day => ({
+  const weekDays = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  const weeklyData = weekDays.map((day) => ({
     day,
     approved: 0,
     pending: 0,
     rejected: 0,
-    total: 0
+    total: 0,
   }));
 
   // Process records and count by status for each day
-  weeklyRecords.forEach(record => {
+  weeklyRecords.forEach((record) => {
     const recordDate = new Date(record.entry_time);
     const dayOfWeek = recordDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-    
+
     if (dayOfWeek >= 0 && dayOfWeek < 7) {
-      const status = record.record_status || 'pending';
+      const status = record.record_status || "pending";
       weeklyData[dayOfWeek][status]++;
       weeklyData[dayOfWeek].total++;
     }
@@ -304,18 +363,21 @@ export async function getWeeklyVisitorRecords() {
       totalApproved: weeklyData.reduce((sum, day) => sum + day.approved, 0),
       totalPending: weeklyData.reduce((sum, day) => sum + day.pending, 0),
       totalRejected: weeklyData.reduce((sum, day) => sum + day.rejected, 0),
-      totalRecords: weeklyData.reduce((sum, day) => sum + day.total, 0)
-    }
+      totalRecords: weeklyData.reduce((sum, day) => sum + day.total, 0),
+    },
   };
 
   return result;
-} 
+}
 
-// Utility function to get monthly visitor records statistics for current year
+/**
+ * Retrieves and compiles statistics for visitor records for each month of the current year.
+ * @returns {Promise<Object>} A promise that resolves to an object containing monthly statistics and a summary.
+ */
 export async function getMonthlyVisitorRecords() {
   // Get current year
   const currentYear = new Date().getFullYear();
-  
+
   // Calculate start and end of current year
   const startOfYear = new Date(currentYear, 0, 1); // January 1st
   const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59, 999); // December 31st
@@ -338,26 +400,36 @@ export async function getMonthlyVisitorRecords() {
 
   // Initialize data structure for each month
   const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
-  
+
   const monthlyData = months.map((month, index) => ({
     month,
     monthNumber: index + 1,
     approved: 0,
     pending: 0,
     rejected: 0,
-    total: 0
+    total: 0,
   }));
 
   // Process records and count by status for each month
-  yearlyRecords.forEach(record => {
+  yearlyRecords.forEach((record) => {
     const recordDate = new Date(record.entry_time!);
     const monthIndex = recordDate.getMonth(); // 0 = January, 1 = February, ..., 11 = December
-    
+
     if (monthIndex >= 0 && monthIndex < 12) {
-      const status = record.record_status || 'pending';
+      const status = record.record_status || "pending";
       monthlyData[monthIndex][status]++;
       monthlyData[monthIndex].total++;
     }
@@ -374,14 +446,17 @@ export async function getMonthlyVisitorRecords() {
       totalApproved: monthlyData.reduce((sum, month) => sum + month.approved, 0),
       totalPending: monthlyData.reduce((sum, month) => sum + month.pending, 0),
       totalRejected: monthlyData.reduce((sum, month) => sum + month.rejected, 0),
-      totalRecords: monthlyData.reduce((sum, month) => sum + month.total, 0)
-    }
+      totalRecords: monthlyData.reduce((sum, month) => sum + month.total, 0),
+    },
   };
 
   return result;
-} 
+}
 
-// Utility function to get yearly visitor records statistics for multiple years
+/**
+ * Retrieves and compiles statistics for visitor records, aggregated by year.
+ * @returns {Promise<Object>} A promise that resolves to an object containing yearly statistics and a summary.
+ */
 export async function getYearlyVisitorRecords() {
   // Get all visitor records with their years
   const allRecords = await db
@@ -395,11 +470,11 @@ export async function getYearlyVisitorRecords() {
 
   // Group records by year
   const recordsByYear: { [key: number]: any[] } = {};
-  
-  allRecords.forEach(record => {
+
+  allRecords.forEach((record) => {
     const recordDate = new Date(record.entry_time);
     const year = recordDate.getFullYear();
-    
+
     if (!recordsByYear[year]) {
       recordsByYear[year] = [];
     }
@@ -408,14 +483,20 @@ export async function getYearlyVisitorRecords() {
 
   // Process each year and create statistics
   const yearlyData = Object.keys(recordsByYear)
-    .map(yearStr => {
+    .map((yearStr) => {
       const year = parseInt(yearStr);
       const yearRecords = recordsByYear[year];
-      
+
       // Count records by status for this year
-      const approved = yearRecords.filter(r => r.record_status === 'approved').length;
-      const pending = yearRecords.filter(r => r.record_status === 'pending').length;
-      const rejected = yearRecords.filter(r => r.record_status === 'rejected').length;
+      const approved = yearRecords.filter(
+        (r) => r.record_status === "approved"
+      ).length;
+      const pending = yearRecords.filter(
+        (r) => r.record_status === "pending"
+      ).length;
+      const rejected = yearRecords.filter(
+        (r) => r.record_status === "rejected"
+      ).length;
       const total = yearRecords.length;
 
       return {
@@ -423,7 +504,7 @@ export async function getYearlyVisitorRecords() {
         approved,
         pending,
         rejected,
-        total
+        total,
       };
     })
     .sort((a, b) => b.year - a.year); // Sort by year descending (newest first)
@@ -437,8 +518,8 @@ export async function getYearlyVisitorRecords() {
       totalApproved: yearlyData.reduce((sum, year) => sum + year.approved, 0),
       totalPending: yearlyData.reduce((sum, year) => sum + year.pending, 0),
       totalRejected: yearlyData.reduce((sum, year) => sum + year.rejected, 0),
-      totalRecords: yearlyData.reduce((sum, year) => sum + year.total, 0)
-    }
+      totalRecords: yearlyData.reduce((sum, year) => sum + year.total, 0),
+    },
   };
 
   return result;
