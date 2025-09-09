@@ -77,7 +77,7 @@ const getIconColor = (type: string) => {
     case "settings":
       return "text-orange-500"
     default:
-      return "text-gray-500"
+      return "text-muted-foreground"
   }
 }
 
@@ -107,7 +107,7 @@ export default function NotificationComponent() {
         <Button 
           variant="outline" 
           size="icon" 
-          className="relative hover:bg-gray-50"
+          className="relative hover:bg-muted"
         >
           <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
           {unreadCount > 0 && (
@@ -135,12 +135,12 @@ export default function NotificationComponent() {
               return (
                 <div key={notification.id}>
                   <div 
-                    className={`p-2 sm:p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors ${
+                    className={`p-2 sm:p-3 rounded-lg hover:bg-muted cursor-pointer transition-colors ${
                       !notification.isRead ? 'bg-blue-50 border-l-4 border-blue-500' : ''
                     }`}
                   >
                     <div className="flex items-start gap-2 sm:gap-3">
-                      <div className={`p-1.5 sm:p-2 rounded-full bg-gray-100 ${getIconColor(notification.type)}`}>
+                      <div className={`p-1.5 sm:p-2 rounded-full bg-muted ${getIconColor(notification.type)}`}>
                         <IconComponent className="h-3 w-3 sm:h-4 sm:w-4" />
                       </div>
                       

@@ -89,7 +89,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup className="">
-          <SidebarGroupLabel className="my-3 md:my-5 border-gray-200 mb-4 md:mb-6">
+          <SidebarGroupLabel className="my-3 md:my-5 border-border mb-4 md:mb-6">
             <div className="flex items-center gap-2 md:gap-3 p-2 md:p-3">
               <div>
                 <Avatar className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14">
@@ -101,13 +101,13 @@ export function AppSidebar() {
                 <p className="scroll-m-20 text-2xl font-semibold tracking-tight">
                   หมู่บ้านไทย
                 </p>
-                <p className="text-xs md:text-sm text-gray-500 mt-1">
+                <p className="text-xs md:text-sm text-muted-foreground mt-1">
                   ระบบจัดการหมู่บ้าน
                 </p>
               </div>
             </div>
           </SidebarGroupLabel>
-          <SidebarGroupContent className="border-t border-gray-200">
+          <SidebarGroupContent className="border-t border-border">
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title} className="">
@@ -115,8 +115,8 @@ export function AppSidebar() {
                     asChild
                     className={`py-3 md:py-4 px-2 md:px-3 h-auto text-sm md:text-base transition-all duration-200 ${
                       pathname === item.url
-                        ? "bg-blue-50 text-blue-700 border-r-2 border-blue-500"
-                        : "hover:bg-gray-50"
+                        ? "bg-accent text-accent-foreground border-r-2 border-primary"
+                        : "hover:bg-muted"
                     }`}
                   >
                     <Link 
@@ -130,7 +130,7 @@ export function AppSidebar() {
                     >
                       <item.icon
                         className={`w-4 h-4 md:w-5 md:h-5 ${
-                          pathname === item.url ? "text-blue-600" : ""
+                          pathname === item.url ? "text-primary" : ""
                         }`}
                       />
                       <span
@@ -145,7 +145,7 @@ export function AppSidebar() {
               <SidebarMenuItem key="logout" className="">
                 <SidebarMenuButton
                   asChild
-                  className="py-3 md:py-4 px-2 md:px-3 h-auto text-sm md:text-base font-bold text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors"
+                  className="py-3 md:py-4 px-2 md:px-3 h-auto text-sm md:text-base font-bold text-destructive hover:text-destructive/80 hover:bg-destructive/10 transition-colors"
                 >
                   <Link href="" onClick={onSubmit}>
                     <LogOut className="w-4 h-4 md:w-5 md:h-5" />

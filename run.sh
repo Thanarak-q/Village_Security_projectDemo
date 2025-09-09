@@ -30,6 +30,14 @@ if [ -f package.json ]; then
             rm -rf node_modules > /dev/null 2>&1 || exit 1
         fi
     fi
+
+    if [ "$(uname)" == "Darwin" ]; then
+        if [ -d node_modules ]; then
+            echo "📦 Cleaning frontend dependencies..."
+            sudo chown -R "$USER":"$(id -gn)" node_modules > /dev/null 2>&1 || exit 1
+            rm -rf node_modules > /dev/null 2>&1 || exit 1
+        fi
+    fi
     
     [ -f package-lock.json ] && rm -f package-lock.json > /dev/null 2>&1 || true
     
@@ -49,6 +57,14 @@ if [ -f package.json ]; then
         if [ -d node_modules ]; then
             echo "📦 Cleaning backend dependencies..."
             sudo chown -R "$USER":"$USER" node_modules > /dev/null 2>&1 || exit 1
+            rm -rf node_modules > /dev/null 2>&1 || exit 1
+        fi
+    fi
+
+    if [ "$(uname)" == "Darwin" ]; then
+        if [ -d node_modules ]; then
+            echo "📦 Cleaning backend dependencies..."
+            sudo chown -R "$USER":"$(id -gn)" node_modules > /dev/null 2>&1 || exit 1
             rm -rf node_modules > /dev/null 2>&1 || exit 1
         fi
     fi

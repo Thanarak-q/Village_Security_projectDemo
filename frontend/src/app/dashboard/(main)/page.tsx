@@ -38,8 +38,12 @@ export default function Page() {
   useEffect(() => {
     if (!data) return;
 
+    // Capture ref values to avoid stale closure issues
+    const chartElement = chartRef.current;
+    const tableElement = tableRef.current;
+
     // Set initial state for chart and table only
-    gsap.set([chartRef.current, tableRef.current], {
+    gsap.set([chartElement, tableElement], {
       opacity: 0,
       y: 50
     });
@@ -69,14 +73,14 @@ export default function Page() {
     }
 
     // Then animate chart
-    tl.to(chartRef.current, {
+    tl.to(chartElement, {
       duration: 0.8,
       opacity: 1,
       y: 0,
       ease: "power2.inOut"
     }, "-=0.2")
       // Finally animate table
-      .to(tableRef.current, {
+      .to(tableElement, {
         duration: 0.8,
         opacity: 1,
         y: 0,
@@ -84,7 +88,7 @@ export default function Page() {
       }, "-=0.4");
 
     return () => {
-      gsap.killTweensOf([chartRef.current, tableRef.current]);
+      gsap.killTweensOf([chartElement, tableElement]);
       if (cards) {
         gsap.killTweensOf(Array.from(cards));
       }
@@ -98,12 +102,12 @@ export default function Page() {
   // }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-2 sm:px-4 lg:px-6 py-3 sm:py-6 max-w-full xl:max-w-7xl">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 lg:mb-8">
           <div className="space-y-1">
-            <h1 className="scroll-m-20 text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-gray-900">
+            <h1 className="scroll-m-20 text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-foreground">
               {/* สวัสดี, คุณผู้จัดการ {data.username} 👋 */}
             </h1>
             {/* <p className="text-xs sm:text-sm md:text-base text-gray-500">

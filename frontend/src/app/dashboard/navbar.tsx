@@ -5,6 +5,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { gsap } from "gsap";
 import { useSidebar, SidebarTrigger } from "@/components/ui/sidebar";
 import NotificationComponent from "./(main)/notification";
+import { ModeToggle } from "@/components/mode-toggle";
 import Image from "next/image";
 
 function Navbar() {
@@ -160,38 +161,38 @@ function Navbar() {
             day: "numeric",
           }),
           titleClass:
-            "text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-gray-900",
-          subtitleClass: "text-xs sm:text-sm md:text-base text-gray-500",
+            "text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-foreground",
+          subtitleClass: "text-xs sm:text-sm md:text-base text-muted-foreground",
         };
       case "/dashboard/user_manage":
         return {
           title: "จัดการผู้ใช้งาน",
           subtitle: "จัดการข้อมูลผู้ใช้งานทั้งหมดในระบบ",
           titleClass:
-            "text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-gray-900",
-          subtitleClass: "text-xs sm:text-sm md:text-base text-gray-500",
+            "text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-foreground",
+          subtitleClass: "text-xs sm:text-sm md:text-base text-muted-foreground",
         };
       case "/dashboard/house_manage":
         return {
           title: "การจัดการบ้าน",
           subtitle: "จัดการข้อมูลบ้านและสถานะการอยู่อาศัย",
           titleClass:
-            "text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight text-gray-900",
-          subtitleClass: "text-sm sm:text-base text-gray-500",
+            "text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight text-foreground",
+          subtitleClass: "text-sm sm:text-base text-muted-foreground",
         };
       case "/dashboard/setting_manage":
         return {
           title: "การตั้งค่า",
           subtitle: "จัดการการตั้งค่าระบบ",
-          titleClass: "text-2xl font-bold text-gray-900",
-          subtitleClass: "text-sm text-gray-600",
+          titleClass: "text-2xl font-bold text-foreground",
+          subtitleClass: "text-sm text-muted-foreground",
         };
       default:
         return {
           title: "การจัดการบ้าน",
           subtitle: thaiDate,
-          titleClass: "text-2xl font-bold text-gray-900",
-          subtitleClass: "text-sm text-gray-600",
+          titleClass: "text-2xl font-bold text-foreground",
+          subtitleClass: "text-sm text-muted-foreground",
         };
     }
   };
@@ -201,15 +202,15 @@ function Navbar() {
   return (
     <nav className="w-full">
       {/* ส่วนเนื้อหาสีขาว */}
-      <div className="bg-white p-4 flex justify-between items-center border-b border-gray-200">
+      <div className="bg-background p-4 flex justify-between items-center border-b border-border">
         {/* ด้านซ้าย - ข้อความ */}
         <div className="flex items-center gap-4">
           {/* Sidebar Toggle with Custom Icon */}
-          <SidebarTrigger className="p-2 hover:bg-gray-100 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <SidebarTrigger className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring">
             {open ? (
-              <X className="h-5 w-5 text-gray-600" />
+              <X className="h-5 w-5 text-muted-foreground" />
             ) : (
-              <Menu className="h-5 w-5 text-gray-600" />
+              <Menu className="h-5 w-5 text-muted-foreground" />
             )}
           </SidebarTrigger>
           <div className="flex flex-col">
@@ -219,7 +220,7 @@ function Navbar() {
                 <div className="relative overflow-hidden h-10 flex items-center">
                   <span
                     ref={titleSpinRef}
-                    className="inline-block text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-gray-900 transform-gpu"
+                    className="inline-block text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-foreground transform-gpu"
                     style={{
                       transformStyle: "preserve-3d",
                       perspective: "1000px",
@@ -241,12 +242,15 @@ function Navbar() {
 
         {/* ด้านขวา - ไอคอนและโปรไฟล์ */}
         <div className="flex items-center space-x-4">
+          {/* Theme Toggle */}
+          <ModeToggle />
+
           {/* Notification Component */}
           <NotificationComponent />
 
           {/* รูปโปรไฟล์และชื่อ */}
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-full overflow-hidden bg-gray-300 flex items-center justify-center relative">
+            <div className="h-10 w-10 rounded-full overflow-hidden bg-muted flex items-center justify-center relative">
               <Image
                 src={userData?.profileImage || "/image.png"}
                 alt={
@@ -263,12 +267,12 @@ function Navbar() {
               />
             </div>
             <div className="hidden sm:flex flex-col">
-              <span className="text-gray-900 font-medium text-sm">
+              <span className="text-foreground font-medium text-sm">
                 {userData?.fname && userData?.lname
                   ? `${userData.fname} ${userData.lname}`
                   : userData?.username || "ผู้ใช้งาน"}
               </span>
-              <span className="text-gray-500 text-xs">
+              <span className="text-muted-foreground text-xs">
                 {userData?.role === "admin"
                   ? "ผู้จัดการ"
                   : userData?.role || ""}

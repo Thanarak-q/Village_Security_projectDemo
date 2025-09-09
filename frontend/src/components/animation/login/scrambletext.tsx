@@ -1,12 +1,23 @@
 "use client";
 
+/**
+ * @file This file provides a component that displays a scramble text animation.
+ *
+ * It uses the GSAP ScrambleTextPlugin to animate the text.
+ */
+
 import React, { useEffect } from "react";
 import gsap from "gsap";
-import { ScrollTrigger,SplitText, ScrambleTextPlugin } from "gsap/all";
+import { ScrambleTextPlugin } from "gsap/all";
 
 gsap.registerPlugin(ScrambleTextPlugin);
 
-const ScrambleTextExample = () => {
+/**
+ * A component that displays a scramble text animation.
+ *
+ * @returns {React.ReactElement} The rendered component.
+ */
+const ScrambleTextExample = (): React.ReactElement => {
   useEffect(() => {
     gsap.to("#secound", {
       duration: 1,
@@ -20,12 +31,14 @@ const ScrambleTextExample = () => {
     });
   }, []);
 
-  
-
   return (
     <div className="text-center font-bold mt-8">
-      <p id="first" className="text-xl sm:text-2xl md:text-3xl lg:text-4xl">Welcome to Village</p>
-      <p id="secound" className="text-xl sm:text-2xl md:text-3xl lg:text-4xl">Please Login</p>
+      <p id="first" className="text-xl sm:text-2xl md:text-3xl lg:text-4xl">
+        Welcome to Village
+      </p>
+      <p id="secound" className="text-xl sm:text-2xl md:text-3xl lg:text-4xl">
+        Please Login
+      </p>
     </div>
   );
 };
