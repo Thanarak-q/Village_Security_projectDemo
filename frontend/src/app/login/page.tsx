@@ -380,58 +380,38 @@ const Page: React.FC = () => {
   }, [shouldRedirect, router]);
 
   useEffect(() => {
-    const isLowPerformance =
-      window.innerWidth < 768 || navigator.hardwareConcurrency < 4;
-    const preferReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion:reduce"
-    ).matches;
     const isShortScreen = window.innerHeight < 800;
-
-    // Set initial position based on screen height
     const initialBottom = isShortScreen ? "-250px" : "-350px";
 
     try {
       gsap.set(loginGroupRef.current, { bottom: initialBottom });
 
-      if (!preferReducedMotion && !isLowPerformance) {
-        const tl = gsap.timeline();
-        tl.to(welcomeRef.current, {
-          top: "10%",
-          duration: 0.8,
-          ease: "power2.inOut",
-        })
-          .to(
-            triRef.current,
-            {
-              opacity: 1,
-              duration: 1,
-              ease: "power2.inOut",
-            },
-            "<"
-          )
-          .to(
-            squareRef.current,
-            { opacity: 1, duration: 1, ease: "power2.inOut" },
-            "<"
-          )
-          .to(
-            loginRef.current,
-            { opacity: 1, duration: 0.4, ease: "power2.inOut" },
-            "-=0.3"
-          );
-      } else {
-        // Fallback for low performance devices or reduced motion preference
-        gsap.set(welcomeRef.current, { top: "10%", y: "-50%" });
-        gsap.set(loginGroupRef.current, {
-          bottom: isShortScreen ? "35%" : "45%",
-          y: "50%",
-        });
-        gsap.set(triRef.current, { opacity: 1 });
-        gsap.set(squareRef.current, { opacity: 1 });
-        gsap.set(loginRef.current, { opacity: 1 });
-      }
+      const tl = gsap.timeline();
+      tl.to(welcomeRef.current, {
+        top: "10%",
+        duration: 0.8,
+        ease: "power2.inOut",
+      })
+        .to(
+          triRef.current,
+          {
+            opacity: 1,
+            duration: 1,
+            ease: "power2.inOut",
+          },
+          "<"
+        )
+        .to(
+          squareRef.current,
+          { opacity: 1, duration: 1, ease: "power2.inOut" },
+          "<"
+        )
+        .to(
+          loginRef.current,
+          { opacity: 1, duration: 0.4, ease: "power2.inOut" },
+          "-=0.3"
+        );
     } catch (error) {
-      // Fallback if GSAP fails - ensure elements are visible
       console.warn("GSAP animation failed, using fallback:", error);
       if (triRef.current) triRef.current.style.opacity = "1";
       if (squareRef.current) squareRef.current.style.opacity = "1";
