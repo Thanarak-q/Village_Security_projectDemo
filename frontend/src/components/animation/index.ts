@@ -1,8 +1,4 @@
-/**
- * @file This file exports all the animation components.
- */
-
-export { default as ScrambleTextExample } from "./login/scrambletext";
-export { default as ExpandButton } from "./login/expandbutton";
-export { default as MenuShowColor } from "./dashboard/menu_show_color";
+export { default as ScrambleTextExample } from './login/scrambletext';
+export { default as ExpandButton } from './login/expandbutton';
+// export { default as MenuShowColor } from './dashboard/menu_show_color';
 

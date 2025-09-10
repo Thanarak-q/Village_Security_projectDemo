@@ -23,8 +23,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, memo } from "react";
 import { useSidebar } from "@/components/ui/sidebar";
+import { useTheme } from "next-themes";
+import Image from "next/image";
 // import { MenuShowColor } from "@/components/animation";
 
 const items = [
@@ -55,13 +57,38 @@ const items = [
   },
 ];
 
-export function AppSidebar() {
+const AppSidebar = memo(function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const [shouldRedirect, setShouldRedirect] = useState(false);
   const { setOpen } = useSidebar();
+  const { theme } = useTheme();
+  const [userData, setUserData] = useState<{
+    id: string;
+    username: string;
+    email: string;
+    fname?: string;
+    lname?: string;
+    profileImage?: string;
+    role: string;
+  } | null>(null);
 
-  async function onSubmit() {
+  useEffect(() => {
+    fetch("/api/auth/me", {
+      credentials: "include",
+    })
+      .then((res) => {
+        if (res.status === 401) {
+          return null;
+        }
+        return res.json();
+      })
+      .then((json) => {
+        if (json) setUserData(json);
+      });
+  }, []);
+
+  const onSubmit = useCallback(async () => {
     try {
       const response = await fetch("/api/auth/logout", {
         method: "GET",
@@ -77,7 +104,7 @@ export function AppSidebar() {
     } catch (error) {
       console.error("Logout failed:", error);
     }
-  }
+  }, []);
 
   useEffect(() => {
     if (shouldRedirect) {
@@ -87,19 +114,25 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarContent>
-        <SidebarGroup className="">
+      <SidebarContent className="flex flex-col">
+        <SidebarGroup className="flex-1">
           <SidebarGroupLabel className="my-3 md:my-5 border-border mb-4 md:mb-6">
             <div className="flex items-center gap-2 md:gap-3 p-2 md:p-3">
               <div>
-                <Avatar className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14">
-                  <AvatarImage src="https://www.lifeandliving.co.th/wp-content/uploads/2022/01/%E0%B8%9A%E0%B9%89%E0%B8%B2%E0%B8%99%E0%B8%88%E0%B8%B1%E0%B8%94%E0%B8%AA%E0%B8%A3%E0%B8%A3-%E0%B8%A3%E0%B8%B0%E0%B8%A2%E0%B8%AD%E0%B8%87.jpg.webp" />
-                  <AvatarFallback>CN</AvatarFallback>
-                </Avatar>
+                <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 overflow-hidden relative">
+                  <Image
+                    src={theme === "dark" ? "/house-white.png" : "/house-dark.png"}
+                    alt="House"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 40px, (max-width: 768px) 48px, 56px"
+                  />
+                </div>
               </div>
               <div>
-                <p className="scroll-m-20 text-2xl font-semibold tracking-tight">
-                  หมู่บ้านไทย
+                <p className="scroll-m-20 text-xl font-semibold tracking-tight">
+                  {userData?.village_name || "manager"
+                  }
                 </p>
                 <p className="text-xs md:text-sm text-muted-foreground mt-1">
                   ระบบจัดการหมู่บ้าน
@@ -142,7 +175,16 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              <SidebarMenuItem key="logout" className="">
+            </SidebarMenu>
+            {/* <MenuShowColor items={items}/>   */}
+          </SidebarGroupContent>
+        </SidebarGroup>
+        
+        {/* Footer with Logout Button */}
+        <SidebarGroup className="mt-auto border-t border-border">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
                   className="py-3 md:py-4 px-2 md:px-3 h-auto text-sm md:text-base font-bold text-destructive hover:text-destructive/80 hover:bg-destructive/10 transition-colors"
@@ -154,10 +196,11 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
-            {/* <MenuShowColor items={items}/>   */}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
     </Sidebar>
   );
-}
+})
+
+export { AppSidebar }
