@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, memo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, UserCheck, AlertTriangle, Plus, Loader2, CheckCircle, XCircle, Shield } from "lucide-react"
 
@@ -16,7 +16,7 @@ interface StatsData {
 }
 
 // 1. Card แสดงจำนวน user ทั้งหมด
-export function TotalUsersCard({ data, loading, error }: { data: StatsData | null, loading: boolean, error: string | null }) {
+export const TotalUsersCard = memo(function TotalUsersCard({ data, loading, error }: { data: StatsData | null, loading: boolean, error: string | null }) {
   return (
     <Card className="shadow transition-shadow hover:shadow-md">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -49,7 +49,7 @@ export function TotalUsersCard({ data, loading, error }: { data: StatsData | nul
       </CardContent>
     </Card>
   )
-}
+})
 
 // 2. Card แสดงจำนวนอนุมัติ/ปฏิเสธวันนี้
 export function DailyAccessCard({ data, loading, error }: { data: StatsData | null, loading: boolean, error: string | null }) {

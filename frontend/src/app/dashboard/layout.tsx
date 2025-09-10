@@ -26,7 +26,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   if (!data) return <p>Loading...</p>;
   return (
-    <SidebarProvider defaultOpen={false}>
+    <SidebarProvider defaultOpen={true}>
       <AppSidebar />
       <SidebarInset>
         <Navbar />

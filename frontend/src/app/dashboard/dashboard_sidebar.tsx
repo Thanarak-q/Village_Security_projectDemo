@@ -23,7 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, memo } from "react";
 import { useSidebar } from "@/components/ui/sidebar";
 // import { MenuShowColor } from "@/components/animation";
 
@@ -55,13 +55,13 @@ const items = [
   },
 ];
 
-export function AppSidebar() {
+const AppSidebar = memo(function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const [shouldRedirect, setShouldRedirect] = useState(false);
   const { setOpen } = useSidebar();
 
-  async function onSubmit() {
+  const onSubmit = useCallback(async () => {
     try {
       const response = await fetch("/api/auth/logout", {
         method: "GET",
@@ -77,7 +77,7 @@ export function AppSidebar() {
     } catch (error) {
       console.error("Logout failed:", error);
     }
-  }
+  }, []);
 
   useEffect(() => {
     if (shouldRedirect) {
@@ -168,4 +168,6 @@ export function AppSidebar() {
       </SidebarContent>
     </Sidebar>
   );
-}
+})
+
+export { AppSidebar }
