@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo, memo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 
@@ -61,15 +61,15 @@ const chartConfig = {
   },
 }
 
-export default function WeeklyAccessBarChart() {
+const WeeklyAccessBarChart = memo(function WeeklyAccessBarChart() {
   const [selectedPeriod, setSelectedPeriod] = useState("week")
   const [chartData, setChartData] = useState<ChartDataPoint[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [usingFallbackData, setUsingFallbackData] = useState(false)
 
-  // Thai day names mapping
-  const dayNames: { [key: string]: string } = {
+  // Thai day names mapping - memoized to prevent recreation
+  const dayNames = useMemo(() => ({
     'Sunday': 'อาทิตย์',
     'Monday': 'จันทร์',
     'Tuesday': 'อังคาร',
@@ -77,10 +77,10 @@ export default function WeeklyAccessBarChart() {
     'Thursday': 'พฤหัสบดี',
     'Friday': 'ศุกร์',
     'Saturday': 'เสาร์'
-  }
+  }), [])
 
-  // Thai month names mapping
-  const monthNames: { [key: string]: string } = {
+  // Thai month names mapping - memoized to prevent recreation
+  const monthNames = useMemo(() => ({
     'January': 'ม.ค.',
     'February': 'ก.พ.',
     'March': 'มี.ค.',
@@ -93,10 +93,10 @@ export default function WeeklyAccessBarChart() {
     'October': 'ต.ค.',
     'November': 'พ.ย.',
     'December': 'ธ.ค.'
-  }
+  }), [])
 
   // Fetch data from API
-  const fetchData = async (period: string) => {
+  const fetchData = useCallback(async (period: string) => {
     setLoading(true)
     setError(null)
 
@@ -142,13 +142,13 @@ export default function WeeklyAccessBarChart() {
 
       if (period === 'week' && result.data.weeklyData) {
         transformedData = result.data.weeklyData.map((item: WeeklyData) => ({
-          period: dayNames[item.day] || item.day,
+          period: dayNames[item.day as keyof typeof dayNames] || item.day,
           approved: item.approved,
           rejected: item.rejected
         }))
       } else if (period === 'month' && result.data.monthlyData) {
         transformedData = result.data.monthlyData.map((item: MonthlyData) => ({
-          period: monthNames[item.month] || item.month,
+          period: monthNames[item.month as keyof typeof monthNames] || item.month,
           approved: item.approved,
           rejected: item.rejected
         }))
@@ -173,7 +173,7 @@ export default function WeeklyAccessBarChart() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [dayNames, monthNames])
 
   // Fallback data for demo purposes
   const getFallbackData = (period: string): ChartDataPoint[] => {
@@ -219,7 +219,7 @@ export default function WeeklyAccessBarChart() {
   // Fetch data when component mounts or period changes
   useEffect(() => {
     fetchData(selectedPeriod)
-  }, [selectedPeriod])
+  }, [selectedPeriod, fetchData])
 
   const totalApproved = chartData.reduce((sum, item) => sum + item.approved, 0)
   const totalRejected = chartData.reduce((sum, item) => sum + item.rejected, 0)
@@ -399,4 +399,6 @@ export default function WeeklyAccessBarChart() {
       </CardContent>
     </Card>
   )
-}
+})
+
+export default WeeklyAccessBarChart

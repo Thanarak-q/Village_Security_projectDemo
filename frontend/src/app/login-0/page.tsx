@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { ScrambleTextExample, ExpandButton } from "@/components/animation";
+import { ScrambleTextExample } from "@/components/animation";
 
 import {
   Form,
@@ -62,8 +62,8 @@ export default function InputFormPage() {
       console.log("Login successful");
       toast.success("Login successful!");
       setShouldRedirect(true);
-    } catch (err: any) {
-      toast.error(err.message || "Something went wrong");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }

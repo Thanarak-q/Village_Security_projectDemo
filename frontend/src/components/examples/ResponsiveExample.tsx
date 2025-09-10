@@ -1,15 +1,10 @@
-/**
- * @file This file provides an example of how to use responsive classes.
- *
- * This file is written in Thai and is intended to be used as a reference.
- */
-
-import React from "react";
+import React from 'react';
 
 /**
  * ตัวอย่างการใช้งาน Responsive Classes
  * ไฟล์นี้แสดงวิธีการใช้ responsive utilities ที่สร้างขึ้น
  */
+
 export default function ResponsiveExample() {
   return (
     <div className="responsive-container">
