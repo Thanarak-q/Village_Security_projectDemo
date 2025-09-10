@@ -343,6 +343,7 @@ export async function getWeeklyVisitorRecords() {
 
   // Process records and count by status for each day
   weeklyRecords.forEach((record) => {
+    if (!record.entry_time) return;
     const recordDate = new Date(record.entry_time);
     const dayOfWeek = recordDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
 
@@ -470,6 +471,7 @@ export async function getYearlyVisitorRecords() {
 
   // Group records by year
   const recordsByYear: { [key: number]: any[] } = {};
+<<<<<<< Updated upstream
 
   allRecords.forEach((record) => {
     const recordDate = new Date(record.entry_time);
@@ -477,8 +479,19 @@ export async function getYearlyVisitorRecords() {
 
     if (!recordsByYear[year]) {
       recordsByYear[year] = [];
+=======
+  
+  allRecords.forEach(record => {
+    if (record.entry_time) {
+      const recordDate = new Date(record.entry_time);
+      const year = recordDate.getFullYear();
+      
+      if (!recordsByYear[year]) {
+        recordsByYear[year] = [];
+      }
+      recordsByYear[year].push(record);
+>>>>>>> Stashed changes
     }
-    recordsByYear[year].push(record);
   });
 
   // Process each year and create statistics

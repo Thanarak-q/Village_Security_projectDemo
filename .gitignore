@@ -46,3 +46,9 @@ pids
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Keep .gitignore itself
+!.gitignore
+
+# Do not ignore the LIFF setup guide
+!LIFF_SETUP_GUIDE.md
