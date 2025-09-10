@@ -48,7 +48,7 @@ interface PendingResident {
   house_address: string | null;
   createdAt: string;
   updatedAt: string;
-  profile_image_url: string | null;
+  profile_image_url?: string | null;
 }
 
 // Interface for Pending Guard from API
@@ -64,7 +64,7 @@ interface PendingGuard {
   house_address: string | null;
   createdAt: string;
   updatedAt: string;
-  profile_image_url: string | null;
+  profile_image_url?: string | null;
 }
 
 // Interface สำหรับกำหนดโครงสร้างข้อมูลผู้ใช้ที่รออนุมัติ

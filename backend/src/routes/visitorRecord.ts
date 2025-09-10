@@ -43,7 +43,7 @@ const validateVisitorRecordData = (data: CreateVisitorRecordBody) => {
   if (!data.resident_id?.trim()) {
     errors.push("Resident ID is required");
   }
-
+  
   if (!data.guard_id?.trim()) {
     errors.push("Guard ID is required");
   }

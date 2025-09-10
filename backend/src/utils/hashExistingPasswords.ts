@@ -7,7 +7,7 @@
  */
 
 import db from "../db/drizzle";
-import { residents, guards, admins } from "../db/schema";
+import { admins } from "../db/schema";
 import { hashPassword } from "./passwordUtils";
 import { eq } from "drizzle-orm";
 
@@ -22,34 +22,6 @@ import { eq } from "drizzle-orm";
 export async function hashExistingPasswords(): Promise<void> {
   try {
     console.log("Starting password hashing migration...");
-
-    // Hash existing resident passwords
-    const existingResidents = await db.select().from(residents);
-    for (const resident of existingResidents) {
-      // Check if password is not already hashed (assumes bcrypt hashes start with '$2b$')
-      if (!resident.password_hash.startsWith("$2b$")) {
-        const hashedPassword = await hashPassword(resident.password_hash);
-        await db
-          .update(residents)
-          .set({ password_hash: hashedPassword })
-          .where(eq(residents.resident_id, resident.resident_id));
-        console.log(`Hashed password for resident: ${resident.username}`);
-      }
-    }
-
-    // Hash existing guard passwords
-    const existingGuards = await db.select().from(guards);
-    for (const guard of existingGuards) {
-      // Check if password is not already hashed
-      if (!guard.password_hash.startsWith("$2b$")) {
-        const hashedPassword = await hashPassword(guard.password_hash);
-        await db
-          .update(guards)
-          .set({ password_hash: hashedPassword })
-          .where(eq(guards.guard_id, guard.guard_id));
-        console.log(`Hashed password for guard: ${guard.username}`);
-      }
-    }
 
     // Hash existing admin passwords
     const existingAdmins = await db.select().from(admins);
