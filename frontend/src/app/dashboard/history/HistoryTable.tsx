@@ -17,22 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Edit, Users, Shield, Home, Search, ChevronLeft, ChevronRight, Clock, Car } from "lucide-react";
+import { Shield, Search, ChevronLeft, ChevronRight, Clock, Car } from "lucide-react";
 
 // API Response Interface
-interface HistoryTableResponse {
-  success: boolean;
-  data: {
-    adminHistory: AdminHistory[];
-    visitorHistory: VisitorHistory[];
-  };
-  total: {
-    adminHistory: number;
-    visitorHistory: number;
-    total: number;
-  };
-  error?: string;
-}
 
 // Visitor Records API Response Interface
 interface VisitorRecordAPIResponse {
@@ -89,16 +76,6 @@ interface VisitorHistory {
 }
 
 // Interface for History data structure
-interface HistoryItem {
-  id: string;
-  name: string;
-  action: string;
-  note: string;
-  timestamp: string;
-  status: string;
-  type: string;
-  details?: string;
-}
 
 // Main history table component
 export default function HistoryTable() {
