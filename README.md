@@ -1,6 +1,6 @@
 # Village Security Project
 
-A full-stack application for managing a village security system, built with a modern tech stack.
+A full-stack application for managing a village security system, built with a modern tech stack
 
 ## Technologies Used
 
