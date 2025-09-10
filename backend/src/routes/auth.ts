@@ -132,12 +132,21 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
    * @param {Object} context.currentUser - The current user.
    * @returns {Object} An object containing the current user's information.
    */
-  .get("/me", ({ currentUser }: any) => {
+  .get("/me", async ({ currentUser }: any) => {
+    const village_name = currentUser.village_key
+      ? await db
+          .select({ village_name: villages.village_name })
+          .from(villages)
+          .where(eq(villages.village_key, currentUser.village_key))
+          .then((res) => (res[0] ? res[0].village_name : null))
+      : null;
+
     return {
       id: currentUser.admin_id,
       username: currentUser.username,
       role: currentUser.role,
       village_key: currentUser.village_key,
+      village_name,
     };
   });
 

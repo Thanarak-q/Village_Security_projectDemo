@@ -21,10 +21,6 @@ export default function UsersPage() {
   const [username, setUsername] = useState("")
   const [email, setEmail] = useState("");
   const [fname, setFname] = useState("");
-  const [lname, setLname] = useState("");
-  const [phone, setPhont] = useState("");
-  const [role_id, setRoleId] = useState("")
-  const [village_key, setVillage_key] = useState("")
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -73,8 +69,8 @@ export default function UsersPage() {
       setFname("");
 
       setEmail("");
-    } catch (e: any) {
-      setError(e.message ?? "Failed to insert user");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to insert user");
     }
 
     setLoading(false);

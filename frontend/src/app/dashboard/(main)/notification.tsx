@@ -112,7 +112,7 @@ export default function NotificationComponent() {
           <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
           {unreadCount > 0 && (
             <Badge 
-              className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-red-500 text-white text-xs px-1 sm:px-2 py-0.5 sm:py-1 rounded-full min-w-[16px] sm:min-w-[20px] h-4 sm:h-5 flex items-center justify-center"
+              className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-destructive text-destructive-foreground text-xs px-1 sm:px-2 py-0.5 sm:py-1 rounded-full min-w-[16px] sm:min-w-[20px] h-4 sm:h-5 flex items-center justify-center"
             >
               {unreadCount}
             </Badge>
@@ -136,7 +136,7 @@ export default function NotificationComponent() {
                 <div key={notification.id}>
                   <div 
                     className={`p-2 sm:p-3 rounded-lg hover:bg-muted cursor-pointer transition-colors ${
-                      !notification.isRead ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                      !notification.isRead ? 'bg-primary/10 border-l-4 border-primary dark:bg-primary/20' : ''
                     }`}
                   >
                     <div className="flex items-start gap-2 sm:gap-3">
@@ -150,7 +150,7 @@ export default function NotificationComponent() {
                             {notification.title}
                           </h4>
                           {!notification.isRead && (
-                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-500 rounded-full flex-shrink-0 ml-1 sm:ml-2" />
+                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full flex-shrink-0 ml-1 sm:ml-2" />
                           )}
                         </div>
                         

@@ -8,14 +8,16 @@ export default function HistoryPage() {
 
   // GSAP smooth scroll-up animation
   useEffect(() => {
+    const tableElement = tableRef.current;
+    
     // Set initial state
-    gsap.set(tableRef.current, {
+    gsap.set(tableElement, {
       opacity: 0,
       y: 50
     });
 
     // Animate entrance
-    gsap.to(tableRef.current, {
+    gsap.to(tableElement, {
       duration: 0.8,
       opacity: 1,
       y: 0,
@@ -24,7 +26,7 @@ export default function HistoryPage() {
     });
 
     return () => {
-      gsap.killTweensOf(tableRef.current);
+      gsap.killTweensOf(tableElement);
     };
   }, []);
 

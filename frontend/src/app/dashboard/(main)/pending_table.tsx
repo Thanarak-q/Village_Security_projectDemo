@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Check, X, Clock, UserPlus, Settings, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { UserPlus, Settings, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import ApprovalForm from "./ApprovalForm";
 import {
   Select,
