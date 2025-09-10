@@ -252,7 +252,7 @@ function Navbar() {
 
           {/* รูปโปรไฟล์และชื่อ */}
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-full overflow-hidden bg-muted flex items-center justify-center relative">
+            <div className="h-10 w-10 overflow-hidden flex items-center justify-center relative">
               <Image
                 src={userData?.profileImage || (theme === "dark" ? "/user-white.png" : "/user-dark.png")}
                 alt={

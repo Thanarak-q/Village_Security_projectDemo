@@ -26,6 +26,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState, useCallback, memo } from "react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useTheme } from "next-themes";
+import Image from "next/image";
 // import { MenuShowColor } from "@/components/animation";
 
 const items = [
@@ -94,12 +95,15 @@ const AppSidebar = memo(function AppSidebar() {
           <SidebarGroupLabel className="my-3 md:my-5 border-border mb-4 md:mb-6">
             <div className="flex items-center gap-2 md:gap-3 p-2 md:p-3">
               <div>
-                <Avatar className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14">
-                  <AvatarImage 
-                    src={theme === "dark" ? "/house-white.png" : "/house-dark.png"} 
+                <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 overflow-hidden relative">
+                  <Image
+                    src={theme === "dark" ? "/house-white.png" : "/house-dark.png"}
+                    alt="House"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 40px, (max-width: 768px) 48px, 56px"
                   />
-                  <AvatarFallback>CN</AvatarFallback>
-                </Avatar>
+                </div>
               </div>
               <div>
                 <p className="scroll-m-20 text-2xl font-semibold tracking-tight">
