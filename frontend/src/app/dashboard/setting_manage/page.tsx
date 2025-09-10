@@ -2,7 +2,7 @@ import SettingForm from "./SettingForm";
 
 export default function SettingsPage() {
   return (
-    <section className="min-h-screen bg-gray-50">
+    <section className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6 max-w-7xl ">
         <SettingForm />
       </div>

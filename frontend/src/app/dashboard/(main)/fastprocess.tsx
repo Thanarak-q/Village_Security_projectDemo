@@ -39,11 +39,11 @@ const quickActions = [
 
 export default function FastProcessPage() {
   return (
-    <div className="bg-gray-50">
+    <div className="bg-muted">
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="scroll-m-20 text-2xl font-semibold tracking-tight text-gray-900">
+          <h1 className="scroll-m-20 text-2xl font-semibold tracking-tight text-foreground">
             การดำเนินการด่วน
           </h1>
         </div>
@@ -62,7 +62,7 @@ export default function FastProcessPage() {
                   <div className={`p-4 rounded-full ${action.bgColor} mb-4`}>
                     <IconComponent className={`h-8 w-8 ${action.iconColor}`} />
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900">
+                  <h3 className="text-lg font-medium text-foreground">
                     {action.title}
                   </h3>
                 </div>

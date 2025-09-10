@@ -85,14 +85,30 @@ const validateStatus = (
  */
 export const houseManageRoutes = new Elysia({ prefix: "/api" })
   .onBeforeHandle(requireRole("admin"))
+  // Get all houses (moved from house.ts)
+  .get("/houses", async ({ currentUser }: any) => {
+    try {
+      const { village_key } = currentUser;
 
-  /**
-   * Create a new house.
-   * @param {Object} context - The context for the request.
-   * @param {Object} context.body - The body of the request.
-   * @param {Object} context.currentUser - The current user.
-   * @returns {Promise<Object>} A promise that resolves to an object containing the new house.
-   */
+      const result = await db
+        .select()
+        .from(houses)
+        .where(eq(houses.village_key, village_key));
+      return {
+        success: true,
+        data: result,
+        total: result.length,
+      };
+    } catch (error) {
+      console.error("Error fetching houses:", error);
+      return {
+        success: false,
+        error: "Failed to fetch houses",
+      };
+    }
+  })
+  
+  // Create new house
   .post("/house-manage", async ({ body, currentUser }: any) => {
     try {
       const houseData = body as CreateHouseBody;
