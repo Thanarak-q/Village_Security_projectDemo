@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 
@@ -96,7 +96,7 @@ export default function WeeklyAccessBarChart() {
   }
 
   // Fetch data from API
-  const fetchData = async (period: string) => {
+  const fetchData = useCallback(async (period: string) => {
     setLoading(true)
     setError(null)
 
@@ -173,7 +173,7 @@ export default function WeeklyAccessBarChart() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [dayNames, monthNames])
 
   // Fallback data for demo purposes
   const getFallbackData = (period: string): ChartDataPoint[] => {
@@ -219,7 +219,7 @@ export default function WeeklyAccessBarChart() {
   // Fetch data when component mounts or period changes
   useEffect(() => {
     fetchData(selectedPeriod)
-  }, [selectedPeriod])
+  }, [selectedPeriod, fetchData])
 
   const totalApproved = chartData.reduce((sum, item) => sum + item.approved, 0)
   const totalRejected = chartData.reduce((sum, item) => sum + item.rejected, 0)

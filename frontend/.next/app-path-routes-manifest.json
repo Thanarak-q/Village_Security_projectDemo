@@ -1,0 +1,16 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/favicon.ico/route": "/favicon.ico",
+  "/login-0/page": "/login-0",
+  "/login/page": "/login",
+  "/login_old/page": "/login_old",
+  "/page": "/",
+  "/test/page": "/test",
+  "/Resident/(main)/page": "/Resident",
+  "/Resident/setting_manage/page": "/Resident/setting_manage",
+  "/dashboard/(main)/page": "/dashboard",
+  "/dashboard/history/page": "/dashboard/history",
+  "/dashboard/house_manage/page": "/dashboard/house_manage",
+  "/dashboard/setting_manage/page": "/dashboard/setting_manage",
+  "/dashboard/user_manage/page": "/dashboard/user_manage"
+}
