@@ -2,10 +2,10 @@ import SettingForm from "./SettingForm";
 
 export default function SettingsPage() {
   return (
-    <section className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-7xl ">
-        <SettingForm />
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+      <div className="flex items-center justify-between space-y-2">
       </div>
-    </section>
+      <SettingForm />
+    </div>
   );
 }

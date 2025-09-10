@@ -130,8 +130,8 @@ const AppSidebar = memo(function AppSidebar() {
                 </div>
               </div>
               <div>
-                <p className="scroll-m-20 text-2xl font-semibold tracking-tight">
-                  {userData?.role || "manager"
+                <p className="scroll-m-20 text-xl font-semibold tracking-tight">
+                  {userData?.village_name || "manager"
                   }
                 </p>
                 <p className="text-xs md:text-sm text-muted-foreground mt-1">
