@@ -1,16 +1,6 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/login-0/page": "app/login-0/page.js",
-  "/login/page": "app/login/page.js",
-  "/login_old/page": "app/login_old/page.js",
-  "/page": "app/page.js",
-  "/test/page": "app/test/page.js",
-  "/Resident/(main)/page": "app/Resident/(main)/page.js",
-  "/Resident/setting_manage/page": "app/Resident/setting_manage/page.js",
   "/dashboard/(main)/page": "app/dashboard/(main)/page.js",
-  "/dashboard/history/page": "app/dashboard/history/page.js",
-  "/dashboard/house_manage/page": "app/dashboard/house_manage/page.js",
-  "/dashboard/setting_manage/page": "app/dashboard/setting_manage/page.js",
-  "/dashboard/user_manage/page": "app/dashboard/user_manage/page.js"
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/login/page": "app/login/page.js",
+  "/page": "app/page.js"
 }

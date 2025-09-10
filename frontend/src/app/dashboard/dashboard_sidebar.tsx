@@ -87,8 +87,8 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarContent>
-        <SidebarGroup className="">
+      <SidebarContent className="flex flex-col">
+        <SidebarGroup className="flex-1">
           <SidebarGroupLabel className="my-3 md:my-5 border-border mb-4 md:mb-6">
             <div className="flex items-center gap-2 md:gap-3 p-2 md:p-3">
               <div>
@@ -142,7 +142,16 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              <SidebarMenuItem key="logout" className="">
+            </SidebarMenu>
+            {/* <MenuShowColor items={items}/>   */}
+          </SidebarGroupContent>
+        </SidebarGroup>
+        
+        {/* Footer with Logout Button */}
+        <SidebarGroup className="mt-auto border-t border-border">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
                   className="py-3 md:py-4 px-2 md:px-3 h-auto text-sm md:text-base font-bold text-destructive hover:text-destructive/80 hover:bg-destructive/10 transition-colors"
@@ -154,7 +163,6 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
-            {/* <MenuShowColor items={items}/>   */}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
