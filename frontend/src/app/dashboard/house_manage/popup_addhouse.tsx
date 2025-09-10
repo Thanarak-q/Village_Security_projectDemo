@@ -93,7 +93,7 @@ export default function AddHouseDialog({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {children || (
-          <Button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700">
+          <Button className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
             เพิ่มบ้านใหม่
           </Button>
@@ -102,8 +102,8 @@ export default function AddHouseDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-              <Home className="h-4 w-4 text-blue-600" />
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <Home className="h-4 w-4 text-primary" />
             </div>
             เพิ่มบ้านใหม่
           </DialogTitle>
@@ -151,7 +151,7 @@ export default function AddHouseDialog({
               </DialogClose>
               <Button
                 type="submit"
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                className="flex-1"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "กำลังเพิ่ม..." : "เพิ่มบ้าน"}

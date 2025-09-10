@@ -105,13 +105,13 @@ export default function HouseManagementTable() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "available":
-        return "bg-muted text-foreground";
+        return "bg-muted text-muted-foreground";
       case "occupied":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400";
       case "disable":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400";
       default:
-        return "bg-muted text-foreground";
+        return "bg-muted text-muted-foreground";
     }
   };
 
@@ -211,13 +211,13 @@ export default function HouseManagementTable() {
             <AddHouseDialog onAdd={() => fetchHouses(true)} />
 
             <div className="flex flex-wrap items-center gap-2 lg:gap-4">
-              <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-2 rounded-md text-sm">
+              <div className="flex items-center gap-2 bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 px-3 py-2 rounded-md text-sm">
                 <span>มีผู้อยู่อาศัย ({getStatusCount("occupied")})</span>
               </div>
-              <div className="flex items-center gap-2 bg-muted text-foreground px-3 py-2 rounded-md text-sm">
+              <div className="flex items-center gap-2 bg-muted text-muted-foreground px-3 py-2 rounded-md text-sm">
                 <span>ว่าง ({getStatusCount("available")})</span>
               </div>
-              <div className="flex items-center gap-2 bg-red-100 text-red-800 px-3 py-2 rounded-md text-sm">
+              <div className="flex items-center gap-2 bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 px-3 py-2 rounded-md text-sm">
                 <span>ไม่ใช้งาน ({getStatusCount("disable")})</span>
               </div>
             </div>
@@ -252,8 +252,8 @@ export default function HouseManagementTable() {
 
             {/* Refresh indicator */}
             {refreshing && (
-              <div className="flex items-center gap-1 text-blue-600 text-sm w-full sm:w-auto justify-center sm:justify-start">
-                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+              <div className="flex items-center gap-1 text-primary text-sm w-full sm:w-auto justify-center sm:justify-start">
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary"></div>
                 <span>กำลังอัปเดต...</span>
               </div>
             )}
@@ -309,7 +309,7 @@ export default function HouseManagementTable() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 text-xs sm:text-sm w-full sm:w-auto"
+                          className="text-primary hover:text-primary/80 hover:bg-primary/10 text-xs sm:text-sm w-full sm:w-auto"
                         >
                           <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                         </Button>
@@ -395,7 +395,7 @@ export default function HouseManagementTable() {
                         onClick={() => setCurrentPage(pageNum)}
                         className={`w-6 h-6 sm:w-8 sm:h-8 p-0 text-xs sm:text-sm ${
                           currentPage === pageNum
-                            ? "bg-blue-600 text-white"
+                            ? "bg-primary text-primary-foreground"
                             : "text-muted-foreground hover:bg-muted"
                         }`}
                       >
