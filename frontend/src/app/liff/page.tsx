@@ -16,7 +16,6 @@ export default function LiffPage() {
   const [msg, setMsg] = useState("กำลังเตรียม LIFF ...");
   const [user, setUser] = useState<{ name?: string; id?: string }>({});
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [idToken, setIdToken] = useState<string | null>(null);
   const [lineProfile, setLineProfile] = useState<any>(null);
 
@@ -24,7 +23,54 @@ export default function LiffPage() {
   useEffect(() => {
     const run = async () => {
       try {
-        await svc.init();
+        // Check if we're on Android and show appropriate message
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        if (isAndroid) {
+          // Check if user is in external browser (not LINE app)
+          const isExternalBrowser = !window.navigator.userAgent.includes('Line');
+          
+          if (isExternalBrowser) {
+            console.log("🤖 Android external browser detected - auto-redirecting to LIFF");
+            setMsg("กำลังเปิด LIFF สำหรับ Android ...");
+            // Auto-redirect immediately for external browsers
+            setTimeout(() => {
+              svc.forceOpenLiffDirect();
+            }, 1000);
+            return;
+          }
+          
+          setMsg("กำลังเตรียม LIFF สำหรับ Android ...");
+          // Show progress for Android users
+          setTimeout(() => setMsg("กำลังโหลด SDK ..."), 2000);
+          setTimeout(() => setMsg("กำลังเชื่อมต่อกับ LINE ..."), 4000);
+          
+          // Auto-redirect for Android users after 6 seconds if still stuck
+          setTimeout(() => {
+            if (step === "init" || step === "logging-in") {
+              console.log("🤖 Android auto-redirect triggered (6s timeout)");
+              setMsg("กำลังเปิด LIFF โดยตรงสำหรับ Android ...");
+              svc.forceOpenLiffDirect();
+            }
+          }, 6000);
+          
+          // Backup auto-redirect after 10 seconds
+          setTimeout(() => {
+            if (step === "init" || step === "logging-in") {
+              console.log("🤖 Android backup auto-redirect triggered (10s timeout)");
+              setMsg("กำลังเปิด LIFF โดยตรงสำหรับ Android ...");
+              window.location.href = `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || '2008071362'}`;
+            }
+          }, 10000);
+        }
+        
+        // Add timeout for Android users
+        const initPromise = svc.init();
+        const timeoutPromise = new Promise((_, reject) => {
+          const timeout = isAndroid ? 10000 : 5000; // 10s for Android, 5s for others
+          setTimeout(() => reject(new Error("LIFF initialization timeout")), timeout);
+        });
+        
+        await Promise.race([initPromise, timeoutPromise]);
 
         const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
         if (!liffId) {
@@ -116,7 +162,9 @@ export default function LiffPage() {
           setTimeout(() => router.replace("/"), 1000);
         }
       } catch (e) {
-        console.error(e);
+        console.error("LIFF initialization error:", e);
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        
         setStep("error");
         setMsg("เกิดข้อผิดพลาดในการเริ่มต้น LIFF");
       }
@@ -127,6 +175,9 @@ export default function LiffPage() {
 
   const handleRetry = () => {
     // เคส denied/error ให้ลองใหม่ เคลียร์ session + reload
+    setStep("init");
+    setMsg("กำลังเตรียม LIFF ...");
+    svc.clearCache();
     svc.retryConsent();
   };
 

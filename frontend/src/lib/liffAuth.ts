@@ -21,7 +21,7 @@ export interface LiffAuthResponse {
   lineUserId?: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://ec41f884871b.ngrok-free.app';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://0e675deb45d5.ngrok-free.app';
 
 // Verify LINE ID token with backend
 export const verifyLiffToken = async (idToken: string): Promise<LiffAuthResponse> => {

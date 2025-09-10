@@ -81,11 +81,11 @@ export class LiffService {
   }
 
   // รอให้ window.liff โผล่ภายใน timeLimit ms (กันกรณี SDK โหลดช้า/โดน extension หน่วง)
-  private async waitForLiff(timeLimit = 1200): Promise<boolean> {
+  private async waitForLiff(timeLimit = 5000): Promise<boolean> {
     if (this.hasLiff()) return true;
     const start = Date.now();
     while (!this.hasLiff() && Date.now() - start < timeLimit) {
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise(r => setTimeout(r, 100));
     }
     return this.hasLiff();
   }
@@ -134,13 +134,23 @@ export class LiffService {
       // เผื่อ SDK ยังไม่โผล่ทันที
       const ok = await this.waitForLiff();
       if (!ok) throw new Error("LIFF SDK not loaded yet");
+      
+      // Check if we're on Android and add extra delay
+      const isAndroid = /Android/i.test(navigator.userAgent);
+      if (isAndroid) {
+        console.log("🤖 Android detected, adding extra initialization delay");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
       await window.liff.init({
         liffId,
         withLoginOnExternalBrowser: true, // สำคัญสำหรับ browser ภายนอก (auto-login)
       });
       this.initialized = true;
+      console.log("✅ LIFF initialized successfully");
     } catch (error) {
       console.warn("LIFF init failed:", error);
+      throw error; // Re-throw to handle in the calling code
     }
   }
 

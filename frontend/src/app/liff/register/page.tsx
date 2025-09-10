@@ -82,7 +82,7 @@ export default function LiffRegisterPage() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'https://ec41f884871b.ngrok-free.app'}/api/villages/check/${encodeURIComponent(villageKey)}`
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://0e675deb45d5.ngrok-free.app'}/api/villages/check/${encodeURIComponent(villageKey)}`
       );
       
       if (response.ok) {
