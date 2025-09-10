@@ -6,6 +6,7 @@ import { gsap } from "gsap";
 import { useSidebar, SidebarTrigger } from "@/components/ui/sidebar";
 import NotificationComponent from "./(main)/notification";
 import { ModeToggle } from "@/components/mode-toggle";
+import { useTheme } from "next-themes";
 import Image from "next/image";
 
 function Navbar() {
@@ -24,6 +25,7 @@ function Navbar() {
   const animationRef = useRef<gsap.core.Timeline | null>(null);
   const isAnimatingRef = useRef(false);
   const { open } = useSidebar();
+  const { theme } = useTheme();
 
   const currentDate = new Date();
   const thaiDate = new Intl.DateTimeFormat("th-TH", {
@@ -52,7 +54,7 @@ function Navbar() {
   const startAnimation = useCallback(() => {
     if (!titleSpinRef.current || !userData || isAnimatingRef.current) return;
 
-    const titleTexts = ["สวัสดีคุณผู้จัดการ", `${userData.username} 👋`];
+    const titleTexts = ["สวัสดีครับ", `${userData.username}`];
 
     // Set initial state
     gsap.set(titleSpinRef.current, {
@@ -250,9 +252,9 @@ function Navbar() {
 
           {/* รูปโปรไฟล์และชื่อ */}
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-full overflow-hidden bg-muted flex items-center justify-center relative">
+            <div className="h-10 w-10 overflow-hidden flex items-center justify-center relative">
               <Image
-                src={userData?.profileImage || "/image.png"}
+                src={userData?.profileImage || (theme === "dark" ? "/user-white.png" : "/user-dark.png")}
                 alt={
                   userData?.fname && userData?.lname
                     ? `${userData.fname} ${userData.lname} Profile`

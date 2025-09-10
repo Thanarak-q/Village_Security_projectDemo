@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Edit, Users, Shield, Home, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import UserEditForm from "./userEditForm";
+import PendingUsersDialog from "./popup_pending_users";
 
 // API Response Interface
 interface UserTableResponse {
@@ -314,8 +315,10 @@ export default function UserManagementTable() {
       <div className="bg-background rounded-lg shadow-sm border border-border p-4 sm:p-6">
         {/* Header with tabs and search */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
-          {/* User type tabs */}
+          {/* User type tabs and pending users button */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+            {/* Pending Users Button */}
+            <PendingUsersDialog onRefresh={() => fetchUsers(true)} />
             {/* Residents tab */}
             <button
               onClick={() => setActiveTab('residents')}
@@ -334,7 +337,7 @@ export default function UserManagementTable() {
               onClick={() => setActiveTab('guards')}
               className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
                 activeTab === 'guards'
-                  ? 'bg-green-100 text-green-700 border border-green-200'
+                  ? 'bg-green-100 text-green-700 border border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800'
                   : 'text-muted-foreground hover:bg-muted'
               }`}
             >
@@ -442,10 +445,10 @@ export default function UserManagementTable() {
                         variant={user.status === "verified" ? "default" : "secondary"}
                         className={`text-xs sm:text-sm ${
                           user.status === "verified"
-                            ? "bg-green-100 text-green-800 hover:bg-green-100"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/20"
                             : user.status === "disable"
-                            ? "bg-red-100 text-red-800 hover:bg-red-100"
-                            : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                            ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20"
+                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/20"
                         }`}
                       >
                         {user.status}
@@ -551,10 +554,10 @@ export default function UserManagementTable() {
                         variant={user.status === "verified" ? "default" : "secondary"}
                         className={`text-xs sm:text-sm ${
                           user.status === "verified"
-                            ? "bg-green-100 text-green-800 hover:bg-green-100"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/20"
                             : user.status === "disable"
-                            ? "bg-red-100 text-red-800 hover:bg-red-100"
-                            : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                            ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20"
+                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/20"
                         }`}
                       >
                         {user.status}
@@ -661,7 +664,7 @@ export default function UserManagementTable() {
                       onClick={() => setCurrentPage(pageNum)}
                       className={`w-6 h-6 sm:w-8 sm:h-8 p-0 text-xs sm:text-sm ${
                         currentPage === pageNum 
-                          ? "bg-blue-600 text-white" 
+                          ? "bg-primary text-primary-foreground" 
                           : "text-muted-foreground hover:bg-muted"
                       }`}
                     >

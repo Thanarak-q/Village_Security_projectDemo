@@ -118,38 +118,38 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
         <DialogContent className="sm:max-w-lg max-w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold flex items-center gap-2">
-              <UserCheck className="h-5 w-5 text-blue-500" />
+              <UserCheck className="h-5 w-5 text-primary" />
               อนุมัติผู้ใช้ใหม่
             </DialogTitle>
           </DialogHeader>
 
           {/* แสดงข้อมูล User */}
-          <div className="bg-blue-50 p-4 rounded-lg mb-6 border border-blue-200">
-            <h3 className="font-medium text-blue-900 mb-3">ข้อมูลผู้สมัคร</h3>
+          <div className="bg-primary/5 p-4 rounded-lg mb-6 border border-primary/20">
+            <h3 className="font-medium text-primary mb-3">ข้อมูลผู้สมัคร</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-blue-700 font-medium">ชื่อ-นามสกุล:</span>
-                <p className="text-blue-900">{user.fname} {user.lname}</p>
+                <span className="text-primary/80 font-medium">ชื่อ-นามสกุล:</span>
+                <p className="text-foreground">{user.fname} {user.lname}</p>
               </div>
               <div>
-                <span className="text-blue-700 font-medium">Username:</span>
-                <p className="text-blue-900">@{user.username}</p>
+                <span className="text-primary/80 font-medium">Username:</span>
+                <p className="text-foreground">@{user.username}</p>
               </div>
               <div>
-                <span className="text-blue-700 font-medium">อีเมล:</span>
-                <p className="text-blue-900">{user.email}</p>
+                <span className="text-primary/80 font-medium">อีเมล:</span>
+                <p className="text-foreground">{user.email}</p>
               </div>
               <div>
-                <span className="text-blue-700 font-medium">เบอร์โทร:</span>
-                <p className="text-blue-900">{user.phone}</p>
+                <span className="text-primary/80 font-medium">เบอร์โทร:</span>
+                <p className="text-foreground">{user.phone}</p>
               </div>
               <div>
-                <span className="text-blue-700 font-medium">วันที่สมัคร:</span>
-                <p className="text-blue-900">{new Date(user.requestDate).toLocaleDateString('th-TH')}</p>
+                <span className="text-primary/80 font-medium">วันที่สมัคร:</span>
+                <p className="text-foreground">{new Date(user.requestDate).toLocaleDateString('th-TH')}</p>
               </div>
               <div>
-                <span className="text-blue-700 font-medium">บทบาทที่สมัคร:</span>
-                <p className="text-blue-900">{user.role === 'resident' ? 'ลูกบ้าน' : 'ยาม'}</p>
+                <span className="text-primary/80 font-medium">บทบาทที่สมัคร:</span>
+                <p className="text-foreground">{user.role === 'resident' ? 'ลูกบ้าน' : 'ยาม'}</p>
               </div>
             </div>
           </div>
@@ -224,7 +224,7 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
             <Button
               type="button"
               variant="outline"
-              className="flex-1 border-red-300 text-red-700 hover:bg-red-50"
+              className="flex-1 border-destructive text-destructive hover:bg-destructive/10"
               onClick={handleRejectClick}
             >
               <X className="w-4 h-4 mr-2" />
@@ -232,7 +232,7 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
             </Button>
             <Button
               type="button"
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white dark:bg-green-700 dark:hover:bg-green-800"
               onClick={handleApproveClick}
             >
               <Check className="w-4 h-4 mr-2" />

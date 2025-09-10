@@ -310,7 +310,7 @@ const WeeklyAccessBarChart = memo(function WeeklyAccessBarChart() {
               {getPeriodText()}
             </div>
             {usingFallbackData && (
-              <div className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
+              <div className="text-xs text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-950 px-2 py-1 rounded">
                 ⚠️ แสดงข้อมูลจำลอง (ไม่สามารถเชื่อมต่อ API ได้)
               </div>
             )}
@@ -332,19 +332,19 @@ const WeeklyAccessBarChart = memo(function WeeklyAccessBarChart() {
             <>
               <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-600 rounded-full"></div>
+                  <div className="w-3 h-3 bg-green-600 dark:bg-green-500 rounded-full"></div>
                   <span className="text-xs sm:text-sm text-muted-foreground">อนุมัติ: {totalApproved.toLocaleString()} คน</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-red-600 rounded-full"></div>
+                  <div className="w-3 h-3 bg-red-600 dark:bg-red-500 rounded-full"></div>
                   <span className="text-xs sm:text-sm text-muted-foreground">ปฏิเสธ: {totalRejected.toLocaleString()} คน</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+                  <div className="w-3 h-3 bg-purple-600 dark:bg-purple-500 rounded-full"></div>
                   <span className="text-xs sm:text-sm text-muted-foreground">รวม: {(totalApproved + totalRejected).toLocaleString()} คน</span>
                 </div>
               </div>
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs sm:text-sm w-fit">
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 dark:bg-primary/20 dark:text-primary-foreground dark:border-primary/30 text-xs sm:text-sm w-fit">
                 {getAverageText()}
               </Badge>
             </>
@@ -367,7 +367,7 @@ const WeeklyAccessBarChart = memo(function WeeklyAccessBarChart() {
               <span className="text-xs text-muted-foreground">{error}</span>
               <button
                 onClick={() => fetchData(selectedPeriod)}
-                className="mt-2 px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                className="mt-2 px-3 py-1 text-xs bg-primary text-primary-foreground rounded hover:bg-primary/90"
               >
                 ลองใหม่
               </button>
