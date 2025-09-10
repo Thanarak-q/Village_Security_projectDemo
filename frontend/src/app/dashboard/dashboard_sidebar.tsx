@@ -63,6 +63,30 @@ const AppSidebar = memo(function AppSidebar() {
   const [shouldRedirect, setShouldRedirect] = useState(false);
   const { setOpen } = useSidebar();
   const { theme } = useTheme();
+  const [userData, setUserData] = useState<{
+    id: string;
+    username: string;
+    email: string;
+    fname?: string;
+    lname?: string;
+    profileImage?: string;
+    role: string;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/me", {
+      credentials: "include",
+    })
+      .then((res) => {
+        if (res.status === 401) {
+          return null;
+        }
+        return res.json();
+      })
+      .then((json) => {
+        if (json) setUserData(json);
+      });
+  }, []);
 
   const onSubmit = useCallback(async () => {
     try {
@@ -107,7 +131,8 @@ const AppSidebar = memo(function AppSidebar() {
               </div>
               <div>
                 <p className="scroll-m-20 text-2xl font-semibold tracking-tight">
-                  หมู่บ้านไทย
+                  {userData?.role || "manager"
+                  }
                 </p>
                 <p className="text-xs md:text-sm text-muted-foreground mt-1">
                   ระบบจัดการหมู่บ้าน
