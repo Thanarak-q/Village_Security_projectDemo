@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, UserCheck, ArrowUp, AlertTriangle, Plus, Loader2, CheckCircle, XCircle, Shield } from "lucide-react"
+import { Users, UserCheck, AlertTriangle, Plus, Loader2, CheckCircle, XCircle, Shield } from "lucide-react"
 
 // Types for API response
 interface StatsData {

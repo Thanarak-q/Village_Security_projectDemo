@@ -9,7 +9,6 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -71,20 +70,6 @@ export default function EditHouseDialog({ house, children, onUpdate }: EditHouse
   })
 
   // แปลงสถานะเป็นภาษาไทย
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'available':
-        return 'ว่าง'
-      case 'occupied':
-        return 'มีผู้อยู่อาศัย'
-      case 'maintenance':
-        return 'กำลังปรับปรุง'
-      case 'pending':
-        return 'รอการตรวจสอบ'
-      default:
-        return status
-    }
-  }
 
 
 
