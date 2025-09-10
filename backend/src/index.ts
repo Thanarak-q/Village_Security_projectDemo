@@ -15,6 +15,7 @@ import { pendingUsersRoutes } from "./routes/pendingUsers";
 import { authRoutes } from "./routes/auth";
 import { adminSettingsRoutes } from "./routes/adminSettings";
 import { liffAuthRoutes } from "./routes/liffAuth";
+import { villagesRoutes } from "./routes/villages";
 /**
  * SECURITY ENHANCEMENT: Secure Health Check Endpoint
  *
@@ -136,6 +137,7 @@ const app = new Elysia()
   .use(authRoutes)
   .use(adminSettingsRoutes)
   .use(liffAuthRoutes)
+  .use(villagesRoutes)
   .get("/", () => "Hello Village Security API!");
 
 // Initialize database connection and start server
