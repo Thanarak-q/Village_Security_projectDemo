@@ -25,6 +25,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState, useCallback, memo } from "react";
 import { useSidebar } from "@/components/ui/sidebar";
+import { useTheme } from "next-themes";
 // import { MenuShowColor } from "@/components/animation";
 
 const items = [
@@ -60,6 +61,7 @@ const AppSidebar = memo(function AppSidebar() {
   const pathname = usePathname();
   const [shouldRedirect, setShouldRedirect] = useState(false);
   const { setOpen } = useSidebar();
+  const { theme } = useTheme();
 
   const onSubmit = useCallback(async () => {
     try {
@@ -93,7 +95,9 @@ const AppSidebar = memo(function AppSidebar() {
             <div className="flex items-center gap-2 md:gap-3 p-2 md:p-3">
               <div>
                 <Avatar className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14">
-                  <AvatarImage src="https://www.lifeandliving.co.th/wp-content/uploads/2022/01/%E0%B8%9A%E0%B9%89%E0%B8%B2%E0%B8%99%E0%B8%88%E0%B8%B1%E0%B8%94%E0%B8%AA%E0%B8%A3%E0%B8%A3-%E0%B8%A3%E0%B8%B0%E0%B8%A2%E0%B8%AD%E0%B8%87.jpg.webp" />
+                  <AvatarImage 
+                    src={theme === "dark" ? "/house-white.png" : "/house-dark.png"} 
+                  />
                   <AvatarFallback>CN</AvatarFallback>
                 </Avatar>
               </div>
