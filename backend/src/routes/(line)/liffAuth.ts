@@ -4,6 +4,29 @@ import db from "../../db/drizzle";
 import { eq } from "drizzle-orm";
 // JWT will be handled by Elysia's built-in JWT plugin
 
+/**
+ * Determines the user role based on the LINE channel ID or request origin.
+ * @param channelId - The LINE channel ID from the ID token
+ * @param requestOrigin - The origin of the request (optional)
+ * @returns The user role ('resident' or 'guard')
+ */
+const getUserRole = (channelId: string, requestOrigin?: string): 'resident' | 'guard' => {
+  // Check if role can be determined from channel ID (legacy support)
+  if (channelId === process.env.RESIDENT_LINE_CHANNEL_ID) return 'resident';
+  if (channelId === process.env.GUARD_LINE_CHANNEL_ID) return 'guard';
+  if (channelId === process.env.LINE_CHANNEL_ID) return 'resident'; // Default to resident for backward compatibility
+  
+  // For LINE Login channels, determine role from request origin or default to resident
+  if (channelId === process.env.LINE_LOGIN_CLIENT_ID) {
+    // Default to resident for LINE Login channel
+    return 'resident';
+  }
+  
+  // Fallback to resident for unknown channels
+  console.warn(`Unknown channel for channel ID: ${channelId}, defaulting to resident`);
+  return 'resident';
+};
+
 // LINE LIFF Authentication Routes
 export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
 
@@ -55,6 +78,11 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
 
       const lineUserInfo = await verifyResponse.json();
       const lineUserId = lineUserInfo.sub;
+      const channelId = lineUserInfo.aud; // Audience contains the channel ID
+
+      // Determine user role based on the LINE channel ID
+      const expectedRole = getUserRole(channelId);
+      console.log('🔍 Expected role determined:', expectedRole, 'for channel ID:', channelId);
 
       // Check if user exists in residents table
       console.log('🔍 Checking residents table for lineUserId:', lineUserId);
@@ -64,6 +92,18 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
 
       if (resident) {
         console.log('✅ Found resident in database:', resident.resident_id);
+        
+        // Verify that the user is using the correct bot for their role
+        if (expectedRole !== 'resident') {
+          console.log('❌ Role mismatch: user is resident but using', expectedRole, 'bot');
+          set.status = 403;
+          return { 
+            success: false,
+            error: "You are registered as a resident. Please use the resident bot.",
+            expectedRole: 'resident'
+          };
+        }
+
         // User is a resident
         const token = await jwt.sign({
           id: resident.resident_id,
@@ -100,6 +140,18 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
 
       if (guard) {
         console.log('✅ Found guard in database:', guard.guard_id);
+        
+        // Verify that the user is using the correct bot for their role
+        if (expectedRole !== 'guard') {
+          console.log('❌ Role mismatch: user is guard but using', expectedRole, 'bot');
+          set.status = 403;
+          return { 
+            success: false,
+            error: "You are registered as a guard. Please use the guard bot.",
+            expectedRole: 'guard'
+          };
+        }
+
         // User is a guard
         const token = await jwt.sign({
           id: guard.guard_id,
@@ -148,15 +200,16 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
   // Register new user with LINE ID
   .post("/register", async ({ body, set, jwt }: any) => {
     try {
-      const { 
-        idToken, 
-        email, 
-        fname, 
-        lname, 
-        phone, 
+      const {
+        idToken,
+        email,
+        fname,
+        lname,
+        phone,
         village_key,
         userType,
-        profile_image_url
+        profile_image_url,
+        role
       } = body as {
         idToken: string;
         email: string;
@@ -166,6 +219,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         village_key: string;
         userType: "resident" | "guard";
         profile_image_url: string;
+        role?: "resident" | "guard"; // Optional role parameter for LINE Login channels
       };
 
       if (!idToken) {
@@ -200,6 +254,11 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
 
       const lineUserInfo = await verifyResponse.json();
       const lineUserId = lineUserInfo.sub;
+      const channelId = lineUserInfo.aud; // Audience contains the channel ID
+
+      // Determine user role - use provided role parameter or determine from channel ID
+      const expectedRole = role || getUserRole(channelId);
+      console.log('🔍 Registration - Expected role determined:', expectedRole, 'for channel ID:', channelId, 'role param:', role);
 
       // Check if user already exists
       const existingResident = await db.query.residents.findFirst({
@@ -227,6 +286,16 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
       if (existingEmailResident || existingEmailGuard) {
         set.status = 409;
         return { error: "Email already exists" };
+      }
+
+      // Validate that the userType matches the expected role from the channel
+      if (userType !== expectedRole) {
+        console.log('❌ User type mismatch:', userType, 'vs expected role:', expectedRole);
+        set.status = 400;
+        return { 
+          error: `Invalid user type. This LINE bot is for ${expectedRole}s only.`,
+          expectedUserType: expectedRole
+        };
       }
 
       // Generate username from LINE user ID (unique identifier)

@@ -10,31 +10,30 @@ type Step = "init" | "logging-in" | "ready" | "denied" | "error";
 
 const svc = LiffService.getInstance();
 
-export default function LiffPage() {
+export default function GuardLiffPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("init");
-  const [msg, setMsg] = useState("กำลังเตรียม LIFF ...");
+  const [msg, setMsg] = useState("กำลังเตรียม LIFF สำหรับยามรักษาความปลอดภัย...");
   const [user, setUser] = useState<{ name?: string; id?: string }>({});
   const [submitting, setSubmitting] = useState(false);
   const [idToken, setIdToken] = useState<string | null>(null);
   const [lineProfile, setLineProfile] = useState<any>(null);
 
-
   useEffect(() => {
     const run = async () => {
       try {
-        // Initialize LIFF with unified approach for all platforms
-        const initPromise = svc.init();
+        // Initialize LIFF with guard-specific configuration
+        const initPromise = svc.init('guard');
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => reject(new Error("LIFF initialization timeout")), 30000);
         });
         
         await Promise.race([initPromise, timeoutPromise]);
 
-        const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
+        const liffId = process.env.NEXT_PUBLIC_GUARD_LIFF_ID;
         if (!liffId) {
           setStep("error");
-          setMsg("ไม่มี NEXT_PUBLIC_LIFF_ID");
+          setMsg("ไม่มี NEXT_PUBLIC_GUARD_LIFF_ID");
           return;
         }
 
@@ -49,7 +48,7 @@ export default function LiffPage() {
         // 1) ถ้ายังไม่ล็อกอิน → เด้งไป login ทันที
         if (!svc.isLoggedIn()) {
           setStep("logging-in");
-          setMsg("กำลังเข้าสู่ระบบด้วย LINE ...");
+          setMsg("กำลังเข้าสู่ระบบด้วย LINE สำหรับยามรักษาความปลอดภัย...");
           await svc.login(window.location.href);
           return; // จะ redirect ออกไป
         }
@@ -59,7 +58,7 @@ export default function LiffPage() {
         if (!accessToken) {
           console.warn("⚠️ loggedIn แต่ไม่มี access token → re-login");
           setStep("logging-in");
-          setMsg("รีเฟรชสิทธิ์เข้าใช้งาน LINE ...");
+          setMsg("รีเฟรชสิทธิ์เข้าใช้งาน LINE...");
           svc.logout();
           await svc.login(window.location.href);
           return;
@@ -72,14 +71,14 @@ export default function LiffPage() {
         if (!profile?.userId || profile.userId === "unknown") {
           console.warn("⚠️ โปรไฟล์ใช้งานไม่ได้ (token หมดอายุ/consent ไม่ครบ) → re-login");
           setStep("logging-in");
-          setMsg("รีเฟรชสิทธิ์เข้าใช้งาน LINE ...");
+          setMsg("รีเฟรชสิทธิ์เข้าใช้งาน LINE...");
           svc.logout();
           await svc.login(window.location.href);
           return;
         }
 
         // 5) สำเร็จ → แสดงผล แล้วพาไปหน้าแรก
-        setUser({ name: profile.displayName ?? "ผู้ใช้", id: profile.userId });
+        setUser({ name: profile.displayName ?? "ยามรักษาความปลอดภัย", id: profile.userId });
         setLineProfile(profile);
         
         // Verify with backend and handle authentication
@@ -87,24 +86,24 @@ export default function LiffPage() {
         if (idToken) {
           setIdToken(idToken);
           try {
-            console.log('🔍 Verifying user with backend...');
+            console.log('🔍 Verifying guard with backend...');
             const authResult = await verifyLiffToken(idToken);
             console.log('🔍 Auth result:', authResult);
             
             if (authResult.success && authResult.user && authResult.token) {
               // User exists in database, store auth data and redirect
-              console.log('✅ User found in database, redirecting to Resident page');
+              console.log('✅ Guard found in database, redirecting to Guard dashboard');
               storeAuthData(authResult.user, authResult.token);
               setStep("ready");
-              setMsg("เข้าสู่ระบบสำเร็จ กำลังพาไปหน้าหลัก...");
-              setTimeout(() => router.replace("/Resident"), 1000);
+              setMsg("เข้าสู่ระบบสำเร็จ กำลังพาไปหน้าแดชบอร์ด...");
+              setTimeout(() => router.replace("/dashboard"), 1000);
             } else if (authResult.lineUserId) {
               // User not found, redirect to register page
-              console.log('📝 User not found in database, redirecting to register page');
+              console.log('📝 Guard not found in database, redirecting to register page');
               setStep("ready");
               setMsg("กำลังพาไปหน้าลงทะเบียน...");
               setTimeout(() => {
-                router.push('/liff/register');
+                router.push('/liff/guard/register');
               }, 1000);
             } else {
               // Error occurred
@@ -133,19 +132,17 @@ export default function LiffPage() {
   const handleRetry = () => {
     // เคส denied/error ให้ลองใหม่ เคลียร์ session + reload
     setStep("init");
-    setMsg("กำลังเตรียม LIFF ...");
+    setMsg("กำลังเตรียม LIFF สำหรับยามรักษาความปลอดภัย...");
     svc.clearCache();
     svc.retryConsent();
   };
 
-
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-zinc-900 to-neutral-900 text-white p-6">
       <div className="w-full max-w-md rounded-2xl shadow-2xl bg-zinc-900/80 backdrop-blur-lg ring-1 ring-white/10 p-8 text-center">
-        <h1 className="text-3xl font-bold mb-2 text-green-400">เข้าสู่ระบบด้วย LINE</h1>
+        <h1 className="text-3xl font-bold mb-2 text-green-400">เข้าสู่ระบบยามรักษาความปลอดภัย</h1>
         <p className="text-sm text-gray-400 mb-6">
-          เชื่อมต่อบัญชี LINE ของคุณเพื่อเข้าใช้งาน
+          เชื่อมต่อบัญชี LINE ของคุณเพื่อเข้าใช้งานสำหรับยามรักษาความปลอดภัย
         </p>
 
         <div className="flex flex-col items-center gap-3">

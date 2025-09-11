@@ -125,6 +125,7 @@ export const registerLiffUser = async (
     village_key: string;
     userType: 'resident' | 'guard';
     profile_image_url: string;
+    role?: 'resident' | 'guard'; // Optional role parameter for LINE Login channels
   }
 ): Promise<LiffAuthResponse> => {
   try {

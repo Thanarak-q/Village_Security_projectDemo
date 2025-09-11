@@ -208,7 +208,7 @@ export default function LiffRegisterPage() {
         // Initialize LIFF with timeout
         const initPromise = svc.init();
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('LIFF initialization timeout')), 10000)
+          setTimeout(() => reject(new Error('LIFF initialization timeout')), 30000)
         );
         
         await Promise.race([initPromise, timeoutPromise]);
@@ -359,7 +359,7 @@ export default function LiffRegisterPage() {
       // Add timeout to registration request
       const registrationPromise = registerLiffUser(idToken, formData);
       const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Registration timeout')), 30000)
+        setTimeout(() => reject(new Error('Registration timeout')), 60000)
       );
       
       const result = await Promise.race([registrationPromise, timeoutPromise]);

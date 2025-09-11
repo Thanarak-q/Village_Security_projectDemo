@@ -56,6 +56,7 @@ export class LiffService {
   private initPromise: Promise<void> | null = null;
   private profileCache: LiffProfile | null = null;
   private scriptLoaded = false;
+  private currentChannelType: 'resident' | 'guard' | 'default' = 'default';
 
   private contextCache: {
     os?: "ios" | "android" | "web" | "unknown";
@@ -79,6 +80,23 @@ export class LiffService {
       ? window.location.origin + window.location.pathname
       : "/";
   }
+  
+  /**
+   * Gets the appropriate LIFF ID based on channel type
+   * @param channelType - The channel type ('resident', 'guard', or 'default')
+   * @returns The LIFF ID for the specified channel type
+   */
+  private getLiffId(channelType: 'resident' | 'guard' | 'default'): string | undefined {
+    switch (channelType) {
+      case 'resident':
+        return process.env.NEXT_PUBLIC_RESIDENT_LIFF_ID;
+      case 'guard':
+        return process.env.NEXT_PUBLIC_GUARD_LIFF_ID;
+      case 'default':
+      default:
+        return process.env.NEXT_PUBLIC_LIFF_ID;
+    }
+  }
 
   // รอให้ window.liff โผล่ภายใน timeLimit ms (กันกรณี SDK โหลดช้า/โดน extension หน่วง)
   private async waitForLiff(timeLimit = 5000): Promise<boolean> {
@@ -91,15 +109,16 @@ export class LiffService {
   }
 
   // --- Init & SDK Loader ---
-  async init(): Promise<void> {
+  async init(channelType: 'resident' | 'guard' | 'default' = 'default'): Promise<void> {
     if (this.initPromise) return this.initPromise;
-    if (this.initialized) return Promise.resolve();
+    if (this.initialized && this.currentChannelType === channelType) return Promise.resolve();
 
+    this.currentChannelType = channelType;
     this.initPromise = new Promise((resolve) => {
       if (typeof window === "undefined") { resolve(); return; }
 
-      const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-      if (!liffId) { console.warn("LIFF ID not configured"); resolve(); return; }
+      const liffId = this.getLiffId(channelType);
+      if (!liffId) { console.warn("LIFF ID not configured for channel type:", channelType); resolve(); return; }
 
       const w = window as Window & { liff?: LiffSDK };
 
@@ -276,10 +295,18 @@ export class LiffService {
     }
   }
 
+  /** Get current channel type */
+  getCurrentChannelType(): 'resident' | 'guard' | 'default' {
+    return this.currentChannelType;
+  }
+
   /** Clear all cached data */
   clearCache(): void { 
     this.profileCache = null; 
     this.contextCache = {}; 
+    this.currentChannelType = 'default';
+    this.initialized = false;
+    this.initPromise = null;
   }
 
   /** Get default profile for fallback */
