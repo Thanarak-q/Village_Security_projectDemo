@@ -6,7 +6,7 @@
  */
 
 import { unique } from "drizzle-orm/gel-core";
-import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, date } from "drizzle-orm/pg-core";
 import { status } from "elysia";
 
 /**
@@ -66,6 +66,7 @@ export const residents = pgTable("residents", {
   status: text("status")
     .$type<"verified" | "pending" | "disable">()
     .default("pending"),
+  move_in_date: date("move_in_date"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -97,6 +98,7 @@ export const guards = pgTable("guards", {
   status: text("status")
     .$type<"verified" | "pending" | "disable">()
     .default("pending"),
+  hired_date: date("hired_date"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -173,6 +175,8 @@ export const visitor_records = pgTable("visitor_records", {
   guard_id: uuid("guard_id").references(() => guards.guard_id),
   house_id: uuid("house_id").references(() => houses.house_id),
   picture_key: text("picture_key"),
+  visitor_name: text("visitor_name"),
+  visitor_id_card: text("visitor_id_card"),
   license_plate: text("license_plate"),
   entry_time: timestamp("entry_time").defaultNow(),
   record_status: text("record_status")
