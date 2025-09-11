@@ -56,6 +56,8 @@ export type HouseInsert = typeof houses.$inferInsert;
 export const residents = pgTable("residents", {
   resident_id: uuid("resident_id").primaryKey().defaultRandom(),
   line_user_id: text("line_user_id").unique(),
+  line_display_name: text("line_display_name"),
+  line_profile_url: text("line_profile_url"),
   email: text("email").notNull().unique(),
   fname: text("fname").notNull(),
   lname: text("lname").notNull(),
@@ -66,7 +68,6 @@ export const residents = pgTable("residents", {
     .default("pending"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-  profile_image_url: text("profile_image_url"),
 });
 
 /**
@@ -75,7 +76,7 @@ export const residents = pgTable("residents", {
  */
 export type Resident = typeof residents.$inferSelect;
 /**
- * Represents a new resident for insertion.
+ * Represents a new resident for insertion.2. remove exit time
  * @type {typeof residents.$inferInsert}
  */
 export type ResidentInsert = typeof residents.$inferInsert;
@@ -86,6 +87,8 @@ export type ResidentInsert = typeof residents.$inferInsert;
 export const guards = pgTable("guards", {
   guard_id: uuid("guard_id").primaryKey().defaultRandom(),
   line_user_id: text("line_user_id").unique(),
+  line_display_name: text("line_display_name"),
+  line_profile_url: text("line_profile_url"),
   email: text("email").notNull().unique(),
   fname: text("fname").notNull(),
   lname: text("lname").notNull(),
@@ -96,7 +99,6 @@ export const guards = pgTable("guards", {
     .default("pending"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-  profile_image_url: text("profile_image_url"),
 });
 
 /**
@@ -173,7 +175,6 @@ export const visitor_records = pgTable("visitor_records", {
   picture_key: text("picture_key"),
   license_plate: text("license_plate"),
   entry_time: timestamp("entry_time").defaultNow(),
-  exit_time: timestamp("exit_time"),
   record_status: text("record_status")
     .$type<"approved" | "pending" | "rejected">()
     .default("pending"),
@@ -193,26 +194,7 @@ export type Visitor_record = typeof visitor_records.$inferSelect;
 export const admin_activity_logs = pgTable("admin_activity_logs", {
   log_id: uuid("log_id").primaryKey().defaultRandom(),
   admin_id: uuid("admin_id").references(() => admins.admin_id).notNull(),
-  action_type: text("action_type").notNull().$type<
-    | "approve_user"
-    | "reject_user"
-    | "create_house"
-    | "update_house"
-    | "delete_house"
-    | "change_house_status"
-    | "add_house_member"
-    | "remove_house_member"
-    | "change_user_status"
-    | "change_user_role"
-    | "create_admin"
-    | "update_admin"
-    | "delete_admin"
-    | "create_village"
-    | "update_village"
-    | "delete_village"
-    | "export_data"
-    | "system_config"
-  >(),
+  action_type: text("action_type").notNull(),
   description: text("description").notNull(),
   created_at: timestamp("created_at").defaultNow(),
 });

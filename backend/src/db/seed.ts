@@ -776,7 +776,6 @@ async function createVisitorRecordsData() {
     record_status: "approved" | "pending" | "rejected";
     visit_purpose?: string;
     entry_time?: Date;
-    exit_time?: Date;
   }> = [];
 
   // Sample data for non-ID fields
@@ -926,15 +925,6 @@ async function createVisitorRecordsData() {
 
         // Generate realistic timestamps
         const entryTime = generateRandomTimestamp();
-        let exitTime: Date | undefined;
-
-        // For approved records, generate exit time (1-8 hours later)
-        if (randomStatus === "approved") {
-          exitTime = new Date(entryTime);
-          exitTime.setHours(
-            exitTime.getHours() + Math.floor(Math.random() * 8) + 1
-          );
-        }
 
         // For rejected records, no exit time
         // For pending records, no exit time
@@ -948,7 +938,7 @@ async function createVisitorRecordsData() {
           record_status: randomStatus,
           visit_purpose: randomVisitPurpose,
           entry_time: entryTime,
-          exit_time: exitTime,
+
         });
       }
     }
@@ -1031,7 +1021,6 @@ async function createVisitorRecordsData() {
           record_status: randomStatus,
           visit_purpose: randomVisitPurpose,
           entry_time: entryTime,
-          exit_time: exitTime,
         });
       }
 
@@ -1100,15 +1089,6 @@ async function createVisitorRecordsData() {
 
         // Generate realistic timestamps
         const entryTime = generateRandomTimestamp();
-        let exitTime: Date | undefined;
-
-        // For approved records, generate exit time (1-8 hours later)
-        if (randomStatus === "approved") {
-          exitTime = new Date(entryTime);
-          exitTime.setHours(
-            exitTime.getHours() + Math.floor(Math.random() * 8) + 1
-          );
-        }
 
         visitorRecordsData.push({
           resident_id: randomResident.resident_id,
@@ -1119,7 +1099,6 @@ async function createVisitorRecordsData() {
           record_status: randomStatus,
           visit_purpose: randomVisitPurpose,
           entry_time: entryTime,
-          exit_time: exitTime,
         });
       }
 
@@ -1199,15 +1178,6 @@ async function createVisitorRecordsData() {
 
           // Generate realistic timestamps
           const entryTime = generateRandomTimestamp();
-          let exitTime: Date | undefined;
-
-          // For approved records, generate exit time (1-8 hours later)
-          if (randomStatus === "approved") {
-            exitTime = new Date(entryTime);
-            exitTime.setHours(
-              exitTime.getHours() + Math.floor(Math.random() * 8) + 1
-            );
-          }
 
           visitorRecordsData.push({
             resident_id: randomResident.resident_id,
@@ -1218,7 +1188,6 @@ async function createVisitorRecordsData() {
             record_status: randomStatus,
             visit_purpose: randomVisitPurpose,
             entry_time: entryTime,
-            exit_time: exitTime,
           });
         }
       }
