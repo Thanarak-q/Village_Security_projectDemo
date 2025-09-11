@@ -6,14 +6,10 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Form,
   FormControl,
@@ -90,24 +86,23 @@ export default function AddHouseDialog({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
         {children || (
           <Button className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
             เพิ่มบ้านใหม่
           </Button>
         )}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-lg font-semibold flex items-center gap-2">
+      </PopoverTrigger>
+      <PopoverContent className="w-96 p-0" align="start">
+        <div className="p-6">
+          <div className="flex items-center gap-2 mb-6">
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
               <Home className="h-4 w-4 text-primary" />
             </div>
-            เพิ่มบ้านใหม่
-          </DialogTitle>
-        </DialogHeader>
+            <h2 className="text-lg font-semibold">เพิ่มบ้านใหม่</h2>
+          </div>
 
         {/* Form */}
         <Form {...form}>
@@ -137,18 +132,19 @@ export default function AddHouseDialog({
               )}
             />
 
-            <DialogFooter className="flex gap-3 pt-6">
-              <DialogClose asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  disabled={isSubmitting}
-                  onClick={() => form.reset()}
-                >
-                  ยกเลิก
-                </Button>
-              </DialogClose>
+            <div className="flex gap-3 pt-6">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                disabled={isSubmitting}
+                onClick={() => {
+                  form.reset();
+                  setIsOpen(false);
+                }}
+              >
+                ยกเลิก
+              </Button>
               <Button
                 type="submit"
                 className="flex-1"
@@ -156,10 +152,11 @@ export default function AddHouseDialog({
               >
                 {isSubmitting ? "กำลังเพิ่ม..." : "เพิ่มบ้าน"}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

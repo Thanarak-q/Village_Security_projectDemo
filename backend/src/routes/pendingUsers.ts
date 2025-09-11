@@ -264,6 +264,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             phone: resident[0].phone,
             village_key: resident[0].village_key,
             status: "verified" as "verified" | "pending" | "disable",
+            profile_image_url: resident[0].profile_image_url,
           })
           .returning();
 
@@ -305,6 +306,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             phone: guard[0].phone,
             village_key: guard[0].village_key,
             status: "verified" as "verified" | "pending" | "disable",
+            profile_image_url: guard[0].profile_image_url,
           })
           .returning();
 

@@ -2,10 +2,8 @@
 
 import {
   Home,
-  Settings,
   BookUser,
   Building,
-  LogOut,
   History,
 } from "lucide-react";
 
@@ -18,12 +16,12 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState, useCallback, memo } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useState, memo } from "react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useTheme } from "next-themes";
 import Image from "next/image";
@@ -50,17 +48,10 @@ const items = [
     url: "/dashboard/history",
     icon: History,
   },
-  {
-    title: "การตั้งค่า",
-    url: "/dashboard/setting_manage",
-    icon: Settings,
-  },
 ];
 
 const AppSidebar = memo(function AppSidebar() {
-  const router = useRouter();
   const pathname = usePathname();
-  const [shouldRedirect, setShouldRedirect] = useState(false);
   const { setOpen } = useSidebar();
   const { theme } = useTheme();
   const [userData, setUserData] = useState<{
@@ -71,6 +62,7 @@ const AppSidebar = memo(function AppSidebar() {
     lname?: string;
     profileImage?: string;
     role: string;
+    village_name?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -88,38 +80,15 @@ const AppSidebar = memo(function AppSidebar() {
       });
   }, []);
 
-  const onSubmit = useCallback(async () => {
-    try {
-      const response = await fetch("/api/auth/logout", {
-        method: "GET",
-      });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData?.message || "Login failed");
-      }
-
-      console.log("Login successful");
-      setShouldRedirect(true);
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (shouldRedirect) {
-      router.push("/login");
-    }
-  }, [shouldRedirect, router]);
 
   return (
-    <Sidebar>
-      <SidebarContent className="flex flex-col">
-        <SidebarGroup className="flex-1">
-          <SidebarGroupLabel className="my-3 md:my-5 border-border mb-4 md:mb-6">
-            <div className="flex items-center gap-2 md:gap-3 p-2 md:p-3">
+    <Sidebar className="sticky top-0 h-screen" collapsible="icon">
+      <SidebarContent className="flex flex-col h-full">
+        <SidebarGroup className="flex-1 min-h-0">
+          <SidebarGroupLabel className="my-2 md:my-3 border-border mb-2 md:mb-3">
+            <div className="flex items-center gap-2 md:gap-3 p-1 md:p-2">
               <div>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 overflow-hidden relative">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 overflow-hidden relative">
                   <Image
                     src={theme === "dark" ? "/house-white.png" : "/house-dark.png"}
                     alt="House"
@@ -146,7 +115,7 @@ const AppSidebar = memo(function AppSidebar() {
                 <SidebarMenuItem key={item.title} className="">
                   <SidebarMenuButton
                     asChild
-                    className={`py-3 md:py-4 px-2 md:px-3 h-auto text-sm md:text-base transition-all duration-200 ${
+                    className={`py-2 md:py-3 px-2 md:px-3 h-auto text-sm md:text-base transition-all duration-200 ${
                       pathname === item.url
                         ? "bg-accent text-accent-foreground border-r-2 border-primary"
                         : "hover:bg-muted"
@@ -179,21 +148,11 @@ const AppSidebar = memo(function AppSidebar() {
             {/* <MenuShowColor items={items}/>   */}
           </SidebarGroupContent>
         </SidebarGroup>
-        
-        {/* Footer with Logout Button */}
         <SidebarGroup className="mt-auto border-t border-border">
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  className="py-3 md:py-4 px-2 md:px-3 h-auto text-sm md:text-base font-bold text-destructive hover:text-destructive/80 hover:bg-destructive/10 transition-colors"
-                >
-                  <Link href="" onClick={onSubmit}>
-                    <LogOut className="w-4 h-4 md:w-5 md:h-5" />
-                    <span>ออกจากระบบ</span>
-                  </Link>
-                </SidebarMenuButton>
+                <SidebarTrigger className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring" />
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>

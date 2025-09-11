@@ -6,7 +6,7 @@
  */
 
 import { unique } from "drizzle-orm/gel-core";
-import { pgTable, text, timestamp, uuid, date } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { status } from "elysia";
 
 /**
@@ -55,24 +55,18 @@ export type HouseInsert = typeof houses.$inferInsert;
  */
 export const residents = pgTable("residents", {
   resident_id: uuid("resident_id").primaryKey().defaultRandom(),
-
   line_user_id: text("line_user_id").unique(),
-  line_picture_url: text("line_picture_url"),
-  line_display_name: text("line_display_name"),
-
-  
   email: text("email").notNull().unique(),
   fname: text("fname").notNull(),
   lname: text("lname").notNull(),
   phone: text("phone").notNull(),
-
   village_key: text("village_key").references(() => villages.village_key),
   status: text("status")
     .$type<"verified" | "pending" | "disable">()
     .default("pending"),
-  move_in_date: date("move_in_date"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  profile_image_url: text("profile_image_url"),
 });
 
 /**
@@ -91,23 +85,18 @@ export type ResidentInsert = typeof residents.$inferInsert;
  */
 export const guards = pgTable("guards", {
   guard_id: uuid("guard_id").primaryKey().defaultRandom(),
-  
   line_user_id: text("line_user_id").unique(),
-  line_picture_url: text("line_picture_url"),
-  line_display_name: text("line_display_name"),
-
   email: text("email").notNull().unique(),
   fname: text("fname").notNull(),
   lname: text("lname").notNull(),
   phone: text("phone").notNull(),
-
   village_key: text("village_key").references(() => villages.village_key),
   status: text("status")
     .$type<"verified" | "pending" | "disable">()
     .default("pending"),
-  hire_date: date("hire_date"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  profile_image_url: text("profile_image_url"),
 });
 
 /**
@@ -129,10 +118,7 @@ export const admins = pgTable("admins", {
   email: text("email").notNull().unique(),
   username: text("username").notNull().unique(),
   password_hash: text("password_hash").notNull(),
-
   phone: text("phone").notNull(),
-  profile_image_url: text("profile_image_url"),
-  
   village_key: text("village_key").references(() => villages.village_key),
   status: text("status")
     .$type<"verified" | "pending" | "disable">()
@@ -143,7 +129,6 @@ export const admins = pgTable("admins", {
     .notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-
 });
 
 /**
@@ -185,13 +170,10 @@ export const visitor_records = pgTable("visitor_records", {
   resident_id: uuid("resident_id").references(() => residents.resident_id),
   guard_id: uuid("guard_id").references(() => guards.guard_id),
   house_id: uuid("house_id").references(() => houses.house_id),
-
-  visitor_name: text("visitor_name").notNull(),
-  visitor_id: text("visitor_id").notNull(),
-
   picture_key: text("picture_key"),
   license_plate: text("license_plate"),
   entry_time: timestamp("entry_time").defaultNow(),
+  exit_time: timestamp("exit_time"),
   record_status: text("record_status")
     .$type<"approved" | "pending" | "rejected">()
     .default("pending"),

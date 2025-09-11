@@ -286,8 +286,7 @@ const residentData = [
     email: "somchai.pha@email.com",
     fname: "สมชาย",
     lname: "ผาสุก",
-    username: "somchai_pha",
-    password_hash: "password123",
+    
     phone: "0812345678",
     village_key: "pha-suk-village-001",
     status: "verified",
@@ -296,8 +295,7 @@ const residentData = [
     email: "somying.pha@email.com",
     fname: "สมหญิง",
     lname: "ผาสุก",
-    username: "somying_pha",
-    password_hash: "password123",
+    
     phone: "0812345678",
     village_key: "pha-suk-village-001",
     status: "verified",
@@ -307,8 +305,7 @@ const residentData = [
     email: "arisa.rat@email.com",
     fname: "อริสา",
     lname: "รัตนา",
-    username: "arisa_rat",
-    password_hash: "password123",
+    
     phone: "0823456789",
     village_key: "rattana-village-006",
     status: "verified",
@@ -319,8 +316,7 @@ const residentData = [
     email: "nattapong.sri@email.com",
     fname: "ณัฐพงศ์",
     lname: "ศรีสุข",
-    username: "nattapong_sri",
-    password_hash: "password123",
+    
     phone: "0845678901",
     village_key: "sri-suk-village-007",
     status: "verified",
@@ -329,8 +325,7 @@ const residentData = [
     email: "pimchanok.sri@email.com",
     fname: "พิมพ์ชนก",
     lname: "ศรีสุข",
-    username: "pimchanok_sri",
-    password_hash: "password123",
+    
     phone: "0856789012",
     village_key: "sri-suk-village-007",
     status: "verified",
@@ -341,8 +336,7 @@ const residentData = [
     email: "surasak.thana@email.com",
     fname: "สุรศักดิ์",
     lname: "ธนารมย์",
-    username: "surasak_thana",
-    password_hash: "password123",
+    
     phone: "0867890123",
     village_key: "thanarom-village-008",
     status: "verified",
@@ -351,8 +345,7 @@ const residentData = [
     email: "kanokwan.thana@email.com",
     fname: "กนกวรรณ",
     lname: "ธนารมย์",
-    username: "kanokwan_thana",
-    password_hash: "password123",
+    
     phone: "0878901234",
     village_key: "thanarom-village-008",
     status: "verified",
@@ -363,8 +356,7 @@ const residentData = [
     email: "jirawat.suan@email.com",
     fname: "จิรวัฒน์",
     lname: "สวนสวรรค์",
-    username: "jirawat_suan",
-    password_hash: "password123",
+    
     phone: "0889012345",
     village_key: "suan-sawan-village-009",
     status: "verified",
@@ -373,8 +365,7 @@ const residentData = [
     email: "supaporn.suan@email.com",
     fname: "สุภาภรณ์",
     lname: "สวนสวรรค์",
-    username: "supaporn_suan",
-    password_hash: "password123",
+    
     phone: "0890123456",
     village_key: "suan-sawan-village-009",
     status: "verified",
@@ -385,8 +376,7 @@ const residentData = [
     email: "anucha.suk@email.com",
     fname: "อนุชา",
     lname: "สุขุมวิท",
-    username: "anucha_suk",
-    password_hash: "password123",
+    
     phone: "0801234567",
     village_key: "sukhumvit-village-010",
     status: "pending",
@@ -395,8 +385,7 @@ const residentData = [
     email: "benjawan.suk@email.com",
     fname: "เบญจวรรณ",
     lname: "สุขุมวิท",
-    username: "benjawan_suk",
-    password_hash: "password123",
+    
     phone: "0812345679",
     village_key: "sukhumvit-village-010",
     status: "verified",
@@ -407,8 +396,7 @@ const residentData = [
     email: "prasert.ratc@email.com",
     fname: "ประเสริฐ",
     lname: "รัชดา",
-    username: "prasert_ratc",
-    password_hash: "password123",
+    
     phone: "0823456790",
     village_key: "ratchada-village-011",
     status: "verified",
@@ -417,8 +405,7 @@ const residentData = [
     email: "sirilak.ratc@email.com",
     fname: "ศิริลักษณ์",
     lname: "รัชดา",
-    username: "sirilak_ratc",
-    password_hash: "password123",
+    
     phone: "0834567901",
     village_key: "ratchada-village-011",
     status: "verified",
@@ -429,8 +416,7 @@ const residentData = [
     email: "pongsak.lad@email.com",
     fname: "พงศักดิ์",
     lname: "ลาดพร้าว",
-    username: "pongsak_lad",
-    password_hash: "password123",
+    
     phone: "0845679012",
     village_key: "ladprao-village-012",
     status: "pending",
@@ -441,8 +427,7 @@ const residentData = [
     email: "nattaya.bang@email.com",
     fname: "ณัฐยา",
     lname: "บางนา",
-    username: "nattaya_bang",
-    password_hash: "password123",
+    
     phone: "0856790123",
     village_key: "bangna-village-013",
     status: "pending",
@@ -453,8 +438,7 @@ const residentData = [
     email: "wirote.thong@email.com",
     fname: "วิโรจน์",
     lname: "ทองหล่อ",
-    username: "wirote_thong",
-    password_hash: "password123",
+    
     phone: "0867901234",
     village_key: "thonglor-village-015",
     status: "pending",
@@ -471,8 +455,7 @@ const guardData = [
     email: "prasit.pha@email.com",
     fname: "ประสิทธิ์",
     lname: "ผาสุก",
-    username: "prasit_pha",
-    password_hash: "password123",
+    
     phone: "0891234567",
     village_key: "pha-suk-village-001",
     status: "verified",
@@ -482,8 +465,7 @@ const guardData = [
     email: "kanokwan.rat@email.com",
     fname: "กนกวรรณ",
     lname: "รัตนา",
-    username: "kanokwan_rat",
-    password_hash: "password123",
+    
     phone: "0892345678",
     village_key: "rattana-village-006",
     status: "verified",
@@ -493,8 +475,7 @@ const guardData = [
     email: "santi.thong@email.com",
     fname: "สันติ",
     lname: "ทองหล่อ",
-    username: "santi_thong",
-    password_hash: "password123",
+    
     phone: "0893456789",
     village_key: "thonglor-village-015",
     status: "verified",
@@ -1274,25 +1255,11 @@ async function seed() {
   console.log("Completed inserting houses");
 
   console.log("Inserting residents");
-  // Hash passwords before inserting residents
-  const hashedResidentData = await Promise.all(
-    residentData.map(async (resident) => ({
-      ...resident,
-      password_hash: await hashPassword(resident.password_hash),
-    }))
-  );
-  await db.insert(residents).values(hashedResidentData as any);
+  await db.insert(residents).values(residentData as any);
   console.log("Completed inserting residents");
 
   console.log("Inserting guards");
-  // Hash passwords before inserting guards
-  const hashedGuardData = await Promise.all(
-    guardData.map(async (guard) => ({
-      ...guard,
-      password_hash: await hashPassword(guard.password_hash),
-    }))
-  );
-  await db.insert(guards).values(hashedGuardData as any);
+  await db.insert(guards).values(guardData as any);
   console.log("Completed inserting guards");
 
   console.log("Inserting admins");

@@ -117,6 +117,7 @@ async function createGuardFromResident(resident: any, status: string) {
       phone: resident.phone,
       village_key: resident.village_key,
       status: status as "verified" | "pending" | "disable",
+      profile_image_url: resident.profile_image_url,
     })
     .returning();
   return result[0] || null;
@@ -139,6 +140,7 @@ async function createResidentFromGuard(guard: any, status: string) {
       phone: guard.phone,
       village_key: guard.village_key,
       status: status as "verified" | "pending" | "disable",
+      profile_image_url: guard.profile_image_url,
     })
     .returning();
   return result[0] || null;
@@ -219,6 +221,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           house_address: houses.address,
           createdAt: residents.createdAt,
           updatedAt: residents.updatedAt,
+          profile_image_url: residents.profile_image_url,
         })
         .from(residents)
         .where(
@@ -246,6 +249,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           house_address: sql`NULL`.as("house_address"),
           createdAt: guards.createdAt,
           updatedAt: guards.updatedAt,
+          profile_image_url: guards.profile_image_url,
         })
         .from(guards)
         .where(

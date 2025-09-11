@@ -1,13 +1,23 @@
 "use client";
-import { Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { gsap } from "gsap";
-import { useSidebar, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import NotificationComponent from "./(main)/notification";
 import { ModeToggle } from "@/components/mode-toggle";
 import { useTheme } from "next-themes";
 import Image from "next/image";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Settings, LogOut } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 function Navbar() {
   const pathname = usePathname();
@@ -24,8 +34,8 @@ function Navbar() {
   const [currentTitleIndex, setCurrentTitleIndex] = useState(0);
   const animationRef = useRef<gsap.core.Timeline | null>(null);
   const isAnimatingRef = useRef(false);
-  const { open } = useSidebar();
   const { theme } = useTheme();
+  const [shouldRedirect, setShouldRedirect] = useState(false);
 
   const currentDate = new Date();
   const thaiDate = new Intl.DateTimeFormat("th-TH", {
@@ -150,6 +160,31 @@ function Navbar() {
     }
   }, [userData, pathname, startAnimation]);
 
+  // Logout function
+  const handleLogout = useCallback(async () => {
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "GET",
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData?.message || "Logout failed");
+      }
+
+      console.log("Logout successful");
+      setShouldRedirect(true);
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (shouldRedirect) {
+      window.location.href = "/login";
+    }
+  }, [shouldRedirect]);
+
   // Dynamic content based on current route
   const getPageContent = () => {
     switch (pathname) {
@@ -163,38 +198,48 @@ function Navbar() {
             day: "numeric",
           }),
           titleClass:
-            "text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-foreground",
-          subtitleClass: "text-xs sm:text-sm md:text-base text-muted-foreground",
+            "text-lg sm:text-xl md:text-2xl font-semibold tracking-tight text-foreground",
+          subtitleClass: "text-xs sm:text-sm text-muted-foreground",
         };
       case "/dashboard/user_manage":
         return {
           title: "จัดการผู้ใช้งาน",
           subtitle: "จัดการข้อมูลผู้ใช้งานทั้งหมดในระบบ",
           titleClass:
-            "text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-foreground",
-          subtitleClass: "text-xs sm:text-sm md:text-base text-muted-foreground",
+            "text-lg sm:text-xl md:text-2xl font-semibold tracking-tight text-foreground",
+          subtitleClass: "text-xs sm:text-sm text-muted-foreground",
         };
       case "/dashboard/house_manage":
         return {
           title: "การจัดการบ้าน",
           subtitle: "จัดการข้อมูลบ้านและสถานะการอยู่อาศัย",
           titleClass:
-            "text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight text-foreground",
-          subtitleClass: "text-sm sm:text-base text-muted-foreground",
+            "text-lg sm:text-xl md:text-2xl font-semibold tracking-tight text-foreground",
+          subtitleClass: "text-xs sm:text-sm text-muted-foreground",
         };
       case "/dashboard/setting_manage":
         return {
           title: "การตั้งค่า",
           subtitle: "จัดการการตั้งค่าระบบ",
-          titleClass: "text-2xl font-bold text-foreground",
-          subtitleClass: "text-sm text-muted-foreground",
+          titleClass:
+            "text-lg sm:text-xl md:text-2xl font-semibold tracking-tight text-foreground",
+          subtitleClass: "text-xs sm:text-sm text-muted-foreground",
+        };
+      case "/dashboard/history":
+        return {
+          title: "ประวัติ",
+          subtitle: "ดูประวัติการใช้งานระบบ",
+          titleClass:
+            "text-lg sm:text-xl md:text-2xl font-semibold tracking-tight text-foreground",
+          subtitleClass: "text-xs sm:text-sm text-muted-foreground",
         };
       default:
         return {
           title: "การจัดการบ้าน",
           subtitle: thaiDate,
-          titleClass: "text-2xl font-bold text-foreground",
-          subtitleClass: "text-sm text-muted-foreground",
+          titleClass:
+            "text-lg sm:text-xl md:text-2xl font-semibold tracking-tight text-foreground",
+          subtitleClass: "text-xs sm:text-sm text-muted-foreground",
         };
     }
   };
@@ -202,27 +247,21 @@ function Navbar() {
   const pageContent = getPageContent();
 
   return (
-    <nav className="w-full">
+    <nav className="w-full sticky top-0 z-50">
       {/* ส่วนเนื้อหาสีขาว */}
-      <div className="bg-background p-4 flex justify-between items-center border-b border-border">
+      <div className="bg-background p-4 flex justify-between items-center border-b border-border h-20">
         {/* ด้านซ้าย - ข้อความ */}
         <div className="flex items-center gap-4">
-          {/* Sidebar Toggle with Custom Icon */}
-          <SidebarTrigger className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring">
-            {open ? (
-              <X className="h-5 w-5 text-muted-foreground" />
-            ) : (
-              <Menu className="h-5 w-5 text-muted-foreground" />
-            )}
-          </SidebarTrigger>
+          {/* Sidebar Toggle */}
+          <SidebarTrigger className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring" />
           <div className="flex flex-col">
             <div className="flex items-center gap-3">
               {/* Dashboard Title with Spinning Animation */}
               {pathname === "/dashboard" ? (
-                <div className="relative overflow-hidden h-10 flex items-center">
+                <div className="relative overflow-hidden h-8 flex items-center">
                   <span
                     ref={titleSpinRef}
-                    className="inline-block text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-foreground transform-gpu"
+                    className="inline-block text-lg sm:text-xl md:text-2xl font-semibold tracking-tight text-foreground transform-gpu"
                     style={{
                       transformStyle: "preserve-3d",
                       perspective: "1000px",
@@ -250,37 +289,59 @@ function Navbar() {
           {/* Notification Component */}
           <NotificationComponent />
 
-          {/* รูปโปรไฟล์และชื่อ */}
-          <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 overflow-hidden flex items-center justify-center relative">
-              <Image
-                src={userData?.profileImage || (theme === "dark" ? "/user-white.png" : "/user-dark.png")}
-                alt={
-                  userData?.fname && userData?.lname
-                    ? `${userData.fname} ${userData.lname} Profile`
-                    : "Profile Picture"
-                }
-                fill
-                className="object-cover"
-                sizes="40px"
-                onError={() => {
-                  // Fallback handled by src prop
-                }}
-              />
-            </div>
-            <div className="hidden sm:flex flex-col">
-              <span className="text-foreground font-medium text-sm">
-                {userData?.fname && userData?.lname
-                  ? `${userData.fname} ${userData.lname}`
-                  : userData?.username || "ผู้ใช้งาน"}
-              </span>
-              <span className="text-muted-foreground text-xs">
-                {userData?.role === "admin"
-                  ? "ผู้จัดการ"
-                  : userData?.role || ""}
-              </span>
-            </div>
-          </div>
+          {/* User Profile Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                <div className="h-10 w-10 overflow-hidden flex items-center justify-center relative rounded-full">
+                  <Image
+                    src={userData?.profileImage || (theme === "dark" ? "/user-white.png" : "/user-dark.png")}
+                    alt={
+                      userData?.fname && userData?.lname
+                        ? `${userData.fname} ${userData.lname} Profile`
+                        : "Profile Picture"
+                    }
+                    fill
+                    className="object-cover"
+                    sizes="40px"
+                    onError={() => {
+                      // Fallback handled by src prop
+                    }}
+                  />
+                </div>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    {userData?.fname && userData?.lname
+                      ? `${userData.fname} ${userData.lname}`
+                      : userData?.username || "ผู้ใช้งาน"}
+                  </p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    {userData?.email || ""}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/setting_manage" className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>การตั้งค่า</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={handleLogout}
+                className="cursor-pointer text-destructive focus:text-destructive"
+                variant="destructive"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>ออกจากระบบ</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </nav>

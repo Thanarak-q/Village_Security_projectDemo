@@ -23,6 +23,8 @@ export async function hashExistingPasswords(): Promise<void> {
   try {
     console.log("Starting password hashing migration...");
 
+    // Residents and guards no longer store username/password. Skipping.
+
     // Hash existing admin passwords
     const existingAdmins = await db.select().from(admins);
     for (const admin of existingAdmins) {
