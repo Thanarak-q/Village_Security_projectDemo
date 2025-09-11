@@ -2,10 +2,8 @@
 
 import {
   Home,
-  Settings,
   BookUser,
   Building,
-  LogOut,
   History,
 } from "lucide-react";
 
@@ -18,11 +16,12 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState, useCallback, memo } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useState, memo } from "react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useTheme } from "next-themes";
 import Image from "next/image";
@@ -49,17 +48,10 @@ const items = [
     url: "/dashboard/history",
     icon: History,
   },
-  {
-    title: "การตั้งค่า",
-    url: "/dashboard/setting_manage",
-    icon: Settings,
-  },
 ];
 
 const AppSidebar = memo(function AppSidebar() {
-  const router = useRouter();
   const pathname = usePathname();
-  const [shouldRedirect, setShouldRedirect] = useState(false);
   const { setOpen } = useSidebar();
   const { theme } = useTheme();
   const [userData, setUserData] = useState<{
@@ -88,29 +80,6 @@ const AppSidebar = memo(function AppSidebar() {
       });
   }, []);
 
-  const onSubmit = useCallback(async () => {
-    try {
-      const response = await fetch("/api/auth/logout", {
-        method: "GET",
-      });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData?.message || "Login failed");
-      }
-
-      console.log("Login successful");
-      setShouldRedirect(true);
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (shouldRedirect) {
-      router.push("/login");
-    }
-  }, [shouldRedirect, router]);
 
   return (
     <Sidebar className="sticky top-0 h-screen" collapsible="icon">
@@ -179,21 +148,11 @@ const AppSidebar = memo(function AppSidebar() {
             {/* <MenuShowColor items={items}/>   */}
           </SidebarGroupContent>
         </SidebarGroup>
-        
-        {/* Footer with Logout Button */}
         <SidebarGroup className="mt-auto border-t border-border">
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  className="py-2 md:py-3 px-2 md:px-3 h-auto text-sm md:text-base font-bold text-destructive hover:text-destructive/80 hover:bg-destructive/10 transition-colors"
-                >
-                  <Link href="" onClick={onSubmit}>
-                    <LogOut className="w-4 h-4 md:w-5 md:h-5" />
-                    <span>ออกจากระบบ</span>
-                  </Link>
-                </SidebarMenuButton>
+                <SidebarTrigger className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring" />
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>

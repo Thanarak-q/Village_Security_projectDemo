@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { ScrambleTextExample } from "@/components/animation";
+import { ModeToggle } from "@/components/mode-toggle";
 import { ButtonProps } from "react-day-picker";
 import { ScrambleTextPlugin } from "gsap/all";
 
@@ -139,7 +140,7 @@ const Page: React.FC = () => {
     // Create a pop-up scale animation with color change
     tl.to(loginTitleRef.current, {
       scale: isSmallPhone ? 1.1 : isMobile ? 1.15 : 1.2,
-      color: "#ef4b6c",
+      color: "hsl(var(--destructive))",
       duration: 0.3,
       ease: "back.out(1.7)",
     })
@@ -221,7 +222,7 @@ const Page: React.FC = () => {
             revealDelay: 0.1,
             speed: 0.8,
           },
-          color: "#253050",
+          color: "hsl(var(--foreground))",
         },
         "-=0.2"
       );
@@ -428,7 +429,12 @@ const Page: React.FC = () => {
   }, []);
 
   return (
-    <div className="w-screen h-screen bg-[#4fa3f2] flex flex-col justify-center items-center overflow-hidden">
+    <div className="w-screen h-screen bg-gradient-to-br from-blue-500 to-blue-600 dark:from-slate-900 dark:to-slate-800 flex flex-col justify-center items-center overflow-hidden">
+      {/* Theme Toggle Button */}
+      <div className="absolute top-4 right-4 z-20">
+        <ModeToggle />
+      </div>
+      
       <div
         ref={welcomeRef}
         className="absolute text-white text-4xl tracking-[2px] z-10"
@@ -441,22 +447,22 @@ const Page: React.FC = () => {
       >
         <div
           ref={triRef}
-          className="opacity-0 w-full h-[120px] sm:h-[130px] md:h-[140px] bg-white flex flex-col justify-center items-center z-[2] mt-[50px] rounded-t-[22px] relative triangle-shape"
+          className="opacity-0 w-full h-[120px] sm:h-[130px] md:h-[140px] bg-background flex flex-col justify-center items-center z-[2] mt-[50px] rounded-t-[22px] relative triangle-shape"
         >
           <h2
             ref={loginTitleRef}
-            className="text-[#253050] m-0 text-[1.2rem] xs:text-[1.3rem] sm:text-[1.6rem] md:text-[1.8rem] lg:text-[2rem] font-black tracking-[1.5px]"
+            className="text-foreground m-0 text-[1.2rem] xs:text-[1.3rem] sm:text-[1.6rem] md:text-[1.8rem] lg:text-[2rem] font-black tracking-[1.5px]"
           >
             Login
           </h2>
           <p
             ref={errorMessageRef}
-            className="hidden text-[#ef4b6c] text-[0.7rem] sm:text-[0.75rem] md:text-[0.85rem] lg:text-[0.9rem] font-medium mt-1 sm:mt-2 text-center px-2 sm:px-3 md:px-4 leading-tight max-w-[280px] sm:max-w-[320px] md:max-w-[360px]"
+            className="hidden text-destructive text-[0.7rem] sm:text-[0.75rem] md:text-[0.85rem] lg:text-[0.9rem] font-medium mt-1 sm:mt-2 text-center px-2 sm:px-3 md:px-4 leading-tight max-w-[280px] sm:max-w-[320px] md:max-w-[360px]"
           ></p>
         </div>
         <div
           ref={squareRef}
-          className="w-full h-screen bg-white rounded-[22px] flex flex-col items-center opacity-0 z-[1]"
+          className="w-full h-screen bg-background rounded-[22px] flex flex-col items-center opacity-0 z-[1]"
         >
           <div
             ref={loginRef}
@@ -474,7 +480,7 @@ const Page: React.FC = () => {
                     <FormItem ref={usernameFieldRef} className="mb-3">
                       <FormLabel
                         htmlFor="username"
-                        className="font-bold text-[#253050]"
+                        className="font-bold text-foreground"
                       >
                         Username
                       </FormLabel>
@@ -485,12 +491,12 @@ const Page: React.FC = () => {
                           {...field}
                           className={
                             form.formState.errors.username
-                              ? "border-[1.5px] border-[#ef4b6c]"
+                              ? "border-[1.5px] border-destructive"
                               : ""
                           }
                         />
                       </FormControl>
-                      <FormMessage className="text-[#ef4b6c] text-[0.9rem]" />
+                      <FormMessage className="text-destructive text-[0.9rem]" />
                     </FormItem>
                   )}
                 />
@@ -502,7 +508,7 @@ const Page: React.FC = () => {
                     <FormItem ref={passwordFieldRef} className="mb-3">
                       <FormLabel
                         htmlFor="password"
-                        className="font-bold text-[#253050]"
+                        className="font-bold text-foreground"
                       >
                         Password
                       </FormLabel>
@@ -514,12 +520,12 @@ const Page: React.FC = () => {
                           {...field}
                           className={
                             form.formState.errors.password
-                              ? "border-[1.5px] border-[#ef4b6c]"
+                              ? "border-[1.5px] border-destructive"
                               : ""
                           }
                         />
                       </FormControl>
-                      <FormMessage className="text-[#ef4b6c] text-[0.9rem]" />
+                      <FormMessage className="text-destructive text-[0.9rem]" />
                     </FormItem>
                   )}
                 />
@@ -528,7 +534,7 @@ const Page: React.FC = () => {
                   ref={loginButtonRef}
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-[#253050] text-white rounded-xl text-[1.1rem] py-3 shadow-[0px_6px_24px_1px_rgba(50,56,168,0.09)] font-semibold disabled:opacity-50"
+                  className="w-full bg-primary text-primary-foreground rounded-xl text-[1.1rem] py-3 shadow-lg font-semibold disabled:opacity-50"
                 >
                   {loading ? "Logging in..." : "Login"}
                 </Gsaploginbutton>
@@ -536,7 +542,7 @@ const Page: React.FC = () => {
             </Form>
             <p
               ref={villageTextRef}
-              className="mt-10 text-center text-[#aaa] text-[0.97em]"
+              className="mt-10 text-center text-muted-foreground text-[0.97em]"
             >
               Village Management System <br /> v.x.x
             </p>
@@ -546,7 +552,7 @@ const Page: React.FC = () => {
           <div ref={successRef} className="hidden text-center">
             <h2
               ref={scrambleSuccessRef}
-              className="text-2xl font-bold text-[#253050] tracking-[1.5px]"
+              className="text-2xl font-bold text-foreground tracking-[1.5px]"
             ></h2>
           </div>
         </div>
