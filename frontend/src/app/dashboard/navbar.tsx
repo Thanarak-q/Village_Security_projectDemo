@@ -1,5 +1,4 @@
 "use client";
-import { Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { gsap } from "gsap";
@@ -24,7 +23,6 @@ function Navbar() {
   const [currentTitleIndex, setCurrentTitleIndex] = useState(0);
   const animationRef = useRef<gsap.core.Timeline | null>(null);
   const isAnimatingRef = useRef(false);
-  const { open } = useSidebar();
   const { theme } = useTheme();
 
   const currentDate = new Date();
@@ -163,38 +161,48 @@ function Navbar() {
             day: "numeric",
           }),
           titleClass:
-            "text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-foreground",
-          subtitleClass: "text-xs sm:text-sm md:text-base text-muted-foreground",
+            "text-lg sm:text-xl md:text-2xl font-semibold tracking-tight text-foreground",
+          subtitleClass: "text-xs sm:text-sm text-muted-foreground",
         };
       case "/dashboard/user_manage":
         return {
           title: "จัดการผู้ใช้งาน",
           subtitle: "จัดการข้อมูลผู้ใช้งานทั้งหมดในระบบ",
           titleClass:
-            "text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-foreground",
-          subtitleClass: "text-xs sm:text-sm md:text-base text-muted-foreground",
+            "text-lg sm:text-xl md:text-2xl font-semibold tracking-tight text-foreground",
+          subtitleClass: "text-xs sm:text-sm text-muted-foreground",
         };
       case "/dashboard/house_manage":
         return {
           title: "การจัดการบ้าน",
           subtitle: "จัดการข้อมูลบ้านและสถานะการอยู่อาศัย",
           titleClass:
-            "text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight text-foreground",
-          subtitleClass: "text-sm sm:text-base text-muted-foreground",
+            "text-lg sm:text-xl md:text-2xl font-semibold tracking-tight text-foreground",
+          subtitleClass: "text-xs sm:text-sm text-muted-foreground",
         };
       case "/dashboard/setting_manage":
         return {
           title: "การตั้งค่า",
           subtitle: "จัดการการตั้งค่าระบบ",
-          titleClass: "text-2xl font-bold text-foreground",
-          subtitleClass: "text-sm text-muted-foreground",
+          titleClass:
+            "text-lg sm:text-xl md:text-2xl font-semibold tracking-tight text-foreground",
+          subtitleClass: "text-xs sm:text-sm text-muted-foreground",
+        };
+      case "/dashboard/history":
+        return {
+          title: "ประวัติ",
+          subtitle: "ดูประวัติการใช้งานระบบ",
+          titleClass:
+            "text-lg sm:text-xl md:text-2xl font-semibold tracking-tight text-foreground",
+          subtitleClass: "text-xs sm:text-sm text-muted-foreground",
         };
       default:
         return {
           title: "การจัดการบ้าน",
           subtitle: thaiDate,
-          titleClass: "text-2xl font-bold text-foreground",
-          subtitleClass: "text-sm text-muted-foreground",
+          titleClass:
+            "text-lg sm:text-xl md:text-2xl font-semibold tracking-tight text-foreground",
+          subtitleClass: "text-xs sm:text-sm text-muted-foreground",
         };
     }
   };
@@ -202,27 +210,21 @@ function Navbar() {
   const pageContent = getPageContent();
 
   return (
-    <nav className="w-full">
+    <nav className="w-full sticky top-0 z-50">
       {/* ส่วนเนื้อหาสีขาว */}
-      <div className="bg-background p-4 flex justify-between items-center border-b border-border">
+      <div className="bg-background p-4 flex justify-between items-center border-b border-border h-20">
         {/* ด้านซ้าย - ข้อความ */}
         <div className="flex items-center gap-4">
-          {/* Sidebar Toggle with Custom Icon */}
-          <SidebarTrigger className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring">
-            {open ? (
-              <X className="h-5 w-5 text-muted-foreground" />
-            ) : (
-              <Menu className="h-5 w-5 text-muted-foreground" />
-            )}
-          </SidebarTrigger>
+          {/* Sidebar Toggle */}
+          <SidebarTrigger className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring" />
           <div className="flex flex-col">
             <div className="flex items-center gap-3">
               {/* Dashboard Title with Spinning Animation */}
               {pathname === "/dashboard" ? (
-                <div className="relative overflow-hidden h-10 flex items-center">
+                <div className="relative overflow-hidden h-8 flex items-center">
                   <span
                     ref={titleSpinRef}
-                    className="inline-block text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-foreground transform-gpu"
+                    className="inline-block text-lg sm:text-xl md:text-2xl font-semibold tracking-tight text-foreground transform-gpu"
                     style={{
                       transformStyle: "preserve-3d",
                       perspective: "1000px",
