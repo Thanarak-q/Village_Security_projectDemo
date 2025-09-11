@@ -14,7 +14,7 @@ import { userTableRoutes } from "./routes/userTable";
 import { pendingUsersRoutes } from "./routes/pendingUsers";
 import { authRoutes } from "./routes/auth";
 import { adminSettingsRoutes } from "./routes/adminSettings";
-import { liffAuthRoutes } from "./routes/liffAuth";
+import { liffAuthRoutes } from "./routes/(line)/liffAuth";
 import { villagesRoutes } from "./routes/villages";
 /**
  * SECURITY ENHANCEMENT: Secure Health Check Endpoint
@@ -60,6 +60,7 @@ const app = new Elysia()
               "http://127.0.0.1",
               "http://127.0.0.1:80",
               "http://localhost:3000", // fallback for direct frontend access
+              "https://9cad948af0e2.ngrok-free.app", // current ngrok URL
             ],
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],

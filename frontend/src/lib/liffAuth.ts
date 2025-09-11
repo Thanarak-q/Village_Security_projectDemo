@@ -21,7 +21,11 @@ export interface LiffAuthResponse {
   lineUserId?: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://0e675deb45d5.ngrok-free.app';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+if (!API_BASE_URL) {
+  throw new Error('NEXT_PUBLIC_API_BASE_URL environment variable is required');
+}
 
 // Verify LINE ID token with backend
 export const verifyLiffToken = async (idToken: string): Promise<LiffAuthResponse> => {
@@ -117,10 +121,10 @@ export const registerLiffUser = async (
     email: string;
     fname: string;
     lname: string;
-    username: string;
     phone: string;
     village_key: string;
     userType: 'resident' | 'guard';
+    profile_image_url: string;
   }
 ): Promise<LiffAuthResponse> => {
   try {

@@ -1,6 +1,6 @@
 import { Elysia, t } from "elysia";
-import { residents, guards } from "../db/schema";
-import db from "../db/drizzle";
+import { residents, guards } from "../../db/schema";
+import db from "../../db/drizzle";
 import { eq } from "drizzle-orm";
 // JWT will be handled by Elysia's built-in JWT plugin
 
@@ -153,19 +153,19 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         email, 
         fname, 
         lname, 
-        username, 
         phone, 
         village_key,
-        userType
+        userType,
+        profile_image_url
       } = body as {
         idToken: string;
         email: string;
         fname: string;
         lname: string;
-        username: string;
         phone: string;
         village_key: string;
         userType: "resident" | "guard";
+        profile_image_url: string;
       };
 
       if (!idToken) {
@@ -215,15 +215,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         return { error: "User already registered" };
       }
 
-      // Sanitize username from LINE displayName to meet database requirements
-      const sanitizedUsername = username
-        .replace(/[^a-zA-Z0-9_]/g, '_') // Replace invalid characters with underscore
-        .substring(0, 50); // Limit length
-      
-      // If username becomes empty after sanitization, use a fallback
-      const finalUsername = sanitizedUsername || `user_${Date.now()}`;
-
-      // Check if email or username already exists in both tables
+      // Check if email already exists in both tables
       const existingEmailResident = await db.query.residents.findFirst({
         where: eq(residents.email, email),
       });
@@ -232,18 +224,13 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         where: eq(guards.email, email),
       });
 
-      const existingUsernameResident = await db.query.residents.findFirst({
-        where: eq(residents.username, finalUsername),
-      });
-
-      const existingUsernameGuard = await db.query.guards.findFirst({
-        where: eq(guards.username, finalUsername),
-      });
-
-      if (existingEmailResident || existingEmailGuard || existingUsernameResident || existingUsernameGuard) {
+      if (existingEmailResident || existingEmailGuard) {
         set.status = 409;
-        return { error: "Email or username already exists" };
+        return { error: "Email already exists" };
       }
+
+      // Generate username from LINE user ID (unique identifier)
+      const generatedUsername = `user_${lineUserId}`;
 
       // Create new user based on type
       if (userType === "resident") {
@@ -254,11 +241,12 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
             email,
             fname,
             lname,
-            username: finalUsername,
+            username: generatedUsername,
             password_hash: "", // No password needed for LINE login
             phone,
             village_key,
             status: "pending",
+            profile_image_url: profile_image_url || null,
           })
           .returning();
 
@@ -297,11 +285,12 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
             email,
             fname,
             lname,
-            username: finalUsername,
+            username: generatedUsername,
             password_hash: "", // No password needed for LINE login
             phone,
             village_key,
             status: "pending",
+            profile_image_url: profile_image_url || null,
           })
           .returning();
 

@@ -49,10 +49,10 @@ export default function LiffRegisterPage() {
     email: '',
     fname: '',
     lname: '',
-    username: '',
     phone: '',
     village_key: '',
     userType: 'resident' as 'resident' | 'guard',
+    profile_image_url: '',
   });
 
   const [lineProfile, setLineProfile] = useState<any>(null);
@@ -82,7 +82,7 @@ export default function LiffRegisterPage() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'https://0e675deb45d5.ngrok-free.app'}/api/villages/check/${encodeURIComponent(villageKey)}`
+        `${process.env.NEXT_PUBLIC_API_URL || ''}/api/villages/check/${encodeURIComponent(villageKey)}`
       );
       
       if (response.ok) {
@@ -129,7 +129,6 @@ export default function LiffRegisterPage() {
       errors.push({ field: 'lname', message: 'นามสกุลต้องมีอย่างน้อย 2 ตัวอักษร' });
     }
     
-    // Username is automatically set from LINE displayName, no validation needed
     
     // Phone validation
     if (!formData.phone.trim()) {
@@ -234,6 +233,7 @@ export default function LiffRegisterPage() {
               ...prev,
               username: profile.displayName || '',
               email: '', // Always empty, user must fill
+              profile_image_url: profile.pictureUrl || '',
             }));
           }
         } catch (profileErr) {
@@ -530,7 +530,6 @@ export default function LiffRegisterPage() {
                   )}
                   <div>
                     <p className="text-white font-medium">{lineProfile.displayName}</p>
-                    <p className="text-zinc-400 text-sm">ID: {lineProfile.userId}</p>
                   </div>
                 </div>
               </div>
@@ -580,21 +579,6 @@ export default function LiffRegisterPage() {
                     </p>
                   )}
                 </div>
-              </div>
-
-              <div>
-                <Label htmlFor="username" className="text-zinc-200">ชื่อผู้ใช้ (จาก LINE)</Label>
-                <Input
-                  id="username"
-                  type="text"
-                  value={formData.username}
-                  readOnly
-                  className="bg-zinc-600 text-zinc-300 border-zinc-500 cursor-not-allowed"
-                  placeholder="กำลังโหลดจาก LINE..."
-                />
-                <p className="text-zinc-400 text-xs mt-1">
-                  ชื่อผู้ใช้จะถูกดึงมาจาก LINE โดยอัตโนมัติ
-                </p>
               </div>
 
               <div>

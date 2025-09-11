@@ -135,12 +135,6 @@ export class LiffService {
       const ok = await this.waitForLiff();
       if (!ok) throw new Error("LIFF SDK not loaded yet");
       
-      // Check if we're on Android and add extra delay
-      const isAndroid = /Android/i.test(navigator.userAgent);
-      if (isAndroid) {
-        console.log("🤖 Android detected, adding extra initialization delay");
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
       
       await window.liff.init({
         liffId,
@@ -203,22 +197,6 @@ export class LiffService {
     this.openWindow(uri, false);               // เปิดใน WebView เดิมก่อน
   }
 
-  // ---- Fallback helper: ยิงเข้า LIFF URL ตรง ๆ ----
-  forceOpenLiffDirect(redirectUri?: string): void {
-    const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-    if (!liffId) {
-      console.warn("LIFF ID not configured");
-      return;
-    }
-    const uri = redirectUri ?? (typeof window !== "undefined" ? window.location.href : "/");
-    const url = `https://liff.line.me/${liffId}?redirect_uri=${encodeURIComponent(uri)}`;
-    try {
-      window.location.replace(url);
-    } catch {
-      window.location.href = url;
-    }
-  }
-  // --------------------------------------------------
 
   // --- LIFF APIs ---
   async getProfile(): Promise<LiffProfile> {
@@ -340,7 +318,11 @@ export class LiffService {
 }
 
 // Legacy exports for backward compatibility
-export const LIFF_ID = process.env.NEXT_PUBLIC_LIFF_ID || '2008071362';
+export const LIFF_ID = process.env.NEXT_PUBLIC_LIFF_ID;
+
+if (!LIFF_ID) {
+  throw new Error('NEXT_PUBLIC_LIFF_ID environment variable is required');
+}
 
 export const initLiff = async (): Promise<boolean> => {
   try {
