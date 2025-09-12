@@ -129,8 +129,8 @@ export default function EditHouseDialog({ house, children, onUpdate }: EditHouse
 
         {/* House Info Section */}
         <div className="flex items-center gap-3 py-4 border-b">
-          <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-            <Home className="h-6 w-6 text-blue-600" />
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+            <Home className="h-6 w-6 text-primary" />
           </div>
           <div>
             <div className="font-medium text-foreground">
@@ -239,7 +239,7 @@ export default function EditHouseDialog({ house, children, onUpdate }: EditHouse
               </DialogClose>
               <Button 
                 type="submit" 
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                className="flex-1"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}

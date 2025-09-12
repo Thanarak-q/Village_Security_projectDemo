@@ -11,11 +11,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { CheckCircle, AlertCircle } from "lucide-react";
 
 const profileSchema = z.object({
   email: z.string().min(1, "กรุณากรอกอีเมล").email({ message: "อีเมลไม่ถูกต้อง" }),
@@ -171,9 +174,52 @@ function SettingForm() {
 
   if (isDataLoading) {
     return (
-      <div className="container mx-auto p-6 max-w-6xl">
-        <div className="flex justify-center items-center h-64">
-          <div className="text-lg">Loading admin data...</div>
+      <div className="container mx-auto p-6 max-w-4xl">
+        <div className="space-y-8">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-8 w-48" />
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-14 w-full" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-14 w-full" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-14 w-full" />
+              </div>
+              <Skeleton className="h-14 w-full" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-8 w-40" />
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-14 w-full" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-14 w-full" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-14 w-full" />
+                </div>
+              </div>
+              <Skeleton className="h-14 w-full" />
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -188,13 +234,20 @@ function SettingForm() {
             </CardHeader>
             <CardContent>
               {profileMessage && (
-                <div className={`mb-4 p-4 rounded-md ${
+                <Alert className={`mb-4 ${
                   profileMessage.includes('Error') 
-                    ? 'bg-red-50 text-red-700 border border-red-200' 
-                    : 'bg-green-50 text-green-700 border border-green-200'
+                    ? 'border-destructive text-destructive' 
+                    : 'border-green-500 text-green-700 dark:text-green-400'
                 }`}>
-                  {profileMessage}
-                </div>
+                  {profileMessage.includes('Error') ? (
+                    <AlertCircle className="h-4 w-4" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4" />
+                  )}
+                  <AlertDescription>
+                    {profileMessage}
+                  </AlertDescription>
+                </Alert>
               )}
               <Form {...profileForm}>
                 <form onSubmit={profileForm.handleSubmit(onSubmit)} className="space-y-8">
@@ -258,7 +311,7 @@ function SettingForm() {
                   <div className="pt-6">
                     <Button 
                       type="submit" 
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white h-14 text-base font-medium"
+                      className="w-full h-14 text-base font-medium"
                       disabled={isProfileLoading}
                     >
                       {isProfileLoading ? "Updating..." : "Update Profile"}
@@ -275,13 +328,20 @@ function SettingForm() {
             </CardHeader>
             <CardContent>
               {passwordMessage && (
-                <div className={`mb-4 p-4 rounded-md ${
+                <Alert className={`mb-4 ${
                   passwordMessage.includes('Error') 
-                    ? 'bg-red-50 text-red-700 border border-red-200' 
-                    : 'bg-green-50 text-green-700 border border-green-200'
+                    ? 'border-destructive text-destructive' 
+                    : 'border-green-500 text-green-700 dark:text-green-400'
                 }`}>
-                  {passwordMessage}
-                </div>
+                  {passwordMessage.includes('Error') ? (
+                    <AlertCircle className="h-4 w-4" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4" />
+                  )}
+                  <AlertDescription>
+                    {passwordMessage}
+                  </AlertDescription>
+                </Alert>
               )}
               <Form {...passwordForm}>
                 <form onSubmit={passwordForm.handleSubmit(onSubmitPassword)} className="space-y-8">
@@ -347,7 +407,7 @@ function SettingForm() {
                   <div className="pt-6">
                     <Button 
                       type="submit" 
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white h-14 text-base font-medium"
+                      className="w-full h-14 text-base font-medium"
                       disabled={isPasswordLoading}
                     >
                       {isPasswordLoading ? "Changing..." : "Change Password"}
