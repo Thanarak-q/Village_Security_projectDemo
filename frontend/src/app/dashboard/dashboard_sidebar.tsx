@@ -85,7 +85,7 @@ const AppSidebar = memo(function AppSidebar() {
     <Sidebar className="sticky top-0 h-screen" collapsible="icon">
       <SidebarContent className="flex flex-col h-full">
         <SidebarGroup className="flex-1 min-h-0">
-          <SidebarGroupLabel className="my-2 md:my-3 border-border mb-2 md:mb-3">
+          <SidebarGroupLabel className="my-2 md:my-3 border-border mb-2 md:mb-6.5">
             <div className="flex items-center gap-2 md:gap-3 p-1 md:p-2">
               <div>
                 <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 overflow-hidden relative">

@@ -2,7 +2,6 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { gsap } from "gsap";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import NotificationComponent from "./(main)/notification";
 import { ModeToggle } from "@/components/mode-toggle";
 import { useTheme } from "next-themes";
@@ -252,8 +251,6 @@ function Navbar() {
       <div className="bg-background p-4 flex justify-between items-center border-b border-border h-20">
         {/* ด้านซ้าย - ข้อความ */}
         <div className="flex items-center gap-4">
-          {/* Sidebar Toggle */}
-          <SidebarTrigger className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring" />
           <div className="flex flex-col">
             <div className="flex items-center gap-3">
               {/* Dashboard Title with Spinning Animation */}
@@ -270,7 +267,7 @@ function Navbar() {
                     {userData &&
                       (currentTitleIndex === 0
                         ? "สวัสดีคุณผู้จัดการ"
-                        : `${userData.username} 👋`)}
+                        : `${userData.username} `)}
                   </span>
                 </div>
               ) : (
@@ -292,8 +289,8 @@ function Navbar() {
           {/* User Profile Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                <div className="h-10 w-10 overflow-hidden flex items-center justify-center relative rounded-full">
+              <Button variant="ghost" className="relative h-12 w-12 rounded-md">
+                <div className="h-12 w-12 overflow-hidden flex items-center justify-center relative rounded-md">
                   <Image
                     src={userData?.profileImage || (theme === "dark" ? "/user-white.png" : "/user-dark.png")}
                     alt={
@@ -302,8 +299,8 @@ function Navbar() {
                         : "Profile Picture"
                     }
                     fill
-                    className="object-cover"
-                    sizes="40px"
+                    className="object-contain"
+                    sizes="48px"
                     onError={() => {
                       // Fallback handled by src prop
                     }}
