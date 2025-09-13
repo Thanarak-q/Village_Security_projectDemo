@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { LiffService } from '@/lib/liff';
 
 interface LineProfile {
@@ -31,7 +31,7 @@ export const useLiff = (): UseLiffReturn => {
 
   const svc = LiffService.getInstance();
 
-  const initializeLiff = async () => {
+  const initializeLiff = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -56,7 +56,7 @@ export const useLiff = (): UseLiffReturn => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [svc]);
 
   const login = () => {
     if (isInitialized) {
@@ -92,7 +92,7 @@ export const useLiff = (): UseLiffReturn => {
 
   useEffect(() => {
     initializeLiff();
-  }, []);
+  }, [initializeLiff]);
 
   return {
     isInitialized,

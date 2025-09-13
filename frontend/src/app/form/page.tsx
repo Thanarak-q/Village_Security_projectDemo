@@ -29,7 +29,7 @@ const SecurityFormPage: React.FC = () => {
             } else {
                 setResult('ไม่พบ House ID ที่ตรงกับทะเบียนนี้');
             }
-        } catch (err) {
+        } catch {
             setResult('เกิดข้อผิดพลาดในการค้นหา');
         } finally {
             setLoading(false);
@@ -50,7 +50,7 @@ const SecurityFormPage: React.FC = () => {
             } else {
                 setResult('แจ้งเตือนล้มเหลว ลองใหม่อีกครั้ง');
             }
-        } catch (err) {
+        } catch {
             setResult('เกิดข้อผิดพลาดในการแจ้งเตือน');
         }
     };

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Bell, User, FileEdit, Trash2, Plus, Settings, Shield  } from "lucide-react"
+import { Bell, User, Shield  } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
