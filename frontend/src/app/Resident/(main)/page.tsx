@@ -236,25 +236,38 @@ const ResidentPage = () => {
   const { profile, loading: liffLoading, error: liffError } = liffData;
   const lineUserId = profile?.userId;
   
-  // Test resident ID for development/testing
-  const TEST_RESIDENT_ID = "Ue529194c37fd43a24cf96d8648299d90";
+  // Test LINE user ID for development/testing
+  const TEST_LINE_USER_ID = "Ue529194c37fd43a24cf96d8648299d90";
 
   // Fetch data on component mount
   useEffect(() => {
     const loadData = async () => {
+      console.log("🔄 Starting data load...", {
+        liffLoading,
+        lineUserId,
+        TEST_LINE_USER_ID
+      });
+      
       // Wait for LIFF to load
       if (liffLoading) {
+        console.log("⏳ Waiting for LIFF to load...");
         return;
       }
 
       try {
         setLoading(true);
         setError(null);
+        console.log("🚀 Starting API calls...");
+        
+        // Test backend connection first
+        console.log("🔍 Testing backend connection...");
+        const healthResponse = await fetch('http://localhost:3001/api/health');
+        console.log("🏥 Backend health check:", healthResponse.status);
         
         let pendingData: ApiVisitorRequest[] = [];
         let historyData: ApiVisitorRequest[] = [];
         
-        // Try to use LINE ID first, fallback to test resident ID
+        // Try to use LINE ID first, fallback to test LINE user ID
         if (lineUserId && lineUserId !== "unknown") {
           console.log("Using LINE ID:", lineUserId);
           // Fetch pending requests and history in parallel using LINE ID
@@ -263,13 +276,21 @@ const ResidentPage = () => {
             fetchVisitorHistoryByLineId(lineUserId)
           ]);
         } else {
-          console.log("LINE ID not available, using test resident ID:", TEST_RESIDENT_ID);
-          // Use test resident ID directly
+          console.log("LINE ID not available, using test LINE user ID:", TEST_LINE_USER_ID);
+          // Use test LINE user ID directly
           [pendingData, historyData] = await Promise.all([
-            fetchPendingRequests(TEST_RESIDENT_ID),
-            fetchVisitorHistory(TEST_RESIDENT_ID)
+            fetchPendingRequestsByLineId(TEST_LINE_USER_ID),
+            fetchVisitorHistoryByLineId(TEST_LINE_USER_ID)
           ]);
         }
+
+        // Debug: Log raw data before transformation
+        console.log("Raw API data:", {
+          pendingData: pendingData,
+          historyData: historyData,
+          pendingCount: pendingData?.length || 0,
+          historyCount: historyData?.length || 0
+        });
 
         // Transform API data to component format
         const transformedPending = pendingData.map(transformApiData);
@@ -278,9 +299,10 @@ const ResidentPage = () => {
         setPendingRequests(transformedPending);
         setHistory(transformedHistory);
         
-        console.log("Loaded data:", { 
+        console.log("Transformed data:", { 
           pending: transformedPending.length, 
-          history: transformedHistory.length 
+          history: transformedHistory.length,
+          historyItems: transformedHistory
         });
       } catch (err) {
         console.error('Error loading visitor data:', err);
@@ -311,7 +333,7 @@ const ResidentPage = () => {
     };
 
     loadData();
-  }, [lineUserId, liffLoading, TEST_RESIDENT_ID]);
+  }, [lineUserId, liffLoading, TEST_LINE_USER_ID]);
 
   const handleApprove = async (id: string) => {
     const request = pendingRequests.find((req) => req.id === id);
@@ -392,7 +414,7 @@ const ResidentPage = () => {
             </p>
             {(!lineUserId || lineUserId === "unknown") && (
               <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                🧪 โหมดทดสอบ: ใช้ Resident ID {TEST_RESIDENT_ID.slice(0, 8)}...
+                🧪 โหมดทดสอบ: ใช้ LINE ID {TEST_LINE_USER_ID.slice(0, 8)}...
               </p>
             )}
           </div>

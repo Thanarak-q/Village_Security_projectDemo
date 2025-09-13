@@ -224,6 +224,20 @@ export async function getVisitorRecordsByStatus(
  * @returns {Promise<Array<Object>>} A promise that resolves to an array of visitor records for the resident.
  */
 export async function getVisitorRecordsByLineId(lineUserId: string) {
+  console.log(`🔍 Querying visitor records for LINE user ID: ${lineUserId}`);
+  
+  // First, check if the resident exists
+  const resident = await db.query.residents.findFirst({
+    where: eq(residents.line_user_id, lineUserId),
+  });
+  
+  if (!resident) {
+    console.log(`❌ No resident found for LINE user ID: ${lineUserId}`);
+    return [];
+  }
+  
+  console.log(`✅ Found resident: ${resident.resident_id} (${resident.fname} ${resident.lname})`);
+  
   const result = await db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
@@ -250,6 +264,7 @@ export async function getVisitorRecordsByLineId(lineUserId: string) {
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
     .where(eq(residents.line_user_id, lineUserId));
 
+  console.log(`📊 Found ${result.length} visitor records for resident ${resident.resident_id}`);
   return result;
 }
 

@@ -546,11 +546,17 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
+      console.log(`🔍 Fetching visitor records for LINE user ID: ${line_user_id}`);
       const result = await getVisitorRecordsByLineId(line_user_id);
+      console.log(`📊 Total records found: ${result.length}`);
+      console.log(`📋 Record statuses:`, result.map(r => r.record_status));
+      
       // Filter only approved and rejected requests
       const history = result.filter(record => 
         record.record_status === 'approved' || record.record_status === 'rejected'
       );
+      
+      console.log(`✅ History records after filtering: ${history.length}`);
       
       return {
         success: true,

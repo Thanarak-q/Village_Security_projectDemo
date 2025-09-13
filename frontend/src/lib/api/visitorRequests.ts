@@ -142,20 +142,29 @@ export async function fetchVisitorHistory(residentId: string): Promise<VisitorRe
  */
 export async function fetchPendingRequestsByLineId(lineUserId: string): Promise<VisitorRequest[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/visitor-requests/pending/line/${lineUserId}`, {
+    const url = `${API_BASE_URL}/api/visitor-requests/pending/line/${lineUserId}`;
+    console.log(`🔍 Fetching pending requests from: ${url}`);
+    
+    const response = await fetch(url, {
       credentials: 'include',
     });
 
+    console.log(`📊 Response status: ${response.status}`);
+    
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`❌ HTTP error response:`, errorText);
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
     }
 
     const result: ApiResponse<VisitorRequest[]> = await response.json();
+    console.log(`📦 API response:`, result);
     
     if (!result.success) {
       throw new Error(result.error || 'Failed to fetch pending requests');
     }
 
+    console.log(`✅ Pending requests count: ${result.data?.length || 0}`);
     return result.data || [];
   } catch (error) {
     console.error('Error fetching pending requests by LINE ID:', error);
@@ -168,20 +177,29 @@ export async function fetchPendingRequestsByLineId(lineUserId: string): Promise<
  */
 export async function fetchVisitorHistoryByLineId(lineUserId: string): Promise<VisitorRequest[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/visitor-requests/history/line/${lineUserId}`, {
+    const url = `${API_BASE_URL}/api/visitor-requests/history/line/${lineUserId}`;
+    console.log(`🔍 Fetching history from: ${url}`);
+    
+    const response = await fetch(url, {
       credentials: 'include',
     });
 
+    console.log(`📊 Response status: ${response.status}`);
+    
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`❌ HTTP error response:`, errorText);
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
     }
 
     const result: ApiResponse<VisitorRequest[]> = await response.json();
+    console.log(`📦 API response:`, result);
     
     if (!result.success) {
       throw new Error(result.error || 'Failed to fetch history');
     }
 
+    console.log(`✅ History count: ${result.data?.length || 0}`);
     return result.data || [];
   } catch (error) {
     console.error('Error fetching visitor history by LINE ID:', error);
