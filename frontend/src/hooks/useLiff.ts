@@ -1,15 +1,7 @@
-/**
- * LINE LIFF hook for authentication and user profile
- */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { LiffService } from '@/lib/liff';
 
-declare global {
-  interface Window {
-    liff: any;
-  }
-}
-
-interface LiffProfile {
+interface LineProfile {
   userId: string;
   displayName: string;
   pictureUrl?: string;
@@ -21,43 +13,34 @@ export function useLiff() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const initLiff = async () => {
-      try {
-        // Check if LIFF SDK is loaded
-        if (typeof window !== 'undefined' && window.liff) {
-          // Initialize LIFF
-          await window.liff.init({
-            liffId: process.env.NEXT_PUBLIC_LIFF_ID || ''
-          });
+  const svc = LiffService.getInstance();
 
-          // Check if user is logged in
-          if (window.liff.isLoggedIn()) {
-            // Get user profile
-            const userProfile = await window.liff.getProfile();
-            setProfile(userProfile);
-          } else {
-            // Redirect to LINE login
-            window.liff.login();
-          }
-        } else {
-          // Load LIFF SDK
-          const script = document.createElement('script');
-          script.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js';
-          script.onload = () => {
-            // Retry initialization after SDK loads
-            initLiff();
-          };
-          document.head.appendChild(script);
-          return;
+  const initializeLiff = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      await svc.init();
+      setIsInitialized(true);
+      setIsInLine(svc.isInClient());
+      setIsLoggedInState(svc.isLoggedIn());
+
+      if (svc.isLoggedIn()) {
+        const lineProfile = await svc.getProfile();
+        const token = svc.getIDToken();
+        
+        if (lineProfile.userId !== "unknown") {
+          setProfile(lineProfile);
         }
-      } catch (err) {
-        console.error('LIFF initialization failed:', err);
-        setError('ไม่สามารถเชื่อมต่อ LINE ได้');
-      } finally {
-        setLoading(false);
+        setIdToken(token);
       }
-    };
+    } catch (err) {
+      console.error('LIFF initialization error:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  }, [svc]);
 
     initLiff();
   }, []);
@@ -69,5 +52,37 @@ export function useLiff() {
     }
   };
 
-  return { profile, loading, error, logout };
-}
+  const refreshProfile = async () => {
+    if (isInitialized && svc.isLoggedIn()) {
+      try {
+        const lineProfile = await svc.getProfile();
+        const token = svc.getIDToken();
+        
+        if (lineProfile.userId !== "unknown") {
+          setProfile(lineProfile);
+        }
+        setIdToken(token);
+      } catch (err) {
+        console.error('Failed to refresh profile:', err);
+        setError(err instanceof Error ? err.message : 'Failed to refresh profile');
+      }
+    }
+  };
+
+  useEffect(() => {
+    initializeLiff();
+  }, [initializeLiff]);
+
+  return {
+    isInitialized,
+    isLoggedIn: isLoggedInState,
+    profile,
+    idToken,
+    isInLine,
+    loading,
+    error,
+    login,
+    logout,
+    refreshProfile,
+  };
+};

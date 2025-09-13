@@ -2,19 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useState, useRef, useLayoutEffect, useEffect } from "react";
-import { Car, Home, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState } from "react";
+import { Car, Clock } from "lucide-react";
 import NotificationComponent from "./notification";
-import gsap from "gsap";
-import { ModeToggle } from "@/components/mode-toggle";
-import { 
-  fetchPendingRequestsByLineId, 
-  approveVisitorRequest, 
-  denyVisitorRequest, 
-  fetchVisitorHistoryByLineId,
-  type VisitorRequest as ApiVisitorRequest 
-} from "@/lib/api/visitorRequests";
-import { useLiff } from "@/hooks/useLiff";
 
 interface VisitorRequest {
   id: string;
