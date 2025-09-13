@@ -177,10 +177,7 @@ export default function ResidentRegisterPage() {
         storeAuthData(result.user, result.token);
         setSuccess(true);
         
-        // Redirect after 2 seconds
-        setTimeout(() => {
-          router.push('/Resident');
-        }, 2000);
+        // Show success message - no redirect needed
       } else {
         console.error('❌ Registration failed:', result);
         setError(result.error || 'การลงทะเบียนล้มเหลว กรุณาลองใหม่');
@@ -211,8 +208,11 @@ export default function ResidentRegisterPage() {
           <CardContent className="p-6 text-center">
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">ลงทะเบียนสำเร็จ!</h2>
-            <p className="text-zinc-300 mb-4">กำลังพาไปหน้าหลัก...</p>
-            <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+            <p className="text-zinc-300 mb-4">คุณสามารถปิดหน้านี้และกลับไปใช้แอป LINE ได้แล้ว</p>
+            <div className="bg-green-900/20 rounded-xl p-4 mb-4 text-sm border border-green-500/30">
+              <p className="font-semibold text-green-200">ลูกบ้าน</p>
+              <p className="text-xs text-green-300 mt-1">การลงทะเบียนเสร็จสิ้น</p>
+            </div>
           </CardContent>
         </Card>
       </div>
