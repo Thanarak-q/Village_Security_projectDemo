@@ -15,9 +15,8 @@ export default function ResidentLiffPage() {
   const [step, setStep] = useState<Step>("init");
   const [msg, setMsg] = useState("กำลังเตรียม LIFF สำหรับผู้อยู่อาศัย...");
   const [user, setUser] = useState<{ name?: string; id?: string }>({});
-  const [submitting, setSubmitting] = useState(false);
-  const [idToken, setIdToken] = useState<string | null>(null);
-  const [lineProfile, setLineProfile] = useState<any>(null);
+  const [, setIdToken] = useState<string | null>(null);
+  const [, setLineProfile] = useState<{ userId?: string; displayName?: string; pictureUrl?: string } | null>(null);
 
   useEffect(() => {
     const run = async () => {
@@ -87,16 +86,27 @@ export default function ResidentLiffPage() {
           setIdToken(idToken);
           try {
             console.log('🔍 Verifying resident with backend...');
-            const authResult = await verifyLiffToken(idToken);
+            const authResult = await verifyLiffToken(idToken, 'resident');
             console.log('🔍 Auth result:', authResult);
             
             if (authResult.success && authResult.user && authResult.token) {
-              // User exists in database, store auth data and redirect
-              console.log('✅ Resident found in database, redirecting to Resident page');
+              // User exists in database, store auth data and show success
+              console.log('✅ Resident found in database, showing success message');
               storeAuthData(authResult.user, authResult.token);
               setStep("ready");
-              setMsg("เข้าสู่ระบบสำเร็จ กำลังพาไปหน้าหลัก...");
-              setTimeout(() => router.replace("/Resident"), 1000);
+              setMsg("ลงทะเบียนสำเร็จ! คุณสามารถปิดหน้านี้ได้แล้ว");
+            } else if (authResult.expectedRole) {
+              // User is already registered but using wrong LIFF app
+              console.log('⚠️ User already registered as', authResult.expectedRole, 'but using resident LIFF');
+              setStep("ready");
+              setMsg(`คุณได้ลงทะเบียนเป็น${authResult.expectedRole === 'resident' ? 'ลูกบ้าน' : 'ยามรักษาความปลอดภัย'}แล้ว กรุณาใช้แอปที่ถูกต้อง`);
+              setTimeout(() => {
+                if (authResult.expectedRole === 'resident') {
+                  router.push('/liff/resident');
+                } else {
+                  router.push('/liff/guard');
+                }
+              }, 3000);
             } else if (authResult.lineUserId) {
               // User not found, redirect to register page
               console.log('📝 Resident not found in database, redirecting to register page');
@@ -117,7 +127,8 @@ export default function ResidentLiffPage() {
             setMsg("เกิดข้อผิดพลาดในการยืนยันตัวตน");
           }
         } else {
-          setTimeout(() => router.replace("/"), 1000);
+          setStep("error");
+          setMsg("ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่");
         }
       } catch (e) {
         console.error("LIFF initialization error:", e);
@@ -153,18 +164,25 @@ export default function ResidentLiffPage() {
             </>
           ) : step === "ready" ? (
             <>
-              <CheckCircle2 className="w-12 h-12 text-green-400" />
-              <p className="text-green-300 font-medium">{msg}</p>
-              <div className="bg-black/40 rounded-xl p-4 mt-3 text-sm w-full border border-white/10">
-                <p className="font-semibold">{user.name}</p>
-                <p className="text-xs text-gray-400 break-all">{user.id}</p>
-              </div>
-              <button
-                onClick={handleRetry}
-                className="mt-4 text-gray-400 hover:text-gray-300 text-sm underline"
-              >
-                เปลี่ยนบัญชี LINE
-              </button>
+              {msg.includes('คุณได้ลงทะเบียนเป็น') ? (
+                <>
+                  <XCircle className="w-12 h-12 text-yellow-400" />
+                  <p className="text-yellow-300 font-medium text-center">{msg}</p>
+                  <div className="bg-yellow-900/20 rounded-xl p-4 mt-3 text-sm w-full border border-yellow-500/30">
+                    <p className="font-semibold text-yellow-200">กำลังเปลี่ยนไปยังแอปที่ถูกต้อง...</p>
+                    <p className="text-xs text-yellow-300 mt-1">กรุณารอสักครู่</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-12 h-12 text-green-400" />
+                  <p className="text-green-300 font-medium text-center">{msg}</p>
+                  <div className="bg-green-900/20 rounded-xl p-4 mt-3 text-sm w-full border border-green-500/30">
+                    <p className="font-semibold text-green-200">ลูกบ้าน</p>
+                    <p className="text-xs text-green-300 mt-1">คุณสามารถปิดหน้านี้และกลับไปใช้แอป LINE ได้แล้ว</p>
+                  </div>
+                </>
+              )}
             </>
           ) : step === "denied" ? (
             <>

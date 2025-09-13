@@ -1,5 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,6 +12,14 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -19,6 +30,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Edit, Home, Shield } from "lucide-react";
+
+// Zod validation schema
+const userEditFormSchema = z.object({
+  status: z.string().min(1, "กรุณาเลือกสถานะ"),
+  role: z.string().min(1, "กรุณาเลือกบทบาท"),
+  houseNumber: z.string().optional(),
+  notes: z.string().optional(),
+}).refine((data) => {
+  // If role is 'resident', house number is required
+  if (data.role === 'resident') {
+    return data.houseNumber && data.houseNumber.trim().length > 0;
+  }
+  return true;
+}, {
+  message: "กรุณาระบุบ้านเลขที่สำหรับลูกบ้าน",
+  path: ["houseNumber"],
+});
+
+type UserEditFormData = z.infer<typeof userEditFormSchema>;
 
 interface User {
   id: string;
@@ -34,13 +64,6 @@ interface User {
   shift?: string;
 }
 
-interface UserEditFormData {
-  status: string;
-  role: string;
-  houseNumber: string;
-  notes: string;
-}
-
 interface UserEditFormProps {
   user: User | null;
   isOpen: boolean;
@@ -49,30 +72,31 @@ interface UserEditFormProps {
 }
 
 export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEditFormProps) {
-  const [formData, setFormData] = useState<UserEditFormData>({
-    status: "",
-    role: "",
-    houseNumber: "",
-    notes: ""
+  const form = useForm<UserEditFormData>({
+    resolver: zodResolver(userEditFormSchema),
+    defaultValues: {
+      status: "",
+      role: "",
+      houseNumber: "",
+      notes: ""
+    }
   });
 
   useEffect(() => {
     if (user) {
-      setFormData({
+      form.reset({
         status: user.status,
         role: user.role,
         houseNumber: user.houseNumber || "",
         notes: ""
       });
     }
-  }, [user]);
+  }, [user, form]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSubmit = async (data: UserEditFormData) => {
     if (!user) return;
 
-    const roleChanged = user.role !== formData.role;
+    const roleChanged = user.role !== data.role;
 
     try {
       const apiEndpoint = roleChanged ? '/api/changeUserRole' : '/api/updateUser';
@@ -80,17 +104,17 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
         ? {
             userId: user.id,
             currentRole: user.role as 'resident' | 'guard',
-            newRole: formData.role as 'resident' | 'guard',
-            status: formData.status,
-            houseNumber: formData.role === 'resident' ? formData.houseNumber : undefined,
-            notes: formData.notes
+            newRole: data.role as 'resident' | 'guard',
+            status: data.status,
+            houseNumber: data.role === 'resident' ? data.houseNumber : undefined,
+            notes: data.notes
           }
         : {
             userId: user.id,
-            role: formData.role,
-            status: formData.status,
-            houseNumber: formData.role === 'resident' ? formData.houseNumber : undefined,
-            notes: formData.notes
+            role: data.role,
+            status: data.status,
+            houseNumber: data.role === 'resident' ? data.houseNumber : undefined,
+            notes: data.notes
           };
 
       const response = await fetch(apiEndpoint, {
@@ -106,7 +130,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
       if (result.success) {
         console.log(roleChanged ? 'User role changed successfully:' : 'User updated successfully:', result);
         alert(roleChanged ? 'เปลี่ยนบทบาทผู้ใช้สำเร็จแล้ว!' : 'อัปเดตข้อมูลผู้ใช้สำเร็จแล้ว!');
-        onSubmit(formData);
+        onSubmit(data);
       } else {
         console.error('Failed to update user:', result.error);
         alert(`Failed to ${roleChanged ? 'change user role' : 'update user'}: ${result.error}`);
@@ -177,91 +201,121 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-          {/* Status Field */}
-          <div>
-            <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-2">
-              สถานะ
-            </label>
-            <Select
-              value={formData.status}
-              onValueChange={(value) => setFormData({ ...formData, status: value })}
-            >
-              <SelectTrigger className="text-sm">
-                <SelectValue placeholder="เลือกสถานะ" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="verified">ยืนยันแล้ว</SelectItem>
-                <SelectItem value="disable">ระงับการใช้งาน</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Role Field */}
-          <div>
-            <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-2">
-              บทบาท
-            </label>
-            <Select
-              value={formData.role}
-              onValueChange={(value) => setFormData({ ...formData, role: value })}
-            >
-              <SelectTrigger className="text-sm">
-                <SelectValue placeholder="เลือกบทบาท" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="resident">ลูกบ้าน</SelectItem>
-                <SelectItem value="guard">ยาม</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* House Number Field (for residents only) */}
-          {formData.role === 'resident' && (
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-2">
-                บ้านเลขที่
-              </label>
-              <Input
-                value={formData.houseNumber}
-                onChange={(e) => setFormData({ ...formData, houseNumber: e.target.value })}
-                placeholder="เช่น 88/123"
-                className="text-sm"
-              />
-            </div>
-          )}
-
-          {/* Notes Field */}
-          <div>
-            <label className="block text-xs sm:text-sm font-medium text-foreground mb-1 sm:mb-2">
-              หมายเหตุ (ไม่บังคับ)
-            </label>
-            <Textarea
-              placeholder="เพิ่มหมายเหตุหรือข้อมูลเพิ่มเติม..."
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              rows={3}
-              className="text-sm"
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3 sm:space-y-4">
+            {/* Status Field */}
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs sm:text-sm font-medium text-foreground">
+                    สถานะ
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="text-sm">
+                        <SelectValue placeholder="เลือกสถานะ" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="verified">ยืนยันแล้ว</SelectItem>
+                      <SelectItem value="disable">ระงับการใช้งาน</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          {/* Form Actions */}
-          <DialogFooter className="flex gap-2 sm:gap-3 pt-4 sm:pt-6">
-            <DialogClose asChild>
-              <Button type="button" variant="outline" className="flex-1 text-xs sm:text-sm">
-                ยกเลิก
+            {/* Role Field */}
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs sm:text-sm font-medium text-foreground">
+                    บทบาท
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="text-sm">
+                        <SelectValue placeholder="เลือกบทบาท" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="resident">ลูกบ้าน</SelectItem>
+                      <SelectItem value="guard">ยาม</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* House Number Field (for residents only) */}
+            {form.watch("role") === 'resident' && (
+              <FormField
+                control={form.control}
+                name="houseNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs sm:text-sm font-medium text-foreground">
+                      บ้านเลขที่
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="เช่น 88/123"
+                        className="text-sm"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Notes Field */}
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs sm:text-sm font-medium text-foreground">
+                    หมายเหตุ (ไม่บังคับ)
+                  </FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="เพิ่มหมายเหตุหรือข้อมูลเพิ่มเติม..."
+                      rows={3}
+                      className="text-sm"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Form Actions */}
+            <DialogFooter className="flex gap-2 sm:gap-3 pt-4 sm:pt-6">
+              <DialogClose asChild>
+                <Button type="button" variant="outline" className="flex-1 text-xs sm:text-sm">
+                  ยกเลิก
+                </Button>
+              </DialogClose>
+              <Button
+                type="submit"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm"
+              >
+                <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">บันทึกการเปลี่ยนแปลง</span>
+                <span className="sm:hidden">บันทึก</span>
               </Button>
-            </DialogClose>
-            <Button
-              type="submit"
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm"
-            >
-              <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">บันทึกการเปลี่ยนแปลง</span>
-              <span className="sm:hidden">บันทึก</span>
-            </Button>
-          </DialogFooter>
-        </form>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

@@ -99,12 +99,14 @@ interface PendingUsersDialogProps {
   children?: React.ReactNode;
   onRefresh?: () => void;
   isOpen?: boolean;
+  pendingCount?: number;
 }
 
 export default function PendingUsersDialog({
   children,
   onRefresh,
   isOpen,
+  pendingCount = 0,
 }: PendingUsersDialogProps) {
   // State for API data
   const [residentsData, setResidentsData] = useState<PendingResident[]>([]);
@@ -351,9 +353,17 @@ export default function PendingUsersDialog({
     <Popover open={dialogOpen} onOpenChange={setDialogOpen}>
       <PopoverTrigger asChild>
         {children || (
-          <Button className="flex items-center gap-2">
+          <Button className="flex items-center gap-2 relative">
             <UserPlus className="h-4 w-4" />
             ผู้ใช้รออนุมัติ
+            {pendingCount > 0 && (
+              <Badge 
+                variant="destructive" 
+                className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs font-bold"
+              >
+                {pendingCount}
+              </Badge>
+            )}
           </Button>
         )}
       </PopoverTrigger>

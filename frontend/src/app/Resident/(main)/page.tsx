@@ -2,10 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useState, useEffect } from "react";
-import { Bell, Car, Home, Settings, Clock } from "lucide-react";
+import { useState } from "react";
+import { Car, Clock } from "lucide-react";
 import NotificationComponent from "./notification";
-import { set } from "zod";
 
 interface VisitorRequest {
   id: string;

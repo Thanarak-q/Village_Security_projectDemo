@@ -5,6 +5,11 @@
  * by ensuring that the authenticated user has the necessary role(s) to access them.
  * It performs comprehensive security checks, including token validation, payload verification,
  * token age checks, and user account status verification.
+ * 
+ * Role Hierarchy:
+ * - superadmin: เจ้าของ SE (SE Owner) - Full system access
+ * - admin: เจ้าของโครงการ (Project Owner) - Project management access
+ * - staff: นิติ (Legal Staff) - Read-only access to reports and data
  */
 
 import db from "../db/drizzle";

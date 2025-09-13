@@ -35,6 +35,7 @@ interface RejectUserRequest {
 
 /**
  * The pending users routes.
+ * Accessible by: admin (เจ้าของโครงการ), staff (นิติ)
  * @type {Elysia}
  */
 export const pendingUsersRoutes = new Elysia({ prefix: "/api" })

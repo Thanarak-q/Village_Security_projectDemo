@@ -196,6 +196,7 @@ async function createHouseForResident(
 
 /**
  * The user table routes.
+ * Accessible by: admin (เจ้าของโครงการ) only
  * @type {Elysia}
  */
 export const userTableRoutes = new Elysia({ prefix: "/api" })

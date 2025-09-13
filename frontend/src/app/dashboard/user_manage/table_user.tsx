@@ -116,6 +116,9 @@ export default function UserManagementTable() {
   
   // State สำหรับการ refresh ข้อมูล
   const [refreshing, setRefreshing] = useState(false);
+  
+  // State สำหรับเก็บจำนวนผู้ใช้ที่รออนุมัติ
+  const [pendingCount, setPendingCount] = useState(0);
 
   // Fetch data from API
   const fetchUsers = async (isRefresh = false) => {
@@ -149,8 +152,27 @@ export default function UserManagementTable() {
     }
   };
 
+  // Fetch pending users count
+  const fetchPendingCount = async () => {
+    try {
+      const response = await fetch("/api/pendingUsers");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setPendingCount(data.total.total);
+      }
+    } catch (err) {
+      console.error("Error fetching pending count:", err);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchPendingCount();
   }, []);
 
   // Function to handle edit button click
@@ -318,7 +340,13 @@ export default function UserManagementTable() {
           {/* User type tabs and pending users button */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
             {/* Pending Users Button */}
-            <PendingUsersDialog onRefresh={() => fetchUsers(true)} />
+            <PendingUsersDialog 
+              onRefresh={() => {
+                fetchUsers(true);
+                fetchPendingCount();
+              }}
+              pendingCount={pendingCount}
+            />
             {/* Residents tab */}
             <button
               onClick={() => setActiveTab('residents')}
