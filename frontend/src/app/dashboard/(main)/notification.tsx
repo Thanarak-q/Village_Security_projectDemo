@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Bell, User, FileEdit, Trash2, Plus, Settings } from "lucide-react"
+import { Bell, Users, Home, Clock, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -12,74 +12,129 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 
-// ข้อมูลตัวอย่าง notifications
+// ข้อมูลตัวอย่าง notifications สำหรับ admin
 const mockNotifications = [
+  // ประเภทที่ 1: การแจ้งเตือนผู้ใช้ใหม่รออนุมัติ
   {
     id: 1,
-    type: "edit",
-    icon: FileEdit,
-    title: "แก้ไขข้อมูลผู้อยู่อาศัย",
-    description: "แก้ไขข้อมูลนาย สมชาย ใจดี บ้านเลขที่ 123",
+    type: "new_user",
+    icon: Users,
+    title: "ผู้ใช้ใหม่รออนุมัติ",
+    description: "นาย สมชาย ใจดี (Resident) สมัครเข้าหมู่บ้านบ้านสวนสุข",
     time: "5 นาทีที่แล้ว",
-    admin: "ผู้จัดการ A",
+    village: "บ้านสวนสุข",
+    priority: "high",
     isRead: false
   },
   {
     id: 2,
-    type: "delete",
-    icon: Trash2,
-    title: "ลบข้อมูลครัวเรือน",
-    description: "ลบข้อมูลครัวเรือนบ้านเลขที่ 456",
+    type: "new_user",
+    icon: Users,
+    title: "ผู้ใช้ใหม่รออนุมัติ",
+    description: "นาย ก. วิศวกรรม (Guard) สมัครเข้าหมู่บ้านบ้านสวนสุข",
     time: "15 นาทีที่แล้ว",
-    admin: "ผู้จัดการ B",
+    village: "บ้านสวนสุข",
+    priority: "high",
     isRead: false
   },
   {
     id: 3,
-    type: "add",
-    icon: Plus,
-    title: "เพิ่มสมาชิกใหม่",
-    description: "เพิ่มสมาชิกใหม่ นางสาวมาลี สุขใส",
+    type: "new_user",
+    icon: Users,
+    title: "ผู้ใช้ใหม่รออนุมัติ",
+    description: "นางสาวมาลี สุขใส (Resident) สมัครเข้าหมู่บ้านบ้านสวนสุข",
     time: "30 นาทีที่แล้ว",
-    admin: "ผู้จัดการ A",
+    village: "บ้านสวนสุข",
+    priority: "high",
     isRead: true
   },
+
+  // ประเภทที่ 2: การแจ้งเตือนการเปลี่ยนแปลงข้อมูลบ้าน
   {
     id: 4,
-    type: "settings",
-    icon: Settings,
-    title: "เปลี่ยนแปลงการตั้งค่า",
-    description: "อัพเดทการตั้งค่าระบบความปลอดภัย",
+    type: "house_change",
+    icon: Home,
+    title: "แก้ไขข้อมูลบ้าน",
+    description: "แก้ไขที่อยู่บ้านเลขที่ 123/45 ซอยสุขุมวิท",
     time: "1 ชั่วโมงที่แล้ว",
-    admin: "ผู้จัดการ C",
-    isRead: true
+    village: "บ้านสวนสุข",
+    priority: "medium",
+    isRead: false
   },
   {
     id: 5,
-    type: "edit",
-    icon: FileEdit,
-    title: "แก้ไขข้อมูลที่อยู่",
-    description: "แก้ไขที่อยู่บ้านเลขที่ 789 ซอยสุขุมวิท",
+    type: "house_change",
+    icon: Home,
+    title: "เพิ่มสมาชิกบ้าน",
+    description: "เพิ่มสมาชิกใหม่เข้าบ้านเลขที่ 456/78",
     time: "2 ชั่วโมงที่แล้ว",
-    admin: "ผู้จัดการ B",
+    village: "บ้านสวนสุข",
+    priority: "medium",
+    isRead: true
+  },
+  {
+    id: 6,
+    type: "house_change",
+    icon: Home,
+    title: "เปลี่ยนสถานะบ้าน",
+    description: "เปลี่ยนสถานะบ้านเลขที่ 789/90 เป็น 'occupied'",
+    time: "3 ชั่วโมงที่แล้ว",
+    village: "บ้านสวนสุข",
+    priority: "medium",
+    isRead: true
+  },
+
+  // ประเภทที่ 3: การแจ้งเตือน visitor records ที่ต้องตรวจสอบ
+  {
+    id: 7,
+    type: "visitor_pending",
+    icon: Clock,
+    title: "Visitor รออนุมัตินาน",
+    description: "นาย ข. เยี่ยมบ้านเลขที่ 123/45 รอมาแล้ว 2 ชั่วโมง 30 นาที",
+    time: "10 นาทีที่แล้ว",
+    village: "บ้านสวนสุข",
+    priority: "high",
+    isRead: false
+  },
+  {
+    id: 8,
+    type: "visitor_rejected",
+    icon: AlertTriangle,
+    title: "Visitor ถูกปฏิเสธ",
+    description: "นาง ค. เยี่ยมบ้านเลขที่ 456/78 ถูกปฏิเสธ - ต้องการทบทวน",
+    time: "45 นาทีที่แล้ว",
+    village: "บ้านสวนสุข",
+    priority: "high",
+    isRead: false
+  },
+  {
+    id: 9,
+    type: "visitor_pending",
+    icon: Clock,
+    title: "Visitor รออนุมัตินาน",
+    description: "นาย ง. เยี่ยมบ้านเลขที่ 789/90 รอมาแล้ว 1 ชั่วโมง 45 นาที",
+    time: "1 ชั่วโมงที่แล้ว",
+    village: "บ้านสวนสุข",
+    priority: "high",
     isRead: true
   }
 ]
 
 const getIconColor = (type: string) => {
   switch (type) {
-    case "edit":
+    case "new_user":
       return "text-blue-500"
-    case "delete":
-      return "text-red-500"
-    case "add":
+    case "house_change":
       return "text-green-500"
-    case "settings":
+    case "visitor_pending":
       return "text-orange-500"
+    case "visitor_rejected":
+      return "text-red-500"
     default:
       return "text-muted-foreground"
   }
 }
+
 
 export default function NotificationComponent() {
   const [notifications, setNotifications] = useState(mockNotifications)
@@ -122,9 +177,9 @@ export default function NotificationComponent() {
       
       <PopoverContent className="w-80 sm:w-96 p-0" align="end">
         <div className="p-3 sm:p-4 border-b">
-          <h3 className="font-semibold text-base sm:text-lg">แจ้งเตือน</h3>
+          <h3 className="font-semibold text-base sm:text-lg">แจ้งเตือน Admin</h3>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            การกระทำล่าสุดของระบบ
+            การแจ้งเตือนสำหรับผู้ดูแลระบบ
           </p>
         </div>
         
@@ -160,9 +215,9 @@ export default function NotificationComponent() {
                         
                         <div className="flex items-center justify-between mt-1 sm:mt-2 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
-                            <User className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                            <span className="hidden sm:inline">{notification.admin}</span>
-                            <span className="sm:hidden">{notification.admin.split(' ')[0]}</span>
+                            <Home className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                            <span className="hidden sm:inline">{notification.village}</span>
+                            <span className="sm:hidden">{notification.village.split(' ')[0]}</span>
                           </span>
                           <span className="text-xs">{notification.time}</span>
                         </div>

@@ -112,13 +112,14 @@ const AppSidebar = memo(function AppSidebar() {
           <SidebarGroupContent className="border-t border-border">
             <SidebarMenu>
               {items.map((item) => (
-                <SidebarMenuItem key={item.title} className="">
+                <SidebarMenuItem key={item.title} className="group">
                   <SidebarMenuButton
                     asChild
-                    className={`py-2 md:py-3 px-2 md:px-3 h-auto text-sm md:text-base transition-all duration-200 ${
+                    tooltip={item.title}
+                    className={`py-3 md:py-4 px-3 md:px-4 h-auto text-sm md:text-base transition-all duration-300 ease-in-out rounded-lg mx-2 ${
                       pathname === item.url
-                        ? "bg-accent text-accent-foreground border-r-2 border-primary"
-                        : "hover:bg-muted"
+                        ? "bg-primary/10 text-primary border-r-3 border-primary shadow-sm"
+                        : "hover:bg-muted/50 hover:shadow-sm"
                     }`}
                   >
                     <Link 
@@ -131,12 +132,18 @@ const AppSidebar = memo(function AppSidebar() {
                       }}
                     >
                       <item.icon
-                        className={`w-4 h-4 md:w-5 md:h-5 ${
-                          pathname === item.url ? "text-primary" : ""
+                        className={`w-4 h-4 md:w-5 md:h-5 mr-3 transition-all duration-300 ${
+                          pathname === item.url 
+                            ? "text-primary scale-110" 
+                            : "text-muted-foreground group-hover:text-foreground group-hover:scale-105"
                         }`}
                       />
                       <span
-                        className={pathname === item.url ? "font-semibold" : ""}
+                        className={`transition-all duration-300 ${
+                          pathname === item.url 
+                            ? "font-semibold text-primary" 
+                            : "font-medium group-hover:font-semibold"
+                        }`}
                       >
                         {item.title}
                       </span>
@@ -152,7 +159,7 @@ const AppSidebar = memo(function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarTrigger className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring" />
+                <SidebarTrigger className="p-4 hover:bg-muted/50 rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-ring hover:shadow-sm mx-2" />
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
