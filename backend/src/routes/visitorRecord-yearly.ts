@@ -4,6 +4,7 @@ import { requireRole } from "../hooks/requireRole";
 
 /**
  * The yearly visitor record routes.
+ * Accessible by: admin (เจ้าของโครงการ) only
  * @type {Elysia}
  */
 export const visitorRecordYearlyRoutes = new Elysia({ prefix: "/api" })

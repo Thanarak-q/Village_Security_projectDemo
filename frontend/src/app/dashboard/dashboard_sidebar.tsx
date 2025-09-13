@@ -24,6 +24,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, memo } from "react";
 import { useTheme } from "next-themes";
 import Image from "next/image";
+import { getAdminRoleDisplayName, type AdminRole } from "@/lib/roleUtils";
 // import { MenuShowColor } from "@/components/animation";
 
 const items = [
@@ -59,7 +60,7 @@ const AppSidebar = memo(function AppSidebar() {
     fname?: string;
     lname?: string;
     profileImage?: string;
-    role: string;
+    role: AdminRole;
     village_name?: string;
   } | null>(null);
 
@@ -103,6 +104,7 @@ const AppSidebar = memo(function AppSidebar() {
                 <p className="text-sm text-muted-foreground mt-1">
                   ระบบจัดการหมู่บ้าน
                 </p>
+  
               </div>
             </div>
           </SidebarGroupLabel>

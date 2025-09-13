@@ -12,6 +12,7 @@ const REDIRECT_URI = "http://localhost/api/callback"; // URL registered with the
 
 /**
  * The test routes.
+ * Accessible by: admin (เจ้าของโครงการ), staff (นิติ), superadmin (เจ้าของ SE)
  * @type {Elysia}
  */
 export const tests = new Elysia({ prefix: "/api" })

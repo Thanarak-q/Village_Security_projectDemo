@@ -48,6 +48,7 @@ const getCountFromResult = (result: any[]): number => {
 
 /**
  * The statistics card routes.
+ * Accessible by: admin (เจ้าของโครงการ), staff (นิติ)
  * @type {Elysia}
  */
 export const statsCardRoutes = new Elysia({ prefix: "/api" })

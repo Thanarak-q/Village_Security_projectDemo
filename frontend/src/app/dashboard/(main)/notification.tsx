@@ -12,8 +12,20 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 
+// Notification interface based on mock data structure
+interface Notification {
+  id: number;
+  type: "new_user" | "house_change" | "visitor_pending" | "visitor_rejected";
+  icon: unknown; 
+  title: string;
+  description: string;
+  time: string;
+  village: string;
+  isRead: boolean;
+}
+
 // ข้อมูลตัวอย่าง notifications สำหรับ admin
-const mockNotifications = [
+const mockNotifications: Notification[] = [
   // ประเภทที่ 1: การแจ้งเตือนผู้ใช้ใหม่รออนุมัติ
   {
     id: 1,
@@ -23,7 +35,6 @@ const mockNotifications = [
     description: "นาย สมชาย ใจดี (Resident) สมัครเข้าหมู่บ้านบ้านสวนสุข",
     time: "5 นาทีที่แล้ว",
     village: "บ้านสวนสุข",
-    priority: "high",
     isRead: false
   },
   {
@@ -34,7 +45,6 @@ const mockNotifications = [
     description: "นาย ก. วิศวกรรม (Guard) สมัครเข้าหมู่บ้านบ้านสวนสุข",
     time: "15 นาทีที่แล้ว",
     village: "บ้านสวนสุข",
-    priority: "high",
     isRead: false
   },
   {
@@ -45,7 +55,6 @@ const mockNotifications = [
     description: "นางสาวมาลี สุขใส (Resident) สมัครเข้าหมู่บ้านบ้านสวนสุข",
     time: "30 นาทีที่แล้ว",
     village: "บ้านสวนสุข",
-    priority: "high",
     isRead: true
   },
 
@@ -58,7 +67,6 @@ const mockNotifications = [
     description: "แก้ไขที่อยู่บ้านเลขที่ 123/45 ซอยสุขุมวิท",
     time: "1 ชั่วโมงที่แล้ว",
     village: "บ้านสวนสุข",
-    priority: "medium",
     isRead: false
   },
   {
@@ -69,7 +77,6 @@ const mockNotifications = [
     description: "เพิ่มสมาชิกใหม่เข้าบ้านเลขที่ 456/78",
     time: "2 ชั่วโมงที่แล้ว",
     village: "บ้านสวนสุข",
-    priority: "medium",
     isRead: true
   },
   {
@@ -80,7 +87,6 @@ const mockNotifications = [
     description: "เปลี่ยนสถานะบ้านเลขที่ 789/90 เป็น 'occupied'",
     time: "3 ชั่วโมงที่แล้ว",
     village: "บ้านสวนสุข",
-    priority: "medium",
     isRead: true
   },
 
@@ -93,7 +99,6 @@ const mockNotifications = [
     description: "นาย ข. เยี่ยมบ้านเลขที่ 123/45 รอมาแล้ว 2 ชั่วโมง 30 นาที",
     time: "10 นาทีที่แล้ว",
     village: "บ้านสวนสุข",
-    priority: "high",
     isRead: false
   },
   {
@@ -104,7 +109,6 @@ const mockNotifications = [
     description: "นาง ค. เยี่ยมบ้านเลขที่ 456/78 ถูกปฏิเสธ - ต้องการทบทวน",
     time: "45 นาทีที่แล้ว",
     village: "บ้านสวนสุข",
-    priority: "high",
     isRead: false
   },
   {
@@ -115,7 +119,6 @@ const mockNotifications = [
     description: "นาย ง. เยี่ยมบ้านเลขที่ 789/90 รอมาแล้ว 1 ชั่วโมง 45 นาที",
     time: "1 ชั่วโมงที่แล้ว",
     village: "บ้านสวนสุข",
-    priority: "high",
     isRead: true
   }
 ]
@@ -137,7 +140,7 @@ const getIconColor = (type: string) => {
 
 
 export default function NotificationComponent() {
-  const [notifications, setNotifications] = useState(mockNotifications)
+  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications)
   const [isOpen, setIsOpen] = useState(false)
 
   // นับแจ้งเตือนที่ยังไม่ได้อ่าน
