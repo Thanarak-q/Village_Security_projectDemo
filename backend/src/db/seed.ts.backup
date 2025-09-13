@@ -1357,10 +1357,4 @@ async function seed() {
 }
 
 // Execute the seeding process and log any errors.
-seed().then(() => {
-  console.log("Database seeding completed successfully!");
-  process.exit(0);
-}).catch((error) => {
-  console.error("Seeding failed:", error);
-  process.exit(1);
-});
+seed().catch(console.error);
