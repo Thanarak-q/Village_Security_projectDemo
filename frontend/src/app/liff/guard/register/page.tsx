@@ -176,11 +176,6 @@ function GuardRegisterPageContent() {
         // Store authentication data
         storeAuthData(result.user, result.token);
         setSuccess(true);
-        
-        // Redirect after 2 seconds
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 2000);
       } else {
         console.error('❌ Registration failed:', result);
         setError(result.error || 'การลงทะเบียนล้มเหลว กรุณาลองใหม่');
@@ -211,8 +206,7 @@ function GuardRegisterPageContent() {
           <CardContent className="p-6 text-center">
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">ลงทะเบียนสำเร็จ!</h2>
-            <p className="text-zinc-300 mb-4">กำลังพาไปหน้าแดชบอร์ด...</p>
-            <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+            <p className="text-zinc-300 mb-4">คุณสามารถปิดหน้านี้และกลับไปใช้แอป LINE ได้แล้ว</p>
           </CardContent>
         </Card>
       </div>

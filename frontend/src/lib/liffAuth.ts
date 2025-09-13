@@ -19,6 +19,7 @@ export interface LiffAuthResponse {
   token?: string;
   error?: string;
   lineUserId?: string;
+  expectedRole?: 'resident' | 'guard';
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -28,18 +29,19 @@ if (!API_BASE_URL && typeof window !== 'undefined') {
 }
 
 // Verify LINE ID token with backend
-export const verifyLiffToken = async (idToken: string): Promise<LiffAuthResponse> => {
+export const verifyLiffToken = async (idToken: string, role?: 'resident' | 'guard'): Promise<LiffAuthResponse> => {
   try {
     console.log('🔍 API_BASE_URL:', API_BASE_URL);
     console.log('🔍 Calling endpoint:', `${API_BASE_URL}/api/liff/verify`);
     console.log('🔍 ID Token (first 50 chars):', idToken ? idToken.substring(0, 50) + '...' : 'null');
+    console.log('🔍 Role:', role);
     
     const response = await fetch(`${API_BASE_URL}/api/liff/verify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ idToken }),
+      body: JSON.stringify({ idToken, role }),
     });
 
     console.log('🔍 Response status:', response.status);
