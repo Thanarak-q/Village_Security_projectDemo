@@ -343,6 +343,7 @@ export async function getWeeklyVisitorRecords() {
 
   // Process records and count by status for each day
   weeklyRecords.forEach((record) => {
+    if (!record.entry_time) return;
     const recordDate = new Date(record.entry_time);
     const dayOfWeek = recordDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
 
@@ -425,13 +426,15 @@ export async function getMonthlyVisitorRecords() {
 
   // Process records and count by status for each month
   yearlyRecords.forEach((record) => {
-    const recordDate = new Date(record.entry_time!);
-    const monthIndex = recordDate.getMonth(); // 0 = January, 1 = February, ..., 11 = December
+    if (record.entry_time) {
+      const recordDate = new Date(record.entry_time);
+      const monthIndex = recordDate.getMonth(); // 0 = January, 1 = February, ..., 11 = December
 
-    if (monthIndex >= 0 && monthIndex < 12) {
-      const status = record.record_status || "pending";
-      monthlyData[monthIndex][status]++;
-      monthlyData[monthIndex].total++;
+      if (monthIndex >= 0 && monthIndex < 12) {
+        const status = record.record_status || "pending";
+        monthlyData[monthIndex][status]++;
+        monthlyData[monthIndex].total++;
+      }
     }
   });
 
@@ -470,15 +473,17 @@ export async function getYearlyVisitorRecords() {
 
   // Group records by year
   const recordsByYear: { [key: number]: any[] } = {};
-
-  allRecords.forEach((record) => {
-    const recordDate = new Date(record.entry_time);
-    const year = recordDate.getFullYear();
-
-    if (!recordsByYear[year]) {
-      recordsByYear[year] = [];
+  
+  allRecords.forEach(record => {
+    if (record.entry_time) {
+      const recordDate = new Date(record.entry_time);
+      const year = recordDate.getFullYear();
+      
+      if (!recordsByYear[year]) {
+        recordsByYear[year] = [];
+      }
+      recordsByYear[year].push(record);
     }
-    recordsByYear[year].push(record);
   });
 
   // Process each year and create statistics
