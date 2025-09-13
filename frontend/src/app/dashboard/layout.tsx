@@ -2,6 +2,7 @@
 
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "./dashboard_sidebar";
+import { MobileNavigation } from "@/components/mobile-navigation";
 import React, { useEffect, useState } from "react";
 import Navbar from "./navbar";
 
@@ -30,7 +31,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <AppSidebar />
       <SidebarInset>
         <Navbar />
-        {children}
+        <main className="pb-16 md:pb-0">
+          {children}
+        </main>
+        <MobileNavigation />
       </SidebarInset>
     </SidebarProvider>
   );

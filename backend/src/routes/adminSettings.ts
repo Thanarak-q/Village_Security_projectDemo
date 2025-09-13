@@ -7,6 +7,7 @@ import { hashPassword, verifyPassword } from "../utils/passwordUtils";
 
 /**
  * The admin settings routes.
+ * Accessible by: admin (เจ้าของโครงการ) only
  * @type {Elysia}
  */
 export const adminSettingsRoutes = new Elysia({ prefix: "/api" })

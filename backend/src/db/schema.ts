@@ -116,6 +116,10 @@ export type GuardInsert = typeof guards.$inferInsert;
 
 /**
  * Schema for the `admins` table. Represents an administrator with system access.
+ * Roles:
+ * - admin: เจ้าของโครงการ (Project Owner)
+ * - staff: นิติ (Legal Staff)  
+ * - superadmin: เจ้าของ SE (SE Owner)
  */
 export const admins = pgTable("admins", {
   admin_id: uuid("admin_id").primaryKey().defaultRandom(),
