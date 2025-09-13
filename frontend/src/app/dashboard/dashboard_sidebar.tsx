@@ -83,7 +83,7 @@ const AppSidebar = memo(function AppSidebar() {
     <Sidebar className="sticky top-0 h-screen hidden md:block" collapsible="icon">
       <SidebarContent className="flex flex-col h-full">
         <SidebarGroup className="flex-1 min-h-0">
-          <SidebarGroupLabel className="my-3 border-border mb-6">
+          <SidebarGroupLabel className="my-3 border-border" style={{ marginBottom: '1.7rem' }}>
             <div className="flex items-center gap-3 p-2">
               <div>
                 <div className="w-12 h-12 overflow-hidden relative">
@@ -148,7 +148,7 @@ const AppSidebar = memo(function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarTrigger className="p-4 hover:bg-muted/50 rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-ring hover:shadow-sm mx-2" />
+                {/* <SidebarTrigger className="p-4 hover:bg-muted/50 rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-ring hover:shadow-sm mx-2" /> */}
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>

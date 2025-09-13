@@ -266,18 +266,22 @@ function SidebarTrigger({
       data-slot="sidebar-trigger"
       variant="ghost"
       size="icon"
-      className={cn("size-7", className)}
+      className={cn("size-12 p-0 hover:bg-gray-100", className)} // even bigger
       onClick={(event) => {
-        onClick?.(event)
-        toggleSidebar()
+        onClick?.(event);
+        toggleSidebar();
       }}
       {...props}
     >
-      {state === "expanded" ? (
-        <ChevronsLeft className="h-4 w-4" />
-      ) : (
-        <ChevronsRight className="h-4 w-4" />
-      )}
+      <svg
+        width="32"
+        height="32"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+        className="!h-8 !w-8 text-gray-700" // even bigger icon
+      >
+        <path fill="currentColor" d="M3 18v-2h18v2zm0-5v-2h18v2zm0-5V6h18v2z" />
+      </svg>
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )

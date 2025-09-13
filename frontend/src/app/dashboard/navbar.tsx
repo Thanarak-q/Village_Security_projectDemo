@@ -17,6 +17,7 @@ import {
 import { Settings, LogOut } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 function Navbar() {
   const pathname = usePathname();
@@ -251,7 +252,7 @@ function Navbar() {
       <div className="bg-background p-4 flex justify-between items-center border-b border-border h-20">
         {/* ด้านซ้าย - ข้อความ */}
         <div className="flex items-center gap-4">
-          <div className="flex flex-col">
+        <SidebarTrigger className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring" />          <div className="flex flex-col">
             <div className="flex items-center gap-3">
               {/* Dashboard Title with Spinning Animation */}
               {pathname === "/dashboard" ? (
