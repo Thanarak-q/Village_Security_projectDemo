@@ -2,11 +2,19 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useState, useRef, useLayoutEffect } from "react";
+import { useState, useRef, useLayoutEffect, useEffect } from "react";
 import { Car, Home, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import NotificationComponent from "./notification";
 import gsap from "gsap";
-
+import { ModeToggle } from "@/components/mode-toggle";
+import { 
+  fetchPendingRequestsByLineId, 
+  approveVisitorRequest, 
+  denyVisitorRequest, 
+  fetchVisitorHistoryByLineId,
+  type VisitorRequest as ApiVisitorRequest 
+} from "@/lib/api/visitorRequests";
+import { useLiff } from "@/hooks/useLiff";
 
 interface VisitorRequest {
   id: string;
@@ -18,26 +26,42 @@ interface VisitorRequest {
   status?: "approved" | "denied";
 }
 
-// Stack Cards Component
-interface StackCardsProps {
+// Helper function to transform API data to component format
+const transformApiData = (apiData: ApiVisitorRequest): VisitorRequest => {
+  return {
+    id: apiData.visitor_record_id,
+    plateNumber: apiData.license_plate || '',
+    visitorName: apiData.visit_purpose || 'เยี่ยม',
+    destination: apiData.guard_name || apiData.house_address || 'รปภ.',
+    time: new Date(apiData.entry_time).toLocaleTimeString('th-TH', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    }),
+    carImage: apiData.picture_key || '',
+    status: apiData.record_status === 'approved' ? 'approved' : 
+             apiData.record_status === 'rejected' ? 'denied' : undefined
+  };
+};
+
+// Approval Cards Component
+interface ApprovalCardsProps {
   items: VisitorRequest[];
   onApprove: (id: string) => void;
   onDeny: (id: string) => void;
 }
 
-const StackCards: React.FC<StackCardsProps> = ({ items, onApprove, onDeny }) => {
+const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Sort by id ascending (smallest id on top)
+  // Sort by smallest id first
   const sortedPending = [...items].sort((a, b) => Number(a.id) - Number(b.id));
 
   const nextCard = () => {
     if (currentIndex < sortedPending.length - 1 && !isAnimating && cardRef.current) {
       setIsAnimating(true);
-
-      // Animate current card out to the left
+      // card out to the left
       gsap.to(cardRef.current, {
         x: -100,
         opacity: 0,
@@ -62,8 +86,7 @@ const StackCards: React.FC<StackCardsProps> = ({ items, onApprove, onDeny }) => 
   const prevCard = () => {
     if (currentIndex > 0 && !isAnimating && cardRef.current) {
       setIsAnimating(true);
-
-      // Animate current card out to the right
+      //card out to the right
       gsap.to(cardRef.current, {
         x: 100,
         opacity: 0,
@@ -84,8 +107,7 @@ const StackCards: React.FC<StackCardsProps> = ({ items, onApprove, onDeny }) => 
       });
     }
   };
-
-  // Initialize card position
+  // reset card position
   useLayoutEffect(() => {
     if (cardRef.current) {
       gsap.set(cardRef.current, { x: 0, opacity: 1 });
@@ -93,29 +115,29 @@ const StackCards: React.FC<StackCardsProps> = ({ items, onApprove, onDeny }) => 
   }, []);
 
   return (
-    <div className="px-4 py-4 bg-white">
+    <div>
       {/* Header with request count and navigation */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <h3 className="text-lg font-semibold text-gray-800">คำขออนุมัติ</h3>
-          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-            {sortedPending.length} รายการ
+          <h3 className="text-lg font-semibold text-foreground">คำขออนุมัติ</h3>
+          <span className="bg-primary/10 text-primary text-xs font-medium px-2 py-0.5 rounded-full border">
+            {sortedPending.length}
           </span>
         </div>
 
         {sortedPending.length > 1 && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Button
               onClick={prevCard}
               disabled={currentIndex === 0 || isAnimating}
               variant="outline"
               size="sm"
-              className="h-8 w-8 p-0"
+              className="h-7 w-7 p-0 border-border hover:bg-accent"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-3 w-3" />
             </Button>
 
-            <span className="text-sm text-gray-500 min-w-[3rem] text-center">
+            <span className="text-xs text-muted-foreground min-w-[2.5rem] text-center font-medium">
               {currentIndex + 1}/{sortedPending.length}
             </span>
 
@@ -124,40 +146,40 @@ const StackCards: React.FC<StackCardsProps> = ({ items, onApprove, onDeny }) => 
               disabled={currentIndex === sortedPending.length - 1 || isAnimating}
               variant="outline"
               size="sm"
-              className="h-8 w-8 p-0"
+              className="h-7 w-7 p-0 border-border hover:bg-accent"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-3 w-3" />
             </Button>
           </div>
         )}
       </div>
 
       {/* Card Container with GSAP Animation */}
-      <div className="min-h-[400px] relative overflow-hidden">
-        {sortedPending.length > 0 && (
+      <div className="min-h-[350px] relative overflow-hidden">
+        {sortedPending.length > 0 ? (
           <div ref={cardRef}>
-            <Card className="shadow-md max-w-sm mx-auto">
+            <Card className="shadow-sm border-border bg-background/50">
               <CardContent className="p-3">
-                <div className="flex items-start gap-2 mb-2">
-                  <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                    <Car className="w-4 h-4 text-gray-500" />
+                <div className="flex items-start gap-2 mb-3">
+                  <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
+                    <Car className="w-4 h-4 text-muted-foreground" />
                   </div>
-                  <div className="flex-1">
-                    <div className="font-semibold text-base">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-base text-foreground truncate">
                       {sortedPending[currentIndex].plateNumber}
                     </div>
-                    <div className="text-gray-600 text-xs">
+                    <div className="text-muted-foreground text-sm truncate">
                       {sortedPending[currentIndex].visitorName} • {sortedPending[currentIndex].destination}
                     </div>
-                    <div className="text-gray-500 text-xs flex items-center gap-1 mt-1">
-                      <Clock className="w-3 h-3" />
+                    <div className="text-muted-foreground text-xs flex items-center gap-1 mt-1">
+                      <Clock className="w-3 h-3 flex-shrink-0" />
                       <span>{sortedPending[currentIndex].time}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="mb-3">
-                  <div className="w-full h-32 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+                  <div className="w-full h-48 bg-muted rounded-lg flex items-center justify-center overflow-hidden border">
                     {sortedPending[currentIndex].carImage ? (
                       <img
                         src={`/${sortedPending[currentIndex].carImage}`}
@@ -165,27 +187,24 @@ const StackCards: React.FC<StackCardsProps> = ({ items, onApprove, onDeny }) => 
                         className="object-cover w-full h-full"
                       />
                     ) : (
-                      <Car className="w-12 h-12 text-gray-400" />
+                      <Car className="w-12 h-12 text-muted-foreground" />
                     )}
                   </div>
                 </div>
 
-                <div className="flex justify-center gap-2">
+                <div className="flex gap-2">
                   <Button
                     onClick={() => onDeny(sortedPending[currentIndex].id)}
                     disabled={isAnimating}
-                    className="bg-red-600 text-white border-red-600 
-                      px-4 py-2 text-xs
-                      rounded-lg flex-1 hover:bg-red-700 disabled:opacity-50"
+                    variant="destructive"
+                    className="px-4 py-2 text-sm rounded-lg flex-1 disabled:opacity-50 dark:bg-red-600"
                   >
                     ปฏิเสธ
                   </Button>
                   <Button
                     onClick={() => onApprove(sortedPending[currentIndex].id)}
                     disabled={isAnimating}
-                    className="bg-green-600 text-white border-green-600 
-                      px-4 py-2 text-xs
-                      rounded-lg flex-1 hover:bg-green-700 disabled:opacity-50"
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm rounded-lg flex-1 disabled:opacity-50 dark:bg-green-900/20 dark:text-green-400 px-3 py-2 rounded-md text-sm"
                   >
                     อนุมัติ
                   </Button>
@@ -193,149 +212,243 @@ const StackCards: React.FC<StackCardsProps> = ({ items, onApprove, onDeny }) => 
               </CardContent>
             </Card>
           </div>
+        ) : (
+          <div className="flex items-center justify-center h-32">
+            <p className="text-muted-foreground text-sm">ไม่มีคำขออนุมัติ</p>
+          </div>
         )}
       </div>
     </div>
   );
 };
+
+// Main Resident Page Component
 const ResidentPage = () => {
-  const [pendingRequests, setPendingRequests] = useState<VisitorRequest[]>([
-    {
-      id: "1",
-      plateNumber: "กข 1234",
-      visitorName: "ส่งของ",
-      destination: "รปภ. สมชาย",
-      time: "09:12",
-      carImage: "car1.jpg",
-    },
-    {
-      id: "2",
-      plateNumber: "ขก 5678",
-      visitorName: "เยี่ยม",
-      destination: "รปภ. วิทยา",
-      time: "09:45",
-      carImage: "car2.jpg",
-    },
-    {
-      id: "3",
-      plateNumber: "ยน 9999",
-      visitorName: "เยี่ยม",
-      destination: "รปภ. วิทยา",
-      time: "10:45",
-      carImage: "",
-    },
-    {
-      id: "4",
-      plateNumber: "มน 7777",
-      visitorName: "ติดตั้ง",
-      destination: "รปภ. สมชาย",
-      time: "11:30",
-      carImage: "car1.jpg",
-    },
-  ]);
-
+  const [pendingRequests, setPendingRequests] = useState<VisitorRequest[]>([]);
   const [history, setHistory] = useState<VisitorRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Get LINE user info from LIFF
+  const { profile, loading: liffLoading, error: liffError } = useLiff();
+  const lineUserId = profile?.userId;
 
-  const handleApprove = (id: string) => {
-    const request = pendingRequests.find((req) => req.id === id);
-    if (request) {
-      const confirmed = window.confirm(
-        `คุณแน่ใจหรือว่าต้องการอนุมัติคำขอสำหรับ ${request.plateNumber}?`
-      );
-      if (confirmed) {
-        setHistory([{ ...request, status: "approved" }, ...history]);
-        setPendingRequests(pendingRequests.filter((req) => req.id !== id));
-        console.log("Approved for :", request.plateNumber);
+  // Fetch data on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      // Wait for LIFF to load and ensure we have a LINE user ID
+      if (liffLoading || !lineUserId) {
+        return;
       }
+
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Fetch pending requests and history in parallel using LINE ID
+        const [pendingData, historyData] = await Promise.all([
+          fetchPendingRequestsByLineId(lineUserId),
+          fetchVisitorHistoryByLineId(lineUserId)
+        ]);
+
+        // Transform API data to component format
+        const transformedPending = pendingData.map(transformApiData);
+        const transformedHistory = historyData.map(transformApiData);
+
+        setPendingRequests(transformedPending);
+        setHistory(transformedHistory);
+      } catch (err) {
+        console.error('Error loading visitor data:', err);
+        setError('ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง');
+        
+        // Fallback to mock data for development
+        setPendingRequests([
+          {
+            id: "1",
+            plateNumber: "กข 1234",
+            visitorName: "ส่งของ",
+            destination: "รปภ. สมชาย",
+            time: "09:12",
+            carImage: "car1.jpg",
+          },
+          {
+            id: "2",
+            plateNumber: "ขก 5678",
+            visitorName: "เยี่ยม",
+            destination: "รปภ. วิทยา",
+            time: "09:45",
+            carImage: "car2.jpg",
+          },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [lineUserId, liffLoading]);
+
+  const handleApprove = async (id: string) => {
+    const request = pendingRequests.find((req) => req.id === id);
+    if (!request) return;
+
+    const confirmed = window.confirm(
+      `คุณแน่ใจหรือว่าต้องการอนุมัติคำขอสำหรับ ${request.plateNumber}?`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      // Optimistic update - remove from pending immediately
+      setPendingRequests(prev => prev.filter((req) => req.id !== id));
+      setHistory(prev => [{ ...request, status: "approved" }, ...prev]);
+
+      // Call API
+      await approveVisitorRequest(id);
+      console.log("Approved for:", request.plateNumber);
+    } catch (error) {
+      console.error('Error approving request:', error);
+      
+      // Rollback on error
+      setPendingRequests(prev => [...prev, request]);
+      setHistory(prev => prev.filter((req) => req.id !== id));
+      
+      alert('เกิดข้อผิดพลาดในการอนุมัติ กรุณาลองใหม่อีกครั้ง');
     }
   };
 
-  const handleDeny = (id: string) => {
+  const handleDeny = async (id: string) => {
     const request = pendingRequests.find((req) => req.id === id);
-    if (request) {
-      const confirmed = window.confirm(
-        `คุณแน่ใจหรือว่าต้องการปฏิเสธคำขอสำหรับ ${request.plateNumber}?`
-      );
-      if (confirmed) {
-        setHistory([{ ...request, status: "denied" }, ...history]);
-        setPendingRequests(pendingRequests.filter((req) => req.id !== id));
-        console.log("Denied for :", request.plateNumber);
-      }
+    if (!request) return;
+
+    const confirmed = window.confirm(
+      `คุณแน่ใจหรือว่าต้องการปฏิเสธคำขอสำหรับ ${request.plateNumber}?`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      // Optimistic update - remove from pending immediately
+      setPendingRequests(prev => prev.filter((req) => req.id !== id));
+      setHistory(prev => [{ ...request, status: "denied" }, ...prev]);
+
+      // Call API
+      await denyVisitorRequest(id);
+      console.log("Denied for:", request.plateNumber);
+    } catch (error) {
+      console.error('Error denying request:', error);
+      
+      // Rollback on error
+      setPendingRequests(prev => [...prev, request]);
+      setHistory(prev => prev.filter((req) => req.id !== id));
+      
+      alert('เกิดข้อผิดพลาดในการปฏิเสธ กรุณาลองใหม่อีกครั้ง');
     }
   };
 
   return (
-    <div className="min-h-screen bg-muted flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-2 sm:p-4">
       <div className="w-full max-w-[420px]">
-        <div className="rounded-2xl bg-white shadow-lg border">
-          {/* Header */}
-          <div className="px-4 py-4 flex items-center justify-between">
-            <h1 className="flex items-center text-2xl gap-2 font-semibold text-gray-800">
-              <Home className="w-7 h-7" /> หมู่บ้านร่มรื่น
-            </h1>
-            <div className="relative">
-              <NotificationComponent />
+        {/*Main Card*/}
+        <div className="bg-card rounded-2xl border shadow-lg">
+          {/*Header*/}
+          <div className="px-4 py-4">
+            <div className="flex items-center justify-between mb-2">
+              <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2">
+                <Home className="w-6 h-6 sm:w-7 sm:h-7" /> หมู่บ้านร่มรื่น
+              </h1>
+              <span className="flex items-center gap-2">
+                <ModeToggle />
+                <NotificationComponent />
+              </span>
             </div>
+            <p className="text-sm text-muted-foreground">
+              สวัสดี {profile?.displayName || 'คุณลูกบ้าน'} 👋
+            </p>
           </div>
 
-          <div className="px-4 py-3">
-            <p className="text-md text-gray-600">สวัสดี คุณลูกบ้าน 👋</p>
+          {/* Approval Cards Section */}
+          <div className="px-4 py-4">
+            {liffError ? (
+              <div className="flex flex-col items-center justify-center h-32 gap-2">
+                <p className="text-red-500 text-sm text-center">ไม่สามารถเชื่อมต่อ LINE ได้</p>
+                <Button 
+                  onClick={() => window.location.reload()} 
+                  variant="outline" 
+                  size="sm"
+                >
+                  ลองใหม่
+                </Button>
+              </div>
+            ) : loading || liffLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <p className="text-muted-foreground text-sm">กำลังโหลดข้อมูล...</p>
+              </div>
+            ) : error ? (
+              <div className="flex flex-col items-center justify-center h-32 gap-2">
+                <p className="text-red-500 text-sm text-center">{error}</p>
+                <Button 
+                  onClick={() => window.location.reload()} 
+                  variant="outline" 
+                  size="sm"
+                >
+                  ลองใหม่
+                </Button>
+              </div>
+            ) : (
+              <ApprovalCards
+                items={pendingRequests}
+                onApprove={handleApprove}
+                onDeny={handleDeny}
+              />
+            )}
           </div>
 
-          {/* Stack Cards Section - ภายในการ์ดหลัก */}
-          <StackCards
-            items={pendingRequests}
-            onApprove={handleApprove}
-            onDeny={handleDeny}
-          />
-
-          {/* History Section - ภายในการ์ดหลัก */}
-          <div className="px-4 py-4 bg-white">
-            <div className="mt-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-3">
-                ประวัติล่าสุด
-              </h2>
-              {history.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">ยังไม่มีประวัติ</p>
-              ) : (
-                history.map((item) => (
+          {/* History Section */}
+          <div className="px-4 py-4">
+            <h2 className="text-lg font-semibold text-foreground mb-4">
+              ประวัติล่าสุด
+            </h2>
+            {history.length === 0 ? (
+              <p className="text-muted-foreground text-center py-6">ยังไม่มีประวัติ</p>
+            ) : (
+              <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                {history.map((item) => (
                   <Card
                     key={item.id}
-                    className={`mb-3 ${item.status === "approved"
-                      ? "bg-green-50 border-green-200"
-                      : "bg-red-50 border-red-200"
+                    className={`border ${item.status === "approved"
+                      ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800"
+                      : "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
                       }`}
                   >
-                    <CardContent className="p-4">
+                    <CardContent className="p-3">
                       <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-semibold">{item.plateNumber}</div>
-                          <div className="text-sm text-gray-600">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground truncate">{item.plateNumber}</div>
+                          <div className="text-sm text-muted-foreground truncate">
                             {item.visitorName}
                           </div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-muted-foreground truncate">
                             {item.destination} • {item.time}
                           </div>
                         </div>
                         <div
-                          className={`px-3 py-1 rounded-full text-sm font-medium ${item.status === "approved"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
+                          className={`px-2 py-1 rounded-full text-xs font-medium ml-2 flex-shrink-0 ${item.status === "approved"
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                             }`}
                         >
-                          {item.status === "approved" ? "Approved" : "Denied"}
+                          {item.status === "approved" ? "อนุมัติ" : "ปฏิเสธ"}
                         </div>
                       </div>
                     </CardContent>
                   </Card>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
-
-
     </div>
   );
 };

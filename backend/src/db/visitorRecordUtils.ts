@@ -219,6 +219,42 @@ export async function getVisitorRecordsByStatus(
 }
 
 /**
+ * Retrieves all visitor records associated with a specific LINE user ID.
+ * @param {string} lineUserId - The LINE user ID of the resident.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of visitor records for the resident.
+ */
+export async function getVisitorRecordsByLineId(lineUserId: string) {
+  const result = await db
+    .select({
+      visitor_record_id: visitor_records.visitor_record_id,
+      resident_id: visitor_records.resident_id,
+      guard_id: visitor_records.guard_id,
+      house_id: visitor_records.house_id,
+      picture_key: visitor_records.picture_key,
+      license_plate: visitor_records.license_plate,
+      entry_time: visitor_records.entry_time,
+      record_status: visitor_records.record_status,
+      visit_purpose: visitor_records.visit_purpose,
+      createdAt: visitor_records.createdAt,
+      updatedAt: visitor_records.updatedAt,
+      resident_name: sql`${residents.fname} || ' ' || ${residents.lname}`,
+      resident_email: residents.email,
+      guard_name: sql`${guards.fname} || ' ' || ${guards.lname}`,
+      guard_email: guards.email,
+      house_address: houses.address,
+      village_key: houses.village_key,
+    })
+    .from(visitor_records)
+    .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
+    .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
+    .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
+    .where(eq(residents.line_user_id, lineUserId));
+
+  return result;
+}
+
+
+/**
  * Creates a new visitor record in the database.
  * @param {Object} data - The data for the new record.
  * @param {string} data.resident_id - The UUID of the resident being visited.

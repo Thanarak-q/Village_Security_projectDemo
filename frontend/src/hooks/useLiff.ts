@@ -1,109 +1,73 @@
+/**
+ * LINE LIFF hook for authentication and user profile
+ */
 import { useState, useEffect } from 'react';
-import { LiffService } from '@/lib/liff';
 
-interface LineProfile {
+declare global {
+  interface Window {
+    liff: any;
+  }
+}
+
+interface LiffProfile {
   userId: string;
-  displayName?: string;
+  displayName: string;
   pictureUrl?: string;
+  statusMessage?: string;
 }
 
-interface UseLiffReturn {
-  isInitialized: boolean;
-  isLoggedIn: boolean;
-  profile: LineProfile | null;
-  idToken: string | null;
-  isInLine: boolean;
-  loading: boolean;
-  error: string | null;
-  login: () => void;
-  logout: () => void;
-  refreshProfile: () => Promise<void>;
-}
-
-export const useLiff = (): UseLiffReturn => {
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [isLoggedInState, setIsLoggedInState] = useState(false);
-  const [profile, setProfile] = useState<LineProfile | null>(null);
-  const [idToken, setIdToken] = useState<string | null>(null);
-  const [isInLine, setIsInLine] = useState(false);
+export function useLiff() {
+  const [profile, setProfile] = useState<LiffProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const svc = LiffService.getInstance();
-
-  const initializeLiff = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      await svc.init();
-      setIsInitialized(true);
-      setIsInLine(svc.isInClient());
-      setIsLoggedInState(svc.isLoggedIn());
-
-      if (svc.isLoggedIn()) {
-        const lineProfile = await svc.getProfile();
-        const token = svc.getIDToken();
-        
-        if (lineProfile.userId !== "unknown") {
-          setProfile(lineProfile);
-        }
-        setIdToken(token);
-      }
-    } catch (err) {
-      console.error('LIFF initialization error:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const login = () => {
-    if (isInitialized) {
-      svc.login();
-    }
-  };
-
-  const logout = () => {
-    if (isInitialized) {
-      setProfile(null);
-      setIdToken(null);
-      setIsLoggedInState(false);
-      svc.logout();
-    }
-  };
-
-  const refreshProfile = async () => {
-    if (isInitialized && svc.isLoggedIn()) {
-      try {
-        const lineProfile = await svc.getProfile();
-        const token = svc.getIDToken();
-        
-        if (lineProfile.userId !== "unknown") {
-          setProfile(lineProfile);
-        }
-        setIdToken(token);
-      } catch (err) {
-        console.error('Failed to refresh profile:', err);
-        setError(err instanceof Error ? err.message : 'Failed to refresh profile');
-      }
-    }
-  };
-
   useEffect(() => {
-    initializeLiff();
+    const initLiff = async () => {
+      try {
+        // Check if LIFF SDK is loaded
+        if (typeof window !== 'undefined' && window.liff) {
+          // Initialize LIFF
+          await window.liff.init({
+            liffId: process.env.NEXT_PUBLIC_LIFF_ID || ''
+          });
+
+          // Check if user is logged in
+          if (window.liff.isLoggedIn()) {
+            // Get user profile
+            const userProfile = await window.liff.getProfile();
+            setProfile(userProfile);
+          } else {
+            // Redirect to LINE login
+            window.liff.login();
+          }
+        } else {
+          // Load LIFF SDK
+          const script = document.createElement('script');
+          script.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js';
+          script.onload = () => {
+            // Retry initialization after SDK loads
+            initLiff();
+          };
+          document.head.appendChild(script);
+          return;
+        }
+      } catch (err) {
+        console.error('LIFF initialization failed:', err);
+        setError('ไม่สามารถเชื่อมต่อ LINE ได้');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initLiff();
   }, []);
 
-  return {
-    isInitialized,
-    isLoggedIn: isLoggedInState,
-    profile,
-    idToken,
-    isInLine,
-    loading,
-    error,
-    login,
-    logout,
-    refreshProfile,
+  const logout = () => {
+    if (window.liff) {
+      window.liff.logout();
+      setProfile(null);
+    }
   };
-};
+
+  return { profile, loading, error, logout };
+}
