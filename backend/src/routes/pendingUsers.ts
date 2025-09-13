@@ -35,6 +35,7 @@ interface RejectUserRequest {
 
 /**
  * The pending users routes.
+ * Accessible by: admin (เจ้าของโครงการ), staff (นิติ)
  * @type {Elysia}
  */
 export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
@@ -261,12 +262,11 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             email: resident[0].email,
             fname: resident[0].fname,
             lname: resident[0].lname,
-            username: resident[0].username,
-            password_hash: resident[0].password_hash,
             phone: resident[0].phone,
             village_key: resident[0].village_key,
             status: "verified" as "verified" | "pending" | "disable",
-            profile_image_url: resident[0].profile_image_url,
+            line_display_name: resident[0].line_display_name,
+            line_profile_url: resident[0].line_profile_url,
           })
           .returning();
 
@@ -305,12 +305,11 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             email: guard[0].email,
             fname: guard[0].fname,
             lname: guard[0].lname,
-            username: guard[0].username,
-            password_hash: guard[0].password_hash,
             phone: guard[0].phone,
             village_key: guard[0].village_key,
             status: "verified" as "verified" | "pending" | "disable",
-            profile_image_url: guard[0].profile_image_url,
+            line_display_name: guard[0].line_display_name,
+            line_profile_url: guard[0].line_profile_url,
           })
           .returning();
 

@@ -81,6 +81,7 @@ const validateStatus = (
 
 /**
  * The house management routes.
+ * Accessible by: admin (เจ้าของโครงการ) only
  * @type {Elysia}
  */
 export const houseManageRoutes = new Elysia({ prefix: "/api" })

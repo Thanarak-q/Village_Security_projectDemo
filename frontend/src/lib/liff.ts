@@ -37,7 +37,7 @@ export interface LiffSDK {
   /** มีใน LIFF SDK: ใช้ตรวจว่ามี access token สดอยู่ไหม */
   getAccessToken(): string | null;
   getIDToken(): string | null;
-  getDecodedIDToken(): any;
+  getDecodedIDToken(): { sub?: string; name?: string; picture?: string; [key: string]: unknown } | null;
 }
 
 declare global {
@@ -326,7 +326,7 @@ export class LiffService {
 // Legacy exports for backward compatibility
 export const LIFF_ID = process.env.NEXT_PUBLIC_LIFF_ID;
 
-if (!LIFF_ID) {
+if (!LIFF_ID && typeof window !== 'undefined') {
   throw new Error('NEXT_PUBLIC_LIFF_ID environment variable is required');
 }
 

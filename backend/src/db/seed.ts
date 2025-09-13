@@ -96,182 +96,220 @@ const houseData = [
   {
     address: "123/45",
     village_key: "pha-suk-village-001",
+    status: "available",
   },
   {
     address: "67/89",
     village_key: "pha-suk-village-001",
+    status: "available",
   },
   {
     address: "12/34",
     village_key: "pha-suk-village-001",
+    status: "available",
   },
 
   // หมู่บ้านสุขสันต์
   {
     address: "456/78",
     village_key: "suk-san-village-002",
+    status: "available",
   },
   {
     address: "90/12",
     village_key: "suk-san-village-002",
+    status: "available",
   },
 
   // หมู่บ้านร่มเย็น
   {
     address: "789/01",
     village_key: "rom-yen-village-003",
+    status: "available",
   },
   {
     address: "23/45",
     village_key: "rom-yen-village-003",
+    status: "available",
   },
   {
     address: "67/89",
     village_key: "rom-yen-village-003",
+    status: "available",
   },
 
   // หมู่บ้านสวนทอง
   {
     address: "234/56",
     village_key: "suan-thong-village-004",
+    status: "available",
   },
   {
     address: "78/90",
     village_key: "suan-thong-village-004",
+    status: "available",
   },
 
   // หมู่บ้านลุมพินี
   {
     address: "345/67",
     village_key: "lumphini-village-005",
+    status: "available",
   },
   {
     address: "89/01",
     village_key: "lumphini-village-005",
+    status: "available",
   },
   {
     address: "12/34",
     village_key: "lumphini-village-005",
+    status: "available",
   },
 
   // หมู่บ้านรัตนา
   {
     address: "456/78",
     village_key: "rattana-village-006",
+    status: "available",
   },
   {
     address: "90/12",
     village_key: "rattana-village-006",
+    status: "available",
   },
 
   // หมู่บ้านศรีสุข
   {
     address: "567/89",
     village_key: "sri-suk-village-007",
+    status: "available",
   },
   {
     address: "01/23",
     village_key: "sri-suk-village-007",
+    status: "available",
   },
   {
     address: "45/67",
     village_key: "sri-suk-village-007",
+    status: "available",
   },
 
   // หมู่บ้านธนารมย์
   {
     address: "678/90",
     village_key: "thanarom-village-008",
+    status: "available",
   },
   {
     address: "12/34",
     village_key: "thanarom-village-008",
+    status: "available",
   },
 
   // หมู่บ้านสวนสวรรค์
   {
     address: "789/01",
     village_key: "suan-sawan-village-009",
+    status: "available",
   },
   {
     address: "23/45",
     village_key: "suan-sawan-village-009",
+    status: "available",
   },
   {
     address: "67/89",
     village_key: "suan-sawan-village-009",
+    status: "available",
   },
 
   // หมู่บ้านสุขุมวิท
   {
     address: "890/12",
     village_key: "sukhumvit-village-010",
+    status: "available",
   },
   {
     address: "34/56",
     village_key: "sukhumvit-village-010",
+    status: "available",
   },
 
   // หมู่บ้านรัชดา
   {
     address: "901/23",
     village_key: "ratchada-village-011",
+    status: "available",
   },
   {
     address: "45/67",
     village_key: "ratchada-village-011",
+    status: "available",
   },
   {
     address: "89/01",
     village_key: "ratchada-village-011",
+    status: "available",
   },
 
   // หมู่บ้านลาดพร้าว
   {
     address: "012/34",
     village_key: "ladprao-village-012",
+    status: "available",
   },
   {
     address: "56/78",
     village_key: "ladprao-village-012",
+    status: "available",
   },
 
   // หมู่บ้านบางนา
   {
     address: "123/45",
     village_key: "bangna-village-013",
+    status: "available",
   },
   {
     address: "67/89",
     village_key: "bangna-village-013",
+    status: "available",
   },
   {
     address: "01/23",
     village_key: "bangna-village-013",
+    status: "available",
   },
 
   // หมู่บ้านอโศก
   {
     address: "234/56",
     village_key: "asoke-village-014",
+    status: "available",
   },
   {
     address: "78/90",
     village_key: "asoke-village-014",
+    status: "available",
   },
 
   // หมู่บ้านทองหล่อ
   {
     address: "345/67",
     village_key: "thonglor-village-015",
+    status: "available",
   },
   {
     address: "89/01",
     village_key: "thonglor-village-015",
+    status: "available",
   },
   {
     address: "12/34",
     village_key: "thonglor-village-015",
+    status: "available",
   },
 ];
 
@@ -286,32 +324,38 @@ const residentData = [
     email: "somchai.pha@email.com",
     fname: "สมชาย",
     lname: "ผาสุก",
-    username: "somchai_pha",
-    password_hash: "password123",
     phone: "0812345678",
     village_key: "pha-suk-village-001",
     status: "verified",
+    line_user_id: null,
+    line_display_name: null,
+    line_profile_url: null,
+    move_in_date: "2024-01-15",
   },
   {
     email: "somying.pha@email.com",
     fname: "สมหญิง",
     lname: "ผาสุก",
-    username: "somying_pha",
-    password_hash: "password123",
     phone: "0812345678",
     village_key: "pha-suk-village-001",
     status: "verified",
+    line_user_id: null,
+    line_display_name: null,
+    line_profile_url: null,
+    move_in_date: "2024-02-01",
   },
   // หมู่บ้านรัตนา
   {
     email: "arisa.rat@email.com",
     fname: "อริสา",
     lname: "รัตนา",
-    username: "arisa_rat",
-    password_hash: "password123",
     phone: "0823456789",
     village_key: "rattana-village-006",
     status: "verified",
+    line_user_id: null,
+    line_display_name: null,
+    line_profile_url: null,
+    move_in_date: "2024-01-20",
   },
 
   // หมู่บ้านศรีสุข
@@ -319,21 +363,25 @@ const residentData = [
     email: "nattapong.sri@email.com",
     fname: "ณัฐพงศ์",
     lname: "ศรีสุข",
-    username: "nattapong_sri",
-    password_hash: "password123",
     phone: "0845678901",
     village_key: "sri-suk-village-007",
     status: "verified",
+    line_user_id: null,
+    line_display_name: null,
+    line_profile_url: null,
+    move_in_date: "2024-01-25",
   },
   {
     email: "pimchanok.sri@email.com",
     fname: "พิมพ์ชนก",
     lname: "ศรีสุข",
-    username: "pimchanok_sri",
-    password_hash: "password123",
     phone: "0856789012",
     village_key: "sri-suk-village-007",
     status: "verified",
+    line_user_id: null,
+    line_display_name: null,
+    line_profile_url: null,
+    move_in_date: "2024-02-05",
   },
 
   // หมู่บ้านธนารมย์
@@ -341,21 +389,25 @@ const residentData = [
     email: "surasak.thana@email.com",
     fname: "สุรศักดิ์",
     lname: "ธนารมย์",
-    username: "surasak_thana",
-    password_hash: "password123",
     phone: "0867890123",
     village_key: "thanarom-village-008",
     status: "verified",
+    line_user_id: null,
+    line_display_name: null,
+    line_profile_url: null,
+    move_in_date: "2024-01-30",
   },
   {
     email: "kanokwan.thana@email.com",
     fname: "กนกวรรณ",
     lname: "ธนารมย์",
-    username: "kanokwan_thana",
-    password_hash: "password123",
     phone: "0878901234",
     village_key: "thanarom-village-008",
     status: "verified",
+    line_user_id: null,
+    line_display_name: null,
+    line_profile_url: null,
+    move_in_date: "2024-02-10",
   },
 
   // หมู่บ้านสวนสวรรค์
@@ -363,21 +415,25 @@ const residentData = [
     email: "jirawat.suan@email.com",
     fname: "จิรวัฒน์",
     lname: "สวนสวรรค์",
-    username: "jirawat_suan",
-    password_hash: "password123",
     phone: "0889012345",
     village_key: "suan-sawan-village-009",
     status: "verified",
+    line_user_id: null,
+    line_display_name: null,
+    line_profile_url: null,
+    move_in_date: "2024-02-15",
   },
   {
     email: "supaporn.suan@email.com",
     fname: "สุภาภรณ์",
     lname: "สวนสวรรค์",
-    username: "supaporn_suan",
-    password_hash: "password123",
     phone: "0890123456",
     village_key: "suan-sawan-village-009",
     status: "verified",
+    line_user_id: null,
+    line_display_name: null,
+    line_profile_url: null,
+    move_in_date: "2024-02-20",
   },
 
   // หมู่บ้านสุขุมวิท
@@ -385,21 +441,25 @@ const residentData = [
     email: "anucha.suk@email.com",
     fname: "อนุชา",
     lname: "สุขุมวิท",
-    username: "anucha_suk",
-    password_hash: "password123",
     phone: "0801234567",
     village_key: "sukhumvit-village-010",
     status: "pending",
+    line_user_id: null,
+    line_display_name: null,
+    line_profile_url: null,
+    move_in_date: "2024-02-25",
   },
   {
     email: "benjawan.suk@email.com",
     fname: "เบญจวรรณ",
     lname: "สุขุมวิท",
-    username: "benjawan_suk",
-    password_hash: "password123",
     phone: "0812345679",
     village_key: "sukhumvit-village-010",
     status: "verified",
+    line_user_id: null,
+    line_display_name: null,
+    line_profile_url: null,
+    move_in_date: "2024-03-01",
   },
 
   // หมู่บ้านรัชดา
@@ -407,21 +467,25 @@ const residentData = [
     email: "prasert.ratc@email.com",
     fname: "ประเสริฐ",
     lname: "รัชดา",
-    username: "prasert_ratc",
-    password_hash: "password123",
     phone: "0823456790",
     village_key: "ratchada-village-011",
     status: "verified",
+    line_user_id: null,
+    line_display_name: null,
+    line_profile_url: null,
+    move_in_date: "2024-03-05",
   },
   {
     email: "sirilak.ratc@email.com",
     fname: "ศิริลักษณ์",
     lname: "รัชดา",
-    username: "sirilak_ratc",
-    password_hash: "password123",
     phone: "0834567901",
     village_key: "ratchada-village-011",
     status: "verified",
+    line_user_id: null,
+    line_display_name: null,
+    line_profile_url: null,
+    move_in_date: "2024-03-10",
   },
 
   // หมู่บ้านลาดพร้าว
@@ -429,11 +493,13 @@ const residentData = [
     email: "pongsak.lad@email.com",
     fname: "พงศักดิ์",
     lname: "ลาดพร้าว",
-    username: "pongsak_lad",
-    password_hash: "password123",
     phone: "0845679012",
     village_key: "ladprao-village-012",
     status: "pending",
+    line_user_id: null,
+    line_display_name: null,
+    line_profile_url: null,
+    move_in_date: "2024-03-15",
   },
 
   // หมู่บ้านบางนา
@@ -441,11 +507,13 @@ const residentData = [
     email: "nattaya.bang@email.com",
     fname: "ณัฐยา",
     lname: "บางนา",
-    username: "nattaya_bang",
-    password_hash: "password123",
     phone: "0856790123",
     village_key: "bangna-village-013",
     status: "pending",
+    line_user_id: null,
+    line_display_name: null,
+    line_profile_url: null,
+    move_in_date: "2024-03-20",
   },
 
   // หมู่บ้านทองหล่อ
@@ -453,11 +521,13 @@ const residentData = [
     email: "wirote.thong@email.com",
     fname: "วิโรจน์",
     lname: "ทองหล่อ",
-    username: "wirote_thong",
-    password_hash: "password123",
     phone: "0867901234",
     village_key: "thonglor-village-015",
     status: "pending",
+    line_user_id: null,
+    line_display_name: null,
+    line_profile_url: null,
+    move_in_date: "2024-03-25",
   },
 ];
 
@@ -471,33 +541,39 @@ const guardData = [
     email: "prasit.pha@email.com",
     fname: "ประสิทธิ์",
     lname: "ผาสุก",
-    username: "prasit_pha",
-    password_hash: "password123",
     phone: "0891234567",
     village_key: "pha-suk-village-001",
     status: "verified",
+    line_user_id: null,
+    line_display_name: null,
+    line_profile_url: null,
+    hired_date: "2024-01-01",
   },
   // หมู่บ้านรัตนา
   {
     email: "kanokwan.rat@email.com",
     fname: "กนกวรรณ",
     lname: "รัตนา",
-    username: "kanokwan_rat",
-    password_hash: "password123",
     phone: "0892345678",
     village_key: "rattana-village-006",
     status: "verified",
+    line_user_id: null,
+    line_display_name: null,
+    line_profile_url: null,
+    hired_date: "2024-01-15",
   },
   // หมู่บ้านทองหล่อ
   {
     email: "santi.thong@email.com",
     fname: "สันติ",
     lname: "ทองหล่อ",
-    username: "santi_thong",
-    password_hash: "password123",
     phone: "0893456789",
     village_key: "thonglor-village-015",
     status: "verified",
+    line_user_id: null,
+    line_display_name: null,
+    line_profile_url: null,
+    hired_date: "2024-02-01",
   },
 ];
 
@@ -795,7 +871,6 @@ async function createVisitorRecordsData() {
     record_status: "approved" | "pending" | "rejected";
     visit_purpose?: string;
     entry_time?: Date;
-    exit_time?: Date;
   }> = [];
 
   // Sample data for non-ID fields
@@ -945,15 +1020,6 @@ async function createVisitorRecordsData() {
 
         // Generate realistic timestamps
         const entryTime = generateRandomTimestamp();
-        let exitTime: Date | undefined;
-
-        // For approved records, generate exit time (1-8 hours later)
-        if (randomStatus === "approved") {
-          exitTime = new Date(entryTime);
-          exitTime.setHours(
-            exitTime.getHours() + Math.floor(Math.random() * 8) + 1
-          );
-        }
 
         // For rejected records, no exit time
         // For pending records, no exit time
@@ -967,7 +1033,7 @@ async function createVisitorRecordsData() {
           record_status: randomStatus,
           visit_purpose: randomVisitPurpose,
           entry_time: entryTime,
-          exit_time: exitTime,
+
         });
       }
     }
@@ -1050,7 +1116,6 @@ async function createVisitorRecordsData() {
           record_status: randomStatus,
           visit_purpose: randomVisitPurpose,
           entry_time: entryTime,
-          exit_time: exitTime,
         });
       }
 
@@ -1119,15 +1184,6 @@ async function createVisitorRecordsData() {
 
         // Generate realistic timestamps
         const entryTime = generateRandomTimestamp();
-        let exitTime: Date | undefined;
-
-        // For approved records, generate exit time (1-8 hours later)
-        if (randomStatus === "approved") {
-          exitTime = new Date(entryTime);
-          exitTime.setHours(
-            exitTime.getHours() + Math.floor(Math.random() * 8) + 1
-          );
-        }
 
         visitorRecordsData.push({
           resident_id: randomResident.resident_id,
@@ -1138,7 +1194,6 @@ async function createVisitorRecordsData() {
           record_status: randomStatus,
           visit_purpose: randomVisitPurpose,
           entry_time: entryTime,
-          exit_time: exitTime,
         });
       }
 
@@ -1218,15 +1273,6 @@ async function createVisitorRecordsData() {
 
           // Generate realistic timestamps
           const entryTime = generateRandomTimestamp();
-          let exitTime: Date | undefined;
-
-          // For approved records, generate exit time (1-8 hours later)
-          if (randomStatus === "approved") {
-            exitTime = new Date(entryTime);
-            exitTime.setHours(
-              exitTime.getHours() + Math.floor(Math.random() * 8) + 1
-            );
-          }
 
           visitorRecordsData.push({
             resident_id: randomResident.resident_id,
@@ -1237,7 +1283,6 @@ async function createVisitorRecordsData() {
             record_status: randomStatus,
             visit_purpose: randomVisitPurpose,
             entry_time: entryTime,
-            exit_time: exitTime,
           });
         }
       }
@@ -1270,29 +1315,15 @@ async function seed() {
   console.log("Completed inserting villages");
 
   console.log("Inserting houses");
-  await db.insert(houses).values(houseData);
+  await db.insert(houses).values(houseData as any);
   console.log("Completed inserting houses");
 
   console.log("Inserting residents");
-  // Hash passwords before inserting residents
-  const hashedResidentData = await Promise.all(
-    residentData.map(async (resident) => ({
-      ...resident,
-      password_hash: await hashPassword(resident.password_hash),
-    }))
-  );
-  await db.insert(residents).values(hashedResidentData as any);
+  await db.insert(residents).values(residentData as any);
   console.log("Completed inserting residents");
 
   console.log("Inserting guards");
-  // Hash passwords before inserting guards
-  const hashedGuardData = await Promise.all(
-    guardData.map(async (guard) => ({
-      ...guard,
-      password_hash: await hashPassword(guard.password_hash),
-    }))
-  );
-  await db.insert(guards).values(hashedGuardData as any);
+  await db.insert(guards).values(guardData as any);
   console.log("Completed inserting guards");
 
   console.log("Inserting admins");

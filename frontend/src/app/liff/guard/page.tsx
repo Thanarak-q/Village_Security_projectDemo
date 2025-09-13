@@ -14,10 +14,9 @@ export default function GuardLiffPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("init");
   const [msg, setMsg] = useState("กำลังเตรียม LIFF สำหรับยามรักษาความปลอดภัย...");
-  const [user, setUser] = useState<{ name?: string; id?: string }>({});
-  const [submitting, setSubmitting] = useState(false);
-  const [idToken, setIdToken] = useState<string | null>(null);
-  const [lineProfile, setLineProfile] = useState<any>(null);
+  const [, setUser] = useState<{ name?: string; id?: string }>({});
+  const [, setIdToken] = useState<string | null>(null);
+  const [, setLineProfile] = useState<{ userId?: string; displayName?: string; pictureUrl?: string } | null>(null);
 
 
   useEffect(() => {

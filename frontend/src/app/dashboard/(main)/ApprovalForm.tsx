@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,6 +22,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -29,6 +40,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Check, X, UserCheck } from "lucide-react";
+
+// Zod validation schema
+const approvalFormSchema = z.object({
+  approvedRole: z.string().min(1, "กรุณาเลือกบทบาทที่อนุมัติ"),
+  houseNumber: z.string().optional(),
+  notes: z.string().optional(),
+}).refine((data) => {
+  // If approved role is 'ลูกบ้าน', house number is required
+  if (data.approvedRole === 'ลูกบ้าน') {
+    return data.houseNumber && data.houseNumber.trim().length > 0;
+  }
+  return true;
+}, {
+  message: "กรุณาระบุบ้านเลขที่สำหรับลูกบ้าน",
+  path: ["houseNumber"],
+});
+
+type ApprovalFormData = z.infer<typeof approvalFormSchema>;
 
 interface PendingUser {
   id: string;
@@ -43,12 +72,6 @@ interface PendingUser {
   status: string;
 }
 
-interface ApprovalFormData {
-  approvedRole: string;
-  houseNumber: string;
-  notes: string;
-}
-
 interface ApprovalFormProps {
   user: PendingUser | null;
   isOpen: boolean;
@@ -57,37 +80,39 @@ interface ApprovalFormProps {
 }
 
 export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: ApprovalFormProps) {
-  const [formData, setFormData] = useState({
-    approvedRole: "",
-    houseNumber: "",
-    notes: ""
-  });
-  
   // Confirmation dialog states
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
 
+  const form = useForm<ApprovalFormData>({
+    resolver: zodResolver(approvalFormSchema),
+    defaultValues: {
+      approvedRole: "",
+      houseNumber: "",
+      notes: ""
+    }
+  });
+
   // โหลดข้อมูล user เข้าฟอร์มเมื่อเปิด
   useEffect(() => {
     if (user) {
-      setFormData({
+      form.reset({
         approvedRole: user.role === 'resident' ? 'ลูกบ้าน' : 'ยาม',
         houseNumber: user.houseNumber !== "-" ? user.houseNumber : "",
         notes: ""
       });
     }
-  }, [user]);
+  }, [user, form]);
 
   const handleApproveClick = () => {
     if (!user) return;
     
-    // Validate required fields for approval
-    if (formData.approvedRole === 'ลูกบ้าน' && !formData.houseNumber.trim()) {
-      alert('กรุณาระบุบ้านเลขที่สำหรับลูกบ้าน');
-      return;
-    }
-    
-    setShowApproveConfirm(true);
+    // Validate form using Zod
+    form.handleSubmit(() => {
+      setShowApproveConfirm(true);
+    }, (errors) => {
+      console.log('Form validation errors:', errors);
+    })();
   };
 
   const handleRejectClick = () => {
@@ -97,11 +122,13 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
 
   const handleConfirmApprove = () => {
     setShowApproveConfirm(false);
+    const formData = form.getValues();
     onSubmit('approve', formData);
   };
 
   const handleConfirmReject = () => {
     setShowRejectConfirm(false);
+    const formData = form.getValues();
     onSubmit('reject', formData);
   };
 
@@ -154,63 +181,81 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
             </div>
           </div>
 
-          <div className="space-y-4">
-            {/* บทบาทที่อนุมัติ */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                บทบาทที่อนุมัติ
-              </label>
-              <Select
-                value={formData.approvedRole}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, approvedRole: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="เลือกบทบาท" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ลูกบ้าน">ลูกบ้าน</SelectItem>
-                  <SelectItem value="ยาม">ยาม</SelectItem>
-                  {/* <SelectItem value="ผู้จัดการ">ผู้จัดการ</SelectItem> */}
-                </SelectContent>
-              </Select>
-            </div>
+          <Form {...form}>
+            <div className="space-y-4">
+              {/* บทบาทที่อนุมัติ */}
+              <FormField
+                control={form.control}
+                name="approvedRole"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium text-foreground">
+                      บทบาทที่อนุมัติ
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="เลือกบทบาท" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="ลูกบ้าน">ลูกบ้าน</SelectItem>
+                        <SelectItem value="ยาม">ยาม</SelectItem>
+                        {/* <SelectItem value="ผู้จัดการ">ผู้จัดการ</SelectItem> */}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            {/* บ้านเลขที่ */}
-            {formData.approvedRole === "ลูกบ้าน" && (
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  บ้านเลขที่
-                </label>
-                <Input
-                  placeholder="เช่น 88/123"
-                  value={formData.houseNumber}
-                  onChange={(e) =>
-                    setFormData({ ...formData, houseNumber: e.target.value })
-                  }
+              {/* บ้านเลขที่ */}
+              {form.watch("approvedRole") === "ลูกบ้าน" && (
+                <FormField
+                  control={form.control}
+                  name="houseNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium text-foreground">
+                        บ้านเลขที่
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="เช่น 88/123"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        กรอกบ้านเลขที่สำหรับลูกบ้าน
+                      </p>
+                    </FormItem>
+                  )}
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  กรอกบ้านเลขที่สำหรับลูกบ้าน
-                </p>
-              </div>
-            )}
+              )}
 
-            {/* หมายเหตุ */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                หมายเหตุ (ไม่บังคับ)
-              </label>
-              <Textarea
-                placeholder="เพิ่มหมายเหตุหรือข้อมูลเพิ่มเติม..."
-                value={formData.notes}
-                onChange={(e) =>
-                  setFormData({ ...formData, notes: e.target.value })
-                }
-                rows={3}
+              {/* หมายเหตุ */}
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium text-foreground">
+                      หมายเหตุ (ไม่บังคับ)
+                    </FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="เพิ่มหมายเหตุหรือข้อมูลเพิ่มเติม..."
+                        rows={3}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-          </div>
+          </Form>
 
           <DialogFooter className="flex gap-3 pt-6">
             {/* <Button 
@@ -252,9 +297,9 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
             </AlertDialogTitle>
             <AlertDialogDescription>
               คุณต้องการอนุมัติผู้ใช้ <strong>{user?.fname} {user?.lname}</strong> 
-              เป็น <strong>{formData.approvedRole}</strong> ใช่หรือไม่?
-              {formData.approvedRole === 'ลูกบ้าน' && formData.houseNumber && (
-                <><br />บ้านเลขที่: <strong>{formData.houseNumber}</strong></>
+              เป็น <strong>{form.watch("approvedRole")}</strong> ใช่หรือไม่?
+              {form.watch("approvedRole") === 'ลูกบ้าน' && form.watch("houseNumber") && (
+                <><br />บ้านเลขที่: <strong>{form.watch("houseNumber")}</strong></>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>

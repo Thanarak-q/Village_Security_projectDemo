@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle, CheckCircle, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle, WifiOff, RefreshCw } from 'lucide-react';
 import { LiffService } from '@/lib/liff';
 import { registerLiffUser, storeAuthData } from '@/lib/liffAuth';
 import { validateRegistrationForm, validateField, type ValidationError as ZodValidationError } from '@/lib/validation';
@@ -27,7 +27,7 @@ interface NetworkError {
   retryable: boolean;
 }
 
-export default function LiffRegisterPage() {
+function LiffRegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -37,7 +37,7 @@ export default function LiffRegisterPage() {
   const [networkError, setNetworkError] = useState<NetworkError | null>(null);
   const [success, setSuccess] = useState(false);
   const [idToken, setIdToken] = useState<string | null>(null);
-  const [lineUserId, setLineUserId] = useState<string | null>(null);
+  const [, setLineUserId] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isOnline, setIsOnline] = useState(true);
   const [villageValidation, setVillageValidation] = useState<{
@@ -56,7 +56,7 @@ export default function LiffRegisterPage() {
     profile_image_url: '',
   });
 
-  const [lineProfile, setLineProfile] = useState<any>(null);
+  const [lineProfile, setLineProfile] = useState<{ userId?: string; displayName?: string; pictureUrl?: string } | null>(null);
 
   // Network status monitoring
   useEffect(() => {
@@ -127,7 +127,7 @@ export default function LiffRegisterPage() {
   };
 
   // Handle network errors
-  const handleNetworkError = (err: any): NetworkError => {
+  const handleNetworkError = (err: unknown): NetworkError => {
     if (!navigator.onLine) {
       return {
         type: 'network',
@@ -136,7 +136,8 @@ export default function LiffRegisterPage() {
       };
     }
     
-    if (err.name === 'AbortError' || err.message?.includes('timeout')) {
+    const error = err as Error;
+    if (error.name === 'AbortError' || error.message?.includes('timeout')) {
       return {
         type: 'timeout',
         message: 'การเชื่อมต่อหมดเวลา กรุณาลองใหม่',
@@ -144,7 +145,7 @@ export default function LiffRegisterPage() {
       };
     }
     
-    if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+    if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
       return {
         type: 'network',
         message: 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่อ',
@@ -700,5 +701,20 @@ export default function LiffRegisterPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function LiffRegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-2 text-gray-600">กำลังโหลด...</p>
+        </div>
+      </div>
+    }>
+      <LiffRegisterPageContent />
+    </Suspense>
   );
 }
