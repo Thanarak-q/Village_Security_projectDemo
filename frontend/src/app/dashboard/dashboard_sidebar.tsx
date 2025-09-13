@@ -22,7 +22,6 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, memo } from "react";
-import { useSidebar } from "@/components/ui/sidebar";
 import { useTheme } from "next-themes";
 import Image from "next/image";
 // import { MenuShowColor } from "@/components/animation";
@@ -52,7 +51,6 @@ const items = [
 
 const AppSidebar = memo(function AppSidebar() {
   const pathname = usePathname();
-  const { setOpen } = useSidebar();
   const { theme } = useTheme();
   const [userData, setUserData] = useState<{
     id: string;
@@ -82,28 +80,27 @@ const AppSidebar = memo(function AppSidebar() {
 
 
   return (
-    <Sidebar className="sticky top-0 h-screen" collapsible="icon">
+    <Sidebar className="sticky top-0 h-screen hidden md:block" collapsible="icon">
       <SidebarContent className="flex flex-col h-full">
         <SidebarGroup className="flex-1 min-h-0">
-          <SidebarGroupLabel className="my-2 md:my-3 border-border mb-2 md:mb-6.5">
-            <div className="flex items-center gap-2 md:gap-3 p-1 md:p-2">
+          <SidebarGroupLabel className="my-3 border-border mb-6">
+            <div className="flex items-center gap-3 p-2">
               <div>
-                <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 overflow-hidden relative">
+                <div className="w-12 h-12 overflow-hidden relative">
                   <Image
                     src={theme === "dark" ? "/house-white.png" : "/house-dark.png"}
                     alt="House"
                     fill
                     className="object-cover"
-                    sizes="(max-width: 640px) 40px, (max-width: 768px) 48px, 56px"
+                    sizes="48px"
                   />
                 </div>
               </div>
               <div>
                 <p className="scroll-m-20 text-xl font-semibold tracking-tight">
-                  {userData?.village_name || "manager"
-                  }
+                  {userData?.village_name || "manager"}
                 </p>
-                <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   ระบบจัดการหมู่บ้าน
                 </p>
               </div>
@@ -116,23 +113,15 @@ const AppSidebar = memo(function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     tooltip={item.title}
-                    className={`py-3 md:py-4 px-3 md:px-4 h-auto text-sm md:text-base transition-all duration-300 ease-in-out rounded-lg mx-2 ${
+                    className={`py-4 px-4 h-auto text-base transition-all duration-300 ease-in-out rounded-lg mx-2 ${
                       pathname === item.url
                         ? "bg-primary/10 text-primary border-r-3 border-primary shadow-sm"
                         : "hover:bg-muted/50 hover:shadow-sm"
                     }`}
                   >
-                    <Link 
-                      href={item.url}
-                      onClick={() => {
-                        // Close sidebar on mobile when menu item is clicked
-                        if (window.innerWidth < 768) {
-                          setOpen(false);
-                        }
-                      }}
-                    >
+                    <Link href={item.url}>
                       <item.icon
-                        className={`w-4 h-4 md:w-5 md:h-5 mr-3 transition-all duration-300 ${
+                        className={`w-5 h-5 mr-3 transition-all duration-300 ${
                           pathname === item.url 
                             ? "text-primary scale-110" 
                             : "text-muted-foreground group-hover:text-foreground group-hover:scale-105"
