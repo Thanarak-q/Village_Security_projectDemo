@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Bell, Users, Home, Clock, AlertTriangle } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Bell, Users, Home, Clock, AlertTriangle, Settings, CheckCircle2, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -11,238 +11,217 @@ import {
 } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
+import { useNotifications } from "@/hooks/useNotifications"
+import { getNotificationIcon, getNotificationColor } from "@/lib/notifications"
 
-// Notification interface based on mock data structure
-interface Notification {
-  id: number;
-  type: "new_user" | "house_change" | "visitor_pending" | "visitor_rejected";
-  icon: React.ComponentType<{ className?: string }>; 
-  title: string;
-  description: string;
-  time: string;
-  village: string;
-  isRead: boolean;
+// Icon mapping for notification types
+const iconMap = {
+  Users,
+  Home,
+  AlertTriangle,
+  Settings,
+  Bell,
+  Clock
+};
+
+// Get icon component by name
+function getIconComponent(iconName: string) {
+  return iconMap[iconName as keyof typeof iconMap] || Bell;
 }
 
-// ข้อมูลตัวอย่าง notifications สำหรับ admin
-const mockNotifications: Notification[] = [
-  // ประเภทที่ 1: การแจ้งเตือนผู้ใช้ใหม่รออนุมัติ
-  {
-    id: 1,
-    type: "new_user",
-    icon: Users,
-    title: "ผู้ใช้ใหม่รออนุมัติ",
-    description: "นาย สมชาย ใจดี (Resident) สมัครเข้าหมู่บ้านบ้านสวนสุข",
-    time: "5 นาทีที่แล้ว",
-    village: "บ้านสวนสุข",
-    isRead: false
-  },
-  {
-    id: 2,
-    type: "new_user",
-    icon: Users,
-    title: "ผู้ใช้ใหม่รออนุมัติ",
-    description: "นาย ก. วิศวกรรม (Guard) สมัครเข้าหมู่บ้านบ้านสวนสุข",
-    time: "15 นาทีที่แล้ว",
-    village: "บ้านสวนสุข",
-    isRead: false
-  },
-  {
-    id: 3,
-    type: "new_user",
-    icon: Users,
-    title: "ผู้ใช้ใหม่รออนุมัติ",
-    description: "นางสาวมาลี สุขใส (Resident) สมัครเข้าหมู่บ้านบ้านสวนสุข",
-    time: "30 นาทีที่แล้ว",
-    village: "บ้านสวนสุข",
-    isRead: true
-  },
-
-  // ประเภทที่ 2: การแจ้งเตือนการเปลี่ยนแปลงข้อมูลบ้าน
-  {
-    id: 4,
-    type: "house_change",
-    icon: Home,
-    title: "แก้ไขข้อมูลบ้าน",
-    description: "แก้ไขที่อยู่บ้านเลขที่ 123/45 ซอยสุขุมวิท",
-    time: "1 ชั่วโมงที่แล้ว",
-    village: "บ้านสวนสุข",
-    isRead: false
-  },
-  {
-    id: 5,
-    type: "house_change",
-    icon: Home,
-    title: "เพิ่มสมาชิกบ้าน",
-    description: "เพิ่มสมาชิกใหม่เข้าบ้านเลขที่ 456/78",
-    time: "2 ชั่วโมงที่แล้ว",
-    village: "บ้านสวนสุข",
-    isRead: true
-  },
-  {
-    id: 6,
-    type: "house_change",
-    icon: Home,
-    title: "เปลี่ยนสถานะบ้าน",
-    description: "เปลี่ยนสถานะบ้านเลขที่ 789/90 เป็น 'occupied'",
-    time: "3 ชั่วโมงที่แล้ว",
-    village: "บ้านสวนสุข",
-    isRead: true
-  },
-
-  // ประเภทที่ 3: การแจ้งเตือน visitor records ที่ต้องตรวจสอบ
-  {
-    id: 7,
-    type: "visitor_pending",
-    icon: Clock,
-    title: "Visitor รออนุมัตินาน",
-    description: "นาย ข. เยี่ยมบ้านเลขที่ 123/45 รอมาแล้ว 2 ชั่วโมง 30 นาที",
-    time: "10 นาทีที่แล้ว",
-    village: "บ้านสวนสุข",
-    isRead: false
-  },
-  {
-    id: 8,
-    type: "visitor_rejected",
-    icon: AlertTriangle,
-    title: "Visitor ถูกปฏิเสธ",
-    description: "นาง ค. เยี่ยมบ้านเลขที่ 456/78 ถูกปฏิเสธ - ต้องการทบทวน",
-    time: "45 นาทีที่แล้ว",
-    village: "บ้านสวนสุข",
-    isRead: false
-  },
-  {
-    id: 9,
-    type: "visitor_pending",
-    icon: Clock,
-    title: "Visitor รออนุมัตินาน",
-    description: "นาย ง. เยี่ยมบ้านเลขที่ 789/90 รอมาแล้ว 1 ชั่วโมง 45 นาที",
-    time: "1 ชั่วโมงที่แล้ว",
-    village: "บ้านสวนสุข",
-    isRead: true
-  }
-]
-
-const getIconColor = (type: string) => {
+// Get color class for notification type
+function getIconColor(type: string) {
   switch (type) {
-    case "new_user":
-      return "text-blue-500"
-    case "house_change":
-      return "text-green-500"
-    case "visitor_pending":
-      return "text-orange-500"
-    case "visitor_rejected":
-      return "text-red-500"
+    case 'resident_pending':
+    case 'guard_pending':
+    case 'admin_pending':
+      return 'text-blue-500 bg-blue-100 dark:bg-blue-900/20';
+    case 'house_updated':
+    case 'member_added':
+    case 'member_removed':
+      return 'text-green-500 bg-green-100 dark:bg-green-900/20';
+    case 'visitor_pending_too_long':
+    case 'visitor_rejected_review':
+      return 'text-red-500 bg-red-100 dark:bg-red-900/20';
+    case 'status_changed':
+      return 'text-orange-500 bg-orange-100 dark:bg-orange-900/20';
     default:
-      return "text-muted-foreground"
+      return 'text-gray-500 bg-gray-100 dark:bg-gray-900/20';
   }
 }
-
 
 export default function NotificationComponent() {
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications)
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
+  const {
+    notifications,
+    counts,
+    loading,
+    error,
+    refreshNotifications,
+    markAsRead,
+    markAllAsRead,
+    deleteNotificationById
+  } = useNotifications();
 
-  // นับแจ้งเตือนที่ยังไม่ได้อ่าน
-  const unreadCount = notifications.filter(n => !n.isRead).length
-
-  // ทำเครื่องหมายว่าอ่านแล้วเมื่อเปิด popover
-  const handleOpenChange = (open: boolean) => {
-    setIsOpen(open)
-    if (open) {
-      // Mark all as read after a short delay
-      setTimeout(() => {
-        setNotifications(prev => 
-          prev.map(n => ({ ...n, isRead: true }))
-        )
-      }, 1000)
+  // Auto-refresh notifications when popover opens
+  useEffect(() => {
+    if (isOpen) {
+      refreshNotifications();
     }
-  }
+  }, [isOpen, refreshNotifications]);
+
+  const handleMarkAsRead = async (notificationId: string) => {
+    await markAsRead(notificationId);
+  };
+
+  const handleMarkAllAsRead = async () => {
+    await markAllAsRead();
+  };
+
+  const handleDeleteNotification = async (notificationId: string) => {
+    await deleteNotificationById(notificationId);
+  };
+
+  const unreadCount = counts?.unread || 0;
 
   return (
-    <Popover open={isOpen} onOpenChange={handleOpenChange}>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button 
-          variant="outline" 
-          size="icon" 
-          className="relative hover:bg-muted"
-        >
-          <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <Badge 
-              className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-destructive text-destructive-foreground text-xs px-1 sm:px-2 py-0.5 sm:py-1 rounded-full min-w-[16px] sm:min-w-[20px] h-4 sm:h-5 flex items-center justify-center"
+              variant="destructive" 
+              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs font-bold"
             >
-              {unreadCount}
+              {unreadCount > 99 ? '99+' : unreadCount}
             </Badge>
           )}
         </Button>
       </PopoverTrigger>
       
-      <PopoverContent className="w-80 sm:w-96 p-0" align="end">
-        <div className="p-3 sm:p-4 border-b">
-          <h3 className="font-semibold text-base sm:text-lg">แจ้งเตือน Admin</h3>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            การแจ้งเตือนสำหรับผู้ดูแลระบบ
-          </p>
+      <PopoverContent className="w-80 sm:w-96" align="end">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">การแจ้งเตือน</h3>
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleMarkAllAsRead}
+                className="text-xs"
+              >
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                อ่านทั้งหมด
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={refreshNotifications}
+              disabled={loading}
+              className="text-xs"
+            >
+              รีเฟรช
+            </Button>
+          </div>
         </div>
+        
+        <Separator className="mb-4" />
         
         <ScrollArea className="h-80 sm:h-96">
           <div className="p-2">
-            {notifications.map((notification, index) => {
-              const IconComponent = notification.icon
-              return (
-                <div key={notification.id}>
-                  <div 
-                    className={`p-2 sm:p-3 rounded-lg hover:bg-muted cursor-pointer transition-colors ${
-                      !notification.isRead ? 'bg-primary/10 border-l-4 border-primary dark:bg-primary/20' : ''
-                    }`}
-                  >
-                    <div className="flex items-start gap-2 sm:gap-3">
-                      <div className={`p-1.5 sm:p-2 rounded-full bg-muted ${getIconColor(notification.type)}`}>
-                        <IconComponent className="h-3 w-3 sm:h-4 sm:w-4" />
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-xs sm:text-sm font-medium truncate">
-                            {notification.title}
-                          </h4>
-                          {!notification.isRead && (
-                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full flex-shrink-0 ml-1 sm:ml-2" />
-                          )}
+            {loading && notifications.length === 0 ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-sm text-muted-foreground">กำลังโหลด...</div>
+              </div>
+            ) : error ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-sm text-red-500">เกิดข้อผิดพลาด: {error}</div>
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-sm text-muted-foreground">ไม่มีการแจ้งเตือน</div>
+              </div>
+            ) : (
+              notifications.map((notification, index) => {
+                const IconComponent = getIconComponent(getNotificationIcon(notification.type));
+                
+                return (
+                  <div key={notification.notification_id}>
+                    <div
+                      className={`p-3 rounded-lg transition-colors hover:bg-muted/50 ${
+                        !notification.is_read ? 'bg-primary/10 border-l-4 border-primary dark:bg-primary/20' : ''
+                      }`}
+                    >
+                      <div className="flex items-start gap-2 sm:gap-3">
+                        <div className={`p-1.5 sm:p-2 rounded-full bg-muted ${getIconColor(notification.type)}`}>
+                          <IconComponent className="h-3 w-3 sm:h-4 sm:w-4" />
                         </div>
                         
-                        <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-2">
-                          {notification.description}
-                        </p>
-                        
-                        <div className="flex items-center justify-between mt-1 sm:mt-2 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Home className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                            <span className="hidden sm:inline">{notification.village}</span>
-                            <span className="sm:hidden">{notification.village.split(' ')[0]}</span>
-                          </span>
-                          <span className="text-xs">{notification.time}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-xs sm:text-sm font-medium truncate">
+                              {notification.title}
+                            </h4>
+                            <div className="flex items-center gap-1">
+                              {!notification.is_read && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleMarkAsRead(notification.notification_id)}
+                                  className="h-6 w-6 p-0"
+                                >
+                                  <CheckCircle2 className="h-3 w-3" />
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteNotification(notification.notification_id)}
+                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-2">
+                            {notification.message}
+                          </p>
+                          
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-xs text-muted-foreground">
+                              {notification.village}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {notification.time}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
+                    
+                    {index < notifications.length - 1 && (
+                      <Separator className="my-2" />
+                    )}
                   </div>
-                  
-                  {index < notifications.length - 1 && (
-                    <Separator className="my-1" />
-                  )}
-                </div>
-              )
-            })}
+                );
+              })
+            )}
           </div>
         </ScrollArea>
         
-        <div className="p-2 sm:p-3 border-t">
-          <Button variant="ghost" className="w-full text-xs sm:text-sm">
-            ดูแจ้งเตือนทั้งหมด
-          </Button>
-        </div>
+        {notifications.length > 0 && (
+          <>
+            <Separator className="mt-4" />
+            <div className="flex items-center justify-between mt-4 text-xs text-muted-foreground">
+              <span>ทั้งหมด {counts?.total || 0} รายการ</span>
+              <span>ยังไม่อ่าน {unreadCount} รายการ</span>
+            </div>
+          </>
+        )}
       </PopoverContent>
     </Popover>
-  )
+  );
 }
