@@ -108,7 +108,7 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
     if (!user) return;
     
     // Validate form using Zod
-    form.handleSubmit((_data) => {
+    form.handleSubmit(() => {
       setShowApproveConfirm(true);
     }, (errors) => {
       console.log('Form validation errors:', errors);

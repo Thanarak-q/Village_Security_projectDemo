@@ -16,7 +16,7 @@ import { Separator } from "@/components/ui/separator"
 interface Notification {
   id: number;
   type: "new_user" | "house_change" | "visitor_pending" | "visitor_rejected";
-  icon: unknown; 
+  icon: React.ComponentType<{ className?: string }>; 
   title: string;
   description: string;
   time: string;
