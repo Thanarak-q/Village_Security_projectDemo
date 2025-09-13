@@ -76,5 +76,5 @@ export const getRoleDisplayName = (role: AdminRole): string => {
 // Helper function to check if user has permission
 export const hasPermission = (userRole: AdminRole, permission: string): boolean => {
   const userPermissions = ROLE_PERMISSIONS[userRole]?.permissions;
-  return userPermissions ? userPermissions.includes(permission as string) : false;
+  return userPermissions ? (userPermissions as readonly string[]).includes(permission) : false;
 };
