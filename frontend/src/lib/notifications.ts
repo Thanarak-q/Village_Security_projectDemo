@@ -35,7 +35,7 @@ export interface NotificationFilters {
   priority?: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
+const API_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
 // Helper function to get auth token
 function getAuthToken(): string | null {
@@ -47,7 +47,7 @@ function getAuthToken(): string | null {
 async function apiRequest(endpoint: string, options: RequestInit = {}) {
   const token = getAuthToken();
   
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await fetch(`${API_BACKEND_URL}${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
