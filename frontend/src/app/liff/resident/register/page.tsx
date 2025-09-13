@@ -407,14 +407,6 @@ function ResidentRegisterPageContent() {
                     'ลงทะเบียนผู้อยู่อาศัย'
                   )}
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.push('/liff/resident')}
-                  className="border-zinc-600 text-zinc-200 hover:bg-zinc-700"
-                >
-                  กลับ
-                </Button>
               </div>
             </form>
           </CardContent>

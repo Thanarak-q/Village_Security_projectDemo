@@ -678,14 +678,6 @@ function LiffRegisterPageContent() {
                     'ลงทะเบียน'
                   )}
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.push('/liff')}
-                  className="border-zinc-600 text-zinc-200 hover:bg-zinc-700"
-                >
-                  กลับ
-                </Button>
               </div>
               
               {/* Retry limit warning */}

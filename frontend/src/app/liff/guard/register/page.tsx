@@ -401,14 +401,6 @@ function GuardRegisterPageContent() {
                     'ลงทะเบียนยามรักษาความปลอดภัย'
                   )}
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.push('/liff/guard')}
-                  className="border-zinc-600 text-zinc-200 hover:bg-zinc-700"
-                >
-                  กลับ
-                </Button>
               </div>
             </form>
           </CardContent>
