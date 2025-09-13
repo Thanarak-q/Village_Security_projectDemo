@@ -2,9 +2,21 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useState } from "react";
-import { Car, Clock } from "lucide-react";
+import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { Car, Clock, Home, ChevronLeft, ChevronRight } from "lucide-react";
+import { gsap } from "gsap";
+import { useLiff } from "@/hooks/useLiff";
+import { ModeToggle } from "@/components/mode-toggle";
 import NotificationComponent from "./notification";
+import { 
+  fetchPendingRequestsByLineId, 
+  fetchVisitorHistoryByLineId, 
+  fetchPendingRequests,
+  fetchVisitorHistory,
+  approveVisitorRequest, 
+  denyVisitorRequest,
+  VisitorRequest as ApiVisitorRequest 
+} from "@/lib/api/visitorRequests";
 
 interface VisitorRequest {
   id: string;
@@ -194,7 +206,7 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
                   <Button
                     onClick={() => onApprove(sortedPending[currentIndex].id)}
                     disabled={isAnimating}
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm rounded-lg flex-1 disabled:opacity-50 dark:bg-green-900/20 dark:text-green-400 px-3 py-2 rounded-md text-sm"
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm rounded-lg flex-1 disabled:opacity-50 dark:bg-green-900/20 dark:text-green-400"
                   >
                     อนุมัติ
                   </Button>
@@ -220,14 +232,18 @@ const ResidentPage = () => {
   const [error, setError] = useState<string | null>(null);
   
   // Get LINE user info from LIFF
-  const { profile, loading: liffLoading, error: liffError } = useLiff();
+  const liffData = useLiff();
+  const { profile, loading: liffLoading, error: liffError } = liffData;
   const lineUserId = profile?.userId;
+  
+  // Test resident ID for development/testing
+  const TEST_RESIDENT_ID = "Ue529194c37fd43a24cf96d8648299d90";
 
   // Fetch data on component mount
   useEffect(() => {
     const loadData = async () => {
-      // Wait for LIFF to load and ensure we have a LINE user ID
-      if (liffLoading || !lineUserId) {
+      // Wait for LIFF to load
+      if (liffLoading) {
         return;
       }
 
@@ -235,11 +251,25 @@ const ResidentPage = () => {
         setLoading(true);
         setError(null);
         
-        // Fetch pending requests and history in parallel using LINE ID
-        const [pendingData, historyData] = await Promise.all([
-          fetchPendingRequestsByLineId(lineUserId),
-          fetchVisitorHistoryByLineId(lineUserId)
-        ]);
+        let pendingData: ApiVisitorRequest[] = [];
+        let historyData: ApiVisitorRequest[] = [];
+        
+        // Try to use LINE ID first, fallback to test resident ID
+        if (lineUserId && lineUserId !== "unknown") {
+          console.log("Using LINE ID:", lineUserId);
+          // Fetch pending requests and history in parallel using LINE ID
+          [pendingData, historyData] = await Promise.all([
+            fetchPendingRequestsByLineId(lineUserId),
+            fetchVisitorHistoryByLineId(lineUserId)
+          ]);
+        } else {
+          console.log("LINE ID not available, using test resident ID:", TEST_RESIDENT_ID);
+          // Use test resident ID directly
+          [pendingData, historyData] = await Promise.all([
+            fetchPendingRequests(TEST_RESIDENT_ID),
+            fetchVisitorHistory(TEST_RESIDENT_ID)
+          ]);
+        }
 
         // Transform API data to component format
         const transformedPending = pendingData.map(transformApiData);
@@ -247,6 +277,11 @@ const ResidentPage = () => {
 
         setPendingRequests(transformedPending);
         setHistory(transformedHistory);
+        
+        console.log("Loaded data:", { 
+          pending: transformedPending.length, 
+          history: transformedHistory.length 
+        });
       } catch (err) {
         console.error('Error loading visitor data:', err);
         setError('ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง');
@@ -276,7 +311,7 @@ const ResidentPage = () => {
     };
 
     loadData();
-  }, [lineUserId, liffLoading]);
+  }, [lineUserId, liffLoading, TEST_RESIDENT_ID]);
 
   const handleApprove = async (id: string) => {
     const request = pendingRequests.find((req) => req.id === id);
@@ -355,6 +390,11 @@ const ResidentPage = () => {
             <p className="text-sm text-muted-foreground">
               สวัสดี {profile?.displayName || 'คุณลูกบ้าน'} 👋
             </p>
+            {(!lineUserId || lineUserId === "unknown") && (
+              <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                🧪 โหมดทดสอบ: ใช้ Resident ID {TEST_RESIDENT_ID.slice(0, 8)}...
+              </p>
+            )}
           </div>
 
           {/* Approval Cards Section */}

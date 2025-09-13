@@ -9,9 +9,13 @@ interface LineProfile {
 }
 
 export function useLiff() {
-  const [profile, setProfile] = useState<LiffProfile | null>(null);
+  const [profile, setProfile] = useState<LineProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isLoggedInState, setIsLoggedInState] = useState(false);
+  const [isInLine, setIsInLine] = useState(false);
+  const [idToken, setIdToken] = useState<string | null>(null);
 
   const svc = LiffService.getInstance();
 
@@ -42,8 +46,15 @@ export function useLiff() {
     }
   }, [svc]);
 
-    initLiff();
-  }, []);
+  const login = () => {
+    if (window.liff) {
+      window.liff.login();
+    }
+  };
+
+  useEffect(() => {
+    initializeLiff();
+  }, [initializeLiff]);
 
   const logout = () => {
     if (window.liff) {
