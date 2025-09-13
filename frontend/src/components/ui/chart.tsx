@@ -24,15 +24,6 @@ type ChartContextProps = {
 
 const ChartContext = React.createContext<ChartContextProps | null>(null)
 
-function useChart() {
-  const context = React.useContext(ChartContext)
-
-  if (!context) {
-    throw new Error("useChart must be used within a <ChartContainer />")
-  }
-
-  return context
-}
 
 function ChartContainer({
   id,
@@ -110,7 +101,7 @@ const ChartTooltip = RechartsPrimitive.Tooltip;
  * @param {React.ComponentProps<typeof RechartsPrimitive.Tooltip> & React.ComponentProps<"div"> & { indicator?: "line" | "dot" | "dashed" }} props - The props for the component.
  * @returns {React.ReactElement | null} The styled tooltip content.
  */
-function ChartTooltipContent({ active, payload, className, indicator = "dot", ...props }: React.ComponentProps<typeof RechartsPrimitive.Tooltip> & React.ComponentProps<"div"> & { indicator?: "line" | "dot" | "dashed" }) {
+function ChartTooltipContent() {
   // ... implementation ...
   return <div />;
 }
@@ -123,15 +114,11 @@ const ChartLegend = RechartsPrimitive.Legend;
  * @param {React.ComponentProps<"div"> & Pick<RechartsPrimitive.LegendProps, "payload"> & { hideIcon?: boolean }} props - The props for the component.
  * @returns {React.ReactElement | null} The styled legend content.
  */
-function ChartLegendContent({ className, hideIcon = false, payload, ...props }: React.ComponentProps<"div"> & Pick<RechartsPrimitive.LegendProps, "payload"> & { hideIcon?: boolean }) {
+function ChartLegendContent() {
   // ... implementation ...
   return <div />;
 }
 
-function getPayloadConfigFromPayload(config: ChartConfig, payload: unknown, key: string) {
-  // ... implementation ...
-  return undefined;
-}
 
 export {
   ChartContainer,

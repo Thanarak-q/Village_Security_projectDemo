@@ -104,7 +104,6 @@ interface PendingUsersDialogProps {
 export default function PendingUsersDialog({
   children,
   onRefresh,
-  isOpen,
 }: PendingUsersDialogProps) {
   // State for API data
   const [residentsData, setResidentsData] = useState<PendingResident[]>([]);

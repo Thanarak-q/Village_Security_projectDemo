@@ -1,5 +1,5 @@
 "use client"
-import { Bell, Car, Home, Settings, Clock } from "lucide-react";
+import { Home, Settings } from "lucide-react";
 
 const navbar = () => {
   return (

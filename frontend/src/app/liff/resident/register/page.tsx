@@ -1,19 +1,19 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { LiffService } from '@/lib/liff';
 import { registerLiffUser, storeAuthData } from '@/lib/liffAuth';
 
 const svc = LiffService.getInstance();
 
-export default function ResidentRegisterPage() {
+function ResidentRegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -21,7 +21,7 @@ export default function ResidentRegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [idToken, setIdToken] = useState<string | null>(null);
-  const [lineUserId, setLineUserId] = useState<string | null>(null);
+  const [, setLineUserId] = useState<string | null>(null);
   const [villageValidation, setVillageValidation] = useState<{
     isValid: boolean;
     isLoading: boolean;
@@ -39,7 +39,7 @@ export default function ResidentRegisterPage() {
     role: 'resident' as 'resident' | 'guard', // Explicit role for LINE Login channels
   });
 
-  const [lineProfile, setLineProfile] = useState<any>(null);
+  const [lineProfile, setLineProfile] = useState<{ userId?: string; displayName?: string; pictureUrl?: string } | null>(null);
 
   // Validate village key
   const validateVillage = async (villageKey: string) => {
@@ -373,5 +373,20 @@ export default function ResidentRegisterPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function ResidentRegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-2 text-gray-600">กำลังโหลด...</p>
+        </div>
+      </div>
+    }>
+      <ResidentRegisterPageContent />
+    </Suspense>
   );
 }
