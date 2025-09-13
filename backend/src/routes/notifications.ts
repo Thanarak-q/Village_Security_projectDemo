@@ -72,16 +72,16 @@ function getTimeAgo(date: Date): string {
 }
 
 export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
-  .use(requireRole(['admin', 'staff', 'superadmin']))
+  .onBeforeHandle(requireRole(['admin', 'staff', 'superadmin']))
 
   // GET /api/notifications - Get all notifications for the authenticated admin
-  .get('/', async ({ user, query }) => {
+  .get('/', async ({ currentUser, query }) => {
     try {
       const { page = 1, limit = 20, type, category, is_read, priority } = query;
       const offset = (Number(page) - 1) * Number(limit);
 
       // Build where conditions
-      const whereConditions = [eq(admin_notifications.admin_id, user.admin_id)];
+      const whereConditions = [eq(admin_notifications.admin_id, currentUser.admin_id)];
       
       if (type) {
         whereConditions.push(eq(admin_notifications.type, type));
@@ -164,18 +164,18 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
   })
 
   // GET /api/notifications/count - Get notification counts
-  .get('/count', async ({ user }) => {
+  .get('/count', async ({ currentUser }) => {
     try {
       // Get total and unread counts
       const [totalResult, unreadResult] = await Promise.all([
         db.select({ count: count() })
           .from(admin_notifications)
-          .where(eq(admin_notifications.admin_id, user.admin_id)),
+          .where(eq(admin_notifications.admin_id, currentUser.admin_id)),
         
         db.select({ count: count() })
           .from(admin_notifications)
           .where(and(
-            eq(admin_notifications.admin_id, user.admin_id),
+            eq(admin_notifications.admin_id, currentUser.admin_id),
             eq(admin_notifications.is_read, false)
           ))
       ]);
@@ -187,7 +187,7 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
           count: count()
         })
         .from(admin_notifications)
-        .where(eq(admin_notifications.admin_id, user.admin_id))
+        .where(eq(admin_notifications.admin_id, currentUser.admin_id))
         .groupBy(admin_notifications.type);
 
       // Get counts by priority
@@ -197,7 +197,7 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
           count: count()
         })
         .from(admin_notifications)
-        .where(eq(admin_notifications.admin_id, user.admin_id))
+        .where(eq(admin_notifications.admin_id, currentUser.admin_id))
         .groupBy(admin_notifications.priority);
 
       const by_type = typeCounts.reduce((acc, item) => {
@@ -231,7 +231,7 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
   })
 
   // PUT /api/notifications/:id/read - Mark notification as read
-  .put('/:id/read', async ({ user, params }) => {
+  .put('/:id/read', async ({ currentUser, params }) => {
     try {
       const { id } = params;
 
@@ -243,7 +243,7 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
         })
         .where(and(
           eq(admin_notifications.notification_id, id),
-          eq(admin_notifications.admin_id, user.admin_id)
+          eq(admin_notifications.admin_id, currentUser.admin_id)
         ))
         .returning();
 
@@ -272,7 +272,7 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
   })
 
   // PUT /api/notifications/read-all - Mark all notifications as read
-  .put('/read-all', async ({ user }) => {
+  .put('/read-all', async ({ currentUser }) => {
     try {
       const result = await db
         .update(admin_notifications)
@@ -281,7 +281,7 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
           read_at: new Date()
         })
         .where(and(
-          eq(admin_notifications.admin_id, user.admin_id),
+          eq(admin_notifications.admin_id, currentUser.admin_id),
           eq(admin_notifications.is_read, false)
         ))
         .returning();
@@ -302,7 +302,7 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
   })
 
   // DELETE /api/notifications/:id - Delete a notification
-  .delete('/:id', async ({ user, params }) => {
+  .delete('/:id', async ({ currentUser, params }) => {
     try {
       const { id } = params;
 
@@ -310,7 +310,7 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
         .delete(admin_notifications)
         .where(and(
           eq(admin_notifications.notification_id, id),
-          eq(admin_notifications.admin_id, user.admin_id)
+          eq(admin_notifications.admin_id, currentUser.admin_id)
         ))
         .returning();
 
