@@ -1,8 +1,6 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, lazy, Suspense } from "react";
 import { gsap } from "gsap";
-import WeeklyAccessBarChart from "./chart";
-import PendingTable from "./pending_table";
 import {
   TotalUsersCard,
   DailyAccessCard,
@@ -10,6 +8,10 @@ import {
   EmptyCard,
   useStatsData,
 } from "./statistic";
+
+// Lazy load heavy components
+const WeeklyAccessBarChart = lazy(() => import("./chart"));
+const PendingTable = lazy(() => import("./pending_table"));
 
 export default function Page() {
   const [data, setData] = useState<unknown>(null);
@@ -140,7 +142,9 @@ export default function Page() {
           ref={chartRef}
           className="mb-4 sm:mb-6 lg:mb-8"
         >
-          <WeeklyAccessBarChart />
+          <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
+            <WeeklyAccessBarChart />
+          </Suspense>
         </div>
 
         {/* Pending Table */}
@@ -148,7 +152,9 @@ export default function Page() {
           ref={tableRef}
           className="mb-4 sm:mb-6"
         >
-          <PendingTable />
+          <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
+            <PendingTable />
+          </Suspense>
         </div>
       </div>
     </div>
