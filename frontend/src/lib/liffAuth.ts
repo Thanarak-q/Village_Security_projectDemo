@@ -20,6 +20,10 @@ export interface LiffAuthResponse {
   error?: string;
   lineUserId?: string;
   expectedRole?: 'resident' | 'guard';
+  availableRoles?: string[]; // Roles user can access
+  existingRoles?: string[]; // Roles user already has
+  canRegisterAs?: string[]; // Roles user can still register for
+  message?: string; // Custom success/error message
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -31,10 +35,6 @@ if (!API_BASE_URL) {
 // Verify LINE ID token with backend
 export const verifyLiffToken = async (idToken: string, role?: 'resident' | 'guard'): Promise<LiffAuthResponse> => {
   try {
-    console.log('🔍 API_BASE_URL:', API_BASE_URL);
-    console.log('🔍 Calling endpoint:', `${API_BASE_URL}/api/liff/verify`);
-    console.log('🔍 ID Token (first 50 chars):', idToken ? idToken.substring(0, 50) + '...' : 'null');
-    console.log('🔍 Role:', role);
     
     const response = await fetch(`${API_BASE_URL}/api/liff/verify`, {
       method: 'POST',
@@ -44,8 +44,6 @@ export const verifyLiffToken = async (idToken: string, role?: 'resident' | 'guar
       body: JSON.stringify({ idToken, role }),
     });
 
-    console.log('🔍 Response status:', response.status);
-    console.log('🔍 Response ok:', response.ok);
 
     // Check if response is ok
     if (!response.ok) {
@@ -57,7 +55,6 @@ export const verifyLiffToken = async (idToken: string, role?: 'resident' | 'guar
       
       try {
         const errorText = await response.text();
-        console.log('🔍 Error response text:', errorText);
         if (errorText) {
           const errorData = JSON.parse(errorText);
           errorMessage = errorData.error || errorMessage;
@@ -92,8 +89,6 @@ export const verifyLiffToken = async (idToken: string, role?: 'resident' | 'guar
 
     // Check if response has content
     const text = await response.text();
-    console.log('🔍 Response text length:', text.length);
-    console.log('🔍 Response text (first 200 chars):', text.substring(0, 200));
     
     if (!text) {
       console.error('Empty response from server');
@@ -105,7 +100,6 @@ export const verifyLiffToken = async (idToken: string, role?: 'resident' | 'guar
 
     // Try to parse JSON
     const data = JSON.parse(text);
-    console.log('🔍 Parsed response data:', data);
     return data;
   } catch (error) {
     console.error('LIFF verification error:', error);

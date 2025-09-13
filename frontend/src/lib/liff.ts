@@ -87,15 +87,8 @@ export class LiffService {
    * @returns The LIFF ID for the specified channel type
    */
   private getLiffId(channelType: 'resident' | 'guard' | 'default'): string | undefined {
-    switch (channelType) {
-      case 'resident':
-        return process.env.NEXT_PUBLIC_RESIDENT_LIFF_ID;
-      case 'guard':
-        return process.env.NEXT_PUBLIC_GUARD_LIFF_ID;
-      case 'default':
-      default:
-        return process.env.NEXT_PUBLIC_LIFF_ID;
-    }
+    // Use the same LIFF ID for both guard and resident since they share the same channel
+    return process.env.NEXT_PUBLIC_LIFF_ID;
   }
 
   // รอให้ window.liff โผล่ภายใน timeLimit ms (กันกรณี SDK โหลดช้า/โดน extension หน่วง)
@@ -140,8 +133,13 @@ export class LiffService {
       const script = document.createElement("script");
       script.src = "https://static.line-scdn.net/liff/edge/2/sdk.js";
       script.async = true;
-      script.onload = () => { this.scriptLoaded = true; this.initLiff(liffId).then(resolve); };
-      script.onerror = () => { console.warn("Failed to load LIFF SDK"); resolve(); };
+      script.onload = () => { 
+        this.scriptLoaded = true; 
+        this.initLiff(liffId).then(resolve).catch(() => resolve()); 
+      };
+      script.onerror = () => { 
+        resolve(); 
+      };
       document.head.appendChild(script);
     });
 
@@ -152,15 +150,15 @@ export class LiffService {
     try {
       // เผื่อ SDK ยังไม่โผล่ทันที
       const ok = await this.waitForLiff();
-      if (!ok) throw new Error("LIFF SDK not loaded yet");
-      
+      if (!ok) {
+        throw new Error("LIFF SDK not loaded yet");
+      }
       
       await window.liff.init({
         liffId,
         withLoginOnExternalBrowser: true, // สำคัญสำหรับ browser ภายนอก (auto-login)
       });
       this.initialized = true;
-      console.log("✅ LIFF initialized successfully");
     } catch (error) {
       console.warn("LIFF init failed:", error);
       throw error; // Re-throw to handle in the calling code
@@ -236,9 +234,6 @@ export class LiffService {
         displayName: p.displayName,
         pictureUrl: p.pictureUrl,
       };
-      if (process.env.NODE_ENV === "development") {
-        console.log("🔍 LIFF Profile:", this.profileCache);
-      }
       return this.profileCache;
     } catch (error) {
       console.warn("Failed to get LIFF profile:", error);
@@ -255,22 +250,6 @@ export class LiffService {
     }
   }
 
-  // Check available scopes (for debugging)
-  checkScopes = () => {
-    try {
-      const idToken = this.getIDToken();
-      if (idToken) {
-        console.log('🔑 ID Token available');
-        // Try to decode the token to see what scopes are available
-        const decoded = this.hasLiff() ? window.liff.getDecodedIDToken() : null;
-        console.log('🔍 Decoded ID Token:', decoded);
-      } else {
-        console.log('❌ No ID Token available');
-      }
-    } catch (error) {
-      console.log('❌ Error checking scopes:', error);
-    }
-  }
 
   isInClient(): boolean {
     try { return this.initialized && this.hasLiff() && window.liff.isInClient(); }

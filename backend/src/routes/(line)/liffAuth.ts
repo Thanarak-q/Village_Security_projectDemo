@@ -2,6 +2,7 @@ import { Elysia, t } from "elysia";
 import { residents, guards } from "../../db/schema";
 import db from "../../db/drizzle";
 import { eq } from "drizzle-orm";
+import { validateLiffRegistration, sanitizeString, isValidEmail, isValidPhone, isValidVillageKey } from "../../utils/zodValidation";
 // JWT will be handled by Elysia's built-in JWT plugin
 
 /**
@@ -38,9 +39,15 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
     try {
       const { idToken, role: requestRole } = body as { idToken: string; role?: 'resident' | 'guard' };
 
-      if (!idToken) {
+      // Validate input
+      if (!idToken || typeof idToken !== 'string') {
         set.status = 400;
-        return { error: "ID token is required" };
+        return { error: "ID token is required and must be a string" };
+      }
+
+      if (requestRole && !['resident', 'guard'].includes(requestRole)) {
+        set.status = 400;
+        return { error: "Invalid role. Must be 'resident' or 'guard'" };
       }
 
       // Since both guard and resident LIFF apps use the same LINE channel ID,
@@ -90,92 +97,161 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         expectedRole = getUserRole(channelId);
       }
 
-      // Check if user exists in residents table
-      const resident = await db.query.residents.findFirst({
-        where: eq(residents.line_user_id, lineUserId),
-      });
+      // Check if user exists in both residents and guards tables
+      const [resident, guard] = await Promise.all([
+        db.query.residents.findFirst({
+          where: eq(residents.line_user_id, lineUserId),
+        }),
+        db.query.guards.findFirst({
+          where: eq(guards.line_user_id, lineUserId),
+        })
+      ]);
 
-      if (resident) {
-        // Verify that the user is using the correct bot for their role
-        if (expectedRole !== 'resident') {
-          set.status = 403;
-          return { 
-            success: false,
-            error: "You are registered as a resident. Please use the resident bot.",
-            expectedRole: 'resident'
-          };
-        }
+      // Determine user roles
+      const userRoles: string[] = [];
+      if (resident) userRoles.push('resident');
+      if (guard) userRoles.push('guard');
 
-        // User is a resident
-        const token = await jwt.sign({
-          id: resident.resident_id,
-          lineUserId: resident.line_user_id,
-          role: "resident",
-          village_key: resident.village_key,
-          iat: Math.floor(Date.now() / 1000),
-        });
-
+      if (userRoles.length === 0) {
+        // User not found in either table
+        set.status = 404;
         return {
-          success: true,
-          user: {
-            id: resident.resident_id,
-            lineUserId: resident.line_user_id,
-            email: resident.email,
-            fname: resident.fname,
-            lname: resident.lname,
-            username: resident.username,
-            phone: resident.phone,
-            village_key: resident.village_key,
-            status: resident.status,
-            profile_image_url: resident.profile_image_url,
-            role: "resident",
-          },
-          token,
+          success: false,
+          error: "User not found. Please register first.",
+          lineUserId,
         };
       }
 
-      // Check if user exists in guards table
-      const guard = await db.query.guards.findFirst({
-        where: eq(guards.line_user_id, lineUserId),
-      });
+      // If user has multiple roles, check if they're using the correct bot
+      if (userRoles.length > 1) {
+        // User is both guard and resident
+        if (expectedRole === 'resident' && resident) {
+          // User is accessing resident bot and has resident role
+          const token = await jwt.sign({
+            id: resident.resident_id,
+            lineUserId: resident.line_user_id,
+            role: "resident",
+            village_key: resident.village_key,
+            iat: Math.floor(Date.now() / 1000),
+          });
 
-      if (guard) {
-        // Verify that the user is using the correct bot for their role
-        if (expectedRole !== 'guard') {
+          return {
+            success: true,
+            user: {
+              id: resident.resident_id,
+              lineUserId: resident.line_user_id,
+              email: resident.email,
+              fname: resident.fname,
+              lname: resident.lname,
+              username: resident.username,
+              phone: resident.phone,
+              village_key: resident.village_key,
+              status: resident.status,
+              profile_image_url: resident.profile_image_url,
+              role: "resident",
+            },
+            token,
+            availableRoles: userRoles, // Inform frontend about available roles
+          };
+        } else if (expectedRole === 'guard' && guard) {
+          // User is accessing guard bot and has guard role
+          const token = await jwt.sign({
+            id: guard.guard_id,
+            lineUserId: guard.line_user_id,
+            role: "guard",
+            village_key: guard.village_key,
+            iat: Math.floor(Date.now() / 1000),
+          });
+
+          return {
+            success: true,
+            user: {
+              id: guard.guard_id,
+              lineUserId: guard.line_user_id,
+              email: guard.email,
+              fname: guard.fname,
+              lname: guard.lname,
+              username: guard.username,
+              phone: guard.phone,
+              village_key: guard.village_key,
+              status: guard.status,
+              profile_image_url: guard.profile_image_url,
+              role: "guard",
+            },
+            token,
+            availableRoles: userRoles, // Inform frontend about available roles
+          };
+        } else {
+          // User has the role but is using wrong bot
           set.status = 403;
           return { 
             success: false,
-            error: "You are registered as a guard. Please use the guard bot.",
-            expectedRole: 'guard'
+            error: `You are registered as ${userRoles.join(' and ')}. Please use the correct bot.`,
+            expectedRole: expectedRole,
+            availableRoles: userRoles
           };
         }
+      } else {
+        // User has only one role
+        const userRole = userRoles[0];
+        
+        if (userRole === 'resident' && resident) {
+          // User is only a resident
+          const token = await jwt.sign({
+            id: resident.resident_id,
+            lineUserId: resident.line_user_id,
+            role: "resident",
+            village_key: resident.village_key,
+            iat: Math.floor(Date.now() / 1000),
+          });
 
-        // User is a guard
-        const token = await jwt.sign({
-          id: guard.guard_id,
-          lineUserId: guard.line_user_id,
-          role: "guard",
-          village_key: guard.village_key,
-          iat: Math.floor(Date.now() / 1000),
-        });
-
-        return {
-          success: true,
-          user: {
+          return {
+            success: true,
+            user: {
+              id: resident.resident_id,
+              lineUserId: resident.line_user_id,
+              email: resident.email,
+              fname: resident.fname,
+              lname: resident.lname,
+              username: resident.username,
+              phone: resident.phone,
+              village_key: resident.village_key,
+              status: resident.status,
+              profile_image_url: resident.profile_image_url,
+              role: "resident",
+            },
+            token,
+            availableRoles: userRoles,
+          };
+        } else if (userRole === 'guard' && guard) {
+          // User is only a guard
+          const token = await jwt.sign({
             id: guard.guard_id,
             lineUserId: guard.line_user_id,
-            email: guard.email,
-            fname: guard.fname,
-            lname: guard.lname,
-            username: guard.username,
-            phone: guard.phone,
-            village_key: guard.village_key,
-            status: guard.status,
-            profile_image_url: guard.profile_image_url,
             role: "guard",
-          },
-          token,
-        };
+            village_key: guard.village_key,
+            iat: Math.floor(Date.now() / 1000),
+          });
+
+          return {
+            success: true,
+            user: {
+              id: guard.guard_id,
+              lineUserId: guard.line_user_id,
+              email: guard.email,
+              fname: guard.fname,
+              lname: guard.lname,
+              username: guard.username,
+              phone: guard.phone,
+              village_key: guard.village_key,
+              status: guard.status,
+              profile_image_url: guard.profile_image_url,
+              role: "guard",
+            },
+            token,
+            availableRoles: userRoles,
+          };
+        }
       }
 
       // User not found in database
@@ -216,6 +292,31 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         profile_image_url: string;
         role?: "resident" | "guard"; // Optional role parameter for LINE Login channels
       };
+
+      // Validate input data using Zod
+      const validation = validateLiffRegistration({
+        idToken,
+        email: sanitizeString(email),
+        fname: sanitizeString(fname),
+        lname: sanitizeString(lname),
+        phone: sanitizeString(phone),
+        village_key: sanitizeString(village_key),
+        userType,
+        profile_image_url,
+        role
+      });
+
+      if (!validation.isValid) {
+        set.status = 400;
+        return { 
+          error: "Validation failed", 
+          details: validation.errors,
+          fieldErrors: validation.errors.reduce((acc, err) => {
+            acc[err.field] = err.message;
+            return acc;
+          }, {} as Record<string, string>)
+        };
+      }
 
       if (!idToken) {
         set.status = 400;
@@ -268,7 +369,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         expectedRole = role || getUserRole(channelId);
       }
 
-      // Check if user already exists
+      // Check if user already exists in the specific role they're trying to register for
       const existingResident = await db.query.residents.findFirst({
         where: eq(residents.line_user_id, lineUserId),
       });
@@ -277,24 +378,37 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         where: eq(guards.line_user_id, lineUserId),
       });
 
-      if (existingResident || existingGuard) {
+      // Check if user is already registered for the specific role they're trying to register for
+      if (userType === 'resident' && existingResident) {
         set.status = 409;
-        return { error: "User already registered" };
+        return { 
+          error: "User already registered as resident",
+          existingRoles: ['resident'],
+          canRegisterAs: ['guard']
+        };
       }
 
-      // Check if email already exists in both tables
-      const existingEmailResident = await db.query.residents.findFirst({
-        where: eq(residents.email, email),
-      });
-
-      const existingEmailGuard = await db.query.guards.findFirst({
-        where: eq(guards.email, email),
-      });
-
-      if (existingEmailResident || existingEmailGuard) {
+      if (userType === 'guard' && existingGuard) {
         set.status = 409;
-        return { error: "Email already exists" };
+        return { 
+          error: "User already registered as guard",
+          existingRoles: ['guard'],
+          canRegisterAs: ['resident']
+        };
       }
+
+      // Check if user has other roles (for better UX)
+      const existingRoles: string[] = [];
+      const canRegisterAs: string[] = [];
+      
+      if (existingResident) existingRoles.push('resident');
+      if (existingGuard) existingRoles.push('guard');
+      
+      if (!existingResident) canRegisterAs.push('resident');
+      if (!existingGuard) canRegisterAs.push('guard');
+
+      // Note: Email and username can be reused across different roles (different tables)
+      // Same person can have different roles with same personal information
 
       // Validate that the userType matches the expected role from the channel
       if (userType !== expectedRole) {
@@ -314,15 +428,15 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
           .insert(residents)
           .values({
             line_user_id: lineUserId,
-            email,
-            fname,
-            lname,
+            email: sanitizeString(email),
+            fname: sanitizeString(fname),
+            lname: sanitizeString(lname),
             username: generatedUsername,
             password_hash: "", // No password needed for LINE login
-            phone,
-            village_key,
+            phone: sanitizeString(phone),
+            village_key: sanitizeString(village_key),
             status: "pending",
-            profile_image_url: profile_image_url || null,
+            profile_image_url: profile_image_url ? sanitizeString(profile_image_url) : null,
           })
           .returning();
 
@@ -337,7 +451,9 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
 
         return {
           success: true,
-          message: "Resident registered successfully",
+          message: existingRoles.length > 0 
+            ? `Registration successful! You are now registered as both ${existingRoles.join(' and ')} and resident.`
+            : "Resident registered successfully",
           user: {
             id: newResident.resident_id,
             lineUserId: newResident.line_user_id,
@@ -352,21 +468,23 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
             role: "resident",
           },
           token,
+          existingRoles: existingRoles,
+          canRegisterAs: canRegisterAs,
         };
       } else if (userType === "guard") {
         const [newGuard] = await db
           .insert(guards)
           .values({
             line_user_id: lineUserId,
-            email,
-            fname,
-            lname,
+            email: sanitizeString(email),
+            fname: sanitizeString(fname),
+            lname: sanitizeString(lname),
             username: generatedUsername,
             password_hash: "", // No password needed for LINE login
-            phone,
-            village_key,
+            phone: sanitizeString(phone),
+            village_key: sanitizeString(village_key),
             status: "pending",
-            profile_image_url: profile_image_url || null,
+            profile_image_url: profile_image_url ? sanitizeString(profile_image_url) : null,
           })
           .returning();
 
@@ -381,7 +499,9 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
 
         return {
           success: true,
-          message: "Guard registered successfully",
+          message: existingRoles.length > 0 
+            ? `Registration successful! You are now registered as both ${existingRoles.join(' and ')} and guard.`
+            : "Guard registered successfully",
           user: {
             id: newGuard.guard_id,
             lineUserId: newGuard.line_user_id,
@@ -396,6 +516,8 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
             role: "guard",
           },
           token,
+          existingRoles: existingRoles,
+          canRegisterAs: canRegisterAs,
         };
       } else {
         set.status = 400;

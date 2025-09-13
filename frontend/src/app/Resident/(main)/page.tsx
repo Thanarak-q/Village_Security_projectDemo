@@ -6,6 +6,8 @@ import { useState, useEffect } from "react";
 import { Bell, Car, Home, Settings, Clock } from "lucide-react";
 import NotificationComponent from "./notification";
 import { set } from "zod";
+import { useRouter } from "next/navigation";
+import { getAuthData, isAuthenticated } from "@/lib/liffAuth";
 
 interface VisitorRequest {
   id: string;
@@ -18,6 +20,7 @@ interface VisitorRequest {
 }
 
 const ResidentPage = () => {
+  const router = useRouter();
   const [pendingRequests, setPendingRequests] = useState<VisitorRequest[]>([
     {
       id: "1",
@@ -38,6 +41,44 @@ const ResidentPage = () => {
   ]);
 
   const [history, setHistory] = useState<VisitorRequest[]>([]);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // Check authentication and role on component mount
+  useEffect(() => {
+    const checkAuthAndRole = () => {
+      // Check if user is authenticated
+      if (!isAuthenticated()) {
+        console.log('User not authenticated, redirecting to resident LIFF');
+        router.replace('/liff/resident');
+        return;
+      }
+
+      // Get user data and check role
+      const { user } = getAuthData();
+      if (!user || user.role !== 'resident') {
+        console.log('User is not a resident, redirecting to resident LIFF');
+        router.replace('/liff/resident');
+        return;
+      }
+
+      console.log('User is authenticated as resident:', user.username);
+      setIsCheckingAuth(false);
+    };
+
+    checkAuthAndRole();
+  }, [router]);
+
+  // Show loading state while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">กำลังตรวจสอบสิทธิ์การเข้าใช้งาน...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleApprove = (id: string) => {
     const request = pendingRequests.find((req) => req.id === id);

@@ -19,9 +19,11 @@ export default function ResidentLiffPage() {
   const [idToken, setIdToken] = useState<string | null>(null);
   const [lineProfile, setLineProfile] = useState<any>(null);
 
+
   useEffect(() => {
     const run = async () => {
       try {
+        
         // Initialize LIFF with resident-specific configuration
         const initPromise = svc.init('resident');
         const timeoutPromise = new Promise((_, reject) => {
@@ -30,10 +32,10 @@ export default function ResidentLiffPage() {
         
         await Promise.race([initPromise, timeoutPromise]);
 
-        const liffId = process.env.NEXT_PUBLIC_RESIDENT_LIFF_ID;
+        const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
         if (!liffId) {
           setStep("error");
-          setMsg("ไม่มี NEXT_PUBLIC_RESIDENT_LIFF_ID");
+          setMsg("ไม่มี NEXT_PUBLIC_LIFF_ID");
           return;
         }
 
@@ -86,19 +88,16 @@ export default function ResidentLiffPage() {
         if (idToken) {
           setIdToken(idToken);
           try {
-            console.log('🔍 Verifying resident with backend...');
             const authResult = await verifyLiffToken(idToken, 'resident');
-            console.log('🔍 Auth result:', authResult);
             
             if (authResult.success && authResult.user && authResult.token) {
-              // User exists in database, store auth data and show success
-              console.log('✅ Resident found in database, showing success message');
+              // User exists in database, store auth data and redirect to Resident Page
               storeAuthData(authResult.user, authResult.token);
               setStep("ready");
-              setMsg("ลงทะเบียนสำเร็จ! คุณสามารถปิดหน้านี้ได้แล้ว");
+              setMsg("เข้าสู่ระบบสำเร็จ กำลังพาไปหน้าหลัก...");
+              setTimeout(() => router.replace("/Resident"), 1000);
             } else if (authResult.expectedRole) {
               // User is already registered but using wrong LIFF app
-              console.log('⚠️ User already registered as', authResult.expectedRole, 'but using resident LIFF');
               setStep("ready");
               setMsg(`คุณได้ลงทะเบียนเป็น${authResult.expectedRole === 'resident' ? 'ลูกบ้าน' : 'ยามรักษาความปลอดภัย'}แล้ว กรุณาใช้แอปที่ถูกต้อง`);
               setTimeout(() => {
@@ -118,7 +117,7 @@ export default function ResidentLiffPage() {
               }, 1000);
             } else {
               // Error occurred
-              console.error('❌ Authentication failed:', authResult);
+              console.error('Authentication failed:', authResult);
               setStep("error");
               setMsg(authResult.error || 'Authentication failed');
             }
@@ -149,6 +148,7 @@ export default function ResidentLiffPage() {
     svc.retryConsent();
   };
 
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-zinc-900 to-neutral-900 text-white p-6">
       <div className="w-full max-w-md rounded-2xl shadow-2xl bg-zinc-900/80 backdrop-blur-lg ring-1 ring-white/10 p-8 text-center">
@@ -162,6 +162,11 @@ export default function ResidentLiffPage() {
             <>
               <Loader2 className="w-12 h-12 animate-spin text-blue-400" />
               <p className="text-gray-300">{msg}</p>
+              <div className="mt-4 p-3 bg-yellow-900/20 rounded-lg border border-yellow-500/30">
+                <p className="text-sm text-yellow-200">
+                  💡 หากหน้าเว็บไม่ทำงาน กรุณาเปิดลิงก์นี้ในแอป LINE
+                </p>
+              </div>
             </>
           ) : step === "ready" ? (
             <>
@@ -180,7 +185,7 @@ export default function ResidentLiffPage() {
                   <p className="text-green-300 font-medium text-center">{msg}</p>
                   <div className="bg-green-900/20 rounded-xl p-4 mt-3 text-sm w-full border border-green-500/30">
                     <p className="font-semibold text-green-200">ลูกบ้าน</p>
-                    <p className="text-xs text-green-300 mt-1">คุณสามารถปิดหน้านี้และกลับไปใช้แอป LINE ได้แล้ว</p>
+                    <p className="text-xs text-green-300 mt-1">กำลังพาไปหน้าหลัก...</p>
                   </div>
                 </>
               )}
