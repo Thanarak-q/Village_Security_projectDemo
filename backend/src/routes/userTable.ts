@@ -224,7 +224,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           house_address: houses.address,
           createdAt: residents.createdAt,
           updatedAt: residents.updatedAt,
-          profile_image_url: residents.line_profile_url,
+          line_profile_url: residents.line_profile_url,
         })
         .from(residents)
         .where(
@@ -252,7 +252,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           house_address: sql`NULL`.as("house_address"),
           createdAt: guards.createdAt,
           updatedAt: guards.updatedAt,
-          profile_image_url: guards.line_profile_url,
+          line_profile_url: guards.line_profile_url,
         })
         .from(guards)
         .where(
