@@ -14,7 +14,7 @@ export default function ResidentLiffPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("init");
   const [msg, setMsg] = useState("กำลังเตรียม LIFF สำหรับผู้อยู่อาศัย...");
-  const [user, setUser] = useState<{ name?: string; id?: string }>({});
+  const [, setUser] = useState<{ name?: string; id?: string }>({});
   const [, setIdToken] = useState<string | null>(null);
   const [, setLineProfile] = useState<{ userId?: string; displayName?: string; pictureUrl?: string } | null>(null);
 

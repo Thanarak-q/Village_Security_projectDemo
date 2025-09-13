@@ -289,7 +289,7 @@ export default function UserManagementTable() {
   };
 
   // Function to handle form submission
-  const handleFormSubmit = async (formData: { status: string; role: string; houseNumber: string; notes: string }) => {
+  const handleFormSubmit = async (formData: { status: string; role: string; houseNumber?: string; notes?: string }) => {
     try {
       console.log("Updating user:", selectedUser?.id, 'with data:', formData);
       

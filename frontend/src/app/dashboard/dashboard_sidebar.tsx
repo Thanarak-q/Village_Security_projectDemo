@@ -16,7 +16,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
 
 import Link from "next/link";
@@ -24,7 +23,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, memo } from "react";
 import { useTheme } from "next-themes";
 import Image from "next/image";
-import { getAdminRoleDisplayName, type AdminRole } from "@/lib/roleUtils";
+import { type AdminRole } from "@/lib/roleUtils";
 // import { MenuShowColor } from "@/components/animation";
 
 const items = [

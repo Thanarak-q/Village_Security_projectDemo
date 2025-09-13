@@ -91,8 +91,8 @@ interface PendingUser {
 // Interface สำหรับข้อมูลฟอร์มการอนุมัติ
 interface ApprovalFormData {
   approvedRole: string;  // บทบาทที่อนุมัติ
-  houseNumber: string;   // บ้านเลขที่
-  notes: string;         // หมายเหตุ
+  houseNumber?: string;  // บ้านเลขที่
+  notes?: string;        // หมายเหตุ
 }
 
 interface PendingUsersDialogProps {
