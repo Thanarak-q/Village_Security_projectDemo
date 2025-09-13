@@ -86,7 +86,7 @@ export class LiffService {
    * @param channelType - The channel type ('resident', 'guard', or 'default')
    * @returns The LIFF ID for the specified channel type
    */
-  private getLiffId(channelType: 'resident' | 'guard' | 'default'): string | undefined {
+  private getLiffId(_channelType: 'resident' | 'guard' | 'default'): string | undefined {
     // Use the same LIFF ID for both guard and resident since they share the same channel
     return process.env.NEXT_PUBLIC_LIFF_ID;
   }

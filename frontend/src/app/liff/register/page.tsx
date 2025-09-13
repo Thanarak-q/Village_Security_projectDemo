@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle, CheckCircle, WifiOff, RefreshCw } from 'lucide-react';
 import { LiffService } from '@/lib/liff';
 import { registerLiffUser, storeAuthData } from '@/lib/liffAuth';
-import { validateRegistrationForm, validateField, type ValidationError as ZodValidationError } from '@/lib/validation';
+import { validateRegistrationForm, validateField } from '@/lib/validation';
 
 const svc = LiffService.getInstance();
 

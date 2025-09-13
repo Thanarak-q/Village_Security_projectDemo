@@ -73,7 +73,7 @@ export const validateRegistrationForm = (data: Partial<RegistrationFormData>): V
 };
 
 // Validate single field
-export const validateField = (field: keyof RegistrationFormData, value: any): string | null => {
+export const validateField = (field: keyof RegistrationFormData, value: unknown): string | null => {
   try {
     const fieldSchema = registrationSchema.shape[field];
     fieldSchema.parse(value);

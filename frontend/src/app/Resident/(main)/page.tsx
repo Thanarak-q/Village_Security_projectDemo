@@ -2,10 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Car, Clock } from "lucide-react";
 import NotificationComponent from "./notification";
-import { set } from "zod";
 import { useRouter } from "next/navigation";
 import { getAuthData, isAuthenticated } from "@/lib/liffAuth";
 

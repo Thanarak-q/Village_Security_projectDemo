@@ -11,7 +11,6 @@ import {
 
 // Lazy load heavy components
 const WeeklyAccessBarChart = lazy(() => import("./chart"));
-const PendingTable = lazy(() => import("./pending_table"));
 
 export default function Page() {
   const [data, setData] = useState<unknown>(null);

@@ -21,7 +21,7 @@ function ResidentRegisterPageContent() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [registrationResult, setRegistrationResult] = useState<any>(null);
+  const [registrationResult, setRegistrationResult] = useState<{ success: boolean; message?: string; existingRoles?: string[] } | null>(null);
   const [idToken, setIdToken] = useState<string | null>(null);
   const [, setLineUserId] = useState<string | null>(null);
   const [villageValidation, setVillageValidation] = useState<{

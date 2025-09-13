@@ -105,7 +105,6 @@ interface PendingUsersDialogProps {
 export default function PendingUsersDialog({
   children,
   onRefresh,
-  isOpen,
   pendingCount = 0,
 }: PendingUsersDialogProps) {
   // State for API data
