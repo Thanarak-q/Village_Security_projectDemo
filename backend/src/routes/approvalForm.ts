@@ -2,8 +2,7 @@ import { Elysia } from "elysia";
 import db from "../db/drizzle";
 import { visitor_records } from "../db/schema";
 import { requireRole } from "../hooks/requireRole";
-import { sendNotificationToUser } from "../utils/notification";
-import { users } from "../db/schema";
+import { eq, and } from "drizzle-orm";
 
 const approvalForm = new Elysia()
     .onBeforeHandle(requireRole("guards"))
@@ -61,34 +60,40 @@ const approvalForm = new Elysia()
         }).returning();
 
         return { success: true, visitorId: result?.visitor_record_id };
-    });
+    })
+    // After inserting the visitor record, notify the resident with matching house_id
+    // Endpoint for resident to accept a visitor record
+    .post("/acceptVisitorRecord", async ({ body, store }: { body: unknown, store: { user?: { id?: string } } }) => {
+        type AcceptBody = {
+            visitorRecordId: string;
+        };
+
+        const { visitorRecordId } = body as AcceptBody;
+        const residentId = store?.user?.id;
+
+        if (!visitorRecordId || typeof visitorRecordId !== "string" || !visitorRecordId.trim()) {
+            return { error: "visitorRecordId is required and must be a non-empty string." };
+        }
+
+        if (!residentId) {
+            return { error: "Resident ID is required." };
+        }
+
+        // Update the visitor record status to 'approved' if resident is owner
+        const [updated] = await db.update(visitor_records)
+            .set({ record_status: "approved" })
+            .where(and(
+                eq(visitor_records.visitor_record_id, visitorRecordId),
+                eq(visitor_records.resident_id, residentId)
+            ))
+            .returning();
+
+        if (!updated) {
+            return { error: "Record not found or you are not authorized to accept this visitor." };
+        }
+
+        return { success: true, visitorRecordId };
+    })
+    .onBeforeHandle(requireRole("residents"));
 
 export default approvalForm;
-// After inserting the visitor record, notify the resident with matching house_id
-// Endpoint for resident to accept a visitor record
-approvalForm.post("/acceptVisitorRecord", async ({ body, store }: { body: unknown, store: { user?: { id?: string } } }) => {
-    .onBeforeHandle(requireRole("residents"))
-    type AcceptBody = {
-        visitorRecordId: string;
-    };
-
-    const { visitorRecordId } = body as AcceptBody;
-    const residentId = store?.user?.id;
-
-    if (!visitorRecordId || typeof visitorRecordId !== "string" || !visitorRecordId.trim()) {
-        return { error: "visitorRecordId is required and must be a non-empty string." };
-    }
-
-    // Update the visitor record status to 'accepted' if resident is owner
-    const [updated] = await db.update(visitor_records)
-        .set({ record_status: "accepted" })
-        .where(visitor_records.visitor_record_id.eq(visitorRecordId)
-            .and(visitor_records.resident_id.eq(residentId)))
-        .returning();
-
-    if (!updated) {
-        return { error: "Record not found or you are not authorized to accept this visitor." };
-    }
-
-    return { success: true, visitorRecordId };
-});

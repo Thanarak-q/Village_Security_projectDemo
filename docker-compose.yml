@@ -35,17 +35,17 @@ services:
       - backend
     restart: unless-stopped
 
-  # db:
-  #   image: postgres:17
-  #   ports:
-  #     - "5432:5432"
-  #   environment:
-  #     POSTGRES_USER: admin
-  #     POSTGRES_PASSWORD: 1234
-  #     POSTGRES_DB: SOFEWARE_EN
-  #   volumes:
-  #     - dbdata:/var/lib/postgresql/data
-  #   restart: unless-stopped
+  db:
+    image: postgres:17
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: SOFEWARE_EN
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    restart: unless-stopped
 
   ngrok:
     build:
@@ -72,6 +72,6 @@ services:
   #     - pgadmin-data:/var/lib/pgadmin
   #   restart: unless-stopped
 
-# volumes:
-#   dbdata:
+volumes:
+  dbdata:
 #   pgadmin-data:
