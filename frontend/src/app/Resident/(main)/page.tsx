@@ -2,20 +2,15 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-
-import { useState, useEffect } from "react";
-import { Car, Clock } from "lucide-react";
+import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { Car, Clock, Home, ChevronLeft, ChevronRight } from "lucide-react";
 import NotificationComponent from "./notification";
-import {
-  // ❌ remove fetchVisitorRecordsByName
-  approveVisitorRequest,
-  denyVisitorRequest,
-  VisitorRequest as ApiVisitorRequest,
-} from "@/lib/api/visitorRequests";
+import { useRouter } from "next/navigation";
+import { getAuthData, isAuthenticated } from "@/lib/liffAuth";
+import { gsap } from "gsap";
+import { ModeToggle } from "@/components/mode-toggle";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 
-/** =========================================
- *  Types & Transform
- *  =======================================*/
 interface VisitorRequest {
   id: string;
   plateNumber: string;
@@ -26,124 +21,407 @@ interface VisitorRequest {
   status?: "approved" | "denied";
 }
 
-const transformApiData = (apiData: ApiVisitorRequest): VisitorRequest => {
-  return {
-    id: apiData.visitor_record_id,
-    plateNumber: apiData.license_plate || "",
-    visitorName: apiData.visit_purpose || "เยี่ยม",
-    destination: apiData.guard_name || apiData.house_address || "รปภ.",
-    time: new Date(apiData.entry_time).toLocaleTimeString("th-TH", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
-    carImage: apiData.picture_key || "",
-    status:
-      apiData.record_status === "approved"
-        ? "approved"
-        : apiData.record_status === "rejected"
-        ? "denied"
-        : undefined,
-  };
-};
-
-/** =========================================
- *  NEW: fetch by user_line_id (client-side helper)
- *  =======================================*/
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ||
-  "http://localhost:3001";
-
-/**
- * Fetch visitor records for a specific LINE user id.
- * Adjust the endpoint/query to match your backend route.
- */
-async function fetchVisitorRecordsByUserLineId(
-  userLineId: string
-): Promise<ApiVisitorRequest[]> {
-  const url = `${API_BASE}/api/visitor-records?user_line_id=${encodeURIComponent(
-    userLineId
-  )}`;
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) {
-    throw new Error(`Backend returned ${res.status} for ${url}`);
-  }
-  const data = await res.json();
-  // Expecting an array of ApiVisitorRequest
-  return Array.isArray(data) ? data : data?.items ?? [];
-}
-
-/** =========================================
- *  ApprovalCards (unchanged)
- *  =======================================*/
 interface ApprovalCardsProps {
   items: VisitorRequest[];
   onApprove: (id: string) => void;
   onDeny: (id: string) => void;
 }
 
-const ApprovalCards: React.FC<ApprovalCardsProps> = ({
-  items,
-  onApprove,
-  onDeny,
-}) => {
+interface ApiVisitorRequest {
+  visitor_record_id: string;
+  resident_id: string;
+  guard_id: string;
+  house_id: string;
+  picture_key?: string;
+  visitor_name?: string;
+  visitor_id_card?: string;
+  license_plate?: string;
+  entry_time: string;
+  record_status: 'pending' | 'approved' | 'rejected';
+  visit_purpose?: string;
+  createdAt: string;
+  updatedAt: string;
+  resident_name: string;
+  resident_email: string;
+  guard_name: string;
+  guard_email: string;
+  house_address: string;
+  village_key: string;
+}
+
+// API functions for fetching visitor records by LINE user ID
+const fetchPendingVisitorRequests = async (lineUserId: string): Promise<ApiVisitorRequest[]> => {
+  const response = await fetch(`/api/visitor-requests/pending/line/${encodeURIComponent(lineUserId)}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch pending visitor requests: ${response.statusText}`);
+  }
+  const result = await response.json();
+  return result.success ? result.data : [];
+};
+
+const fetchVisitorHistory = async (lineUserId: string): Promise<ApiVisitorRequest[]> => {
+  const response = await fetch(`/api/visitor-requests/history/line/${encodeURIComponent(lineUserId)}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch visitor history: ${response.statusText}`);
+  }
+  const result = await response.json();
+  return result.success ? result.data : [];
+};
+
+const approveVisitorRequest = async (id: string): Promise<void> => {
+  const response = await fetch(`/api/visitor-requests/${id}/approve`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to approve request: ${response.statusText}`);
+  }
+};
+
+const denyVisitorRequest = async (id: string): Promise<void> => {
+  const response = await fetch(`/api/visitor-requests/${id}/deny`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to deny request: ${response.statusText}`);
+  }
+};
+
+const transformApiData = (apiData: ApiVisitorRequest): VisitorRequest => {
+  // Format the entry time to display format
+  const entryTime = new Date(apiData.entry_time);
+  const timeString = entryTime.toLocaleTimeString('th-TH', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+
+  return {
+    id: apiData.visitor_record_id,
+    plateNumber: apiData.license_plate || 'ไม่ระบุ',
+    visitorName: apiData.visitor_name || apiData.visit_purpose || 'ไม่ระบุ',
+    destination: apiData.house_address,
+    time: timeString,
+    carImage: apiData.picture_key || 'car1.jpg', // fallback to default image
+    status: apiData.record_status === 'approved' ? 'approved' : 
+             apiData.record_status === 'rejected' ? 'denied' : undefined,
+  };
+};
+
+const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  
+  // Touch/swipe state
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [touchStartTime, setTouchStartTime] = useState<number | null>(null);
+  const [lastTouchTime, setLastTouchTime] = useState<number | null>(null);
+  const [lastTouchX, setLastTouchX] = useState<number | null>(null);
+  const [velocity, setVelocity] = useState(0);
 
+  // Sort by smallest id first
   const sortedPending = [...items].sort((a, b) => Number(a.id) - Number(b.id));
 
-  const nextCard = () => {
-    if (currentIndex < sortedPending.length - 1 && !isAnimating && cardRef.current) {
+  const nextCard = (skipCount: number = 1) => {
+    const newIndex = Math.min(currentIndex + skipCount, sortedPending.length - 1);
+    if (newIndex !== currentIndex && !isAnimating && cardRef.current) {
       setIsAnimating(true);
+      // card out to the left
       gsap.to(cardRef.current, {
         x: -100,
         opacity: 0,
         duration: 0.3,
         ease: "power2.in",
         onComplete: () => {
-          setCurrentIndex((i) => i + 1);
+          setCurrentIndex(newIndex);
+          // Reset position and animate in from right
           gsap.set(cardRef.current, { x: 100, opacity: 0 });
           gsap.to(cardRef.current, {
             x: 0,
             opacity: 1,
             duration: 0.3,
             ease: "power2.out",
-            onComplete: () => setIsAnimating(false),
+            onComplete: () => setIsAnimating(false)
           });
-        },
+        }
       });
     }
   };
 
-  const prevCard = () => {
-    if (currentIndex > 0 && !isAnimating && cardRef.current) {
+  const prevCard = (skipCount: number = 1) => {
+    const newIndex = Math.max(currentIndex - skipCount, 0);
+    if (newIndex !== currentIndex && !isAnimating && cardRef.current) {
       setIsAnimating(true);
+      // card out to the right
       gsap.to(cardRef.current, {
         x: 100,
         opacity: 0,
         duration: 0.3,
         ease: "power2.in",
         onComplete: () => {
-          setCurrentIndex((i) => i - 1);
+          setCurrentIndex(newIndex);
+          // Reset position and animate in from left
           gsap.set(cardRef.current, { x: -100, opacity: 0 });
           gsap.to(cardRef.current, {
             x: 0,
             opacity: 1,
             duration: 0.3,
             ease: "power2.out",
-            onComplete: () => setIsAnimating(false),
+            onComplete: () => setIsAnimating(false)
           });
-        },
+        }
       });
     }
   };
 
+  // Touch event handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (isAnimating) return;
+    const now = Date.now();
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+    setTouchStartTime(now);
+    setLastTouchTime(now);
+    setLastTouchX(e.targetTouches[0].clientX);
+    setVelocity(0);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStart || isAnimating) return;
+    const currentTouch = e.targetTouches[0].clientX;
+    const now = Date.now();
+    const diff = currentTouch - touchStart;
+    
+    // Calculate velocity based on recent movement
+    if (lastTouchTime && lastTouchX !== null) {
+      const timeDiff = now - lastTouchTime;
+      const distanceDiff = Math.abs(currentTouch - lastTouchX);
+      if (timeDiff > 0) {
+        const currentVelocity = distanceDiff / timeDiff;
+        setVelocity(currentVelocity);
+      }
+    }
+    
+    setDragOffset(diff);
+    setTouchEnd(currentTouch);
+    setLastTouchTime(now);
+    setLastTouchX(currentTouch);
+    
+    // Apply visual feedback that follows finger movement
+    if (cardRef.current) {
+      gsap.set(cardRef.current, { x: diff * 0.4 });
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd || isAnimating || !touchStartTime) return;
+    
+    const now = Date.now();
+    const totalTime = now - touchStartTime;
+    const diff = touchStart - touchEnd;
+    
+    // Calculate final velocity
+    const finalVelocity = Math.abs(diff) / totalTime;
+    
+    // Calculate how many cards to skip based on velocity and distance
+    let skipCount = 1;
+    const absDiff = Math.abs(diff);
+    
+    if (finalVelocity > 1.5) {
+      // Very fast swipe - skip multiple cards
+      skipCount = Math.min(Math.floor(absDiff / 80) + 1, 5); // Max 5 cards
+    } else if (finalVelocity > 1.0) {
+      // Fast swipe - skip 2-3 cards
+      skipCount = Math.min(Math.floor(absDiff / 100) + 1, 3);
+    } else if (finalVelocity > 0.5) {
+      // Medium-fast swipe - skip 1-2 cards
+      skipCount = Math.min(Math.floor(absDiff / 120) + 1, 2);
+    } else if (finalVelocity > 0.2) {
+      // Medium swipe - normal single card
+      skipCount = 1;
+    } else {
+      // Slow swipe - normal single card
+      skipCount = 1;
+    }
+    
+    // Dynamic thresholds based on velocity and distance
+    let minDistance = 30; // Base minimum distance
+    
+    if (finalVelocity > 1.0) {
+      // Very fast swipe - very low threshold
+      minDistance = 15;
+    } else if (finalVelocity > 0.5) {
+      // Fast swipe - low threshold
+      minDistance = 25;
+    } else if (finalVelocity > 0.2) {
+      // Medium swipe - normal threshold
+      minDistance = 40;
+    } else {
+      // Slow swipe - higher threshold
+      minDistance = 60;
+    }
+    
+    const isLeftSwipe = diff > minDistance;
+    const isRightSwipe = diff < -minDistance;
+    
+    // Reset drag state
+    setIsDragging(false);
+    setDragOffset(0);
+    
+    if (isLeftSwipe && currentIndex < sortedPending.length - 1) {
+      nextCard(skipCount);
+    } else if (isRightSwipe && currentIndex > 0) {
+      prevCard(skipCount);
+    } else {
+      // Snap back to center with velocity-based duration
+      if (cardRef.current) {
+        const snapDuration = Math.min(0.6, Math.max(0.15, finalVelocity * 0.2));
+        gsap.to(cardRef.current, {
+          x: 0,
+          duration: snapDuration,
+          ease: "power2.out"
+        });
+      }
+    }
+    
+    setTouchStart(null);
+    setTouchEnd(null);
+    setTouchStartTime(null);
+    setLastTouchTime(null);
+    setLastTouchX(null);
+    setVelocity(0);
+  };
+
+  // Mouse event handlers for desktop
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (isAnimating) return;
+    const now = Date.now();
+    setTouchEnd(null);
+    setTouchStart(e.clientX);
+    setTouchStartTime(now);
+    setLastTouchTime(now);
+    setLastTouchX(e.clientX);
+    setVelocity(0);
+    setIsDragging(true);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!touchStart || isAnimating) return;
+    const now = Date.now();
+    const diff = e.clientX - touchStart;
+    
+    // Calculate velocity based on recent movement
+    if (lastTouchTime && lastTouchX !== null) {
+      const timeDiff = now - lastTouchTime;
+      const distanceDiff = Math.abs(e.clientX - lastTouchX);
+      if (timeDiff > 0) {
+        const currentVelocity = distanceDiff / timeDiff;
+        setVelocity(currentVelocity);
+      }
+    }
+    
+    setDragOffset(diff);
+    setTouchEnd(e.clientX);
+    setLastTouchTime(now);
+    setLastTouchX(e.clientX);
+    
+    if (cardRef.current) {
+      gsap.set(cardRef.current, { x: diff * 0.4 });
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (!touchStart || isAnimating || !touchStartTime) return;
+    
+    const now = Date.now();
+    const totalTime = now - touchStartTime;
+    const diff = touchStart - (touchEnd || touchStart);
+    
+    // Calculate final velocity
+    const finalVelocity = Math.abs(diff) / totalTime;
+    
+    // Calculate how many cards to skip based on velocity and distance
+    let skipCount = 1;
+    const absDiff = Math.abs(diff);
+    
+    if (finalVelocity > 1.5) {
+      // Very fast swipe - skip multiple cards
+      skipCount = Math.min(Math.floor(absDiff / 80) + 1, 5); // Max 5 cards
+    } else if (finalVelocity > 1.0) {
+      // Fast swipe - skip 2-3 cards
+      skipCount = Math.min(Math.floor(absDiff / 100) + 1, 3);
+    } else if (finalVelocity > 0.5) {
+      // Medium-fast swipe - skip 1-2 cards
+      skipCount = Math.min(Math.floor(absDiff / 120) + 1, 2);
+    } else if (finalVelocity > 0.2) {
+      // Medium swipe - normal single card
+      skipCount = 1;
+    } else {
+      // Slow swipe - normal single card
+      skipCount = 1;
+    }
+    
+    // Dynamic thresholds based on velocity and distance
+    let minDistance = 30; // Base minimum distance
+    
+    if (finalVelocity > 1.0) {
+      // Very fast swipe - very low threshold
+      minDistance = 15;
+    } else if (finalVelocity > 0.5) {
+      // Fast swipe - low threshold
+      minDistance = 25;
+    } else if (finalVelocity > 0.2) {
+      // Medium swipe - normal threshold
+      minDistance = 40;
+    } else {
+      // Slow swipe - higher threshold
+      minDistance = 60;
+    }
+    
+    const isLeftSwipe = diff > minDistance;
+    const isRightSwipe = diff < -minDistance;
+    
+    setIsDragging(false);
+    setDragOffset(0);
+    
+    if (isLeftSwipe && currentIndex < sortedPending.length - 1) {
+      nextCard(skipCount);
+    } else if (isRightSwipe && currentIndex > 0) {
+      prevCard(skipCount);
+    } else {
+      // Snap back to center with velocity-based duration
+      if (cardRef.current) {
+        const snapDuration = Math.min(0.6, Math.max(0.15, finalVelocity * 0.2));
+        gsap.to(cardRef.current, {
+          x: 0,
+          duration: snapDuration,
+          ease: "power2.out"
+        });
+      }
+    }
+    
+    setTouchStart(null);
+    setTouchEnd(null);
+    setTouchStartTime(null);
+    setLastTouchTime(null);
+    setLastTouchX(null);
+    setVelocity(0);
+  };
+
+  // reset card position
   useLayoutEffect(() => {
-    if (cardRef.current) gsap.set(cardRef.current, { x: 0, opacity: 1 });
+    if (cardRef.current) {
+      gsap.set(cardRef.current, { x: 0, opacity: 1 });
+    }
   }, []);
 
   return (
     <div>
+      {/* Header with request count and navigation */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <h3 className="text-lg font-semibold text-foreground">คำขออนุมัติ</h3>
@@ -151,11 +429,10 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({
             {sortedPending.length}
           </span>
         </div>
-
         {sortedPending.length > 1 && (
           <div className="flex items-center gap-1">
             <Button
-              onClick={prevCard}
+              onClick={() => prevCard()}
               disabled={currentIndex === 0 || isAnimating}
               variant="outline"
               size="sm"
@@ -163,13 +440,11 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({
             >
               <ChevronLeft className="h-3 w-3" />
             </Button>
-
             <span className="text-xs text-muted-foreground min-w-[2.5rem] text-center font-medium">
               {currentIndex + 1}/{sortedPending.length}
             </span>
-
             <Button
-              onClick={nextCard}
+              onClick={() => nextCard()}
               disabled={currentIndex === sortedPending.length - 1 || isAnimating}
               variant="outline"
               size="sm"
@@ -181,56 +456,82 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({
         )}
       </div>
 
+      {/* Card Container with GSAP Animation */}
       <div className="min-h-[350px] relative overflow-hidden">
+        {/* Swipe indicators */}
+        {/* Simple swipe hint */}
+          {sortedPending.length > 1 && (
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 bg-black/10 backdrop-blur-sm rounded-full px-2 py-1 text-xs text-muted-foreground opacity-50">
+              ปัดแรงๆ เพื่อข้ามหลายการ์ด
+            </div>
+          )}
+        
         {sortedPending.length > 0 ? (
           <div ref={cardRef}>
             <Card className="shadow-sm border-border bg-background/50">
               <CardContent className="p-3">
-                <div className="flex items-start gap-2 mb-3">
-                  <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
-                    <Car className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-base text-foreground truncate">
-                      {sortedPending[currentIndex].plateNumber}
+                {/* Swipeable area - only the top part with info */}
+                <div 
+                  className="touch-none select-none"
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                  style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                >
+                  <div className={`transition-all duration-200 ${
+                    isDragging ? 'scale-102' : 'scale-100'
+                  }`}>
+                    <div className="flex items-start gap-2 mb-3">
+                      <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
+                        <Car className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-base text-foreground truncate">
+                          {sortedPending[currentIndex].plateNumber}
+                        </div>
+                        <div className="text-muted-foreground text-sm truncate">
+                          {sortedPending[currentIndex].visitorName} • {sortedPending[currentIndex].destination}
+                        </div>
+                        <div className="text-muted-foreground text-xs flex items-center gap-1 mt-1">
+                          <Clock className="w-3 h-3 flex-shrink-0" />
+                          <span>{sortedPending[currentIndex].time}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-muted-foreground text-sm truncate">
-                      {sortedPending[currentIndex].visitorName} • {sortedPending[currentIndex].destination}
-                    </div>
-                    <div className="text-muted-foreground text-xs flex items-center gap-1 mt-1">
-                      <Clock className="w-3 h-3 flex-shrink-0" />
-                      <span>{sortedPending[currentIndex].time}</span>
+                    <div className="mb-3">
+                      <div className="w-full h-48 bg-muted rounded-lg flex items-center justify-center overflow-hidden border">
+                        {sortedPending[currentIndex].carImage ? (
+                          <img
+                            src={`/${sortedPending[currentIndex].carImage}`}
+                            alt={`Car ${sortedPending[currentIndex].plateNumber}`}
+                            className="object-cover w-full h-full"
+                          />
+                        ) : (
+                          <Car className="w-12 h-12 text-muted-foreground" />
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                <div className="mb-3">
-                  <div className="w-full h-48 bg-muted rounded-lg flex items-center justify-center overflow-hidden border">
-                    {sortedPending[currentIndex].carImage ? (
-                      <img
-                        src={`/${sortedPending[currentIndex].carImage}`}
-                        alt={`Car ${sortedPending[currentIndex].plateNumber}`}
-                        className="object-cover w-full h-full"
-                      />
-                    ) : (
-                      <Car className="w-12 h-12 text-muted-foreground" />
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
+                
+                {/* Action buttons - not swipeable, always clickable */}
+                <div className="flex gap-2 mt-3">
                   <Button
                     onClick={() => onDeny(sortedPending[currentIndex].id)}
                     disabled={isAnimating}
                     variant="destructive"
-                    className="px-4 py-2 text-sm rounded-lg flex-1 disabled:opacity-50 dark:bg-red-600"
+                    className="px-4 py-6 text-sm rounded-lg flex-1 disabled:opacity-50 dark:bg-red-600"
                   >
                     ปฏิเสธ
                   </Button>
                   <Button
                     onClick={() => onApprove(sortedPending[currentIndex].id)}
                     disabled={isAnimating}
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm rounded-lg flex-1 disabled:opacity-50 dark:bg-green-900/20 dark:text-green-400"
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-6 text-sm rounded-lg flex-1 disabled:opacity-50 dark:bg-green-900/20 dark:text-green-400"
                   >
                     อนุมัติ
                   </Button>
@@ -248,73 +549,105 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({
   );
 };
 
-/** =========================================
- *  Main Resident Page
- *  =======================================*/
+// Main Resident Page Component
 const ResidentPage = () => {
+  const router = useRouter();
   const [pendingRequests, setPendingRequests] = useState<VisitorRequest[]>([]);
   const [history, setHistory] = useState<VisitorRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  
+  // Confirmation dialog state
+  const [confirmationDialog, setConfirmationDialog] = useState<{
+    isOpen: boolean;
+    type: 'approve' | 'reject';
+    request: VisitorRequest | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    type: 'approve',
+    request: null,
+    isLoading: false,
+  });
 
-  // Display name for greeting
-  const TARGET_DISPLAY_NAME = "สมชาย ผาสุก";
+  // Target LINE user ID for สมชาย ผาสุก
+  const TARGET_LINE_USER_ID = "Ue529194c37fd43a24cf96d8648299d90";
+  const TARGET_RESIDENT_NAME = "สมชาย ผาสุก";
 
-  // Use real LIFF user id if available; fallback to your dev/test id
-  const TARGET_USER_LINE_ID =
-    (typeof window !== "undefined" &&
-      (window as any).__LINE_USER_ID__) || // if you inject it
-    process.env.NEXT_PUBLIC_TEST_LINE_USER_ID || // or from env
-    "Ue529194c37fd43a24cf96d8648299d90"; // <- fallback from your logs
+  // Check authentication and role on component mount
+  useEffect(() => {
+    const checkAuthAndRole = () => {
+      // Check if user is authenticated
+      if (!isAuthenticated()) {
+        console.log('User not authenticated, proceeding without authentication');
+        setIsCheckingAuth(false);
+        return;
+      }
 
+      // Get user data and check role
+      const { user } = getAuthData();
+      if (!user || user.role !== 'resident') {
+        console.log('User is not a resident, proceeding without authentication');
+        setIsCheckingAuth(false);
+        return;
+      }
+
+      console.log('User is authenticated as resident:', user.username);
+      setIsCheckingAuth(false);
+    };
+
+    checkAuthAndRole();
+  }, [router]);
+
+  // Fetch data on component mount
   useEffect(() => {
     const loadData = async () => {
-      console.log(`🔄 Starting data load for LINE user: ${TARGET_USER_LINE_ID}`);
-
+      console.log("🔄 Starting data load for LINE user ID:", TARGET_LINE_USER_ID);
       try {
         setLoading(true);
         setError(null);
+        console.log("🚀 Starting API calls...");
 
-        // Optional health check
-        try {
-          const healthResponse = await fetch(`${API_BASE}/api/health`, {
-            cache: "no-store",
-          });
-          console.log("🏥 Backend health check:", healthResponse.status);
-        } catch (e) {
-          console.warn("Health check failed (continuing):", e);
-        }
+        // Test backend connection first
+        console.log("🔍 Testing backend connection...");
+        const healthResponse = await fetch('/api/health');
+        console.log("🏥 Backend health check:", healthResponse.status);
 
-        // ✅ Fetch by user_line_id instead of name
-        const allVisitorData = await fetchVisitorRecordsByUserLineId(
-          TARGET_USER_LINE_ID
-        );
+        // Fetch pending visitor requests and history separately
+        console.log(`🔍 Fetching pending visitor requests for LINE user ID: ${TARGET_LINE_USER_ID}`);
+        const pendingData = await fetchPendingVisitorRequests(TARGET_LINE_USER_ID);
+        
+        console.log(`🔍 Fetching visitor history for LINE user ID: ${TARGET_LINE_USER_ID}`);
+        const historyData = await fetchVisitorHistory(TARGET_LINE_USER_ID);
 
+        // Debug: Log raw data before transformation
         console.log("Raw API data:", {
-          allVisitorData,
-          totalCount: allVisitorData?.length || 0,
+          pendingData: pendingData,
+          historyData: historyData,
+          pendingCount: pendingData?.length || 0,
+          historyCount: historyData?.length || 0
         });
 
-        const pendingData = allVisitorData.filter(
-          (r) => r.record_status === "pending"
-        );
-        const historyData = allVisitorData.filter(
-          (r) => r.record_status === "approved" || r.record_status === "rejected"
-        );
+        // Transform API data to component format
+        const transformedPending = pendingData.map(transformApiData);
+        const transformedHistory = historyData.map(transformApiData);
 
-        console.log("Filtered data:", {
-          pendingCount: pendingData.length,
-          historyCount: historyData.length,
+        setPendingRequests(transformedPending);
+        setHistory(transformedHistory);
+
+        console.log("Transformed data:", { 
+          pending: transformedPending.length, 
+          history: transformedHistory.length,
+          historyItems: transformedHistory
         });
 
-        setPendingRequests(pendingData.map(transformApiData));
-        setHistory(historyData.map(transformApiData));
       } catch (err) {
-        console.error("❌ Error loading visitor data:", err);
-        const errorMessage = err instanceof Error ? err.message : "Unknown error";
+        console.error('❌ Error loading visitor data:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
         setError(`ไม่สามารถโหลดข้อมูลได้: ${errorMessage}`);
 
-        // Dev fallback
+        // Fallback to mock data for development
         setPendingRequests([
           {
             id: "1",
@@ -338,57 +671,111 @@ const ResidentPage = () => {
       }
     };
 
-    loadData();
-  }, [TARGET_USER_LINE_ID]);
+    if (!isCheckingAuth) {
+      loadData();
+    }
+  }, [TARGET_LINE_USER_ID, isCheckingAuth]);
 
-  const handleApprove = async (id: string) => {
+  // Show loading state while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">กำลังตรวจสอบสิทธิ์การเข้าใช้งาน...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const handleApprove = (id: string) => {
     const request = pendingRequests.find((req) => req.id === id);
     if (!request) return;
 
-    const confirmed = window.confirm(
-      `คุณแน่ใจหรือว่าต้องการอนุมัติคำขอสำหรับ ${request.plateNumber}?`
-    );
-    if (!confirmed) return;
+    setConfirmationDialog({
+      isOpen: true,
+      type: 'approve',
+      request,
+      isLoading: false,
+    });
+  };
+
+  const handleDeny = (id: string) => {
+    const request = pendingRequests.find((req) => req.id === id);
+    if (!request) return;
+
+    setConfirmationDialog({
+      isOpen: true,
+      type: 'reject',
+      request,
+      isLoading: false,
+    });
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmationDialog.request) return;
+
+    const { request, type } = confirmationDialog;
+    
+    setConfirmationDialog(prev => ({ ...prev, isLoading: true }));
 
     try {
-      setPendingRequests((prev) => prev.filter((req) => req.id !== id));
-      setHistory((prev) => [{ ...request, status: "approved" }, ...prev]);
-      await approveVisitorRequest(id);
-      console.log("Approved for:", request.plateNumber);
+      // Optimistic update - remove from pending immediately
+      setPendingRequests(prev => prev.filter((req) => req.id !== request.id));
+      setHistory(prev => [{ ...request, status: type === 'approve' ? 'approved' : 'denied' }, ...prev]);
+
+      // Call API
+      if (type === 'approve') {
+        await approveVisitorRequest(request.id);
+        console.log("Approved for:", request.plateNumber);
+      } else {
+        await denyVisitorRequest(request.id);
+        console.log("Denied for:", request.plateNumber);
+      }
+
+      // Close dialog
+      setConfirmationDialog({
+        isOpen: false,
+        type: 'approve',
+        request: null,
+        isLoading: false,
+      });
     } catch (error) {
-      console.error("Error approving request:", error);
-      setPendingRequests((prev) => [...prev, request]);
-      setHistory((prev) => prev.filter((req) => req.id !== id));
-      alert("เกิดข้อผิดพลาดในการอนุมัติ กรุณาลองใหม่อีกครั้ง");
+      console.error(`Error ${type === 'approve' ? 'approving' : 'denying'} request:`, error);
+      
+      // Rollback on error
+      setPendingRequests(prev => [...prev, request]);
+      setHistory(prev => prev.filter((req) => req.id !== request.id));
+      
+      // Show error and close dialog
+      setConfirmationDialog({
+        isOpen: false,
+        type: 'approve',
+        request: null,
+        isLoading: false,
+      });
+      
+      alert(`เกิดข้อผิดพลาดในการ${type === 'approve' ? 'อนุมัติ' : 'ปฏิเสธ'} กรุณาลองใหม่อีกครั้ง`);
     }
   };
 
-  const handleDeny = async (id: string) => {
-    const request = pendingRequests.find((req) => req.id === id);
-    if (!request) return;
-
-    const confirmed = window.confirm(
-      `คุณแน่ใจหรือว่าต้องการปฏิเสธคำขอสำหรับ ${request.plateNumber}?`
-    );
-    if (!confirmed) return;
-
-    try {
-      setPendingRequests((prev) => prev.filter((req) => req.id !== id));
-      setHistory((prev) => [{ ...request, status: "denied" }, ...prev]);
-      await denyVisitorRequest(id);
-      console.log("Denied for:", request.plateNumber);
-    } catch (error) {
-      console.error("Error denying request:", error);
-      setPendingRequests((prev) => [...prev, request]);
-      setHistory((prev) => prev.filter((req) => req.id !== id));
-      alert("เกิดข้อผิดพลาดในการปฏิเสธ กรุณาลองใหม่อีกครั้ง");
-    }
+  const handleCloseDialog = () => {
+    if (confirmationDialog.isLoading) return; // Prevent closing while loading
+    
+    setConfirmationDialog({
+      isOpen: false,
+      type: 'approve',
+      request: null,
+      isLoading: false,
+    });
   };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-2 sm:p-4">
       <div className="w-full max-w-[420px]">
+        {/* Main Card */}
         <div className="bg-card rounded-2xl border shadow-lg">
+          {/* Header */}
           <div className="px-4 py-4">
             <div className="flex items-center justify-between mb-2">
               <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2">
@@ -399,12 +786,13 @@ const ResidentPage = () => {
                 <NotificationComponent />
               </span>
             </div>
-            <p className="text-sm text-muted-foreground">สวัสดี {TARGET_DISPLAY_NAME} 👋</p>
+            <p className="text-sm text-muted-foreground">สวัสดี {TARGET_RESIDENT_NAME} 👋</p>
             <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-              📋 กำลังแสดงข้อมูลของ LINE ID: {TARGET_USER_LINE_ID}
+              📋 แสดงข้อมูลสำหรับ: {TARGET_RESIDENT_NAME} (LINE ID: {TARGET_LINE_USER_ID})
             </p>
           </div>
 
+          {/* Approval Cards Section */}
           <div className="px-4 py-4">
             {loading ? (
               <div className="flex items-center justify-center h-32">
@@ -426,6 +814,7 @@ const ResidentPage = () => {
             )}
           </div>
 
+          {/* History Section */}
           <div className="px-4 py-4">
             <h2 className="text-lg font-semibold text-foreground mb-4">ประวัติล่าสุด</h2>
             {history.length === 0 ? (
@@ -437,31 +826,31 @@ const ResidentPage = () => {
                     key={item.id}
                     className={`border ${
                       item.status === "approved"
-                        ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800"
-                        : "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
+                        ? "bg-green-300 border-green-200 text-white dark:bg-green-950/20 dark:border-green-800"
+                        : "bg-red-300 border-red-200 dark:bg-red-950/20 dark:border-red-800"
                     }`}
                   >
-                    <CardContent className="p-3">
+                    <CardContent className="py-0">
                       <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground truncate">
+                          <div className="font-semibold text-foreground truncate dark:text-white">
                             {item.plateNumber}
                           </div>
-                          <div className="text-sm text-muted-foreground truncate">
+                          <div className="text-sm text-black truncate dark:text-white">
                             {item.visitorName}
                           </div>
-                          <div className="text-xs text-muted-foreground truncate">
+                          <div className="text-xs text-black truncate dark:text-white">
                             {item.destination} • {item.time}
                           </div>
                         </div>
                         <div
                           className={`px-2 py-1 rounded-full text-xs font-medium ml-2 flex-shrink-0 ${
                             item.status === "approved"
-                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                              : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                              ? "bg-green-600 hover:bg-green-700 text-white dark:bg-green-900/30 dark:text-green-400"
+                              : "bg-red-600 hover:bg-red-700 text-white dark:bg-red-900/30 dark:text-red-400"
                           }`}
                         >
-                          {item.status === "approved" ? "อนุมัติ" : "ปฏิเสธ"}
+                          {item.status === "approved" ? "อนุมัติแล้ว" : "ปฏิเสธแล้ว"}
                         </div>
                       </div>
                     </CardContent>
@@ -472,6 +861,32 @@ const ResidentPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={confirmationDialog.isOpen}
+        onClose={handleCloseDialog}
+        onConfirm={handleConfirmAction}
+        title={
+          confirmationDialog.type === 'approve'
+            ? 'ยืนยันการอนุมัติ'
+            : 'ยืนยันการปฏิเสธ'
+        }
+        description={
+          confirmationDialog.request
+            ? `คุณแน่ใจหรือว่าต้องการ${confirmationDialog.type === 'approve' ? 'อนุมัติ' : 'ปฏิเสธ'}คำขอสำหรับ:
+              
+              🚗 ทะเบียน: ${confirmationDialog.request.plateNumber}
+              👤 ผู้มาเยือน: ${confirmationDialog.request.visitorName}
+              🏠 ปลายทาง: ${confirmationDialog.request.destination}
+              ⏰ เวลา: ${confirmationDialog.request.time}`
+            : ''
+        }
+        type={confirmationDialog.type}
+        isLoading={confirmationDialog.isLoading}
+        confirmText={confirmationDialog.type === 'approve' ? 'อนุมัติ' : 'ปฏิเสธ'}
+        cancelText="ยกเลิก"
+      />
     </div>
   );
 };
