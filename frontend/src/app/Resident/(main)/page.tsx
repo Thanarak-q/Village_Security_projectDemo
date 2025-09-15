@@ -5,14 +5,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { Car, Clock, Home, ChevronLeft, ChevronRight } from "lucide-react";
 import { gsap } from "gsap";
-import { useLiff } from "@/hooks/useLiff";
+
 import { ModeToggle } from "@/components/mode-toggle";
 import NotificationComponent from "./notification";
 import { 
-  fetchPendingRequestsByLineId, 
-  fetchVisitorHistoryByLineId, 
-  fetchPendingRequests,
-  fetchVisitorHistory,
+  fetchVisitorRecordsByName,
   approveVisitorRequest, 
   denyVisitorRequest,
   VisitorRequest as ApiVisitorRequest 
@@ -231,28 +228,13 @@ const ResidentPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Get LINE user info from LIFF
-  const liffData = useLiff();
-  const { profile, loading: liffLoading, error: liffError } = liffData;
-  const lineUserId = profile?.userId;
-  
-  // Test LINE user ID for development/testing
-  const TEST_LINE_USER_ID = "Ue529194c37fd43a24cf96d8648299d90";
+  // Target resident name
+  const TARGET_RESIDENT_NAME = "สมชาย ผาสุก";
 
   // Fetch data on component mount
   useEffect(() => {
     const loadData = async () => {
-      console.log("🔄 Starting data load...", {
-        liffLoading,
-        lineUserId,
-        TEST_LINE_USER_ID
-      });
-      
-      // Wait for LIFF to load
-      if (liffLoading) {
-        console.log("⏳ Waiting for LIFF to load...");
-        return;
-      }
+      console.log("🔄 Starting data load for:", TARGET_RESIDENT_NAME);
 
       try {
         setLoading(true);
@@ -264,32 +246,27 @@ const ResidentPage = () => {
         const healthResponse = await fetch('http://localhost:3001/api/health');
         console.log("🏥 Backend health check:", healthResponse.status);
         
-        let pendingData: ApiVisitorRequest[] = [];
-        let historyData: ApiVisitorRequest[] = [];
+        let allVisitorData: ApiVisitorRequest[] = [];
         
-        // Try to use LINE ID first, fallback to test LINE user ID
-        if (lineUserId && lineUserId !== "unknown") {
-          console.log("Using LINE ID:", lineUserId);
-          // Fetch pending requests and history in parallel using LINE ID
-          [pendingData, historyData] = await Promise.all([
-            fetchPendingRequestsByLineId(lineUserId),
-            fetchVisitorHistoryByLineId(lineUserId)
-          ]);
-        } else {
-          console.log("LINE ID not available, using test LINE user ID:", TEST_LINE_USER_ID);
-          // Use test LINE user ID directly
-          [pendingData, historyData] = await Promise.all([
-            fetchPendingRequestsByLineId(TEST_LINE_USER_ID),
-            fetchVisitorHistoryByLineId(TEST_LINE_USER_ID)
-          ]);
-        }
+        // Fetch visitor records for สมชาย ผาสุก
+        console.log(`🔍 Fetching visitor records for: ${TARGET_RESIDENT_NAME}`);
+        allVisitorData = await fetchVisitorRecordsByName(TARGET_RESIDENT_NAME);
 
         // Debug: Log raw data before transformation
         console.log("Raw API data:", {
-          pendingData: pendingData,
-          historyData: historyData,
-          pendingCount: pendingData?.length || 0,
-          historyCount: historyData?.length || 0
+          allVisitorData: allVisitorData,
+          totalCount: allVisitorData?.length || 0
+        });
+
+        // Separate pending and history records
+        const pendingData = allVisitorData.filter(record => record.record_status === 'pending');
+        const historyData = allVisitorData.filter(record => 
+          record.record_status === 'approved' || record.record_status === 'rejected'
+        );
+
+        console.log("Filtered data:", {
+          pendingCount: pendingData.length,
+          historyCount: historyData.length
         });
 
         // Transform API data to component format
@@ -305,8 +282,9 @@ const ResidentPage = () => {
           historyItems: transformedHistory
         });
       } catch (err) {
-        console.error('Error loading visitor data:', err);
-        setError('ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง');
+        console.error('❌ Error loading visitor data:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(`ไม่สามารถโหลดข้อมูลได้: ${errorMessage}`);
         
         // Fallback to mock data for development
         setPendingRequests([
@@ -333,7 +311,7 @@ const ResidentPage = () => {
     };
 
     loadData();
-  }, [lineUserId, liffLoading, TEST_LINE_USER_ID]);
+  }, [TARGET_RESIDENT_NAME]);
 
   const handleApprove = async (id: string) => {
     const request = pendingRequests.find((req) => req.id === id);
@@ -410,29 +388,16 @@ const ResidentPage = () => {
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
-              สวัสดี {profile?.displayName || 'คุณลูกบ้าน'} 👋
+              สวัสดี {TARGET_RESIDENT_NAME} 👋
             </p>
-            {(!lineUserId || lineUserId === "unknown") && (
-              <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                🧪 โหมดทดสอบ: ใช้ LINE ID {TEST_LINE_USER_ID.slice(0, 8)}...
-              </p>
-            )}
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+              📋 แสดงข้อมูลสำหรับ: {TARGET_RESIDENT_NAME}
+            </p>
           </div>
 
           {/* Approval Cards Section */}
           <div className="px-4 py-4">
-            {liffError ? (
-              <div className="flex flex-col items-center justify-center h-32 gap-2">
-                <p className="text-red-500 text-sm text-center">ไม่สามารถเชื่อมต่อ LINE ได้</p>
-                <Button 
-                  onClick={() => window.location.reload()} 
-                  variant="outline" 
-                  size="sm"
-                >
-                  ลองใหม่
-                </Button>
-              </div>
-            ) : loading || liffLoading ? (
+            {loading ? (
               <div className="flex items-center justify-center h-32">
                 <p className="text-muted-foreground text-sm">กำลังโหลดข้อมูล...</p>
               </div>

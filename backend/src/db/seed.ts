@@ -327,9 +327,9 @@ const residentData = [
     phone: "0812345678",
     village_key: "pha-suk-village-001",
     status: "verified",
-    line_user_id: null,
-    line_display_name: null,
-    line_profile_url: null,
+    line_user_id: "Ue529194c37fd43a24cf96d8648299d90",
+    line_display_name: "สมชาย ผาสุก",
+    line_profile_url: "https://profile.line-scdn.net/0h/somchai_pha",
     move_in_date: "2024-01-15",
   },
   {

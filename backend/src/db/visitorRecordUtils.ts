@@ -225,19 +225,19 @@ export async function getVisitorRecordsByStatus(
  */
 export async function getVisitorRecordsByLineId(lineUserId: string) {
   console.log(`🔍 Querying visitor records for LINE user ID: ${lineUserId}`);
-  
+
   // First, check if the resident exists
   const resident = await db.query.residents.findFirst({
     where: eq(residents.line_user_id, lineUserId),
   });
-  
+
   if (!resident) {
     console.log(`❌ No resident found for LINE user ID: ${lineUserId}`);
     return [];
   }
-  
+
   console.log(`✅ Found resident: ${resident.resident_id} (${resident.fname} ${resident.lname})`);
-  
+
   const result = await db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
@@ -340,6 +340,71 @@ export async function deleteVisitorRecord(visitorRecordId: string) {
     .returning();
 
   return deletedVisitorRecord;
+}
+
+/**
+ * Retrieves visitor records by resident name (fname + lname).
+ * @param {string} residentName - The full name of the resident (e.g., "สมชาย ผาสุก").
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of visitor records for the specified resident.
+ */
+export async function getVisitorRecordsByResidentName(residentName: string) {
+  console.log(`🔍 Database query for resident: "${residentName}"`);
+  
+  try {
+    // First, let's get all records and filter in JavaScript to debug
+    const allRecords = await db
+      .select({
+        visitor_record_id: visitor_records.visitor_record_id,
+        resident_id: visitor_records.resident_id,
+        guard_id: visitor_records.guard_id,
+        house_id: visitor_records.house_id,
+        picture_key: visitor_records.picture_key,
+        license_plate: visitor_records.license_plate,
+        entry_time: visitor_records.entry_time,
+        exit_time: visitor_records.exit_time,
+        record_status: visitor_records.record_status,
+        visit_purpose: visitor_records.visit_purpose,
+        createdAt: visitor_records.createdAt,
+        updatedAt: visitor_records.updatedAt,
+        resident_name: sql`${residents.fname} || ' ' || ${residents.lname}`,
+        resident_email: residents.email,
+        guard_name: sql`${guards.fname} || ' ' || ${guards.lname}`,
+        guard_email: guards.email,
+        house_address: houses.address,
+        village_key: houses.village_key,
+      })
+      .from(visitor_records)
+      .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
+      .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
+      .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
+      .orderBy(visitor_records.createdAt);
+
+    console.log(`📊 Total records in database: ${allRecords.length}`);
+    
+    // Filter by resident name in JavaScript
+    const filteredRecords = allRecords.filter(record => {
+      const recordName = record.resident_name;
+      const matches = recordName === residentName;
+      if (matches) {
+        console.log(`✅ Found matching record: ${record.license_plate} for ${recordName}`);
+      }
+      return matches;
+    });
+
+    console.log(`✅ Found ${filteredRecords.length} records for "${residentName}"`);
+    
+    // Log some debug info
+    if (filteredRecords.length === 0) {
+      console.log(`🔍 Available resident names in database:`);
+      const uniqueNames = [...new Set(allRecords.map(r => r.resident_name))];
+      uniqueNames.slice(0, 10).forEach(name => console.log(`  - "${name}"`));
+    }
+    
+    return filteredRecords;
+  } catch (error) {
+    console.error(`❌ Database query failed for resident "${residentName}":`, error);
+    throw error;
+  }
 }
 
 /**
@@ -524,12 +589,12 @@ export async function getYearlyVisitorRecords() {
 
   // Group records by year
   const recordsByYear: { [key: number]: any[] } = {};
-  
+
   allRecords.forEach(record => {
     if (record.entry_time) {
       const recordDate = new Date(record.entry_time);
       const year = recordDate.getFullYear();
-      
+
       if (!recordsByYear[year]) {
         recordsByYear[year] = [];
       }
