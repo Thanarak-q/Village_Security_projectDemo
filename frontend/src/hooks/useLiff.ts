@@ -3,31 +3,19 @@ import { LiffService } from '@/lib/liff';
 
 interface LineProfile {
   userId: string;
-  displayName?: string;
+  displayName: string;
   pictureUrl?: string;
+  statusMessage?: string;
 }
 
-interface UseLiffReturn {
-  isInitialized: boolean;
-  isLoggedIn: boolean;
-  profile: LineProfile | null;
-  idToken: string | null;
-  isInLine: boolean;
-  loading: boolean;
-  error: string | null;
-  login: () => void;
-  logout: () => void;
-  refreshProfile: () => Promise<void>;
-}
-
-export const useLiff = (): UseLiffReturn => {
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [isLoggedInState, setIsLoggedInState] = useState(false);
+export function useLiff() {
   const [profile, setProfile] = useState<LineProfile | null>(null);
-  const [idToken, setIdToken] = useState<string | null>(null);
-  const [isInLine, setIsInLine] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isLoggedInState, setIsLoggedInState] = useState(false);
+  const [isInLine, setIsInLine] = useState(false);
+  const [idToken, setIdToken] = useState<string | null>(null);
 
   const svc = LiffService.getInstance();
 
@@ -59,17 +47,19 @@ export const useLiff = (): UseLiffReturn => {
   }, [svc]);
 
   const login = () => {
-    if (isInitialized) {
-      svc.login();
+    if (window.liff) {
+      window.liff.login();
     }
   };
 
+  useEffect(() => {
+    initializeLiff();
+  }, [initializeLiff]);
+
   const logout = () => {
-    if (isInitialized) {
+    if (window.liff) {
+      window.liff.logout();
       setProfile(null);
-      setIdToken(null);
-      setIsLoggedInState(false);
-      svc.logout();
     }
   };
 

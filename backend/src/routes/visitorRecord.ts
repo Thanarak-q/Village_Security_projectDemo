@@ -3,9 +3,11 @@ import {
   getAllVisitorRecords,
   getVisitorRecordsByVillage,
   getVisitorRecordsByResident,
+  getVisitorRecordsByResidentName,
   getVisitorRecordsByGuard,
   getVisitorRecordsByHouse,
   getVisitorRecordsByStatus,
+  getVisitorRecordsByLineId,
   createVisitorRecord,
   updateVisitorRecordStatus,
   deleteVisitorRecord,
@@ -353,6 +355,258 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
       return {
         success: false,
         error: "Failed to delete visitor record. Please try again.",
+      };
+    }
+  })
+
+  /**
+   * Get pending visitor requests for a specific resident.
+   * @param {Object} params - The parameters for the request.
+   * @param {string} params.resident_id - The resident ID.
+   * @returns {Promise<Object>} A promise that resolves to pending visitor requests.
+   */
+  .get("/visitor-requests/pending/:resident_id", async ({ params }) => {
+    try {
+      const { resident_id } = params;
+
+      if (!resident_id?.trim()) {
+        return {
+          success: false,
+          error: "Resident ID is required",
+        };
+      }
+
+      const result = await getVisitorRecordsByResident(resident_id);
+      // Filter only pending requests
+      const pendingRequests = result.filter(record => record.record_status === 'pending');
+      
+      return {
+        success: true,
+        data: pendingRequests,
+        total: pendingRequests.length,
+      };
+    } catch (error) {
+      console.error("Error fetching pending visitor requests:", error);
+      return {
+        success: false,
+        error: "Failed to fetch pending visitor requests",
+      };
+    }
+  })
+
+  /**
+   * Approve a visitor request.
+   * @param {Object} params - The parameters for the request.
+   * @param {string} params.record_id - The record ID.
+   * @returns {Promise<Object>} A promise that resolves to the updated record.
+   */
+  .post("/visitor-requests/:record_id/approve", async ({ params }) => {
+    try {
+      const { record_id } = params;
+
+      if (!record_id?.trim()) {
+        return {
+          success: false,
+          error: "Record ID is required",
+        };
+      }
+
+      const result = await updateVisitorRecordStatus(record_id, "approved");
+      return {
+        success: true,
+        message: "Visitor request approved successfully!",
+        data: result,
+      };
+    } catch (error) {
+      console.error("Error approving visitor request:", error);
+      return {
+        success: false,
+        error: "Failed to approve visitor request",
+      };
+    }
+  })
+
+  /**
+   * Deny a visitor request.
+   * @param {Object} params - The parameters for the request.
+   * @param {string} params.record_id - The record ID.
+   * @returns {Promise<Object>} A promise that resolves to the updated record.
+   */
+  .post("/visitor-requests/:record_id/deny", async ({ params }) => {
+    try {
+      const { record_id } = params;
+
+      if (!record_id?.trim()) {
+        return {
+          success: false,
+          error: "Record ID is required",
+        };
+      }
+
+      const result = await updateVisitorRecordStatus(record_id, "rejected");
+      return {
+        success: true,
+        message: "Visitor request denied successfully!",
+        data: result,
+      };
+    } catch (error) {
+      console.error("Error denying visitor request:", error);
+      return {
+        success: false,
+        error: "Failed to deny visitor request",
+      };
+    }
+  })
+
+  /**
+   * Get visitor request history for a specific resident.
+   * @param {Object} params - The parameters for the request.
+   * @param {string} params.resident_id - The resident ID.
+   * @returns {Promise<Object>} A promise that resolves to visitor request history.
+   */
+  .get("/visitor-requests/history/:resident_id", async ({ params }) => {
+    try {
+      const { resident_id } = params;
+
+      if (!resident_id?.trim()) {
+        return {
+          success: false,
+          error: "Resident ID is required",
+        };
+      }
+
+      const result = await getVisitorRecordsByResident(resident_id);
+      // Filter only approved and rejected requests
+      const history = result.filter(record => 
+        record.record_status === 'approved' || record.record_status === 'rejected'
+      );
+      
+      return {
+        success: true,
+        data: history,
+        total: history.length,
+      };
+    } catch (error) {
+      console.error("Error fetching visitor request history:", error);
+      return {
+        success: false,
+        error: "Failed to fetch visitor request history",
+      };
+    }
+  })
+
+  /**
+   * Get pending visitor requests by LINE ID.
+   * @param {Object} params - The parameters for the request.
+   * @param {string} params.line_user_id - The LINE user ID.
+   * @returns {Promise<Object>} A promise that resolves to pending visitor requests.
+   */
+  .get("/visitor-requests/pending/line/:line_user_id", async ({ params }) => {
+    try {
+      const { line_user_id } = params;
+
+      if (!line_user_id?.trim()) {
+        return {
+          success: false,
+          error: "LINE user ID is required",
+        };
+      }
+
+      const result = await getVisitorRecordsByLineId(line_user_id);
+      // Filter only pending requests
+      const pendingRequests = result.filter(record => record.record_status === 'pending');
+      
+      return {
+        success: true,
+        data: pendingRequests,
+        total: pendingRequests.length,
+      };
+    } catch (error) {
+      console.error("Error fetching pending visitor requests by LINE ID:", error);
+      return {
+        success: false,
+        error: "Failed to fetch pending visitor requests",
+      };
+    }
+  })
+
+  /**
+   * Get visitor request history by LINE ID.
+   * @param {Object} params - The parameters for the request.
+   * @param {string} params.line_user_id - The LINE user ID.
+   * @returns {Promise<Object>} A promise that resolves to visitor request history.
+   */
+  .get("/visitor-requests/history/line/:line_user_id", async ({ params }) => {
+    try {
+      const { line_user_id } = params;
+
+      if (!line_user_id?.trim()) {
+        return {
+          success: false,
+          error: "LINE user ID is required",
+        };
+      }
+
+      console.log(`🔍 Fetching visitor records for LINE user ID: ${line_user_id}`);
+      const result = await getVisitorRecordsByLineId(line_user_id);
+      console.log(`📊 Total records found: ${result.length}`);
+      console.log(`📋 Record statuses:`, result.map(r => r.record_status));
+      
+      // Filter only approved and rejected requests
+      const history = result.filter(record => 
+        record.record_status === 'approved' || record.record_status === 'rejected'
+      );
+      
+      console.log(`✅ History records after filtering: ${history.length}`);
+      
+      return {
+        success: true,
+        data: history,
+        total: history.length,
+      };
+    } catch (error) {
+      console.error("Error fetching visitor request history by LINE ID:", error);
+      return {
+        success: false,
+        error: "Failed to fetch visitor request history",
+      };
+    }
+  })
+
+  /**
+   * Get all visitor records for a specific resident by name.
+   * @param {Object} params - The parameters for the request.
+   * @param {string} params.resident_name - The resident name (e.g., "สมชาย ผาสุก").
+   * @returns {Promise<Object>} A promise that resolves to all visitor records for the resident.
+   */
+  .get("/visitor-records/resident-name/:resident_name", async ({ params }) => {
+    try {
+      const { resident_name } = params;
+
+      if (!resident_name?.trim()) {
+        return {
+          success: false,
+          error: "Resident name is required",
+        };
+      }
+
+      // Decode URL-encoded name
+      const decodedName = decodeURIComponent(resident_name);
+      console.log(`🔍 Fetching visitor records for resident: ${decodedName}`);
+      
+      const result = await getVisitorRecordsByResidentName(decodedName);
+      console.log(`✅ Found ${result.length} visitor records for ${decodedName}`);
+      
+      return {
+        success: true,
+        data: result,
+        total: result.length,
+      };
+    } catch (error) {
+      console.error("Error fetching visitor records by resident name:", error);
+      return {
+        success: false,
+        error: "Failed to fetch visitor records for resident",
       };
     }
   }); 
