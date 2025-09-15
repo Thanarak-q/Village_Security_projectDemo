@@ -1,4 +1,13 @@
 :80 {
+  # WebSocket support for notifications
+  reverse_proxy /ws/* backend:3001 {
+    header_up Connection {>Connection}
+    header_up Upgrade {>Upgrade}
+  }
+  
+  # API routes
   reverse_proxy /api/* backend:3001
+  
+  # Frontend
   reverse_proxy frontend:3000
 }

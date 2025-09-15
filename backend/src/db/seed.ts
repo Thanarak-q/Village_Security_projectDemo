@@ -867,70 +867,75 @@ export async function clearDb() {
   // Clear admin_notifications first (has foreign key to admins)
   console.log("Clearing admin_notifications");
   try {
-    const existingAdminNotifications = await db
-      .select()
-      .from(admin_notifications)
-      .limit(1);
-    if (existingAdminNotifications.length > 0) {
-      await db.delete(admin_notifications);
-    }
+    await db.delete(admin_notifications);
+    console.log("Cleared admin_notifications");
   } catch (error) {
     // Table might not exist yet, ignore error
     console.log("admin_notifications table doesn't exist yet, skipping...");
   }
 
   console.log("Clearing admin_activity_logs");
-  const existingAdminActivityLogs = await db
-    .select()
-    .from(admin_activity_logs)
-    .limit(1);
-  if (existingAdminActivityLogs.length > 0) {
+  try {
     await db.delete(admin_activity_logs);
+    console.log("Cleared admin_activity_logs");
+  } catch (error) {
+    console.log("admin_activity_logs table doesn't exist yet, skipping...");
   }
 
   console.log("Clearing visitor_records");
-  const existingVisitorRecords = await db
-    .select()
-    .from(visitor_records)
-    .limit(1);
-  if (existingVisitorRecords.length > 0) {
+  try {
     await db.delete(visitor_records);
+    console.log("Cleared visitor_records");
+  } catch (error) {
+    console.log("visitor_records table doesn't exist yet, skipping...");
   }
 
   console.log("Clearing house_members");
-  const existingHouseMembers = await db.select().from(house_members).limit(1);
-  if (existingHouseMembers.length > 0) {
+  try {
     await db.delete(house_members);
+    console.log("Cleared house_members");
+  } catch (error) {
+    console.log("house_members table doesn't exist yet, skipping...");
   }
 
   console.log("Clearing admins");
-  const existingAdmins = await db.select().from(admins).limit(1);
-  if (existingAdmins.length > 0) {
+  try {
     await db.delete(admins);
+    console.log("Cleared admins");
+  } catch (error) {
+    console.log("admins table doesn't exist yet, skipping...");
   }
 
   console.log("Clearing guards");
-  const existingGuards = await db.select().from(guards).limit(1);
-  if (existingGuards.length > 0) {
+  try {
     await db.delete(guards);
+    console.log("Cleared guards");
+  } catch (error) {
+    console.log("guards table doesn't exist yet, skipping...");
   }
 
   console.log("Clearing residents");
-  const existingResidents = await db.select().from(residents).limit(1);
-  if (existingResidents.length > 0) {
+  try {
     await db.delete(residents);
+    console.log("Cleared residents");
+  } catch (error) {
+    console.log("residents table doesn't exist yet, skipping...");
   }
 
   console.log("Clearing houses");
-  const existingHouses = await db.select().from(houses).limit(1);
-  if (existingHouses.length > 0) {
+  try {
     await db.delete(houses);
+    console.log("Cleared houses");
+  } catch (error) {
+    console.log("houses table doesn't exist yet, skipping...");
   }
 
   console.log("Clearing villages");
-  const existingVillages = await db.select().from(villages).limit(1);
-  if (existingVillages.length > 0) {
+  try {
     await db.delete(villages);
+    console.log("Cleared villages");
+  } catch (error) {
+    console.log("villages table doesn't exist yet, skipping...");
   }
 }
 

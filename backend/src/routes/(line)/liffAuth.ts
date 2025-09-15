@@ -1,8 +1,9 @@
 import { Elysia, t } from "elysia";
-import { residents, guards } from "../../db/schema";
+import { residents, guards, admins } from "../../db/schema";
 import db from "../../db/drizzle";
 import { eq } from "drizzle-orm";
 import { validateLiffRegistration, sanitizeString, isValidEmail, isValidPhone, isValidVillageKey } from "../../utils/zodValidation";
+import { notificationService } from "../../services/notificationService";
 // JWT will be handled by Elysia's built-in JWT plugin
 
 /**
@@ -440,6 +441,28 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
           })
           .returning();
 
+        // Create notification for new resident registration
+        try {
+          // Find admin for this village
+          const [villageAdmin] = await db
+            .select()
+            .from(admins)
+            .where(eq(admins.village_key, newResident.village_key))
+            .limit(1);
+
+          if (villageAdmin) {
+            await notificationService.notifyNewResidentRegistration({
+              resident_id: newResident.resident_id,
+              fname: newResident.fname,
+              lname: newResident.lname,
+              village_key: newResident.village_key,
+              admin_id: villageAdmin.admin_id,
+            });
+          }
+        } catch (notificationError) {
+          console.error('Error creating registration notification:', notificationError);
+        }
+
         // Generate JWT token for the new user
         const token = await jwt.sign({
           id: newResident.resident_id,
@@ -487,6 +510,28 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
             profile_image_url: profile_image_url ? sanitizeString(profile_image_url) : null,
           })
           .returning();
+
+        // Create notification for new guard registration
+        try {
+          // Find admin for this village
+          const [villageAdmin] = await db
+            .select()
+            .from(admins)
+            .where(eq(admins.village_key, newGuard.village_key))
+            .limit(1);
+
+          if (villageAdmin) {
+            await notificationService.notifyNewGuardRegistration({
+              guard_id: newGuard.guard_id,
+              fname: newGuard.fname,
+              lname: newGuard.lname,
+              village_key: newGuard.village_key,
+              admin_id: villageAdmin.admin_id,
+            });
+          }
+        } catch (notificationError) {
+          console.error('Error creating registration notification:', notificationError);
+        }
 
         // Generate JWT token for the new user
         const token = await jwt.sign({

@@ -3,6 +3,8 @@ import { cors } from "@elysiajs/cors";
 import jwt from "@elysiajs/jwt";
 import cookie from "@elysiajs/cookie";
 import "dotenv/config";
+import { createServer } from "http";
+import { webSocketService } from "./services/websocketService";
 import { houseManageRoutes } from "./routes/houseManage";
 import { visitorRecordRoutes } from "./routes/visitorRecord";
 import { visitorRecordWeeklyRoutes } from "./routes/visitorRecord-weekly";
@@ -150,15 +152,32 @@ async function startServer() {
     await testConnection();
 
     const port = parseInt(process.env.PORT || "3001");
-    app.listen(port, () => {
+    
+    // Create HTTP server
+    const server = createServer();
+    
+    // Initialize WebSocket service
+    webSocketService.initialize(server);
+    
+    // Start the server
+    server.listen(port, () => {
       console.log(
-        `🦊 Village Security API is running at http://localhost:${port}`
+        `🦊 Village Security API is running on port ${port}`
       );
       console.log(
-        `📊 Health check available at http://localhost:${port}/api/health`
+        `📊 Health check available at /api/health`
+      );
+      console.log(
+        `🔌 WebSocket server available at /ws/notifications`
       );
       console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
     });
+    
+    // Handle HTTP requests with Elysia
+    server.on('request', (req, res) => {
+      app.handle(req);
+    });
+    
   } catch (error) {
     console.error("❌ Failed to start server:", error);
     process.exit(1);

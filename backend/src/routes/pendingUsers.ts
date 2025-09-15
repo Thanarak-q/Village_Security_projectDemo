@@ -9,6 +9,7 @@ import {
 } from "../db/schema";
 import { eq, sql, and } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
+import { notificationService } from "../services/notificationService";
 
 /**
  * Interface for the approve user request.
@@ -122,7 +123,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
    * @param {Object} context.body - The body of the request.
    * @returns {Promise<Object>} A promise that resolves to an object containing a success message.
    */
-  .put("/approveUser", async ({ body }) => {
+  .put("/approveUser", async ({ body, currentUser }) => {
     try {
       const {
         userId,
@@ -213,6 +214,20 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
           }
         }
 
+        // Create notification for resident approval
+        try {
+          await notificationService.notifyUserApproval({
+            user_id: userId,
+            user_type: 'resident',
+            fname: updateResult[0].fname,
+            lname: updateResult[0].lname,
+            village_key: updateResult[0].village_key,
+            admin_id: currentUser.admin_id,
+          });
+        } catch (notificationError) {
+          console.error('Error creating approval notification:', notificationError);
+        }
+
         return {
           success: true,
           message: "Resident approved successfully",
@@ -234,6 +249,20 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             success: false,
             error: "Guard not found",
           };
+        }
+
+        // Create notification for guard approval
+        try {
+          await notificationService.notifyUserApproval({
+            user_id: userId,
+            user_type: 'guard',
+            fname: updateResult[0].fname,
+            lname: updateResult[0].lname,
+            village_key: updateResult[0].village_key,
+            admin_id: currentUser.admin_id,
+          });
+        } catch (notificationError) {
+          console.error('Error creating approval notification:', notificationError);
         }
 
         return {

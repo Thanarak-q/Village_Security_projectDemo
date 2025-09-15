@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Bell, Users, Home, Clock, AlertTriangle, Settings, CheckCircle2, Trash2 } from "lucide-react"
+import { Bell, Users, Home, Clock, AlertTriangle, Settings, CheckCircle2, Trash2, Wifi, WifiOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -12,7 +12,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { useNotifications } from "@/hooks/useNotifications"
-import { getNotificationIcon, getNotificationColor } from "@/lib/notifications"
+import { getNotificationIcon } from "@/lib/notifications"
 
 // Helper function to format time ago
 function formatTimeAgo(dateString: string): string {
@@ -80,6 +80,7 @@ export default function NotificationComponent() {
     counts,
     loading,
     error,
+    wsConnected,
     refreshNotifications,
     markAsRead,
     markAllAsRead,
@@ -125,7 +126,16 @@ export default function NotificationComponent() {
       
       <PopoverContent className="w-80 sm:w-96" align="end">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">การแจ้งเตือน</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold">การแจ้งเตือน</h3>
+            <div className="flex items-center gap-1">
+              {wsConnected ? (
+                <Wifi className="h-4 w-4 text-green-500" />
+              ) : (
+                <WifiOff className="h-4 w-4 text-gray-400" />
+              )}
+            </div>
+          </div>
           <div className="flex items-center gap-2">
             {unreadCount > 0 && (
               <Button
