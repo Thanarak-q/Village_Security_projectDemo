@@ -1,5 +1,5 @@
 -- Migration: Add admin_notifications table
--- Description: Create admin_notifications table for admin notifications
+-- Description: Create admin_notifications table for storing admin notifications
 
 CREATE TABLE IF NOT EXISTS "admin_notifications" (
 	"notification_id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
@@ -29,10 +29,9 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 
--- Add indexes for better performance
-CREATE INDEX IF NOT EXISTS "admin_notifications_admin_id_idx" ON "admin_notifications" ("admin_id");
-CREATE INDEX IF NOT EXISTS "admin_notifications_village_key_idx" ON "admin_notifications" ("village_key");
-CREATE INDEX IF NOT EXISTS "admin_notifications_is_read_idx" ON "admin_notifications" ("is_read");
-CREATE INDEX IF NOT EXISTS "admin_notifications_created_at_idx" ON "admin_notifications" ("created_at");
-CREATE INDEX IF NOT EXISTS "admin_notifications_type_idx" ON "admin_notifications" ("type");
-CREATE INDEX IF NOT EXISTS "admin_notifications_category_idx" ON "admin_notifications" ("category");
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS "idx_admin_notifications_admin_id" ON "admin_notifications" USING btree ("admin_id");
+CREATE INDEX IF NOT EXISTS "idx_admin_notifications_village_key" ON "admin_notifications" USING btree ("village_key");
+CREATE INDEX IF NOT EXISTS "idx_admin_notifications_is_read" ON "admin_notifications" USING btree ("is_read");
+CREATE INDEX IF NOT EXISTS "idx_admin_notifications_created_at" ON "admin_notifications" USING btree ("created_at");
+CREATE INDEX IF NOT EXISTS "idx_admin_notifications_admin_id_is_read" ON "admin_notifications" USING btree ("admin_id","is_read");

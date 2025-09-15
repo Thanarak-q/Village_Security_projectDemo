@@ -1,0 +1,232 @@
+/**
+ * @file API routes for admin notifications
+ * Handles CRUD operations for admin notifications including:
+ * - Fetching notifications for a specific admin
+ * - Marking notifications as read
+ * - Creating new notifications
+ * - Getting notification counts
+ */
+
+import { Elysia, t } from 'elysia';
+import { eq, and, desc, count } from 'drizzle-orm';
+import db from '../db/drizzle';
+import { admin_notifications, villages } from '../db/schema';
+import { requireRole } from '../hooks/requireRole';
+
+export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
+  .onBeforeHandle(requireRole(['admin', 'staff', 'superadmin']))
+
+  // GET /api/notifications - Get all notifications for the authenticated admin
+  .get('/', async (context: any) => {
+    try {
+      const { currentUser, query } = context;
+      const { page = 1, limit = 20, type, category, is_read, priority } = query;
+      const offset = (Number(page) - 1) * Number(limit);
+
+      // Build where conditions
+      const whereConditions = [eq(admin_notifications.admin_id, currentUser.admin_id)];
+      
+      if (type) {
+        whereConditions.push(eq(admin_notifications.type, type as any));
+      }
+      if (category) {
+        whereConditions.push(eq(admin_notifications.category, category as any));
+      }
+      if (is_read !== undefined) {
+        whereConditions.push(eq(admin_notifications.is_read, is_read === 'true'));
+      }
+      if (priority) {
+        whereConditions.push(eq(admin_notifications.priority, priority as any));
+      }
+
+      // Fetch notifications with village name
+      const notifications = await db
+        .select({
+          notification_id: admin_notifications.notification_id,
+          type: admin_notifications.type,
+          category: admin_notifications.category,
+          title: admin_notifications.title,
+          message: admin_notifications.message,
+          data: admin_notifications.data,
+          is_read: admin_notifications.is_read,
+          priority: admin_notifications.priority,
+          created_at: admin_notifications.created_at,
+          read_at: admin_notifications.read_at,
+          village_name: villages.village_name,
+        })
+        .from(admin_notifications)
+        .leftJoin(villages, eq(admin_notifications.village_key, villages.village_key))
+        .where(and(...whereConditions))
+        .orderBy(desc(admin_notifications.created_at))
+        .limit(Number(limit))
+        .offset(offset);
+
+      // Get total count
+      const totalResult = await db
+        .select({ count: count() })
+        .from(admin_notifications)
+        .where(and(...whereConditions));
+
+      const total = totalResult[0]?.count || 0;
+
+      return {
+        success: true,
+        data: {
+          notifications,
+          pagination: {
+            page: Number(page),
+            limit: Number(limit),
+            total,
+            totalPages: Math.ceil(total / Number(limit))
+          }
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      return {
+        success: false,
+        error: 'Failed to fetch notifications'
+      };
+    }
+  })
+
+  // GET /api/notifications/count - Get notification counts
+  .get('/count', async (context: any) => {
+    try {
+      const { currentUser } = context;
+
+      // Get total and unread counts
+      const [totalResult, unreadResult] = await Promise.all([
+        db.select({ count: count() })
+          .from(admin_notifications)
+          .where(eq(admin_notifications.admin_id, currentUser.admin_id)),
+        
+        db.select({ count: count() })
+          .from(admin_notifications)
+          .where(and(
+            eq(admin_notifications.admin_id, currentUser.admin_id),
+            eq(admin_notifications.is_read, false)
+          ))
+      ]);
+
+      return {
+        success: true,
+        data: {
+          total: totalResult[0]?.count || 0,
+          unread: unreadResult[0]?.count || 0
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching notification counts:', error);
+      return {
+        success: false,
+        error: 'Failed to fetch notification counts'
+      };
+    }
+  })
+
+  // PUT /api/notifications/:id/read - Mark notification as read
+  .put('/:id/read', async (context: any) => {
+    try {
+      const { currentUser, params } = context;
+      const { id } = params;
+
+      const result = await db
+        .update(admin_notifications)
+        .set({
+          is_read: true,
+          read_at: new Date()
+        })
+        .where(and(
+          eq(admin_notifications.notification_id, id),
+          eq(admin_notifications.admin_id, currentUser.admin_id)
+        ))
+        .returning();
+
+      if (result.length === 0) {
+        return {
+          success: false,
+          error: 'Notification not found or access denied'
+        };
+      }
+
+      return {
+        success: true,
+        data: result[0]
+      };
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      return {
+        success: false,
+        error: 'Failed to mark notification as read'
+      };
+    }
+  })
+
+  // PUT /api/notifications/read-all - Mark all notifications as read
+  .put('/read-all', async (context: any) => {
+    try {
+      const { currentUser } = context;
+
+      const result = await db
+        .update(admin_notifications)
+        .set({
+          is_read: true,
+          read_at: new Date()
+        })
+        .where(and(
+          eq(admin_notifications.admin_id, currentUser.admin_id),
+          eq(admin_notifications.is_read, false)
+        ))
+        .returning();
+
+      return {
+        success: true,
+        data: {
+          updated_count: result.length
+        }
+      };
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      return {
+        success: false,
+        error: 'Failed to mark all notifications as read'
+      };
+    }
+  })
+
+  // DELETE /api/notifications/:id - Delete a notification
+  .delete('/:id', async (context: any) => {
+    try {
+      const { currentUser, params } = context;
+      const { id } = params;
+
+      const result = await db
+        .delete(admin_notifications)
+        .where(and(
+          eq(admin_notifications.notification_id, id),
+          eq(admin_notifications.admin_id, currentUser.admin_id)
+        ))
+        .returning();
+
+      if (result.length === 0) {
+        return {
+          success: false,
+          error: 'Notification not found or access denied'
+        };
+      }
+
+      return {
+        success: true,
+        data: {
+          deleted_id: id
+        }
+      };
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      return {
+        success: false,
+        error: 'Failed to delete notification'
+      };
+    }
+  });

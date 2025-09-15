@@ -6,7 +6,7 @@
  */
 
 import { unique } from "drizzle-orm/gel-core";
-import { pgTable, text, timestamp, uuid, date, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, date, index, boolean } from "drizzle-orm/pg-core";
 import { status } from "elysia";
 
 /**
@@ -263,8 +263,8 @@ export const admin_notifications = pgTable("admin_notifications", {
     .notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
-  data: text("data").$type<Record<string, any>>(), // JSON data
-  is_read: text("is_read").$type<boolean>().default(false),
+  data: text("data").$type<Record<string, any>>(), 
+  is_read: boolean("is_read").default(false),
   priority: text("priority")
     .$type<"low" | "medium" | "high" | "urgent">()
     .default("medium"),
