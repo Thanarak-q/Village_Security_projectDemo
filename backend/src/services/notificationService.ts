@@ -5,7 +5,8 @@
 
 import db from '../db/drizzle';
 import { admin_notifications, villages } from '../db/schema';
-import { webSocketService } from './websocketService';
+// WebSocket disabled
+// import { webSocketService } from './websocketService';
 import { eq, and, count } from 'drizzle-orm';
 
 export interface CreateNotificationData {
@@ -66,11 +67,9 @@ class NotificationService {
         }
       };
 
-      // Broadcast to the specific admin
-      webSocketService.broadcastToUser(data.admin_id, wsMessage);
-
-      // Also broadcast to all admins in the same village (for multi-admin villages)
-      webSocketService.broadcastToVillageAdmins(data.village_key, wsMessage);
+      // WebSocket broadcasting disabled
+      // webSocketService.broadcastToUser(data.admin_id, wsMessage);
+      // webSocketService.broadcastToVillageAdmins(data.village_key, wsMessage);
 
       console.log(`📢 Created and broadcasted notification: ${notification.title} to admin ${data.admin_id}`);
 
@@ -270,13 +269,12 @@ class NotificationService {
         unread: unreadResult[0]?.count || 0
       };
 
-      // Broadcast count update
-      const wsMessage = {
-        type: 'notification_count' as const,
-        data: counts
-      };
-
-      webSocketService.broadcastToUser(adminId, wsMessage);
+      // WebSocket broadcasting disabled
+      // const wsMessage = {
+      //   type: 'notification_count' as const,
+      //   data: counts
+      // };
+      // webSocketService.broadcastToUser(adminId, wsMessage);
 
       return counts;
     } catch (error) {

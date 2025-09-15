@@ -34,9 +34,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
   
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
-  const maxReconnectAttempts = 5;
-  const reconnectDelay = 3000; // 3 seconds
+  const maxReconnectAttempts = 3; // Reduced from 5
+  const reconnectDelay = 5000; // Increased to 5 seconds
+  const connectionTimeout = 10000; // 10 seconds timeout
 
   const {
     onNotification,
@@ -63,6 +65,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
                      ?.split('=')[1];
 
       if (!token) {
+        console.warn('⚠️ No authentication token found, skipping WebSocket connection');
         setError('No authentication token found');
         setIsConnecting(false);
         return;
@@ -78,12 +81,30 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
+      // Set connection timeout
+      connectionTimeoutRef.current = setTimeout(() => {
+        if (ws.readyState === WebSocket.CONNECTING) {
+          console.warn('⚠️ WebSocket connection timeout');
+          ws.close();
+          setError('Connection timeout');
+          setIsConnecting(false);
+          onError?.('Connection timeout');
+        }
+      }, connectionTimeout);
+
       ws.onopen = () => {
         console.log('🔌 WebSocket connected');
         setIsConnected(true);
         setIsConnecting(false);
         setError(null);
         reconnectAttemptsRef.current = 0;
+        
+        // Clear connection timeout
+        if (connectionTimeoutRef.current) {
+          clearTimeout(connectionTimeoutRef.current);
+          connectionTimeoutRef.current = null;
+        }
+        
         onConnect?.();
       };
 
@@ -141,6 +162,13 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
         console.error('❌ WebSocket error:', event);
         setError('WebSocket connection error');
         setIsConnecting(false);
+        
+        // Clear connection timeout on error
+        if (connectionTimeoutRef.current) {
+          clearTimeout(connectionTimeoutRef.current);
+          connectionTimeoutRef.current = null;
+        }
+        
         onError?.('WebSocket connection error');
       };
 
@@ -155,6 +183,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
+    }
+
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+      connectionTimeoutRef.current = null;
     }
 
     if (wsRef.current) {
@@ -198,9 +231,19 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
     return () => clearInterval(pingInterval);
   }, [isConnected, sendMessage]);
 
-  // Connect on mount and disconnect on unmount
+  // Connect on mount and disconnect on unmount (only if we have a token)
   useEffect(() => {
-    connect();
+    const token = localStorage.getItem('token') || 
+                 document.cookie
+                   .split('; ')
+                   .find(row => row.startsWith('token='))
+                   ?.split('=')[1];
+    
+    if (token) {
+      connect();
+    } else {
+      console.log('🔌 No token found, skipping WebSocket connection');
+    }
 
     return () => {
       disconnect();

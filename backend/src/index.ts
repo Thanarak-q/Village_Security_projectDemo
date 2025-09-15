@@ -3,8 +3,9 @@ import { cors } from "@elysiajs/cors";
 import jwt from "@elysiajs/jwt";
 import cookie from "@elysiajs/cookie";
 import "dotenv/config";
-import { createServer } from "http";
-import { webSocketService } from "./services/websocketService";
+// WebSocket disabled
+// import { createServer } from "http";
+// import { webSocketService } from "./services/websocketService";
 import { houseManageRoutes } from "./routes/houseManage";
 import { visitorRecordRoutes } from "./routes/visitorRecord";
 import { visitorRecordWeeklyRoutes } from "./routes/visitorRecord-weekly";
@@ -153,29 +154,15 @@ async function startServer() {
 
     const port = parseInt(process.env.PORT || "3001");
     
-    // Create HTTP server
-    const server = createServer();
-    
-    // Initialize WebSocket service
-    webSocketService.initialize(server);
-    
-    // Start the server
-    server.listen(port, () => {
+    // Start the server without WebSocket
+    app.listen(port, () => {
       console.log(
         `🦊 Village Security API is running on port ${port}`
       );
       console.log(
         `📊 Health check available at /api/health`
       );
-      console.log(
-        `🔌 WebSocket server available at /ws/notifications`
-      );
       console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
-    });
-    
-    // Handle HTTP requests with Elysia
-    server.on('request', (req, res) => {
-      app.handle(req);
     });
     
   } catch (error) {

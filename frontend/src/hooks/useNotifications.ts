@@ -14,14 +14,14 @@ import {
   markAllNotificationsAsRead,
   deleteNotification
 } from '@/lib/notifications';
-import { useWebSocket } from './useWebSocket';
+// WebSocket disabled
+// import { useWebSocket } from './useWebSocket';
 
 interface UseNotificationsReturn {
   notifications: Notification[];
   counts: NotificationCounts | null;
   loading: boolean;
   error: string | null;
-  wsConnected: boolean;
   refreshNotifications: (filters?: NotificationFilters) => Promise<void>;
   markAsRead: (notificationId: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
@@ -34,37 +34,7 @@ export function useNotifications(initialFilters?: NotificationFilters): UseNotif
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // WebSocket integration for real-time notifications
-  const { isConnected: wsConnected, error: wsError } = useWebSocket({
-    onNotification: (newNotification: Notification) => {
-      console.log('📨 New notification received via WebSocket:', newNotification);
-      
-      // Add new notification to the beginning of the list
-      setNotifications(prev => [newNotification, ...prev]);
-      
-      // Update counts
-      setCounts(prev => prev ? {
-        total: prev.total + 1,
-        unread: prev.unread + (newNotification.is_read ? 0 : 1)
-      } : null);
-    },
-    onNotificationCount: (newCounts: NotificationCounts) => {
-      console.log('📊 Notification counts updated via WebSocket:', newCounts);
-      setCounts(newCounts);
-    },
-    onError: (wsError: string) => {
-      console.error('❌ WebSocket error:', wsError);
-      setError(`WebSocket error: ${wsError}`);
-    },
-    onConnect: () => {
-      console.log('🔌 WebSocket connected, refreshing notifications...');
-      // Refresh notifications when WebSocket connects
-      refreshNotifications();
-    },
-    onDisconnect: () => {
-      console.log('🔌 WebSocket disconnected');
-    }
-  });
+  // WebSocket disabled - using polling instead
 
   const refreshNotifications = useCallback(async (filters: NotificationFilters = {}) => {
     try {
@@ -167,7 +137,6 @@ export function useNotifications(initialFilters?: NotificationFilters): UseNotif
     counts,
     loading,
     error,
-    wsConnected,
     refreshNotifications,
     markAsRead,
     markAllAsRead,
