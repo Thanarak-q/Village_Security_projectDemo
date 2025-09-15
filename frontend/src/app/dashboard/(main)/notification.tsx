@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { Bell, Users, Home, Clock, AlertTriangle, Settings, CheckCircle2, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -80,32 +80,50 @@ export default function NotificationComponent() {
     counts,
     loading,
     error,
+    isConnected,
     refreshNotifications,
     markAsRead,
     markAllAsRead,
     deleteNotificationById
   } = useNotifications();
 
-  // Auto-refresh notifications when popover opens
-  useEffect(() => {
-    if (isOpen) {
-      refreshNotifications();
-    }
-  }, [isOpen, refreshNotifications]);
+  // Only refresh notifications manually since WebSocket provides real-time updates
+  // No auto-refresh needed when popover opens
 
-  const handleMarkAsRead = async (notificationId: string) => {
+  const handleMarkAsRead = useCallback(async (notificationId: string) => {
     await markAsRead(notificationId);
-  };
+  }, [markAsRead]);
 
-  const handleMarkAllAsRead = async () => {
+  const handleMarkAllAsRead = useCallback(async () => {
     await markAllAsRead();
-  };
+  }, [markAllAsRead]);
 
-  const handleDeleteNotification = async (notificationId: string) => {
+  const handleDeleteNotification = useCallback(async (notificationId: string) => {
     await deleteNotificationById(notificationId);
-  };
+  }, [deleteNotificationById]);
 
-  const unreadCount = counts?.unread || 0;
+  const handleTestNotification = useCallback(async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/api/notifications/test`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create test notification');
+      }
+      
+      const result = await response.json();
+      console.log('✅ Test notification created:', result);
+    } catch (error) {
+      console.error('❌ Error creating test notification:', error);
+    }
+  }, []);
+
+  const unreadCount = useMemo(() => counts?.unread || 0, [counts?.unread]);
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -120,12 +138,25 @@ export default function NotificationComponent() {
               {unreadCount > 99 ? '99+' : unreadCount}
             </Badge>
           )}
+          {/* Connection status indicator */}
+          <div 
+            className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-background ${
+              isConnected ? 'bg-green-500' : 'bg-red-500'
+            }`}
+            title={isConnected ? 'เชื่อมต่อแล้ว' : 'ไม่ได้เชื่อมต่อ'}
+          />
         </Button>
       </PopoverTrigger>
       
       <PopoverContent className="w-80 sm:w-96" align="end">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">การแจ้งเตือน</h3>
+          <div className="flex flex-col">
+            <h3 className="text-lg font-semibold">การแจ้งเตือน</h3>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+              <span>{isConnected ? 'เชื่อมต่อแล้ว' : 'ไม่ได้เชื่อมต่อ'}</span>
+            </div>
+          </div>
           <div className="flex items-center gap-2">
             {unreadCount > 0 && (
               <Button
@@ -147,6 +178,16 @@ export default function NotificationComponent() {
             >
               รีเฟรช
             </Button>
+            {process.env.NODE_ENV === 'development' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTestNotification}
+                className="text-xs"
+              >
+                ทดสอบ
+              </Button>
+            )}
           </div>
         </div>
         

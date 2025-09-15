@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Notification,
+  type Notification,
   NotificationFilters,
   NotificationCounts,
   fetchNotifications,
@@ -14,14 +14,15 @@ import {
   markAllNotificationsAsRead,
   deleteNotification
 } from '@/lib/notifications';
-// WebSocket disabled
-// import { useWebSocket } from './useWebSocket';
+// WebSocket enabled
+import { useWebSocket } from './useWebSocket';
 
 interface UseNotificationsReturn {
   notifications: Notification[];
   counts: NotificationCounts | null;
   loading: boolean;
   error: string | null;
+  isConnected: boolean;
   refreshNotifications: (filters?: NotificationFilters) => Promise<void>;
   markAsRead: (notificationId: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
@@ -34,7 +35,45 @@ export function useNotifications(initialFilters?: NotificationFilters): UseNotif
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // WebSocket disabled - using polling instead
+  // WebSocket integration for real-time updates
+  const handleNewNotification = useCallback((notificationData: any) => {
+    console.log('📨 Received new notification:', notificationData);
+    
+    // Add new notification to the beginning of the list
+    setNotifications(prev => [notificationData, ...prev]);
+    
+    // Update counts
+    setCounts(prev => prev ? { 
+      total: prev.total + 1, 
+      unread: prev.unread + 1 
+    } : { total: 1, unread: 1 });
+    
+    // Show browser notification if permission granted
+    if (Notification.permission === 'granted') {
+      new Notification(notificationData.title, {
+        body: notificationData.message,
+        icon: '/favicon.ico',
+        tag: notificationData.notification_id,
+      });
+    }
+  }, []);
+
+  const handleNotificationCount = useCallback((countData: any) => {
+    console.log('📊 Received notification count update:', countData);
+    setCounts(countData);
+  }, []);
+
+  const handleWebSocketError = useCallback((errorMessage: string) => {
+    console.error('🔌 WebSocket error:', errorMessage);
+    setError(`Connection error: ${errorMessage}`);
+  }, []);
+
+  const { isConnected } = useWebSocket({
+    onNotification: handleNewNotification,
+    onNotificationCount: handleNotificationCount,
+    onError: handleWebSocketError,
+    autoReconnect: true
+  });
 
   const refreshNotifications = useCallback(async (filters: NotificationFilters = {}) => {
     try {
@@ -127,6 +166,15 @@ export function useNotifications(initialFilters?: NotificationFilters): UseNotif
     }
   }, [notifications]);
 
+  // Request notification permission on mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        console.log('📣 Notification permission:', permission);
+      });
+    }
+  }, []);
+
   // Load notifications on mount
   useEffect(() => {
     refreshNotifications();
@@ -137,6 +185,7 @@ export function useNotifications(initialFilters?: NotificationFilters): UseNotif
     counts,
     loading,
     error,
+    isConnected,
     refreshNotifications,
     markAsRead,
     markAllAsRead,

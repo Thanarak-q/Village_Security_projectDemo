@@ -148,6 +148,71 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       village_key: currentUser.village_key,
       village_name,
     };
+  })
+
+  // GET /api/auth/ws-token - Get WebSocket token for real-time notifications
+  .get("/ws-token", async ({ jwt, cookie, set }: any) => {
+    try {
+      const token = cookie.auth_token?.value;
+
+      if (!token) {
+        set.status = 401;
+        return { error: "No authentication token found" };
+      }
+
+      let payload;
+      try {
+        payload = await jwt.verify(token);
+      } catch {
+        set.status = 401;
+        return { error: "Invalid authentication token" };
+      }
+
+      if (!payload?.id || !payload?.iat) {
+        set.status = 401;
+        return { error: "Invalid token payload" };
+      }
+
+      // Check token age (7 days)
+      const tokenAgeInSeconds = Date.now() / 1000 - payload.iat;
+      if (tokenAgeInSeconds > 7 * 24 * 60 * 60) {
+        set.status = 401;
+        return { error: "Token has expired" };
+      }
+
+      // Verify user exists and is active
+      const user = await db.query.admins.findFirst({
+        where: eq(admins.admin_id, payload.id),
+      });
+
+      if (!user || user.status !== "verified") {
+        set.status = 401;
+        return { error: "User not found or not verified" };
+      }
+
+      // Create a short-lived WebSocket token (1 hour)
+      const wsToken = await jwt.sign({
+        id: user.admin_id,
+        name: user.username,
+        role: user.role,
+        village_key: user.village_key,
+        ws: true, // Mark as WebSocket token
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + (60 * 60), // 1 hour
+      });
+
+      return {
+        success: true,
+        data: {
+          token: wsToken,
+          expires_in: 3600, // 1 hour in seconds
+        }
+      };
+    } catch (error) {
+      console.error('Error generating WebSocket token:', error);
+      set.status = 500;
+      return { error: "Failed to generate WebSocket token" };
+    }
   });
 
  

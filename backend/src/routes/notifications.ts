@@ -229,4 +229,76 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
         error: 'Failed to delete notification'
       };
     }
+  })
+
+  // POST /api/notifications/test - Create test notification (development only)
+  .post('/test', async (context: any) => {
+    try {
+      const { currentUser } = context;
+      
+      // Only allow in development environment
+      if (process.env.NODE_ENV === 'production') {
+        return {
+          success: false,
+          error: 'Test notifications not allowed in production'
+        };
+      }
+
+      // Import notification service here to avoid circular dependencies
+      const { notificationService } = await import('../services/notificationService');
+
+      const testNotifications = [
+        {
+          type: 'resident_pending' as const,
+          category: 'user_approval' as const,
+          title: 'ผู้อยู่อาศัยใหม่รอการอนุมัติ',
+          message: 'มีผู้อยู่อาศัยใหม่ทดสอบ รอการอนุมัติเข้าอยู่ในหมู่บ้าน',
+          priority: 'high' as const,
+        },
+        {
+          type: 'visitor_pending_too_long' as const,
+          category: 'visitor_management' as const,
+          title: 'ผู้เยี่ยมรอการอนุมัตินานเกินไป',
+          message: 'ผู้เยี่ยม นายทดสอบ รอการอนุมัติเป็นเวลานานแล้ว',
+          priority: 'urgent' as const,
+        },
+        {
+          type: 'house_updated' as const,
+          category: 'house_management' as const,
+          title: 'สถานะบ้านเปลี่ยนแปลง',
+          message: 'บ้านเลขที่ 123/45 เปลี่ยนสถานะจาก "ว่าง" เป็น "มีผู้อยู่อาศัย"',
+          priority: 'medium' as const,
+        }
+      ];
+
+      // Create random test notification
+      const randomNotification = testNotifications[Math.floor(Math.random() * testNotifications.length)];
+
+      const notification = await notificationService.createNotification({
+        admin_id: currentUser.admin_id,
+        village_key: currentUser.village_key || 'test-village',
+        ...randomNotification,
+        data: {
+          test: true,
+          timestamp: new Date().toISOString(),
+          user_agent: context.headers['user-agent'] || 'unknown'
+        }
+      });
+
+      return {
+        success: true,
+        data: {
+          message: 'Test notification created successfully',
+          notification_id: notification.notification_id,
+          type: notification.type,
+          title: notification.title
+        }
+      };
+    } catch (error) {
+      console.error('Error creating test notification:', error);
+      return {
+        success: false,
+        error: 'Failed to create test notification'
+      };
+    }
   });

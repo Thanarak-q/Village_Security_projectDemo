@@ -3,9 +3,8 @@ import { cors } from "@elysiajs/cors";
 import jwt from "@elysiajs/jwt";
 import cookie from "@elysiajs/cookie";
 import "dotenv/config";
-// WebSocket disabled
-// import { createServer } from "http";
-// import { webSocketService } from "./services/websocketService";
+// WebSocket enabled
+import { webSocketService } from "./services/websocketService";
 import { houseManageRoutes } from "./routes/houseManage";
 import { visitorRecordRoutes } from "./routes/visitorRecord";
 import { visitorRecordWeeklyRoutes } from "./routes/visitorRecord-weekly";
@@ -144,6 +143,29 @@ const app = new Elysia()
   .use(liffAuthRoutes)
   .use(villagesRoutes)
   .use(notificationsRoutes)
+  .ws("/ws/notifications", {
+    message(ws, message) {
+      try {
+        console.log('📨 Received WebSocket message:', message);
+        const data = typeof message === 'string' ? JSON.parse(message) : message;
+        webSocketService.handleMessage(ws, data);
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+        ws.send(JSON.stringify({ 
+          type: 'error', 
+          message: 'Invalid message format' 
+        }));
+      }
+    },
+    open(ws) {
+      console.log('🔌 WebSocket connection opened');
+      webSocketService.handleConnection(ws);
+    },
+    close(ws) {
+      console.log('🔌 WebSocket connection closed');
+      webSocketService.handleDisconnection(ws);
+    }
+  })
   .get("/", () => "Hello Village Security API!");
 
 // Initialize database connection and start server
@@ -154,8 +176,11 @@ async function startServer() {
 
     const port = parseInt(process.env.PORT || "3001");
     
-    // Start the server without WebSocket
-    app.listen(port, () => {
+    // Start the Elysia app and get the server
+    const server = app.listen({
+      port,
+      hostname: '0.0.0.0'
+    }, () => {
       console.log(
         `🦊 Village Security API is running on port ${port}`
       );
@@ -164,6 +189,11 @@ async function startServer() {
       );
       console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
     });
+    
+    // Initialize WebSocket service on the same server
+    webSocketService.initialize(server);
+    
+    console.log(`🔌 WebSocket server started on port ${port} (ws://localhost:${port}/ws/notifications)`);
     
   } catch (error) {
     console.error("❌ Failed to start server:", error);

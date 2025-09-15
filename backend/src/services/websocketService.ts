@@ -3,15 +3,17 @@
  * This service manages WebSocket connections and broadcasts notifications to connected clients
  */
 
-import { WebSocketServer, WebSocket } from 'ws';
-import { IncomingMessage } from 'http';
 import * as jwt from 'jsonwebtoken';
 
-interface AuthenticatedWebSocket extends WebSocket {
+interface AuthenticatedWebSocket {
   userId?: string;
   userRole?: string;
   villageKey?: string;
   isAlive?: boolean;
+  send: (data: string) => void;
+  close: () => void;
+  readyState?: number;
+  [key: string]: any; // Allow additional properties
 }
 
 interface NotificationMessage {
@@ -42,88 +44,49 @@ interface NotificationCountMessage {
 type WebSocketMessage = NotificationMessage | NotificationCountMessage;
 
 class WebSocketService {
-  private wss: WebSocketServer | null = null;
   private clients: Map<string, AuthenticatedWebSocket> = new Map();
   private userConnections: Map<string, Set<string>> = new Map(); // userId -> Set of connectionIds
 
   /**
-   * Initialize WebSocket server
+   * Initialize WebSocket server (no longer needed with Elysia)
    */
   initialize(server: any) {
-    this.wss = new WebSocketServer({ 
-      server,
-      path: '/ws/notifications'
-    });
-
-    this.wss.on('connection', (ws: AuthenticatedWebSocket, request: IncomingMessage) => {
-      this.handleConnection(ws, request);
-    });
-
-    // Ping clients every 30 seconds to keep connections alive
-    setInterval(() => {
-      this.pingClients();
-    }, 30000);
-
-    console.log('🔌 WebSocket server initialized for notifications');
+    console.log('🔌 WebSocket service initialized for notifications');
   }
 
   /**
-   * Handle new WebSocket connection
+   * Handle new WebSocket connection (called by Elysia)
    */
-  private handleConnection(ws: AuthenticatedWebSocket, request: IncomingMessage) {
+  handleConnection(ws: AuthenticatedWebSocket) {
     const connectionId = this.generateConnectionId();
     
     // Set up connection properties
     ws.isAlive = true;
-    ws.on('pong', () => {
-      ws.isAlive = true;
-    });
+    ws.readyState = 1; // OPEN
 
-    // Handle authentication
-    this.authenticateConnection(ws, request, connectionId);
+    // Store connection
+    this.clients.set(connectionId, ws);
 
-    // Handle messages
-    ws.on('message', (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-        this.handleMessage(ws, message);
-      } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
-        ws.send(JSON.stringify({ 
-          type: 'error', 
-          message: 'Invalid message format' 
-        }));
-      }
-    });
+    // Send authentication request
+    ws.send(JSON.stringify({ 
+      type: 'auth_required', 
+      message: 'Please provide authentication token' 
+    }));
 
-    // Handle disconnection
-    ws.on('close', () => {
-      this.handleDisconnection(connectionId, ws);
-    });
-
-    // Handle errors
-    ws.on('error', (error) => {
-      console.error('WebSocket error:', error);
-      this.handleDisconnection(connectionId, ws);
-    });
+    console.log(`🔌 WebSocket connection opened: ${connectionId}`);
   }
 
   /**
    * Authenticate WebSocket connection using JWT token
    */
-  private authenticateConnection(ws: AuthenticatedWebSocket, request: IncomingMessage, connectionId: string) {
+  private authenticateConnection(ws: AuthenticatedWebSocket, token: string, connectionId: string) {
     try {
-      // Extract token from query parameters or Authorization header
-      const url = new URL(request.url || '', `http://${request.headers.host}`);
-      const token = url.searchParams.get('token') || 
-                   request.headers.authorization?.replace('Bearer ', '');
-
       if (!token) {
         ws.send(JSON.stringify({ 
           type: 'error', 
           message: 'Authentication token required' 
         }));
-        ws.close(1008, 'Authentication required');
+        ws.close();
         return;
       }
 
@@ -135,7 +98,7 @@ class WebSocketService {
           type: 'error', 
           message: 'Invalid token payload' 
         }));
-        ws.close(1008, 'Invalid token');
+        ws.close();
         return;
       }
 
@@ -143,9 +106,6 @@ class WebSocketService {
       ws.userId = decoded.id;
       ws.userRole = decoded.role;
       ws.villageKey = decoded.village_key;
-
-      // Store connection
-      this.clients.set(connectionId, ws);
       
       // Track user connections
       if (!this.userConnections.has(ws.userId)) {
@@ -166,15 +126,22 @@ class WebSocketService {
         type: 'error', 
         message: 'Authentication failed' 
       }));
-      ws.close(1008, 'Authentication failed');
+      ws.close();
     }
   }
 
   /**
-   * Handle incoming WebSocket messages
+   * Handle incoming WebSocket messages (called by Elysia)
    */
-  private handleMessage(ws: AuthenticatedWebSocket, message: any) {
+  handleMessage(ws: AuthenticatedWebSocket, message: any) {
     switch (message.type) {
+      case 'auth':
+        // Find connection ID for this WebSocket
+        const connectionId = this.findConnectionId(ws);
+        if (connectionId) {
+          this.authenticateConnection(ws, message.token, connectionId);
+        }
+        break;
       case 'ping':
         ws.send(JSON.stringify({ type: 'pong' }));
         break;
@@ -194,22 +161,25 @@ class WebSocketService {
   }
 
   /**
-   * Handle WebSocket disconnection
+   * Handle WebSocket disconnection (called by Elysia)
    */
-  private handleDisconnection(connectionId: string, ws: AuthenticatedWebSocket) {
-    this.clients.delete(connectionId);
-    
-    if (ws.userId) {
-      const userConnections = this.userConnections.get(ws.userId);
-      if (userConnections) {
-        userConnections.delete(connectionId);
-        if (userConnections.size === 0) {
-          this.userConnections.delete(ws.userId);
+  handleDisconnection(ws: AuthenticatedWebSocket) {
+    const connectionId = this.findConnectionId(ws);
+    if (connectionId) {
+      this.clients.delete(connectionId);
+      
+      if (ws.userId) {
+        const userConnections = this.userConnections.get(ws.userId);
+        if (userConnections) {
+          userConnections.delete(connectionId);
+          if (userConnections.size === 0) {
+            this.userConnections.delete(ws.userId);
+          }
         }
       }
-    }
 
-    console.log(`🔌 WebSocket disconnected: ${connectionId}`);
+      console.log(`🔌 WebSocket disconnected: ${connectionId}`);
+    }
   }
 
   /**
@@ -225,13 +195,13 @@ class WebSocketService {
     let sentCount = 0;
     userConnections.forEach(connectionId => {
       const ws = this.clients.get(connectionId);
-      if (ws && ws.readyState === WebSocket.OPEN) {
+      if (ws && ws.readyState === 1) { // OPEN
         try {
           ws.send(JSON.stringify(message));
           sentCount++;
         } catch (error) {
           console.error('Error sending WebSocket message:', error);
-          this.handleDisconnection(connectionId, ws);
+          this.handleDisconnection(ws);
         }
       }
     });
@@ -246,7 +216,7 @@ class WebSocketService {
     let sentCount = 0;
     
     this.clients.forEach((ws, connectionId) => {
-      if (ws.readyState === WebSocket.OPEN && 
+      if (ws.readyState === 1 && // OPEN
           ws.userRole === 'admin' && 
           ws.villageKey === villageKey) {
         try {
@@ -254,7 +224,7 @@ class WebSocketService {
           sentCount++;
         } catch (error) {
           console.error('Error sending WebSocket message:', error);
-          this.handleDisconnection(connectionId, ws);
+          this.handleDisconnection(ws);
         }
       }
     });
@@ -269,13 +239,13 @@ class WebSocketService {
     let sentCount = 0;
     
     this.clients.forEach((ws, connectionId) => {
-      if (ws.readyState === WebSocket.OPEN) {
+      if (ws.readyState === 1) { // OPEN
         try {
           ws.send(JSON.stringify(message));
           sentCount++;
         } catch (error) {
           console.error('Error sending WebSocket message:', error);
-          this.handleDisconnection(connectionId, ws);
+          this.handleDisconnection(ws);
         }
       }
     });
@@ -290,13 +260,14 @@ class WebSocketService {
     this.clients.forEach((ws, connectionId) => {
       if (ws.isAlive === false) {
         console.log(`🔌 Terminating dead connection: ${connectionId}`);
-        this.handleDisconnection(connectionId, ws);
-        ws.terminate();
+        this.handleDisconnection(ws);
+        ws.close();
         return;
       }
 
       ws.isAlive = false;
-      ws.ping();
+      // Send ping message instead of ws.ping()
+      ws.send(JSON.stringify({ type: 'ping' }));
     });
   }
 
@@ -305,6 +276,18 @@ class WebSocketService {
    */
   private generateConnectionId(): string {
     return `conn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * Find connection ID for a WebSocket instance
+   */
+  private findConnectionId(ws: AuthenticatedWebSocket): string | null {
+    for (const [connectionId, client] of this.clients.entries()) {
+      if (client === ws) {
+        return connectionId;
+      }
+    }
+    return null;
   }
 
   /**
