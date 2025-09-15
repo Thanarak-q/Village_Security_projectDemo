@@ -14,6 +14,29 @@ import { Separator } from "@/components/ui/separator"
 import { useNotifications } from "@/hooks/useNotifications"
 import { getNotificationIcon, getNotificationColor } from "@/lib/notifications"
 
+// Helper function to format time ago
+function formatTimeAgo(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 60) {
+    return `${diffInSeconds} วินาทีที่แล้ว`;
+  } else if (diffInSeconds < 3600) {
+    const minutes = Math.floor(diffInSeconds / 60);
+    return `${minutes} นาทีที่แล้ว`;
+  } else if (diffInSeconds < 86400) {
+    const hours = Math.floor(diffInSeconds / 3600);
+    return `${hours} ชั่วโมงที่แล้ว`;
+  } else if (diffInSeconds < 2592000) {
+    const days = Math.floor(diffInSeconds / 86400);
+    return `${days} วันที่แล้ว`;
+  } else {
+    const months = Math.floor(diffInSeconds / 2592000);
+    return `${months} เดือนที่แล้ว`;
+  }
+}
+
 // Icon mapping for notification types
 const iconMap = {
   Users,
@@ -192,11 +215,11 @@ export default function NotificationComponent() {
                           
                           <div className="flex items-center justify-between mt-2">
                             <span className="text-xs text-muted-foreground">
-                              {notification.village}
+                              {notification.village_name || 'ไม่ระบุหมู่บ้าน'}
                             </span>
-                            <span className="text-xs text-muted-foreground">
-                              {notification.time}
-                            </span>
+                              <span className="text-xs text-muted-foreground">
+                                {formatTimeAgo(notification.created_at)}
+                              </span>
                           </div>
                         </div>
                       </div>
