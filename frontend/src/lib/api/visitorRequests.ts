@@ -138,46 +138,6 @@ export async function fetchVisitorHistory(residentId: string): Promise<VisitorRe
 }
 
 /**
- * Fetch all visitor records for a resident by name
- */
-export async function fetchVisitorRecordsByName(residentName: string): Promise<VisitorRequest[]> {
-  try {
-    const encodedName = encodeURIComponent(residentName);
-    const url = `${API_BASE_URL}/api/visitor-records/resident-name/${encodedName}`;
-    
-    console.log(`🔍 Fetching visitor records for: ${residentName}`);
-    console.log(`📡 API URL: ${url}`);
-    console.log(`🔗 Encoded name: ${encodedName}`);
-    
-    const response = await fetch(url, {
-      credentials: 'include',
-    });
-
-    console.log(`📊 Response status: ${response.status}`);
-    console.log(`📊 Response headers:`, Object.fromEntries(response.headers.entries()));
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ HTTP error response:`, errorText);
-      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-    }
-
-    const result: ApiResponse<VisitorRequest[]> = await response.json();
-    console.log(`📦 API response:`, result);
-    
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to fetch visitor records');
-    }
-
-    console.log(`✅ Found ${result.data?.length || 0} visitor records for ${residentName}`);
-    return result.data || [];
-  } catch (error) {
-    console.error('❌ Error fetching visitor records by name:', error);
-    throw error;
-  }
-}
-
-/**
  * Fetch pending visitor requests by LINE ID
  */
 export async function fetchPendingRequestsByLineId(lineUserId: string): Promise<VisitorRequest[]> {
