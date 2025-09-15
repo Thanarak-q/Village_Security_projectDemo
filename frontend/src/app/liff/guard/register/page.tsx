@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { LiffService } from '@/lib/liff';
 import { registerLiffUser, storeAuthData } from '@/lib/liffAuth';
+import { validateRegistrationForm, validateField, type ValidationError as ZodValidationError } from '@/lib/validation';
 
 const svc = LiffService.getInstance();
 
@@ -20,6 +21,7 @@ function GuardRegisterPageContent() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [registrationResult, setRegistrationResult] = useState<{ success: boolean; message?: string; existingRoles?: string[] } | null>(null);
   const [idToken, setIdToken] = useState<string | null>(null);
   const [, setLineUserId] = useState<string | null>(null);
   const [villageValidation, setVillageValidation] = useState<{
@@ -136,6 +138,16 @@ function GuardRegisterPageContent() {
       [field]: value,
     }));
 
+    // Real-time validation for individual fields (only validate fields in schema)
+    if (['fname', 'lname', 'email', 'phone', 'village_key', 'userType'].includes(field)) {
+      const fieldError = validateField(field as 'fname' | 'lname' | 'email' | 'phone' | 'village_key' | 'userType', value);
+      if (fieldError) {
+        setError(fieldError);
+      } else {
+        setError(null);
+      }
+    }
+
     // Validate village key when it changes
     if (field === 'village_key') {
       setTimeout(() => {
@@ -144,10 +156,29 @@ function GuardRegisterPageContent() {
     }
   };
 
+  // Validate form data using Zod
+  const validateForm = (): ZodValidationError[] => {
+    const errors = validateRegistrationForm(formData);
+    
+    // Additional village key validation (server-side check)
+    if (formData.village_key && !villageValidation.isValid) {
+      errors.push({ field: 'village_key', message: 'รหัสหมู่บ้านไม่ถูกต้องหรือไม่มีอยู่ในระบบ' });
+    }
+    
+    return errors;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     setError(null);
+
+    // Validate form before submission
+    const validationErrors = validateForm();
+    if (validationErrors.length > 0) {
+      setError('กรุณาตรวจสอบข้อมูลที่กรอก');
+      return;
+    }
 
     if (!idToken) {
       setError('ไม่พบ ID Token กรุณาเข้าสู่ระบบใหม่');
@@ -157,11 +188,6 @@ function GuardRegisterPageContent() {
     try {
       setSubmitting(true);
 
-      console.log('🔍 Submitting guard registration with data:', {
-        idToken: idToken ? `${idToken.substring(0, 20)}...` : 'null',
-        formData: { ...formData, email: formData.email ? `${formData.email.substring(0, 3)}...` : 'empty' }
-      });
-
       // Add timeout to registration request
       const registrationPromise = registerLiffUser(idToken, formData);
       const timeoutPromise = new Promise<never>((_, reject) => 
@@ -170,18 +196,32 @@ function GuardRegisterPageContent() {
       
       const result = await Promise.race([registrationPromise, timeoutPromise]);
       
-      console.log('🔍 Registration result:', result);
-      
       if (result.success && result.user && result.token) {
         // Store authentication data
         storeAuthData(result.user, result.token);
+        setRegistrationResult(result);
         setSuccess(true);
+        
+        // Show enhanced success message if user has multiple roles
+        if (result.existingRoles && result.existingRoles.length > 1) {
+          console.log('🎉 User now has multiple roles:', result.existingRoles);
+        }
       } else {
-        console.error('❌ Registration failed:', result);
-        setError(result.error || 'การลงทะเบียนล้มเหลว กรุณาลองใหม่');
+        console.error('Registration failed:', result);
+        
+        // Handle specific backend errors with better UX
+        if (result.error?.includes('already registered as resident')) {
+          setError('คุณได้ลงทะเบียนเป็นลูกบ้านแล้ว หากต้องการเป็นยามรักษาความปลอดภัยด้วย กรุณาใช้แอปยามรักษาความปลอดภัย');
+        } else if (result.error?.includes('already registered as guard')) {
+          setError('คุณได้ลงทะเบียนเป็นยามรักษาความปลอดภัยแล้ว');
+        } else if (result.canRegisterAs && result.canRegisterAs.length > 0) {
+          setError(`คุณสามารถลงทะเบียนเป็น ${result.canRegisterAs.includes('resident') ? 'ลูกบ้าน' : ''}${result.canRegisterAs.includes('resident') && result.canRegisterAs.includes('guard') ? ' หรือ ' : ''}${result.canRegisterAs.includes('guard') ? 'ยามรักษาความปลอดภัย' : ''} ได้`);
+        } else {
+          setError(result.error || 'การลงทะเบียนล้มเหลว กรุณาลองใหม่');
+        }
       }
     } catch (err) {
-      console.error('❌ Registration error:', err);
+      console.error('Registration error:', err);
       setError(`เกิดข้อผิดพลาดในการลงทะเบียน: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setSubmitting(false);
@@ -206,7 +246,14 @@ function GuardRegisterPageContent() {
           <CardContent className="p-6 text-center">
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">ลงทะเบียนสำเร็จ!</h2>
-            <p className="text-zinc-300 mb-4">คุณสามารถปิดหน้านี้และกลับไปใช้แอป LINE ได้แล้ว</p>
+            <p className="text-zinc-300 mb-4">
+              {registrationResult?.message || 'คุณสามารถปิดหน้านี้และกลับไปใช้แอป LINE ได้แล้ว'}
+              {registrationResult?.existingRoles && registrationResult.existingRoles.length > 1 && (
+                <span className="block mt-2 text-blue-400 font-medium">
+                  🎉 คุณสามารถใช้งานได้ทั้งในฐานะลูกบ้านและยามรักษาความปลอดภัย!
+                </span>
+              )}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -296,6 +343,7 @@ function GuardRegisterPageContent() {
                 <Input
                   id="phone"
                   type="tel"
+                  inputMode="numeric"
                   value={formData.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
                   className="bg-zinc-700 text-white placeholder-zinc-400 border-zinc-600 focus:border-zinc-400"
@@ -352,14 +400,6 @@ function GuardRegisterPageContent() {
                   ) : (
                     'ลงทะเบียนยามรักษาความปลอดภัย'
                   )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.push('/liff/guard')}
-                  className="border-zinc-600 text-zinc-200 hover:bg-zinc-700"
-                >
-                  กลับ
                 </Button>
               </div>
             </form>

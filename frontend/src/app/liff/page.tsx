@@ -86,13 +86,10 @@ export default function LiffPage() {
         if (idToken) {
           setIdToken(idToken);
           try {
-            console.log('🔍 Verifying user with backend...');
             const authResult = await verifyLiffToken(idToken);
-            console.log('🔍 Auth result:', authResult);
             
             if (authResult.success && authResult.user && authResult.token) {
               // User exists in database, store auth data and redirect
-              console.log('✅ User found in database, redirecting to Resident page');
               storeAuthData(authResult.user, authResult.token);
               setStep("ready");
               setMsg("เข้าสู่ระบบสำเร็จ กำลังพาไปหน้าหลัก...");
@@ -107,7 +104,7 @@ export default function LiffPage() {
               }, 1000);
             } else {
               // Error occurred
-              console.error('❌ Authentication failed:', authResult);
+              console.error('Authentication failed:', authResult);
               setStep("error");
               setMsg(authResult.error || 'Authentication failed');
             }

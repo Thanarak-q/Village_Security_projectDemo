@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle, CheckCircle, WifiOff, RefreshCw } from 'lucide-react';
 import { LiffService } from '@/lib/liff';
 import { registerLiffUser, storeAuthData } from '@/lib/liffAuth';
+import { validateRegistrationForm, validateField } from '@/lib/validation';
 
 const svc = LiffService.getInstance();
 
@@ -106,49 +107,13 @@ function LiffRegisterPageContent() {
   };
 
   // Comprehensive validation function
+  // Validate form data using Zod
   const validateForm = (): ValidationError[] => {
-    const errors: ValidationError[] = [];
+    const errors = validateRegistrationForm(formData);
     
-    // Email validation
-    if (!formData.email) {
-      errors.push({ field: 'email', message: 'กรุณากรอกอีเมล' });
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.push({ field: 'email', message: 'รูปแบบอีเมลไม่ถูกต้อง' });
-    }
-    
-    // Name validation
-    if (!formData.fname.trim()) {
-      errors.push({ field: 'fname', message: 'กรุณากรอกชื่อ' });
-    } else if (formData.fname.trim().length < 2) {
-      errors.push({ field: 'fname', message: 'ชื่อต้องมีอย่างน้อย 2 ตัวอักษร' });
-    }
-    
-    if (!formData.lname.trim()) {
-      errors.push({ field: 'lname', message: 'กรุณากรอกนามสกุล' });
-    } else if (formData.lname.trim().length < 2) {
-      errors.push({ field: 'lname', message: 'นามสกุลต้องมีอย่างน้อย 2 ตัวอักษร' });
-    }
-    
-    
-    // Phone validation
-    if (!formData.phone.trim()) {
-      errors.push({ field: 'phone', message: 'กรุณากรอกเบอร์โทรศัพท์' });
-    } else if (!/^[0-9+\-\s()]+$/.test(formData.phone)) {
-      errors.push({ field: 'phone', message: 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง' });
-    } else if (formData.phone.replace(/[^0-9]/g, '').length < 9) {
-      errors.push({ field: 'phone', message: 'เบอร์โทรศัพท์ต้องมีอย่างน้อย 9 หลัก' });
-    }
-    
-    // Village key validation
-    if (!formData.village_key.trim()) {
-      errors.push({ field: 'village_key', message: 'กรุณากรอกรหัสหมู่บ้าน' });
-    } else if (!villageValidation.isValid) {
+    // Additional village key validation (server-side check)
+    if (formData.village_key && !villageValidation.isValid) {
       errors.push({ field: 'village_key', message: 'รหัสหมู่บ้านไม่ถูกต้องหรือไม่มีอยู่ในระบบ' });
-    }
-    
-    // User type validation
-    if (!formData.userType) {
-      errors.push({ field: 'userType', message: 'กรุณาเลือกประเภทผู้ใช้' });
     }
     
     return errors;
@@ -221,9 +186,6 @@ function LiffRegisterPageContent() {
         }
 
         setIdToken(token);
-
-        // Check available scopes
-        svc.checkScopes();
         
         // Get LINE profile data and auto-fill form
         try {
@@ -290,6 +252,17 @@ function LiffRegisterPageContent() {
     // Clear validation errors for this field when user starts typing
     setValidationErrors(prev => prev.filter(error => error.field !== field));
 
+    // Real-time validation for individual fields (only validate fields in schema)
+    if (['fname', 'lname', 'email', 'phone', 'village_key', 'userType'].includes(field)) {
+      const fieldError = validateField(field as 'fname' | 'lname' | 'email' | 'phone' | 'village_key' | 'userType', value);
+      if (fieldError) {
+        setValidationErrors(prev => [
+          ...prev.filter(error => error.field !== field),
+          { field, message: fieldError }
+        ]);
+      }
+    }
+
     // Validate village key when it changes
     if (field === 'village_key') {
       // Debounce the validation
@@ -352,10 +325,6 @@ function LiffRegisterPageContent() {
     try {
       setSubmitting(true);
 
-      console.log('🔍 Submitting registration with data:', {
-        idToken: idToken ? `${idToken.substring(0, 20)}...` : 'null',
-        formData: { ...formData, email: formData.email ? `${formData.email.substring(0, 3)}...` : 'empty' }
-      });
 
       // Add timeout to registration request
       const registrationPromise = registerLiffUser(idToken, formData);
@@ -365,7 +334,6 @@ function LiffRegisterPageContent() {
       
       const result = await Promise.race([registrationPromise, timeoutPromise]);
       
-      console.log('🔍 Registration result:', result);
       
       if (result.success && result.user && result.token) {
         // Store authentication data
@@ -377,7 +345,7 @@ function LiffRegisterPageContent() {
           router.push('/Resident');
         }, 2000);
       } else {
-        console.error('❌ Registration failed:', result);
+        console.error('Registration failed:', result);
         
         // Handle specific backend errors
         if (result.error?.includes('already exists') || result.error?.includes('already registered')) {
@@ -391,7 +359,7 @@ function LiffRegisterPageContent() {
         }
       }
     } catch (err) {
-      console.error('❌ Registration error:', err);
+      console.error('Registration error:', err);
       
       if (err instanceof Error) {
         if (err.message.includes('timeout')) {
@@ -609,6 +577,7 @@ function LiffRegisterPageContent() {
                 <Input
                   id="phone"
                   type="tel"
+                  inputMode="numeric"
                   value={formData.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
                   className={`bg-zinc-700 text-white placeholder-zinc-400 ${
@@ -708,14 +677,6 @@ function LiffRegisterPageContent() {
                   ) : (
                     'ลงทะเบียน'
                   )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.push('/liff')}
-                  className="border-zinc-600 text-zinc-200 hover:bg-zinc-700"
-                >
-                  กลับ
                 </Button>
               </div>
               
