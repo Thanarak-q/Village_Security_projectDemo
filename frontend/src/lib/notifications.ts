@@ -15,15 +15,7 @@ export interface Notification {
   priority: string;
   created_at: string;
   read_at?: string;
-  time: string; // Formatted time ago
-  village: string;
-}
-
-export interface NotificationCount {
-  total: number;
-  unread: number;
-  by_type: Record<string, number>;
-  by_priority: Record<string, number>;
+  village_name?: string;
 }
 
 export interface NotificationFilters {
@@ -35,25 +27,22 @@ export interface NotificationFilters {
   priority?: string;
 }
 
-const API_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-
-// Helper function to get auth token
-function getAuthToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('auth_token');
+export interface NotificationCounts {
+  total: number;
+  unread: number;
 }
+
+const API_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
 // Helper function to make API requests
 async function apiRequest(endpoint: string, options: RequestInit = {}) {
-  const token = getAuthToken();
-  
   const response = await fetch(`${API_BACKEND_URL}${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
       ...options.headers,
     },
+    credentials: 'include', // Include cookies in the request
   });
 
   if (!response.ok) {
@@ -67,161 +56,141 @@ async function apiRequest(endpoint: string, options: RequestInit = {}) {
  * Fetch notifications with optional filters
  */
 export async function fetchNotifications(filters: NotificationFilters = {}): Promise<{
-  success: boolean;
-  data?: {
-    notifications: Notification[];
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-    };
+  notifications: Notification[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
   };
-  error?: string;
 }> {
-  try {
-    const queryParams = new URLSearchParams();
-    
-    if (filters.page) queryParams.append('page', filters.page.toString());
-    if (filters.limit) queryParams.append('limit', filters.limit.toString());
-    if (filters.type) queryParams.append('type', filters.type);
-    if (filters.category) queryParams.append('category', filters.category);
-    if (filters.is_read !== undefined) queryParams.append('is_read', filters.is_read.toString());
-    if (filters.priority) queryParams.append('priority', filters.priority);
+  const params = new URLSearchParams();
+  
+  if (filters.page) params.append('page', filters.page.toString());
+  if (filters.limit) params.append('limit', filters.limit.toString());
+  if (filters.type) params.append('type', filters.type);
+  if (filters.category) params.append('category', filters.category);
+  if (filters.is_read !== undefined) params.append('is_read', filters.is_read.toString());
+  if (filters.priority) params.append('priority', filters.priority);
 
-    const queryString = queryParams.toString();
-    const endpoint = `/api/notifications${queryString ? `?${queryString}` : ''}`;
-
-    return await apiRequest(endpoint);
-  } catch (error) {
-    console.error('Error fetching notifications:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch notifications'
-    };
+  const queryString = params.toString();
+  const endpoint = queryString ? `/api/notifications?${queryString}` : '/api/notifications';
+  
+  const response = await apiRequest(endpoint);
+  
+  if (!response.success) {
+    throw new Error(response.error || 'Failed to fetch notifications');
   }
+  
+  return response.data;
 }
 
 /**
- * Fetch notification counts
+ * Get notification counts
  */
-export async function fetchNotificationCounts(): Promise<{
-  success: boolean;
-  data?: NotificationCount;
-  error?: string;
-}> {
-  try {
-    return await apiRequest('/api/notifications/count');
-  } catch (error) {
-    console.error('Error fetching notification counts:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch notification counts'
-    };
+export async function getNotificationCounts(): Promise<NotificationCounts> {
+  const response = await apiRequest('/api/notifications/count');
+  
+  if (!response.success) {
+    throw new Error(response.error || 'Failed to fetch notification counts');
   }
+  
+  return response.data;
 }
 
 /**
  * Mark a notification as read
  */
-export async function markNotificationAsRead(notificationId: string): Promise<{
-  success: boolean;
-  data?: Notification;
-  error?: string;
-}> {
-  try {
-    return await apiRequest(`/api/notifications/${notificationId}/read`, {
-      method: 'PUT'
-    });
-  } catch (error) {
-    console.error('Error marking notification as read:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to mark notification as read'
-    };
+export async function markNotificationAsRead(notificationId: string): Promise<void> {
+  const response = await apiRequest(`/api/notifications/${notificationId}/read`, {
+    method: 'PUT'
+  });
+  
+  if (!response.success) {
+    throw new Error(response.error || 'Failed to mark notification as read');
   }
 }
 
 /**
  * Mark all notifications as read
  */
-export async function markAllNotificationsAsRead(): Promise<{
-  success: boolean;
-  data?: { updated_count: number };
-  error?: string;
-}> {
-  try {
-    return await apiRequest('/api/notifications/read-all', {
-      method: 'PUT'
-    });
-  } catch (error) {
-    console.error('Error marking all notifications as read:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to mark all notifications as read'
-    };
+export async function markAllNotificationsAsRead(): Promise<{ updated_count: number }> {
+  const response = await apiRequest('/api/notifications/read-all', {
+    method: 'PUT'
+  });
+  
+  if (!response.success) {
+    throw new Error(response.error || 'Failed to mark all notifications as read');
   }
+  
+  return response.data;
 }
 
 /**
  * Delete a notification
  */
-export async function deleteNotification(notificationId: string): Promise<{
-  success: boolean;
-  data?: { deleted_id: string };
-  error?: string;
-}> {
-  try {
-    return await apiRequest(`/api/notifications/${notificationId}`, {
-      method: 'DELETE'
-    });
-  } catch (error) {
-    console.error('Error deleting notification:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to delete notification'
-    };
+export async function deleteNotification(notificationId: string): Promise<void> {
+  const response = await apiRequest(`/api/notifications/${notificationId}`, {
+    method: 'DELETE'
+  });
+  
+  if (!response.success) {
+    throw new Error(response.error || 'Failed to delete notification');
   }
 }
 
-/**
- * Get notification icon based on type
- */
-export function getNotificationIcon(type: string) {
-  // This should match the icons used in the frontend notification component
+// Helper functions for UI
+export function getNotificationIcon(type: string): string {
   switch (type) {
     case 'resident_pending':
     case 'guard_pending':
     case 'admin_pending':
-      return 'Users'; // You'll need to import this from lucide-react
+      return 'Users';
     case 'house_updated':
     case 'member_added':
     case 'member_removed':
-      return 'Home'; // You'll need to import this from lucide-react
+      return 'Home';
     case 'visitor_pending_too_long':
     case 'visitor_rejected_review':
-      return 'AlertTriangle'; // You'll need to import this from lucide-react
+      return 'AlertTriangle';
     case 'status_changed':
-      return 'Settings'; // You'll need to import this from lucide-react
+      return 'Settings';
     default:
-      return 'Bell'; // Default icon
+      return 'Bell';
   }
 }
 
-/**
- * Get notification color based on priority
- */
-export function getNotificationColor(priority: string) {
+export function getNotificationColor(type: string): string {
+  switch (type) {
+    case 'resident_pending':
+    case 'guard_pending':
+    case 'admin_pending':
+      return 'text-blue-500 bg-blue-100 dark:bg-blue-900/20';
+    case 'house_updated':
+    case 'member_added':
+    case 'member_removed':
+      return 'text-green-500 bg-green-100 dark:bg-green-900/20';
+    case 'visitor_pending_too_long':
+    case 'visitor_rejected_review':
+      return 'text-red-500 bg-red-100 dark:bg-red-900/20';
+    case 'status_changed':
+      return 'text-orange-500 bg-orange-100 dark:bg-orange-900/20';
+    default:
+      return 'text-gray-500 bg-gray-100 dark:bg-gray-900/20';
+  }
+}
+
+export function getPriorityColor(priority: string): string {
   switch (priority) {
     case 'urgent':
-      return 'text-red-500 bg-red-100 dark:bg-red-900/20';
+      return 'bg-red-500';
     case 'high':
-      return 'text-orange-500 bg-orange-100 dark:bg-orange-900/20';
+      return 'bg-orange-500';
     case 'medium':
-      return 'text-blue-500 bg-blue-100 dark:bg-blue-900/20';
+      return 'bg-yellow-500';
     case 'low':
-      return 'text-gray-500 bg-gray-100 dark:bg-gray-900/20';
+      return 'bg-green-500';
     default:
-      return 'text-blue-500 bg-blue-100 dark:bg-blue-900/20';
+      return 'bg-gray-500';
   }
 }

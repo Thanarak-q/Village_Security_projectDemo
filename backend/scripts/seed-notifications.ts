@@ -1,21 +1,24 @@
 #!/usr/bin/env tsx
 
 /**
- * @file Script to seed admin_notifications table with mock data
- * Usage: npx tsx scripts/seed-notifications.ts
+ * @file Script to seed admin notifications
+ * Run this script to populate the admin_notifications table with mock data
  */
 
-import { seedNotifications } from "../src/db/seedNotifications";
+import { seedNotifications } from '../src/db/seedNotifications';
 
 async function main() {
+  console.log('🌱 Starting notification seeding...');
+  
   try {
-    console.log("🌱 Starting notification seeding...");
     await seedNotifications();
-    console.log("✅ Notification seeding completed successfully!");
+    console.log('✅ Notification seeding completed successfully!');
+    process.exit(0);
   } catch (error) {
-    console.error("❌ Notification seeding failed:", error);
+    console.error('❌ Notification seeding failed:', error);
     process.exit(1);
   }
 }
 
+// Run the script
 main();
