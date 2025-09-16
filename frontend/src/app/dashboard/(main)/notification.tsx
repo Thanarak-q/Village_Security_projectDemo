@@ -106,49 +106,6 @@ export default function NotificationComponent() {
   }, [markAllAsRead]);
 
 
-  const handleTestNotification = useCallback(async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/api/notifications/test`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to create test notification');
-      }
-      
-      const result = await response.json();
-      console.log('✅ Test notification created:', result);
-      await refreshNotifications();
-    } catch (error) {
-      console.error('❌ Error creating test notification:', error);
-    }
-  }, []);
-
-  const handleTestWebhookNotification = useCallback(async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/api/notifications/test-webhook`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to create webhook test notification');
-      }
-      
-      const result = await response.json();
-      console.log('✅ Webhook test notification created:', result);
-      await refreshNotifications();
-    } catch (error) {
-      console.error('❌ Error creating webhook test notification:', error);
-    }
-  }, []);
 
   const unreadCount = useMemo(() => counts?.unread || 0, [counts?.unread]);
 
@@ -179,10 +136,6 @@ export default function NotificationComponent() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex flex-col">
             <h3 className="text-lg font-semibold">การแจ้งเตือน</h3>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-              <span>{isConnected ? 'เชื่อมต่อแล้ว' : 'ไม่ได้เชื่อมต่อ'}</span>
-            </div>
           </div>
           <div className="flex items-center gap-2">
             {unreadCount > 0 && (
@@ -205,26 +158,6 @@ export default function NotificationComponent() {
             >
               รีเฟรช
             </Button>
-            {process.env.NODE_ENV === 'development' && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleTestNotification}
-                  className="text-xs"
-                >
-                  ทดสอบ
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleTestWebhookNotification}
-                  className="text-xs"
-                >
-                  ทดสอบ Webhook
-                </Button>
-              </>
-            )}
           </div>
         </div>
         
