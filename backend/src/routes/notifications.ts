@@ -251,8 +251,8 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
         {
           type: 'resident_pending' as const,
           category: 'user_approval' as const,
-          title: 'ผู้อยู่อาศัยใหม่รอการอนุมัติ',
-          message: 'มีผู้อยู่อาศัยใหม่ทดสอบ รอการอนุมัติเข้าอยู่ในหมู่บ้าน',
+          title: 'เทส ต้องกรทดสอบ webhook',
+          message: 'การทดสอบระบบแจ้งเตือนผ่าน webhook - ตรวจสอบการทำงานของระบบ',
           priority: 'high' as const,
         },
         {
@@ -299,6 +299,60 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
       return {
         success: false,
         error: 'Failed to create test notification'
+      };
+    }
+  })
+
+  // POST /api/notifications/test-webhook - Create specific webhook test notification
+  .post('/test-webhook', async (context: any) => {
+    try {
+      const { currentUser } = context;
+      
+      // Only allow in development environment
+      if (process.env.NODE_ENV === 'production') {
+        return {
+          success: false,
+          error: 'Test notifications not allowed in production'
+        };
+      }
+
+      // Import notification service here to avoid circular dependencies
+      const { notificationService } = await import('../services/notificationService');
+
+      const webhookTestNotification = {
+        type: 'resident_pending' as const,
+        category: 'user_approval' as const,
+        title: 'เทส ต้องกรทดสอบ webhook',
+        message: 'การทดสอบระบบแจ้งเตือนผ่าน webhook - ตรวจสอบการทำงานของระบบ',
+        priority: 'high' as const,
+      };
+
+      const notification = await notificationService.createNotification({
+        admin_id: currentUser.admin_id,
+        village_key: currentUser.village_key || 'test-village',
+        ...webhookTestNotification,
+        data: {
+          test: true,
+          webhook_test: true,
+          timestamp: new Date().toISOString(),
+          user_agent: context.headers['user-agent'] || 'unknown'
+        }
+      });
+
+      return {
+        success: true,
+        data: {
+          message: 'Webhook test notification created successfully',
+          notification_id: notification.notification_id,
+          type: notification.type,
+          title: notification.title
+        }
+      };
+    } catch (error) {
+      console.error('Error creating webhook test notification:', error);
+      return {
+        success: false,
+        error: 'Failed to create webhook test notification'
       };
     }
   });

@@ -114,10 +114,12 @@ class WebSocketService {
       this.userConnections.get(ws.userId)!.add(connectionId);
 
       // Send authentication success
-      ws.send(JSON.stringify({ 
+      const authMessage = { 
         type: 'authenticated', 
         message: 'Connection authenticated successfully' 
-      }));
+      };
+      ws.send(JSON.stringify(authMessage));
+      console.log(`🔐 Sent authentication success message:`, authMessage);
 
       console.log(`🔐 WebSocket authenticated: ${ws.userRole} ${ws.userId} (${connectionId})`);
     } catch (error) {
@@ -186,11 +188,19 @@ class WebSocketService {
    * Broadcast notification to specific user
    */
   broadcastToUser(userId: string, message: WebSocketMessage) {
+    console.log(`📡 Attempting to broadcast to user: ${userId}`);
+    console.log(`📡 Message type: ${message.type}`);
+    console.log(`📡 Total connections: ${this.clients.size}`);
+    console.log(`📡 User connections: ${this.userConnections.size}`);
+    
     const userConnections = this.userConnections.get(userId);
     if (!userConnections) {
-      console.log(`No WebSocket connections found for user: ${userId}`);
+      console.log(`❌ No WebSocket connections found for user: ${userId}`);
+      console.log(`📡 Available users: ${Array.from(this.userConnections.keys()).join(', ')}`);
       return;
     }
+
+    console.log(`📡 Found ${userConnections.size} connections for user ${userId}`);
 
     let sentCount = 0;
     userConnections.forEach(connectionId => {
@@ -199,14 +209,17 @@ class WebSocketService {
         try {
           ws.send(JSON.stringify(message));
           sentCount++;
+          console.log(`✅ Sent message to connection ${connectionId}`);
         } catch (error) {
-          console.error('Error sending WebSocket message:', error);
+          console.error('❌ Error sending WebSocket message:', error);
           this.handleDisconnection(ws);
         }
+      } else {
+        console.log(`❌ Connection ${connectionId} is not open (readyState: ${ws?.readyState})`);
       }
     });
 
-    console.log(`📡 Broadcasted notification to user ${userId} (${sentCount} connections)`);
+    console.log(`📡 Broadcasted notification to user ${userId} (${sentCount}/${userConnections.size} connections)`);
   }
 
   /**

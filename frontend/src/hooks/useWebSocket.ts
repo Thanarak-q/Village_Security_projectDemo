@@ -51,7 +51,7 @@ interface NotificationData {
   category: string;
   title: string;
   message: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   is_read: boolean;
   priority: string;
   created_at: string;
@@ -83,7 +83,7 @@ interface UseWebSocketReturn {
   disconnect: () => void;
 }
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost/ws/notifications';
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001/ws/notifications';
 const RECONNECT_INTERVAL = 5000; // 5 seconds
 const MAX_RECONNECT_ATTEMPTS = 5;
 
@@ -123,23 +123,33 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
 
       switch (message.type) {
         case 'notification':
+          console.log('📨 Processing notification message:', message);
           if (onNotification && message.data) {
+            console.log('📨 Calling onNotification callback');
             onNotification(message.data as NotificationData);
+          } else {
+            console.log('📨 No onNotification callback or no data');
           }
           break;
         case 'notification_count':
+          console.log('📊 Processing notification count message:', message);
           if (onNotificationCount && message.data) {
+            console.log('📊 Calling onNotificationCount callback');
             onNotificationCount(message.data as NotificationCountData);
+          } else {
+            console.log('📊 No onNotificationCount callback or no data');
           }
           break;
         case 'authenticated':
           console.log('✅ WebSocket authenticated:', message.message);
+          console.log('✅ Setting isConnected to true');
           setIsConnected(true);
           setIsConnecting(false);
           setError(null);
           reconnectAttemptsRef.current = 0;
           if (onConnect) onConnect();
           break;
+        // @ts-expect-error: 'auth_required' is not part of WebSocketMessage['type'] union, but may be sent by backend
         case 'auth_required':
           console.log('🔐 Authentication required');
           break;
@@ -162,17 +172,19 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
   }, [onNotification, onNotificationCount, onConnect, onError]);
 
   const handleOpen = useCallback(async () => {
-    console.log('🔌 WebSocket connected');
+    console.log('🔌 WebSocket connected to:', WS_URL);
     setIsConnecting(false);
     setError(null);
     
     // Send authentication token
     const token = await getWebSocketToken();
+    console.log('🔐 WebSocket token received:', token ? 'Yes' : 'No');
     if (token && wsRef.current) {
       wsRef.current.send(JSON.stringify({
         type: 'auth',
         token: token
       }));
+      console.log('🔐 WebSocket authentication sent');
     }
     
     // Send ping to keep connection alive

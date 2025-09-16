@@ -68,8 +68,14 @@ class NotificationService {
       };
 
       // WebSocket broadcasting enabled
+      console.log(`📡 Broadcasting notification to user: ${data.admin_id}`);
+      console.log(`📡 Notification message:`, wsMessage);
       webSocketService.broadcastToUser(data.admin_id, wsMessage);
       webSocketService.broadcastToVillageAdmins(data.village_key, wsMessage);
+
+      // Update notification counts and broadcast to user
+      console.log(`📊 Updating notification counts for user: ${data.admin_id}`);
+      await this.updateNotificationCounts(data.admin_id);
 
       console.log(`📢 Created and broadcasted notification: ${notification.title} to admin ${data.admin_id}`);
 
@@ -274,6 +280,7 @@ class NotificationService {
         type: 'notification_count' as const,
         data: counts
       };
+      console.log(`📊 Broadcasting notification count to user: ${adminId}`, wsMessage);
       webSocketService.broadcastToUser(adminId, wsMessage);
 
       return counts;

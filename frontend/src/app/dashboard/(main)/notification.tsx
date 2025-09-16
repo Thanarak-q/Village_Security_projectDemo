@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo, useCallback } from "react"
-import { Bell, Users, Home, Clock, AlertTriangle, Settings, CheckCircle2, Trash2 } from "lucide-react"
+import { Bell, Users, Home, Clock, AlertTriangle, Settings, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -83,12 +83,19 @@ export default function NotificationComponent() {
     isConnected,
     refreshNotifications,
     markAsRead,
-    markAllAsRead,
-    deleteNotificationById
+    markAllAsRead
   } = useNotifications();
 
   // Only refresh notifications manually since WebSocket provides real-time updates
   // No auto-refresh needed when popover opens
+
+  const handleOpenChange = useCallback((open: boolean) => {
+    setIsOpen(open);
+    if (open) {
+      // Fallback: ensure latest notifications without page reload
+      void refreshNotifications();
+    }
+  }, [refreshNotifications]);
 
   const handleMarkAsRead = useCallback(async (notificationId: string) => {
     await markAsRead(notificationId);
@@ -98,9 +105,6 @@ export default function NotificationComponent() {
     await markAllAsRead();
   }, [markAllAsRead]);
 
-  const handleDeleteNotification = useCallback(async (notificationId: string) => {
-    await deleteNotificationById(notificationId);
-  }, [deleteNotificationById]);
 
   const handleTestNotification = useCallback(async () => {
     try {
@@ -118,15 +122,38 @@ export default function NotificationComponent() {
       
       const result = await response.json();
       console.log('✅ Test notification created:', result);
+      await refreshNotifications();
     } catch (error) {
       console.error('❌ Error creating test notification:', error);
+    }
+  }, []);
+
+  const handleTestWebhookNotification = useCallback(async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/api/notifications/test-webhook`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create webhook test notification');
+      }
+      
+      const result = await response.json();
+      console.log('✅ Webhook test notification created:', result);
+      await refreshNotifications();
+    } catch (error) {
+      console.error('❌ Error creating webhook test notification:', error);
     }
   }, []);
 
   const unreadCount = useMemo(() => counts?.unread || 0, [counts?.unread]);
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
@@ -179,14 +206,24 @@ export default function NotificationComponent() {
               รีเฟรช
             </Button>
             {process.env.NODE_ENV === 'development' && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleTestNotification}
-                className="text-xs"
-              >
-                ทดสอบ
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleTestNotification}
+                  className="text-xs"
+                >
+                  ทดสอบ
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleTestWebhookNotification}
+                  className="text-xs"
+                >
+                  ทดสอบ Webhook
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -239,14 +276,6 @@ export default function NotificationComponent() {
                                   <CheckCircle2 className="h-3 w-3" />
                                 </Button>
                               )}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteNotification(notification.notification_id)}
-                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
                             </div>
                           </div>
                           
