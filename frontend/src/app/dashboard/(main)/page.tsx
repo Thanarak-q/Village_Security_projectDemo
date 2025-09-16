@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState, useRef, lazy, Suspense } from "react";
+import { useEffect, useState, useRef, lazy, Suspense, useCallback } from "react";
 import { gsap } from "gsap";
+import { Button } from "@/components/ui/button";
 import {
   TotalUsersCard,
   DailyAccessCard,
@@ -18,6 +19,27 @@ export default function Page() {
   const cardsRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
+
+  const handleTestWebhookNotification = useCallback(async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/api/notifications/test-webhook`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create webhook test notification');
+      }
+      
+      const result = await response.json();
+      console.log('✅ Webhook test notification created:', result);
+    } catch (error) {
+      console.error('❌ Error creating webhook test notification:', error);
+    }
+  }, []);
 
   useEffect(() => {
     fetch("/api/auth/me", {
@@ -122,6 +144,16 @@ export default function Page() {
           </div>
           <div className="flex justify-start sm:justify-end">
             {/* <NotificationComponent /> */}
+            {process.env.NODE_ENV === 'development' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTestWebhookNotification}
+                className="text-xs"
+              >
+                ทดสอบ Webhook
+              </Button>
+            )}
           </div>
         </div>
 
