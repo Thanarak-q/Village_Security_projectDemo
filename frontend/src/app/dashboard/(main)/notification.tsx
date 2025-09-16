@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { useNotifications } from "@/hooks/useNotifications"
+import { useHybridNotifications } from "@/hooks/useHybridNotifications"
 import { getNotificationIcon } from "@/lib/notifications"
 
 // Helper function to format time ago
@@ -83,7 +83,7 @@ export default function NotificationComponent() {
     refreshNotifications,
     markAsRead,
     markAllAsRead
-  } = useNotifications();
+  } = useHybridNotifications();
 
   // Refresh notifications when popover opens
 
