@@ -116,7 +116,8 @@ export async function markNotificationAsRead(notificationId: string): Promise<vo
  */
 export async function markAllNotificationsAsRead(): Promise<{ updated_count: number }> {
   const response = await apiRequest('/api/notifications/read-all', {
-    method: 'PUT'
+    method: 'PUT',
+    body: JSON.stringify({})
   });
   
   if (!response.success) {

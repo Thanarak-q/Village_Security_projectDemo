@@ -3,8 +3,6 @@ import { cors } from "@elysiajs/cors";
 import jwt from "@elysiajs/jwt";
 import cookie from "@elysiajs/cookie";
 import "dotenv/config";
-// WebSocket enabled
-import { webSocketService } from "./services/websocketService";
 import { houseManageRoutes } from "./routes/houseManage";
 import { visitorRecordRoutes } from "./routes/visitorRecord";
 import { visitorRecordWeeklyRoutes } from "./routes/visitorRecord-weekly";
@@ -52,31 +50,7 @@ const healthCheck = new Elysia().get("/api/health", async () => {
 });
 
 const app = new Elysia()
-  .use(
-    cors({
-      origin:
-        process.env.NODE_ENV === "production"
-          ? ["https://yourdomain.com"] // เปลี่ยนเป็น domain จริงของคุณ
-          : process.env.ALLOWED_ORIGINS?.split(",") || [
-              "http://localhost",
-              "http://localhost:80",
-              "http://127.0.0.1",
-              "http://127.0.0.1:80",
-              "http://localhost:3000", // fallback for direct frontend access
-              "https://9cad948af0e2.ngrok-free.app", // current ngrok URL
-            ],
-      credentials: true,
-      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-      allowedHeaders: [
-        "Content-Type",
-        "Authorization",
-        "Cookie",
-        "X-Requested-With",
-        "X-Forwarded-For",
-        "X-Real-IP",
-      ],
-    })
-  )
+  .use(cors())
   .use(
     cookie({
       httpOnly: true,
@@ -85,50 +59,7 @@ const app = new Elysia()
       maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
     })
   )
-  .use(jwt({ name: "jwt", secret: "super-secret", exp: "7d" }))
-  /**
-   * SECURITY ENHANCEMENT: Comprehensive Security Headers Middleware
-   *
-   * Added security headers to protect against various attacks:
-   * - MIME type sniffing attacks
-   * - Clickjacking attacks
-   * - XSS attacks
-   * - Information leakage
-   * - Unauthorized API access
-   * - Man-in-the-middle attacks (production)
-   */
-  .onBeforeHandle(({ set }) => {
-    // SECURITY: Prevent MIME type sniffing attacks
-    set.headers["X-Content-Type-Options"] = "nosniff";
-
-    // SECURITY: Prevent clickjacking attacks
-    set.headers["X-Frame-Options"] = "DENY";
-
-    // SECURITY: Enable XSS protection in browsers
-    set.headers["X-XSS-Protection"] = "1; mode=block";
-
-    // SECURITY: Control referrer information leakage
-    set.headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-
-    // SECURITY: Restrict browser API access
-    set.headers["Permissions-Policy"] =
-      "camera=(), microphone=(), geolocation=(), payment=()";
-
-    // SECURITY: Prevent cross-domain policy files
-    set.headers["X-Permitted-Cross-Domain-Policies"] = "none";
-
-    // SECURITY: Force HTTPS in production (HSTS)
-    if (process.env.NODE_ENV === "production") {
-      set.headers["Strict-Transport-Security"] =
-        "max-age=31536000; includeSubDomains; preload";
-    }
-
-    // SECURITY: Content Security Policy to prevent XSS and injection attacks
-    set.headers["Content-Security-Policy"] =
-      process.env.NODE_ENV === "production"
-        ? "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self';"
-        : "default-src 'self' 'unsafe-eval' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self';";
-  })
+  .use(jwt({ name: "jwt", secret: process.env.JWT_SECRET || "super-secret", exp: "7d" }))
   .use(healthCheck)
   .use(houseManageRoutes)
   .use(visitorRecordRoutes)
@@ -143,42 +74,8 @@ const app = new Elysia()
   .use(liffAuthRoutes)
   .use(villagesRoutes)
   .use(notificationsRoutes)
-  .ws("/ws/notifications", {
-    message(ws, message) {
-      try {
-        // Check message size (64KB limit)
-        const messageStr = typeof message === 'string' ? message : JSON.stringify(message);
-        const messageSize = new Blob([messageStr]).size;
-        
-        if (messageSize > 64 * 1024) { // 64KB limit
-          console.error('❌ WebSocket message too large:', messageSize);
-          ws.send(JSON.stringify({ 
-            type: 'error', 
-            message: 'Message too large. Maximum size is 64KB.' 
-          }));
-          return;
-        }
-        
-        console.log('📨 Received WebSocket message:', message);
-        const data = typeof message === 'string' ? JSON.parse(message) : message;
-        webSocketService.handleMessage(ws, data);
-      } catch (error) {
-        console.error('❌ Error parsing WebSocket message:', error);
-        ws.send(JSON.stringify({ 
-          type: 'error', 
-          message: 'Invalid message format' 
-        }));
-      }
-    },
-    open(ws) {
-      console.log('🔌 WebSocket connection opened');
-      webSocketService.handleConnection(ws);
-    },
-    close(ws) {
-      console.log('🔌 WebSocket connection closed');
-      webSocketService.handleDisconnection(ws);
-    }
-  })
+  // .use(residentApi)
+  // .use(approvalForm)
   .get("/", () => "Hello Village Security API!");
 
 // Initialize database connection and start server
@@ -203,10 +100,6 @@ async function startServer() {
       console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
     });
     
-    // Initialize WebSocket service on the same server
-    webSocketService.initialize(server);
-    
-    console.log(`🔌 WebSocket server started on port ${port} (ws://localhost:${port}/ws/notifications)`);
     
   } catch (error) {
     console.error("❌ Failed to start server:", error);

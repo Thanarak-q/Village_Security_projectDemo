@@ -80,14 +80,12 @@ export default function NotificationComponent() {
     counts,
     loading,
     error,
-    isConnected,
     refreshNotifications,
     markAsRead,
     markAllAsRead
   } = useNotifications();
 
-  // Only refresh notifications manually since WebSocket provides real-time updates
-  // No auto-refresh needed when popover opens
+  // Refresh notifications when popover opens
 
   const handleOpenChange = useCallback((open: boolean) => {
     setIsOpen(open);
@@ -122,13 +120,6 @@ export default function NotificationComponent() {
               {unreadCount > 99 ? '99+' : unreadCount}
             </Badge>
           )}
-          {/* Connection status indicator */}
-          <div 
-            className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-background ${
-              isConnected ? 'bg-green-500' : 'bg-red-500'
-            }`}
-            title={isConnected ? 'เชื่อมต่อแล้ว' : 'ไม่ได้เชื่อมต่อ'}
-          />
         </Button>
       </PopoverTrigger>
       

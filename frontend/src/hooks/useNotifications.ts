@@ -14,15 +14,12 @@ import {
   markAllNotificationsAsRead,
   deleteNotification
 } from '@/lib/notifications';
-// WebSocket enabled
-import { useWebSocket } from './useWebSocket';
 
 interface UseNotificationsReturn {
   notifications: Notification[];
   counts: NotificationCounts | null;
   loading: boolean;
   error: string | null;
-  isConnected: boolean;
   refreshNotifications: (filters?: NotificationFilters) => Promise<void>;
   markAsRead: (notificationId: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
@@ -35,58 +32,6 @@ export function useNotifications(initialFilters?: NotificationFilters): UseNotif
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // WebSocket integration for real-time updates
-  const handleNewNotification = useCallback((notificationData: any) => {
-    console.log('📨 Received new notification via WebSocket:', notificationData);
-    
-    // Add new notification to the beginning of the list
-    setNotifications(prev => {
-      console.log('📨 Adding notification to list, previous count:', prev.length);
-      return [notificationData, ...prev];
-    });
-    
-    // Update counts
-    setCounts(prev => {
-      const newCounts = prev ? { 
-        total: prev.total + 1, 
-        unread: prev.unread + 1 
-      } : { total: 1, unread: 1 };
-      console.log('📊 Updated notification counts:', newCounts);
-      return newCounts;
-    });
-    
-    // Show browser notification if permission granted
-    if (Notification.permission === 'granted') {
-      new Notification(notificationData.title, {
-        body: notificationData.message,
-        icon: '/favicon.ico',
-        tag: notificationData.notification_id,
-      });
-    }
-  }, []);
-
-  const handleNotificationCount = useCallback((countData: any) => {
-    console.log('📊 Received notification count update:', countData);
-    setCounts(countData);
-  }, []);
-
-  const handleWebSocketError = useCallback((errorMessage: string) => {
-    console.error('🔌 WebSocket error:', errorMessage);
-    setError(`Connection error: ${errorMessage}`);
-  }, []);
-
-  const { isConnected } = useWebSocket({
-    onNotification: (data) => {
-      console.log('🔔 useNotifications: onNotification called with:', data);
-      handleNewNotification(data);
-    },
-    onNotificationCount: (data) => {
-      console.log('🔔 useNotifications: onNotificationCount called with:', data);
-      handleNotificationCount(data);
-    },
-    onError: handleWebSocketError,
-    autoReconnect: true
-  });
 
   const refreshNotifications = useCallback(async (filters: NotificationFilters = {}) => {
     try {
@@ -198,7 +143,6 @@ export function useNotifications(initialFilters?: NotificationFilters): UseNotif
     counts,
     loading,
     error,
-    isConnected,
     refreshNotifications,
     markAsRead,
     markAllAsRead,

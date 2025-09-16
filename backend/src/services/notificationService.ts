@@ -1,12 +1,10 @@
 /**
- * @file Notification service for creating and managing real-time notifications
- * This service creates notifications in the database and broadcasts them via WebSocket
+ * @file Notification service for creating and managing notifications
+ * This service creates notifications in the database
  */
 
 import db from '../db/drizzle';
 import { admin_notifications, villages } from '../db/schema';
-// WebSocket enabled
-import { webSocketService } from './websocketService';
 import { eq, and, count } from 'drizzle-orm';
 
 export interface CreateNotificationData {
@@ -22,7 +20,7 @@ export interface CreateNotificationData {
 
 class NotificationService {
   /**
-   * Create a new notification and broadcast it via WebSocket
+   * Create a new notification
    */
   async createNotification(data: CreateNotificationData) {
     try {
@@ -53,7 +51,7 @@ class NotificationService {
           category: data.category,
           title: data.title,
           message: data.message,
-          data: serializedData,
+          data: serializedData ? JSON.parse(serializedData) : null,
           priority: data.priority || 'medium',
           is_read: false,
           created_at: new Date(),
@@ -66,35 +64,12 @@ class NotificationService {
         .from(villages)
         .where(eq(villages.village_key, data.village_key));
 
-      // Prepare WebSocket message
-      const wsMessage = {
-        type: 'notification' as const,
-        data: {
-          notification_id: notification.notification_id,
-          type: notification.type,
-          category: notification.category,
-          title: notification.title,
-          message: notification.message,
-          data: data.data,
-          is_read: notification.is_read,
-          priority: notification.priority,
-          created_at: notification.created_at.toISOString(),
-          read_at: notification.read_at?.toISOString(),
-          village_name: village?.village_name,
-        }
-      };
 
-      // WebSocket broadcasting enabled
-      console.log(`📡 Broadcasting notification to user: ${data.admin_id}`);
-      console.log(`📡 Notification message:`, wsMessage);
-      webSocketService.broadcastToUser(data.admin_id, wsMessage);
-      webSocketService.broadcastToVillageAdmins(data.village_key, wsMessage);
-
-      // Update notification counts and broadcast to user
+      // Update notification counts
       console.log(`📊 Updating notification counts for user: ${data.admin_id}`);
       await this.updateNotificationCounts(data.admin_id);
 
-      console.log(`📢 Created and broadcasted notification: ${notification.title} to admin ${data.admin_id}`);
+      console.log(`📢 Created notification: ${notification.title} for admin ${data.admin_id}`);
 
       return notification;
     } catch (error) {
@@ -292,13 +267,7 @@ class NotificationService {
         unread: unreadResult[0]?.count || 0
       };
 
-      // WebSocket broadcasting enabled
-      const wsMessage = {
-        type: 'notification_count' as const,
-        data: counts
-      };
-      console.log(`📊 Broadcasting notification count to user: ${adminId}`, wsMessage);
-      webSocketService.broadcastToUser(adminId, wsMessage);
+      console.log(`📊 Updated notification counts for user: ${adminId}`, counts);
 
       return counts;
     } catch (error) {

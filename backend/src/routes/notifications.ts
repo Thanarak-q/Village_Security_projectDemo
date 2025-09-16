@@ -10,8 +10,9 @@
 import { Elysia, t } from 'elysia';
 import { eq, and, desc, count } from 'drizzle-orm';
 import db from '../db/drizzle';
-import { admin_notifications, villages } from '../db/schema';
+import { admin_notifications, villages, admins } from '../db/schema';
 import { requireRole } from '../hooks/requireRole';
+import { websocketClient } from '../services/websocketClient';
 
 export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
   .onBeforeHandle(requireRole(['admin', 'staff', 'superadmin']))
@@ -368,6 +369,78 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
       return {
         success: false,
         error: 'Failed to create webhook test notification'
+      };
+    }
+  })
+
+  // POST /api/notifications/realtime - Create and broadcast real-time notification
+  .post('/realtime', async (context: any) => {
+    try {
+      const { currentUser, body } = context;
+      const { title, message, type = 'system', category = 'realtime', priority = 'medium', target = 'admin' } = body;
+
+      if (!title) {
+        return {
+          success: false,
+          error: 'Title is required'
+        };
+      }
+
+      // Get the admin's village_key
+      const admin = await db.query.admins.findFirst({
+        where: eq(admins.admin_id, currentUser.admin_id)
+      });
+
+      console.log('🔍 Admin found:', admin);
+
+      // Use admin's village_key or default to 'default-village' for testing
+      const villageKey = admin?.village_key || 'default-village';
+      console.log('🏘️ Using village_key:', villageKey);
+
+      // Create notification in database
+      const [newNotification] = await db
+        .insert(admin_notifications)
+        .values({
+          admin_id: currentUser.admin_id,
+          village_key: villageKey,
+          title,
+          message: message || '',
+          type: type as any,
+          category: category as any,
+          priority: priority as any,
+          is_read: false,
+          created_at: new Date(),
+          read_at: null
+        })
+        .returning();
+
+      // Broadcast via WebSocket
+      const wsNotification = {
+        id: newNotification.notification_id,
+        title: newNotification.title,
+        body: newNotification.message,
+        level: newNotification.priority === 'high' ? 'critical' : 
+               newNotification.priority === 'medium' ? 'warning' : 'info',
+        createdAt: newNotification.created_at.getTime()
+      };
+
+      const wsSent = websocketClient.sendNotification(wsNotification);
+
+      return {
+        success: true,
+        data: {
+          notification: newNotification,
+          websocket_sent: wsSent,
+          message: wsSent 
+            ? 'Notification created and broadcasted successfully'
+            : 'Notification created but WebSocket service unavailable'
+        }
+      };
+    } catch (error) {
+      console.error('Error creating real-time notification:', error);
+      return {
+        success: false,
+        error: 'Failed to create real-time notification'
       };
     }
   });

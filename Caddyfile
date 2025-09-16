@@ -1,14 +1,14 @@
 :80 {
-  # WebSocket routes (must come before API routes)
-  reverse_proxy /ws/* backend:3001 {
+  # API routes
+  reverse_proxy /api/* backend:3001
+  
+  # WebSocket service
+  reverse_proxy /ws websocket:3002 {
     header_up Host {host}
     header_up X-Real-IP {remote}
     header_up X-Forwarded-For {remote}
     header_up X-Forwarded-Proto {scheme}
   }
-  
-  # API routes
-  reverse_proxy /api/* backend:3001
   
   # Frontend
   reverse_proxy frontend:3000
