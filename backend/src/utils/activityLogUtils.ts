@@ -213,3 +213,130 @@ export const adminSettingsActivityLogger = {
     );
   }
 };
+
+/**
+ * Logs user management-related activities.
+ */
+export const userManagementActivityLogger = {
+  /**
+   * Logs when a user status is updated.
+   * @param {string} adminId - The ID of the admin.
+   * @param {string} adminUsername - The username of the admin.
+   * @param {string} userType - The type of user (resident/guard).
+   * @param {string} userName - The name of the user.
+   * @param {string} oldStatus - The previous status.
+   * @param {string} newStatus - The new status.
+   */
+  async logUserStatusUpdated(
+    adminId: string,
+    adminUsername: string,
+    userType: string,
+    userName: string,
+    oldStatus: string,
+    newStatus: string
+  ) {
+    return await logAdminActivity(
+      adminId,
+      "user_status_update",
+      `เปลี่ยนสถานะ${userType} ${userName} จาก ${oldStatus} เป็น ${newStatus}`
+    );
+  },
+
+  /**
+   * Logs when a user's house is updated.
+   * @param {string} adminId - The ID of the admin.
+   * @param {string} adminUsername - The username of the admin.
+   * @param {string} userName - The name of the user.
+   * @param {string} oldHouse - The previous house address.
+   * @param {string} newHouse - The new house address.
+   */
+  async logUserHouseUpdated(
+    adminId: string,
+    adminUsername: string,
+    userName: string,
+    oldHouse: string | null,
+    newHouse: string
+  ) {
+    const description = oldHouse 
+      ? `เปลี่ยนบ้านของ resident ${userName} จาก ${oldHouse} เป็น ${newHouse}`
+      : `กำหนดบ้าน ${newHouse} ให้ resident ${userName}`;
+
+    return await logAdminActivity(
+      adminId,
+      "user_house_update",
+      description
+    );
+  },
+
+  /**
+   * Logs when a user's role is changed.
+   * @param {string} adminId - The ID of the admin.
+   * @param {string} adminUsername - The username of the admin.
+   * @param {string} userName - The name of the user.
+   * @param {string} oldRole - The previous role.
+   * @param {string} newRole - The new role.
+   * @param {string} newStatus - The new status.
+   */
+  async logUserRoleChanged(
+    adminId: string,
+    adminUsername: string,
+    userName: string,
+    oldRole: string,
+    newRole: string,
+    newStatus: string
+  ) {
+    return await logAdminActivity(
+      adminId,
+      "user_role_change",
+      `เปลี่ยน role ของ ${userName} จาก ${oldRole} เป็น ${newRole} (สถานะ: ${newStatus})`
+    );
+  },
+
+  /**
+   * Logs when a user is approved.
+   * @param {string} adminId - The ID of the admin.
+   * @param {string} adminUsername - The username of the admin.
+   * @param {string} userType - The type of user (resident/guard).
+   * @param {string} userName - The name of the user.
+   * @param {string} houseNumber - The house number (if applicable).
+   */
+  async logUserApproved(
+    adminId: string,
+    adminUsername: string,
+    userType: string,
+    userName: string,
+    houseNumber?: string
+  ) {
+    const description = houseNumber 
+      ? `อนุมัติ${userType} ${userName} (บ้าน: ${houseNumber})`
+      : `อนุมัติ${userType} ${userName}`;
+
+    return await logAdminActivity(
+      adminId,
+      "user_approve",
+      description
+    );
+  },
+
+  /**
+   * Logs when a user is rejected.
+   * @param {string} adminId - The ID of the admin.
+   * @param {string} adminUsername - The username of the admin.
+   * @param {string} userType - The type of user (resident/guard).
+   * @param {string} userName - The name of the user.
+   * @param {string} reason - The reason for rejection.
+   */
+  async logUserRejected(
+    adminId: string,
+    adminUsername: string,
+    userType: string,
+    userName: string,
+    reason: string
+  ) {
+    return await logAdminActivity(
+      adminId,
+      "user_reject",
+      `ปฏิเสธ${userType} ${userName} (เหตุผล: ${reason})`
+    );
+  }
+};

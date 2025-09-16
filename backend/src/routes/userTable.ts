@@ -10,6 +10,7 @@ import {
 } from "../db/schema";
 import { eq, sql, and } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
+import { userManagementActivityLogger } from "../utils/activityLogUtils";
 
 /**
  * Interface for the update user request.
@@ -288,9 +289,10 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
    * Update a user.
    * @param {Object} context - The context for the request.
    * @param {Object} context.body - The body of the request.
+   * @param {Object} context.currentUser - The current user.
    * @returns {Promise<Object>} A promise that resolves to an object containing a success message.
    */
-  .put("/updateUser", async ({ body }) => {
+  .put("/updateUser", async ({ body, currentUser }: any) => {
     try {
       const { userId, role, status, houseNumber, notes }: UpdateUserRequest =
         body as UpdateUserRequest;
@@ -305,6 +307,15 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
 
       // Update based on role
       if (role === "resident") {
+        // Get current resident data for logging
+        const currentResident = await getResident(userId);
+        if (!currentResident) {
+          return {
+            success: false,
+            error: "Resident not found",
+          };
+        }
+
         // Update resident
         const updateResult = await db
           .update(residents)
@@ -323,6 +334,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
         }
 
         // If houseNumber is provided, update house address
+        let oldHouseAddress = null;
         if (houseNumber) {
           // First, get the current house_id for this resident
           const currentHouseMember = await db
@@ -331,6 +343,13 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
             .where(eq(house_members.resident_id, userId));
 
           if (currentHouseMember.length > 0 && currentHouseMember[0].house_id) {
+            // Get current house address for logging
+            const currentHouse = await db
+              .select()
+              .from(houses)
+              .where(eq(houses.house_id, currentHouseMember[0].house_id));
+            oldHouseAddress = currentHouse[0]?.address || null;
+
             // Update existing house address
             await db
               .update(houses)
@@ -357,12 +376,52 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           }
         }
 
+        // Log the user update activity
+        try {
+          const userName = `${currentResident.fname} ${currentResident.lname}`;
+          
+          // Log status update
+          if (currentResident.status !== status) {
+            await userManagementActivityLogger.logUserStatusUpdated(
+              currentUser.admin_id,
+              currentUser.username,
+              "resident",
+              userName,
+              currentResident.status || "unknown",
+              status
+            );
+          }
+
+          // Log house update
+          if (houseNumber) {
+            await userManagementActivityLogger.logUserHouseUpdated(
+              currentUser.admin_id,
+              currentUser.username,
+              userName,
+              oldHouseAddress,
+              houseNumber
+            );
+          }
+        } catch (logError) {
+          console.error("Error logging user update:", logError);
+          // Don't fail the request if logging fails
+        }
+
         return {
           success: true,
           message: "Resident updated successfully",
           data: updateResult[0],
         };
       } else if (role === "guard") {
+        // Get current guard data for logging
+        const currentGuard = await getGuard(userId);
+        if (!currentGuard) {
+          return {
+            success: false,
+            error: "Guard not found",
+          };
+        }
+
         // Update guard
         const updateResult = await db
           .update(guards)
@@ -378,6 +437,26 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
             success: false,
             error: "Guard not found",
           };
+        }
+
+        // Log the guard update activity
+        try {
+          const userName = `${currentGuard.fname} ${currentGuard.lname}`;
+          
+          // Log status update
+          if (currentGuard.status !== status) {
+            await userManagementActivityLogger.logUserStatusUpdated(
+              currentUser.admin_id,
+              currentUser.username,
+              "guard",
+              userName,
+              currentGuard.status || "unknown",
+              status
+            );
+          }
+        } catch (logError) {
+          console.error("Error logging guard update:", logError);
+          // Don't fail the request if logging fails
         }
 
         return {
@@ -404,9 +483,10 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
    * Change a user's role.
    * @param {Object} context - The context for the request.
    * @param {Object} context.body - The body of the request.
+   * @param {Object} context.currentUser - The current user.
    * @returns {Promise<Object>} A promise that resolves to an object containing a success message.
    */
-  .put("/changeUserRole", async ({ body }) => {
+  .put("/changeUserRole", async ({ body, currentUser }: any) => {
     try {
       const {
         userId,
@@ -489,6 +569,22 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           const newGuardExists = await getGuard(newGuard.guard_id);
           if (!newGuardExists) {
             throw new Error("New guard was not created properly");
+          }
+
+          // Log the role change activity
+          try {
+            const userName = `${resident.fname} ${resident.lname}`;
+            await userManagementActivityLogger.logUserRoleChanged(
+              currentUser.admin_id,
+              currentUser.username,
+              userName,
+              "resident",
+              "guard",
+              status
+            );
+          } catch (logError) {
+            console.error("Error logging role change:", logError);
+            // Don't fail the request if logging fails
           }
 
           return {
@@ -577,6 +673,22 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           const newResidentExists = await getResident(newResident.resident_id);
           if (!newResidentExists) {
             throw new Error("New resident was not created properly");
+          }
+
+          // Log the role change activity
+          try {
+            const userName = `${guard.fname} ${guard.lname}`;
+            await userManagementActivityLogger.logUserRoleChanged(
+              currentUser.admin_id,
+              currentUser.username,
+              userName,
+              "guard",
+              "resident",
+              status
+            );
+          } catch (logError) {
+            console.error("Error logging role change:", logError);
+            // Don't fail the request if logging fails
           }
 
           return {
