@@ -35,73 +35,86 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
     
     // Use the WebSocket URL through Caddy proxy (port 80)
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost/ws';
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      console.log('🔔 WebSocket connected');
-      setIsConnected(true);
-      setConnectionStatus('connected');
-      reconnectAttempts.current = 0;
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log('📨 WebSocket message received:', data);
-        console.log('📨 Raw event data:', event.data);
-
-        // Handle different message types
-        if (data.type === 'ADMIN_NOTIFICATION' && data.data) {
-          const notification: WebSocketNotification = {
-            id: data.data.id,
-            title: data.data.title,
-            body: data.data.body,
-            level: data.data.level || 'info',
-            createdAt: data.data.createdAt
-          };
-          
-          setNotifications(prev => [notification, ...prev.slice(0, 49)]); // Keep last 50 notifications
-          
-          // Show browser notification if permission granted
-          if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification(notification.title, {
-              body: notification.body,
-              icon: '/favicon.ico',
-              tag: notification.id
-            });
-          }
-        } else if (data.type === 'WELCOME') {
-          console.log('👋 Welcome message:', data.msg);
-        } else if (data.type === 'ECHO') {
-          console.log('🔄 Echo response:', data.data);
-        }
-      } catch (error) {
-        console.error('❌ Error parsing WebSocket message:', error);
-      }
-    };
-
-    ws.onerror = (error) => {
-      console.error('❌ WebSocket error:', error);
-      setConnectionStatus('error');
-    };
-
-    ws.onclose = (event) => {
-      console.log('🔌 WebSocket disconnected:', event.code, event.reason);
-      setIsConnected(false);
-      setConnectionStatus('disconnected');
+    console.log('🔗 Attempting to connect to:', wsUrl);
+    
+    try {
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
       
-      // Attempt to reconnect if not a manual close
-      if (event.code !== 1000 && reconnectAttempts.current < maxReconnectAttempts) {
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-        console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})`);
+      ws.onopen = () => {
+        console.log('🔔 WebSocket connected');
+        setIsConnected(true);
+        setConnectionStatus('connected');
+        reconnectAttempts.current = 0;
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('📨 WebSocket message received:', data);
+          console.log('📨 Raw event data:', event.data);
+
+          // Handle different message types
+          if (data.type === 'ADMIN_NOTIFICATION' && data.data) {
+            const notification: WebSocketNotification = {
+              id: data.data.id,
+              title: data.data.title,
+              body: data.data.body,
+              level: data.data.level || 'info',
+              createdAt: data.data.createdAt
+            };
+            
+            setNotifications(prev => [notification, ...prev.slice(0, 49)]); // Keep last 50 notifications
+            
+            // Show browser notification if permission granted
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification(notification.title, {
+                body: notification.body,
+                icon: '/favicon.ico',
+                tag: notification.id
+              });
+            }
+          } else if (data.type === 'WELCOME') {
+            console.log('👋 Welcome message:', data.msg);
+          } else if (data.type === 'ECHO') {
+            console.log('🔄 Echo response:', data.data);
+          }
+        } catch (error) {
+          console.error('❌ Error parsing WebSocket message:', error);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('❌ WebSocket error:', error);
+        console.error('❌ WebSocket error details:', {
+          type: error.type,
+          target: error.target,
+          currentTarget: error.currentTarget
+        });
+        setConnectionStatus('error');
+      };
+
+      ws.onclose = (event) => {
+        console.log('🔌 WebSocket disconnected:', event.code, event.reason);
+        setIsConnected(false);
+        setConnectionStatus('disconnected');
         
-        reconnectTimeoutRef.current = setTimeout(() => {
-          reconnectAttempts.current++;
-          connect();
-        }, delay);
-      }
-    };
+        // Attempt to reconnect if not a manual close
+        if (event.code !== 1000 && reconnectAttempts.current < maxReconnectAttempts) {
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
+          console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})`);
+          
+          reconnectTimeoutRef.current = setTimeout(() => {
+            reconnectAttempts.current++;
+            connect();
+          }, delay);
+        }
+      };
+    } catch (error) {
+      console.error('❌ Failed to create WebSocket:', error);
+      setConnectionStatus('error');
+      return;
+    }
   }, []);
 
   const disconnect = useCallback(() => {
@@ -130,11 +143,14 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
     setNotifications([]);
   }, []);
 
-  // Connect on mount
+  // Connect on mount with a small delay to avoid race conditions
   useEffect(() => {
-    connect();
+    const timer = setTimeout(() => {
+      connect();
+    }, 1000); // Wait 1 second before connecting
     
     return () => {
+      clearTimeout(timer);
       disconnect();
     };
   }, [connect, disconnect]);

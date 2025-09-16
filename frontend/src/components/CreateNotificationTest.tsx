@@ -332,7 +332,7 @@ export default function CreateNotificationTest() {
         <CardContent>
           <ol className="list-decimal list-inside space-y-2 text-sm">
             <li>Make sure WebSocket is connected (green status above)</li>
-            <li>Open another tab and go to <code className="bg-gray-100 px-1 rounded">/hybrid-test</code></li>
+            <li>Open another tab and go to <code className="bg-gray-100 px-1 rounded">/dashboard</code> to see the notification bell</li>
             <li>Fill out the form above and click "Send Notification"</li>
             <li>Check the other tab - you should see the notification appear instantly!</li>
             <li>Try different levels and targets to test various scenarios</li>
