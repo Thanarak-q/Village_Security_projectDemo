@@ -82,10 +82,24 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
         }
       };
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      console.error('❌ Error fetching notifications:', error);
+      
+      // Provide more specific error messages based on error type
+      let errorMessage = 'Failed to fetch notifications';
+      if (error instanceof Error) {
+        if (error.message.includes('database')) {
+          errorMessage = 'Database connection error. Please try again later.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Request timeout. Please try again.';
+        } else if (error.message.includes('permission')) {
+          errorMessage = 'Insufficient permissions to access notifications.';
+        }
+      }
+      
       return {
         success: false,
-        error: 'Failed to fetch notifications'
+        error: errorMessage,
+        timestamp: new Date().toISOString()
       };
     }
   })
@@ -117,10 +131,11 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
         }
       };
     } catch (error) {
-      console.error('Error fetching notification counts:', error);
+      console.error('❌ Error fetching notification counts:', error);
       return {
         success: false,
-        error: 'Failed to fetch notification counts'
+        error: 'Failed to fetch notification counts',
+        timestamp: new Date().toISOString()
       };
     }
   })

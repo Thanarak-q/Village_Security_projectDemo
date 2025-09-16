@@ -146,11 +146,24 @@ const app = new Elysia()
   .ws("/ws/notifications", {
     message(ws, message) {
       try {
+        // Check message size (64KB limit)
+        const messageStr = typeof message === 'string' ? message : JSON.stringify(message);
+        const messageSize = new Blob([messageStr]).size;
+        
+        if (messageSize > 64 * 1024) { // 64KB limit
+          console.error('❌ WebSocket message too large:', messageSize);
+          ws.send(JSON.stringify({ 
+            type: 'error', 
+            message: 'Message too large. Maximum size is 64KB.' 
+          }));
+          return;
+        }
+        
         console.log('📨 Received WebSocket message:', message);
         const data = typeof message === 'string' ? JSON.parse(message) : message;
         webSocketService.handleMessage(ws, data);
       } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
+        console.error('❌ Error parsing WebSocket message:', error);
         ws.send(JSON.stringify({ 
           type: 'error', 
           message: 'Invalid message format' 

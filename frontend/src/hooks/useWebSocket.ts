@@ -5,9 +5,18 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 
-// Helper function to get WebSocket token from backend API
-async function getWebSocketToken(): Promise<string | null> {
+// Token cache to avoid excessive API calls
+let tokenCache: { token: string; expiresAt: number } | null = null;
+const TOKEN_REFRESH_BUFFER = 5 * 60 * 1000; // Refresh 5 minutes before expiry
+
+// Helper function to get WebSocket token from backend API with caching and refresh
+async function getWebSocketToken(forceRefresh = false): Promise<string | null> {
   try {
+    // Check if we have a valid cached token
+    if (!forceRefresh && tokenCache && Date.now() < tokenCache.expiresAt - TOKEN_REFRESH_BUFFER) {
+      return tokenCache.token;
+    }
+
     const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/api/auth/ws-token`, {
       method: 'GET',
       credentials: 'include', // Include HttpOnly cookies
@@ -18,6 +27,8 @@ async function getWebSocketToken(): Promise<string | null> {
 
     if (!response.ok) {
       console.error('Failed to get WebSocket token:', response.status, response.statusText);
+      // Clear invalid cache
+      tokenCache = null;
       return null;
     }
 
@@ -28,13 +39,20 @@ async function getWebSocketToken(): Promise<string | null> {
     };
     
     if (result.success && result.data?.token) {
+      // Cache the token with expiration time
+      tokenCache = {
+        token: result.data.token,
+        expiresAt: Date.now() + (result.data.expires_in * 1000)
+      };
       return result.data.token;
     }
 
     console.error('Invalid WebSocket token response:', result);
+    tokenCache = null;
     return null;
   } catch (error) {
     console.error('Error fetching WebSocket token:', error);
+    tokenCache = null;
     return null;
   }
 }
@@ -84,8 +102,10 @@ interface UseWebSocketReturn {
 }
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001/ws/notifications';
-const RECONNECT_INTERVAL = 5000; // 5 seconds
-const MAX_RECONNECT_ATTEMPTS = 5;
+const INITIAL_RECONNECT_INTERVAL = 1000; // Start with 1 second
+const MAX_RECONNECT_INTERVAL = 30000; // Max 30 seconds
+const MAX_RECONNECT_ATTEMPTS = 10;
+const RECONNECT_MULTIPLIER = 1.5; // Exponential backoff multiplier
 
 export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketReturn {
   const {
@@ -155,6 +175,20 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
           break;
         case 'error':
           console.error('❌ WebSocket error:', message.message);
+          
+          // Check if it's an authentication error and try to refresh token
+          if (message.message?.includes('Authentication') || message.message?.includes('token')) {
+            console.log('🔄 Authentication error, clearing token cache and reconnecting...');
+            tokenCache = null; // Clear cached token
+            
+            // Try to reconnect with fresh token after a delay
+            setTimeout(async () => {
+              if (connectFunctionRef.current && !isManuallyDisconnectedRef.current) {
+                await connectFunctionRef.current();
+              }
+            }, 2000);
+          }
+          
           setError(message.message || 'WebSocket error');
           if (onError) onError(message.message || 'WebSocket error');
           break;
@@ -216,17 +250,30 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
     if (autoReconnect && !isManuallyDisconnectedRef.current) {
       if (reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
         reconnectAttemptsRef.current++;
-        console.log(`🔄 Attempting to reconnect (${reconnectAttemptsRef.current}/${MAX_RECONNECT_ATTEMPTS})...`);
+        
+        // Calculate exponential backoff delay
+        const baseDelay = Math.min(
+          INITIAL_RECONNECT_INTERVAL * Math.pow(RECONNECT_MULTIPLIER, reconnectAttemptsRef.current - 1),
+          MAX_RECONNECT_INTERVAL
+        );
+        
+        // Add some jitter to prevent thundering herd
+        const jitter = Math.random() * 1000;
+        const delay = baseDelay + jitter;
+        
+        console.log(`🔄 Attempting to reconnect (${reconnectAttemptsRef.current}/${MAX_RECONNECT_ATTEMPTS}) in ${Math.round(delay)}ms...`);
         
         reconnectTimeoutRef.current = setTimeout(async () => {
           // Use ref to avoid circular dependency
           if (connectFunctionRef.current && !isManuallyDisconnectedRef.current) {
             await connectFunctionRef.current();
           }
-        }, RECONNECT_INTERVAL);
+        }, delay);
       } else {
         console.error('❌ Max reconnection attempts reached');
-        setError('Connection lost. Please refresh the page.');
+        setError('Connection lost after multiple attempts. Please refresh the page.');
+        // Clear token cache in case it's stale
+        tokenCache = null;
       }
     }
   }, [autoReconnect, onDisconnect]);

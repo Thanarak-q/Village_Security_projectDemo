@@ -26,6 +26,23 @@ class NotificationService {
    */
   async createNotification(data: CreateNotificationData) {
     try {
+      // Safely serialize data field
+      let serializedData = null;
+      if (data.data) {
+        try {
+          // Check if data is already a string, if so, parse it first to validate
+          if (typeof data.data === 'string') {
+            JSON.parse(data.data); // Validate it's valid JSON
+            serializedData = data.data; // Use as-is if valid
+          } else {
+            serializedData = JSON.stringify(data.data);
+          }
+        } catch (error) {
+          console.error('❌ Invalid data field in notification:', error);
+          serializedData = null;
+        }
+      }
+
       // Insert notification into database
       const [notification] = await db
         .insert(admin_notifications)
@@ -36,7 +53,7 @@ class NotificationService {
           category: data.category,
           title: data.title,
           message: data.message,
-          data: data.data ? JSON.stringify(data.data) : null,
+          data: serializedData,
           priority: data.priority || 'medium',
           is_read: false,
           created_at: new Date(),

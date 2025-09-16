@@ -43,15 +43,116 @@ interface NotificationCountMessage {
 
 type WebSocketMessage = NotificationMessage | NotificationCountMessage;
 
+// Constants for validation and limits
+const MAX_MESSAGE_SIZE = 64 * 1024; // 64KB
+const MAX_CONNECTIONS_PER_USER = 5;
+const VALID_MESSAGE_TYPES = ['auth', 'ping', 'subscribe', 'pong'];
+
 class WebSocketService {
   private clients: Map<string, AuthenticatedWebSocket> = new Map();
   private userConnections: Map<string, Set<string>> = new Map(); // userId -> Set of connectionIds
+  private rateLimitMap: Map<string, { count: number; resetTime: number }> = new Map();
+
+  /**
+   * Validate incoming WebSocket message
+   */
+  private validateMessage(data: any, messageSize: number): { valid: boolean; error?: string } {
+    // Check message size
+    if (messageSize > MAX_MESSAGE_SIZE) {
+      return { valid: false, error: 'Message too large' };
+    }
+
+    // Check if data is valid object
+    if (!data || typeof data !== 'object') {
+      return { valid: false, error: 'Invalid message format' };
+    }
+
+    // Check message type
+    if (!data.type || !VALID_MESSAGE_TYPES.includes(data.type)) {
+      return { valid: false, error: 'Invalid message type' };
+    }
+
+    // Validate auth message
+    if (data.type === 'auth') {
+      if (!data.token || typeof data.token !== 'string') {
+        return { valid: false, error: 'Auth message requires valid token' };
+      }
+    }
+
+    return { valid: true };
+  }
+
+  /**
+   * Check rate limiting for WebSocket messages
+   */
+  private checkRateLimit(connectionId: string): boolean {
+    const now = Date.now();
+    const windowMs = 60000; // 1 minute
+    const maxRequests = 60; // 60 requests per minute
+
+    // Clean expired entries
+    this.rateLimitMap.forEach((value, key) => {
+      if (now > value.resetTime) {
+        this.rateLimitMap.delete(key);
+      }
+    });
+
+    const rateData = this.rateLimitMap.get(connectionId);
+    if (!rateData) {
+      this.rateLimitMap.set(connectionId, { count: 1, resetTime: now + windowMs });
+      return true;
+    }
+
+    if (rateData.count >= maxRequests) {
+      return false;
+    }
+
+    rateData.count++;
+    return true;
+  }
+
+  /**
+   * Check connection limits per user
+   */
+  private checkConnectionLimit(userId: string): boolean {
+    const userConnections = this.userConnections.get(userId);
+    return !userConnections || userConnections.size < MAX_CONNECTIONS_PER_USER;
+  }
+
+  /**
+   * Clean up dead connections
+   */
+  private cleanupDeadConnections() {
+    const deadConnections: string[] = [];
+    
+    this.clients.forEach((ws, connectionId) => {
+      if (!ws.readyState || ws.readyState !== 1) { // Not OPEN
+        deadConnections.push(connectionId);
+      }
+    });
+
+    deadConnections.forEach(connectionId => {
+      const ws = this.clients.get(connectionId);
+      if (ws) {
+        this.handleDisconnection(ws);
+      }
+    });
+
+    if (deadConnections.length > 0) {
+      console.log(`🧹 Cleaned up ${deadConnections.length} dead connections`);
+    }
+  }
 
   /**
    * Initialize WebSocket server (no longer needed with Elysia)
    */
   initialize(server: any) {
     console.log('🔌 WebSocket service initialized for notifications');
+    
+    // Set up periodic cleanup of dead connections
+    setInterval(() => {
+      this.cleanupDeadConnections();
+    }, 30000); // Clean up every 30 seconds
   }
 
   /**
@@ -73,7 +174,7 @@ class WebSocketService {
       message: 'Please provide authentication token' 
     }));
 
-    console.log(`🔌 WebSocket connection opened: ${connectionId}`);
+    console.log(`🔌 WebSocket connection opened: ${connectionId} (Total: ${this.clients.size})`);
   }
 
   /**
@@ -90,9 +191,11 @@ class WebSocketService {
         return;
       }
 
-      // Verify JWT token
-      const decoded = jwt.verify(token, 'super-secret') as any;
+      // Verify JWT token using environment variable
+      const jwtSecret = process.env.JWT_SECRET || 'super-secret';
+      const decoded = jwt.verify(token, jwtSecret) as any;
       
+      // Validate decoded token has required fields
       if (!decoded.id || !decoded.role) {
         ws.send(JSON.stringify({ 
           type: 'error', 
@@ -102,10 +205,20 @@ class WebSocketService {
         return;
       }
 
+      // Check connection limit for this user
+      if (!this.checkConnectionLimit(decoded.id)) {
+        ws.send(JSON.stringify({ 
+          type: 'error', 
+          message: 'Too many connections for this user' 
+        }));
+        ws.close();
+        return;
+      }
+
       // Set user information
       ws.userId = decoded.id;
       ws.userRole = decoded.role;
-      ws.villageKey = decoded.village_key;
+      ws.villageKey = decoded.village_key || undefined;
       
       // Track user connections
       if (!this.userConnections.has(ws.userId)) {
@@ -136,29 +249,65 @@ class WebSocketService {
    * Handle incoming WebSocket messages (called by Elysia)
    */
   handleMessage(ws: AuthenticatedWebSocket, message: any) {
-    switch (message.type) {
-      case 'auth':
-        // Find connection ID for this WebSocket
-        const connectionId = this.findConnectionId(ws);
-        if (connectionId) {
+    const connectionId = this.findConnectionId(ws);
+    if (!connectionId) {
+      console.error('❌ Connection ID not found for WebSocket message');
+      return;
+    }
+
+    // Check rate limiting
+    if (!this.checkRateLimit(connectionId)) {
+      ws.send(JSON.stringify({ 
+        type: 'error', 
+        message: 'Rate limit exceeded. Please slow down.' 
+      }));
+      return;
+    }
+
+    // Validate message
+    const messageStr = JSON.stringify(message);
+    const validation = this.validateMessage(message, messageStr.length);
+    if (!validation.valid) {
+      console.error('❌ Invalid WebSocket message:', validation.error);
+      ws.send(JSON.stringify({ 
+        type: 'error', 
+        message: validation.error || 'Invalid message' 
+      }));
+      return;
+    }
+
+    // Handle valid messages
+    try {
+      switch (message.type) {
+        case 'auth':
           this.authenticateConnection(ws, message.token, connectionId);
-        }
-        break;
-      case 'ping':
-        ws.send(JSON.stringify({ type: 'pong' }));
-        break;
-      case 'subscribe':
-        // Client can subscribe to specific notification types
-        ws.send(JSON.stringify({ 
-          type: 'subscribed', 
-          message: 'Subscribed to notifications' 
-        }));
-        break;
-      default:
-        ws.send(JSON.stringify({ 
-          type: 'error', 
-          message: 'Unknown message type' 
-        }));
+          break;
+        case 'ping':
+          ws.isAlive = true; // Mark as alive
+          ws.send(JSON.stringify({ type: 'pong' }));
+          break;
+        case 'pong':
+          ws.isAlive = true; // Mark as alive
+          break;
+        case 'subscribe':
+          // Client can subscribe to specific notification types
+          ws.send(JSON.stringify({ 
+            type: 'subscribed', 
+            message: 'Subscribed to notifications' 
+          }));
+          break;
+        default:
+          ws.send(JSON.stringify({ 
+            type: 'error', 
+            message: 'Unknown message type' 
+          }));
+      }
+    } catch (error) {
+      console.error('❌ Error handling WebSocket message:', error);
+      ws.send(JSON.stringify({ 
+        type: 'error', 
+        message: 'Internal server error' 
+      }));
     }
   }
 
@@ -231,12 +380,13 @@ class WebSocketService {
     this.clients.forEach((ws, connectionId) => {
       if (ws.readyState === 1 && // OPEN
           ws.userRole === 'admin' && 
+          ws.villageKey && 
           ws.villageKey === villageKey) {
         try {
           ws.send(JSON.stringify(message));
           sentCount++;
         } catch (error) {
-          console.error('Error sending WebSocket message:', error);
+          console.error('❌ Error sending WebSocket message:', error);
           this.handleDisconnection(ws);
         }
       }
