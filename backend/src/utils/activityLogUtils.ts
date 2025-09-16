@@ -1,0 +1,119 @@
+import db from "../db/drizzle";
+import { admin_activity_logs } from "../db/schema";
+import { AdminActivityLogInsert } from "../db/schema";
+
+/**
+ * Logs an admin activity to the database.
+ * @param {string} adminId - The ID of the admin performing the action.
+ * @param {string} actionType - The type of action being performed.
+ * @param {string} description - A detailed description of the action.
+ * @returns {Promise<AdminActivityLog>} A promise that resolves to the created log entry.
+ */
+export async function logAdminActivity(
+  adminId: string,
+  actionType: string,
+  description: string
+): Promise<AdminActivityLogInsert> {
+  try {
+    const logEntry = await db
+      .insert(admin_activity_logs)
+      .values({
+        admin_id: adminId,
+        action_type: actionType,
+        description: description,
+      })
+      .returning();
+
+    return logEntry[0];
+  } catch (error) {
+    console.error("Error logging admin activity:", error);
+    throw new Error("Failed to log admin activity");
+  }
+}
+
+/**
+ * Logs house-related admin activities.
+ */
+export const houseActivityLogger = {
+  /**
+   * Logs when a house is created.
+   * @param {string} adminId - The ID of the admin.
+   * @param {string} houseAddress - The address of the created house.
+   * @param {string} villageKey - The village key.
+   */
+  async logHouseCreated(adminId: string, houseAddress: string, villageKey: string) {
+    return await logAdminActivity(
+      adminId,
+      "house_create",
+      `สร้างบ้านใหม่: ${houseAddress} ในหมู่บ้าน ${villageKey}`
+    );
+  },
+
+  /**
+   * Logs when a house is updated.
+   * @param {string} adminId - The ID of the admin.
+   * @param {string} houseId - The ID of the house.
+   * @param {string} houseAddress - The address of the house.
+   * @param {Object} changes - The changes made to the house.
+   */
+  async logHouseUpdated(
+    adminId: string,
+    houseId: string,
+    houseAddress: string,
+    changes: { address?: string; status?: string }
+  ) {
+    const changeDescriptions = [];
+    
+    if (changes.address) {
+      changeDescriptions.push(`เปลี่ยนที่อยู่เป็น: ${changes.address}`);
+    }
+    
+    if (changes.status) {
+      changeDescriptions.push(`เปลี่ยนสถานะเป็น: ${changes.status}`);
+    }
+
+    const description = changeDescriptions.length > 0 
+      ? `แก้ไขบ้าน ${houseAddress}: ${changeDescriptions.join(", ")}`
+      : `แก้ไขบ้าน ${houseAddress}`;
+
+    return await logAdminActivity(
+      adminId,
+      "house_update",
+      description
+    );
+  },
+
+  /**
+   * Logs when a house is deleted.
+   * @param {string} adminId - The ID of the admin.
+   * @param {string} houseAddress - The address of the deleted house.
+   * @param {string} villageKey - The village key.
+   */
+  async logHouseDeleted(adminId: string, houseAddress: string, villageKey: string) {
+    return await logAdminActivity(
+      adminId,
+      "house_delete",
+      `ลบบ้าน: ${houseAddress} จากหมู่บ้าน ${villageKey}`
+    );
+  },
+
+  /**
+   * Logs when a house status is updated.
+   * @param {string} adminId - The ID of the admin.
+   * @param {string} houseAddress - The address of the house.
+   * @param {string} oldStatus - The previous status.
+   * @param {string} newStatus - The new status.
+   */
+  async logHouseStatusUpdated(
+    adminId: string,
+    houseAddress: string,
+    oldStatus: string,
+    newStatus: string
+  ) {
+    return await logAdminActivity(
+      adminId,
+      "house_status_update",
+      `เปลี่ยนสถานะบ้าน ${houseAddress} จาก ${oldStatus} เป็น ${newStatus}`
+    );
+  }
+};
