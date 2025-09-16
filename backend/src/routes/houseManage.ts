@@ -244,12 +244,22 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
 
         // Log the house update activity
         try {
-          await houseActivityLogger.logHouseUpdated(
+          const logResult = await houseActivityLogger.logHouseUpdated(
             currentUser.admin_id,
             house_id,
             existingHouse[0].address,
-            dataToUpdate
+            dataToUpdate,
+            {
+              address: existingHouse[0].address,
+              status: existingHouse[0].status
+            }
           );
+          // Only log if there were actual changes
+          if (logResult) {
+            console.log("House update logged successfully");
+          } else {
+            console.log("No actual changes detected, skipping log");
+          }
         } catch (logError) {
           console.error("Error logging house update:", logError);
           // Don't fail the request if logging fails

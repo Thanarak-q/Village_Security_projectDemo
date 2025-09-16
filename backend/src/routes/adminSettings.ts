@@ -135,11 +135,22 @@ export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
 
       // Log the profile update activity
       try {
-        await adminSettingsActivityLogger.logProfileUpdated(
+        const logResult = await adminSettingsActivityLogger.logProfileUpdated(
           admin_id,
           existingAdmin[0].username,
-          updateData
+          updateData,
+          {
+            username: existingAdmin[0].username,
+            email: existingAdmin[0].email,
+            phone: existingAdmin[0].phone
+          }
         );
+        // Only log if there were actual changes
+        if (logResult) {
+          console.log("Profile update logged successfully");
+        } else {
+          console.log("No actual changes detected, skipping log");
+        }
       } catch (logError) {
         console.error("Error logging profile update:", logError);
         // Don't fail the request if logging fails
@@ -358,12 +369,23 @@ export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
 
       // Log the settings update activity
       try {
-        await adminSettingsActivityLogger.logSettingsUpdated(
+        const logResult = await adminSettingsActivityLogger.logSettingsUpdated(
           admin_id,
           existingAdmin[0].username,
           updateData,
+          {
+            username: existingAdmin[0].username,
+            email: existingAdmin[0].email,
+            phone: existingAdmin[0].phone
+          },
           passwordChanged
         );
+        // Only log if there were actual changes
+        if (logResult) {
+          console.log("Settings update logged successfully");
+        } else {
+          console.log("No actual changes detected, skipping log");
+        }
       } catch (logError) {
         console.error("Error logging settings update:", logError);
         // Don't fail the request if logging fails

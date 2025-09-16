@@ -55,26 +55,33 @@ export const houseActivityLogger = {
    * @param {string} houseId - The ID of the house.
    * @param {string} houseAddress - The address of the house.
    * @param {Object} changes - The changes made to the house.
+   * @param {Object} originalData - The original data before changes.
    */
   async logHouseUpdated(
     adminId: string,
     houseId: string,
     houseAddress: string,
-    changes: { address?: string; status?: string }
+    changes: { address?: string; status?: string },
+    originalData: { address?: string; status?: string }
   ) {
     const changeDescriptions = [];
     
-    if (changes.address) {
+    // Only log if address actually changed
+    if (changes.address && changes.address !== originalData.address) {
       changeDescriptions.push(`เปลี่ยนที่อยู่เป็น: ${changes.address}`);
     }
     
-    if (changes.status) {
+    // Only log if status actually changed
+    if (changes.status && changes.status !== originalData.status) {
       changeDescriptions.push(`เปลี่ยนสถานะเป็น: ${changes.status}`);
     }
 
-    const description = changeDescriptions.length > 0 
-      ? `แก้ไขบ้าน ${houseAddress}: ${changeDescriptions.join(", ")}`
-      : `แก้ไขบ้าน ${houseAddress}`;
+    // Only log if there are actual changes
+    if (changeDescriptions.length === 0) {
+      return null; // No actual changes, don't log
+    }
+
+    const description = `แก้ไขบ้าน ${houseAddress}: ${changeDescriptions.join(", ")}`;
 
     return await logAdminActivity(
       adminId,
@@ -110,6 +117,11 @@ export const houseActivityLogger = {
     oldStatus: string,
     newStatus: string
   ) {
+    // Only log if status actually changed
+    if (oldStatus === newStatus) {
+      return null; // No actual change, don't log
+    }
+
     return await logAdminActivity(
       adminId,
       "house_status_update",
@@ -127,29 +139,37 @@ export const adminSettingsActivityLogger = {
    * @param {string} adminId - The ID of the admin.
    * @param {string} adminUsername - The username of the admin.
    * @param {Object} changes - The changes made to the profile.
+   * @param {Object} originalData - The original data before changes.
    */
   async logProfileUpdated(
     adminId: string,
     adminUsername: string,
-    changes: { username?: string; email?: string; phone?: string }
+    changes: { username?: string; email?: string; phone?: string },
+    originalData: { username?: string; email?: string; phone?: string }
   ) {
     const changeDescriptions = [];
     
-    if (changes.username) {
+    // Only log if username actually changed
+    if (changes.username && changes.username !== originalData.username) {
       changeDescriptions.push(`เปลี่ยน username เป็น: ${changes.username}`);
     }
     
-    if (changes.email) {
+    // Only log if email actually changed
+    if (changes.email && changes.email !== originalData.email) {
       changeDescriptions.push(`เปลี่ยน email เป็น: ${changes.email}`);
     }
     
-    if (changes.phone) {
+    // Only log if phone actually changed
+    if (changes.phone && changes.phone !== originalData.phone) {
       changeDescriptions.push(`เปลี่ยนเบอร์โทรเป็น: ${changes.phone}`);
     }
 
-    const description = changeDescriptions.length > 0 
-      ? `อัปเดตข้อมูลส่วนตัว: ${changeDescriptions.join(", ")}`
-      : `อัปเดตข้อมูลส่วนตัว`;
+    // Only log if there are actual changes
+    if (changeDescriptions.length === 0) {
+      return null; // No actual changes, don't log
+    }
+
+    const description = `อัปเดตข้อมูลส่วนตัว: ${changeDescriptions.join(", ")}`;
 
     return await logAdminActivity(
       adminId,
@@ -176,25 +196,30 @@ export const adminSettingsActivityLogger = {
    * @param {string} adminId - The ID of the admin.
    * @param {string} adminUsername - The username of the admin.
    * @param {Object} changes - The changes made.
+   * @param {Object} originalData - The original data before changes.
    * @param {boolean} passwordChanged - Whether password was changed.
    */
   async logSettingsUpdated(
     adminId: string,
     adminUsername: string,
     changes: { username?: string; email?: string; phone?: string },
+    originalData: { username?: string; email?: string; phone?: string },
     passwordChanged: boolean
   ) {
     const changeDescriptions = [];
     
-    if (changes.username) {
+    // Only log if username actually changed
+    if (changes.username && changes.username !== originalData.username) {
       changeDescriptions.push(`เปลี่ยน username เป็น: ${changes.username}`);
     }
     
-    if (changes.email) {
+    // Only log if email actually changed
+    if (changes.email && changes.email !== originalData.email) {
       changeDescriptions.push(`เปลี่ยน email เป็น: ${changes.email}`);
     }
     
-    if (changes.phone) {
+    // Only log if phone actually changed
+    if (changes.phone && changes.phone !== originalData.phone) {
       changeDescriptions.push(`เปลี่ยนเบอร์โทรเป็น: ${changes.phone}`);
     }
     
@@ -202,9 +227,12 @@ export const adminSettingsActivityLogger = {
       changeDescriptions.push(`เปลี่ยนรหัสผ่าน`);
     }
 
-    const description = changeDescriptions.length > 0 
-      ? `อัปเดตการตั้งค่า: ${changeDescriptions.join(", ")}`
-      : `อัปเดตการตั้งค่า`;
+    // Only log if there are actual changes
+    if (changeDescriptions.length === 0) {
+      return null; // No actual changes, don't log
+    }
+
+    const description = `อัปเดตการตั้งค่า: ${changeDescriptions.join(", ")}`;
 
     return await logAdminActivity(
       adminId,
@@ -235,6 +263,11 @@ export const userManagementActivityLogger = {
     oldStatus: string,
     newStatus: string
   ) {
+    // Only log if status actually changed
+    if (oldStatus === newStatus) {
+      return null; // No actual change, don't log
+    }
+
     return await logAdminActivity(
       adminId,
       "user_status_update",
@@ -257,6 +290,11 @@ export const userManagementActivityLogger = {
     oldHouse: string | null,
     newHouse: string
   ) {
+    // Only log if house actually changed
+    if (oldHouse === newHouse) {
+      return null; // No actual change, don't log
+    }
+
     const description = oldHouse 
       ? `เปลี่ยนบ้านของ resident ${userName} จาก ${oldHouse} เป็น ${newHouse}`
       : `กำหนดบ้าน ${newHouse} ให้ resident ${userName}`;

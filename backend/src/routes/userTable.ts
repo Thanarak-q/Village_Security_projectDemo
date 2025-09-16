@@ -382,7 +382,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           
           // Log status update
           if (currentResident.status !== status) {
-            await userManagementActivityLogger.logUserStatusUpdated(
+            const statusLogResult = await userManagementActivityLogger.logUserStatusUpdated(
               currentUser.admin_id,
               currentUser.username,
               "resident",
@@ -390,17 +390,25 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
               currentResident.status || "unknown",
               status
             );
+            if (statusLogResult) {
+              console.log("User status update logged successfully");
+            }
           }
 
           // Log house update
           if (houseNumber) {
-            await userManagementActivityLogger.logUserHouseUpdated(
+            const houseLogResult = await userManagementActivityLogger.logUserHouseUpdated(
               currentUser.admin_id,
               currentUser.username,
               userName,
               oldHouseAddress,
               houseNumber
             );
+            if (houseLogResult) {
+              console.log("User house update logged successfully");
+            } else {
+              console.log("No house change detected, skipping log");
+            }
           }
         } catch (logError) {
           console.error("Error logging user update:", logError);
@@ -445,7 +453,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           
           // Log status update
           if (currentGuard.status !== status) {
-            await userManagementActivityLogger.logUserStatusUpdated(
+            const statusLogResult = await userManagementActivityLogger.logUserStatusUpdated(
               currentUser.admin_id,
               currentUser.username,
               "guard",
@@ -453,6 +461,9 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
               currentGuard.status || "unknown",
               status
             );
+            if (statusLogResult) {
+              console.log("Guard status update logged successfully");
+            }
           }
         } catch (logError) {
           console.error("Error logging guard update:", logError);
