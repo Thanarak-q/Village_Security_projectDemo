@@ -78,19 +78,14 @@ export default function NotificationComponent() {
     notifications,
     counts,
     loading,
-    error,
-    refreshNotifications
+    error
   } = useHybridNotifications();
 
   // Refresh notifications when popover opens
 
   const handleOpenChange = useCallback((open: boolean) => {
     setIsOpen(open);
-    if (open) {
-      // Fallback: ensure latest notifications without page reload
-      void refreshNotifications();
-    }
-  }, [refreshNotifications]);
+  }, []);
 
 
 
@@ -108,17 +103,6 @@ export default function NotificationComponent() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex flex-col">
             <h3 className="text-lg font-semibold">การแจ้งเตือน</h3>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={refreshNotifications}
-              disabled={loading}
-              className="text-xs"
-            >
-              รีเฟรช
-            </Button>
           </div>
         </div>
         
