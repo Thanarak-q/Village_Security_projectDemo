@@ -55,7 +55,6 @@ export function useHybridNotifications() {
         message: wsNotif.body || '',
         type: 'system' as const,
         category: 'realtime' as const,
-        priority: wsNotif.level === 'critical' ? 'high' : wsNotif.level === 'warning' ? 'medium' : 'low',
         is_read: false,
         created_at: new Date(wsNotif.createdAt).toISOString(),
         read_at: null,

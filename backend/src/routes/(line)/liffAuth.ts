@@ -456,7 +456,6 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
               fname: newResident.fname,
               lname: newResident.lname,
               village_key: newResident.village_key,
-              admin_id: villageAdmin.admin_id,
             });
           }
         } catch (notificationError) {

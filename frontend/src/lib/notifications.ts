@@ -12,7 +12,6 @@ export interface Notification {
   message: string;
   data?: Record<string, any>;
   is_read: boolean;
-  priority: string;
   created_at: string;
   read_at?: string;
   village_name?: string;
@@ -24,7 +23,6 @@ export interface NotificationFilters {
   type?: string;
   category?: string;
   is_read?: boolean;
-  priority?: string;
 }
 
 export interface NotificationCounts {
@@ -71,7 +69,6 @@ export async function fetchNotifications(filters: NotificationFilters = {}): Pro
   if (filters.type) params.append('type', filters.type);
   if (filters.category) params.append('category', filters.category);
   if (filters.is_read !== undefined) params.append('is_read', filters.is_read.toString());
-  if (filters.priority) params.append('priority', filters.priority);
 
   const queryString = params.toString();
   const endpoint = queryString ? `/api/notifications?${queryString}` : '/api/notifications';
@@ -182,16 +179,5 @@ export function getNotificationColor(type: string): string {
 }
 
 export function getPriorityColor(priority: string): string {
-  switch (priority) {
-    case 'urgent':
-      return 'bg-red-500';
-    case 'high':
-      return 'bg-orange-500';
-    case 'medium':
-      return 'bg-yellow-500';
-    case 'low':
-      return 'bg-green-500';
-    default:
-      return 'bg-gray-500';
-  }
+  return 'bg-gray-500';
 }
