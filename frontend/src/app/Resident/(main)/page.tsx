@@ -850,7 +850,7 @@ const ResidentPage = () => {
                               : "bg-red-600 hover:bg-red-700 text-white dark:bg-red-900/30 dark:text-red-400"
                           }`}
                         >
-                          {item.status === "approved" ? "อนุมัติแล้ว" : "ปฏิเสธแล้ว"}
+                          {item.status === "approved" ? "อนุมัติแล้ว" : "ปฏิเสธ"}
                         </div>
                       </div>
                     </CardContent>
