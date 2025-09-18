@@ -597,7 +597,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
             console.error("Error logging role change:", logError);
             // Don't fail the request if logging fails
           }
-
+            
           return {
             success: true,
             message: "Resident successfully converted to guard",

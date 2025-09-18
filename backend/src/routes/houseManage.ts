@@ -251,7 +251,7 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
             dataToUpdate,
             {
               address: existingHouse[0].address,
-              status: existingHouse[0].status
+              status: existingHouse[0].status || undefined
             }
           );
           // Only log if there were actual changes

@@ -12,7 +12,7 @@ import { adminSettingsActivityLogger } from "../utils/activityLogUtils";
  * @type {Elysia}
  */
 export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
-  .onBeforeHandle(requireRole("admin"))
+  .onBeforeHandle(requireRole(["admin", "staff"]))
 
   /**
    * Get the current admin's profile for the settings page.

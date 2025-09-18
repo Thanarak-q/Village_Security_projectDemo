@@ -272,7 +272,7 @@ export async function getVisitorRecordsByLineId(lineUserId: string) {
 /**
  * Creates a new visitor record in the database.
  * @param {Object} data - The data for the new record.
- * @param {string} data.resident_id - The UUID of the resident being visited.
+ * @param {string} [data.resident_id] - The UUID of the resident being visited (optional).
  * @param {string} data.guard_id - The UUID of the guard who logged the visit.
  * @param {string} data.house_id - The UUID of the house being visited.
  * @param {string} [data.picture_key] - An optional key for a visitor photo.
@@ -282,7 +282,7 @@ export async function getVisitorRecordsByLineId(lineUserId: string) {
  * @returns {Promise<Object>} A promise that resolves to the newly created visitor record.
  */
 export async function createVisitorRecord(data: {
-  resident_id: string;
+  resident_id?: string;
   guard_id: string;
   house_id: string;
   picture_key?: string;
@@ -293,7 +293,7 @@ export async function createVisitorRecord(data: {
   const [newVisitorRecord] = await db
     .insert(visitor_records)
     .values({
-      resident_id: data.resident_id,
+      resident_id: data.resident_id || null,
       guard_id: data.guard_id,
       house_id: data.house_id,
       picture_key: data.picture_key,
@@ -361,7 +361,7 @@ export async function getVisitorRecordsByResidentName(residentName: string) {
         picture_key: visitor_records.picture_key,
         license_plate: visitor_records.license_plate,
         entry_time: visitor_records.entry_time,
-        exit_time: visitor_records.exit_time,
+
         record_status: visitor_records.record_status,
         visit_purpose: visitor_records.visit_purpose,
         createdAt: visitor_records.createdAt,
