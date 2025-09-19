@@ -50,34 +50,76 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
 
       ws.onmessage = (event) => {
         try {
+          // Validate event data
+          if (!event.data) {
+            console.warn('⚠️ Received empty WebSocket message');
+            return;
+          }
+
           const data = JSON.parse(event.data);
           console.log('📨 WebSocket message received:', data);
-          console.log('📨 Raw event data:', event.data);
+
+          // Validate message structure
+          if (!data || typeof data !== 'object') {
+            console.warn('⚠️ Invalid message structure received:', data);
+            return;
+          }
 
           // Handle different message types
           if (data.type === 'ADMIN_NOTIFICATION' && data.data) {
+            // Validate notification data structure
+            if (!data.data.id || !data.data.title) {
+              console.warn('⚠️ Invalid notification structure:', data.data);
+              return;
+            }
+
             const notification: WebSocketNotification = {
               id: data.data.id,
               title: data.data.title,
-              body: data.data.body,
+              body: data.data.body || '',
               level: data.data.level || 'info',
-              createdAt: data.data.createdAt
+              createdAt: data.data.createdAt || Date.now()
             };
             
-            setNotifications(prev => [notification, ...prev.slice(0, 49)]); // Keep last 50 notifications
+            // Check for duplicates before adding
+            setNotifications(prev => {
+              const exists = prev.some(n => n.id === notification.id);
+              if (exists) {
+                console.log('📨 Duplicate notification ignored:', notification.id);
+                return prev;
+              }
+              
+              // Keep only last 50 notifications and limit memory usage
+              const newNotifications = [notification, ...prev].slice(0, 50);
+              
+              // Clean up old notifications (older than 24 hours)
+              const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+              return newNotifications.filter(n => n.createdAt > oneDayAgo);
+            });
             
             // Show browser notification if permission granted
             if ('Notification' in window && Notification.permission === 'granted') {
-              new Notification(notification.title, {
-                body: notification.body,
-                icon: '/favicon.ico',
-                tag: notification.id
-              });
+              try {
+                new Notification(notification.title, {
+                  body: notification.body,
+                  icon: '/favicon.ico',
+                  tag: notification.id
+                });
+              } catch (notificationError) {
+                console.error('❌ Failed to show browser notification:', notificationError);
+              }
             }
           } else if (data.type === 'WELCOME') {
             console.log('👋 Welcome message:', data.msg);
           } else if (data.type === 'ECHO') {
             console.log('🔄 Echo response:', data.data);
+          } else if (data.type === 'ERROR') {
+            console.error('❌ WebSocket server error:', data.error);
+            setConnectionStatus('error');
+          } else if (data.type === 'PONG') {
+            console.log('🏓 Pong received from server');
+          } else {
+            console.warn('⚠️ Unknown message type received:', data.type);
           }
         } catch (error) {
           console.error('❌ Error parsing WebSocket message:', error);
@@ -89,9 +131,21 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
         console.error('❌ WebSocket error details:', {
           type: error.type,
           target: error.target,
-          currentTarget: error.currentTarget
+          currentTarget: error.currentTarget,
+          timestamp: new Date().toISOString()
         });
         setConnectionStatus('error');
+        
+        // Attempt to reconnect on error
+        if (reconnectAttempts.current < maxReconnectAttempts) {
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
+          console.log(`🔄 Reconnecting after error in ${delay}ms`);
+          
+          setTimeout(() => {
+            reconnectAttempts.current++;
+            connect();
+          }, delay);
+        }
       };
 
       ws.onclose = (event) => {
@@ -152,8 +206,28 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
     return () => {
       clearTimeout(timer);
       disconnect();
+      // Clear notifications on unmount to prevent memory leaks
+      setNotifications([]);
     };
   }, [connect, disconnect]);
+
+  // Periodic cleanup of old notifications
+  useEffect(() => {
+    const cleanupInterval = setInterval(() => {
+      setNotifications(prev => {
+        const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+        const filtered = prev.filter(n => n.createdAt > oneDayAgo);
+        
+        if (filtered.length !== prev.length) {
+          console.log(`🧹 Cleaned up ${prev.length - filtered.length} old notifications`);
+        }
+        
+        return filtered;
+      });
+    }, 60000); // Run cleanup every minute
+
+    return () => clearInterval(cleanupInterval);
+  }, []);
 
   // Request notification permission
   useEffect(() => {

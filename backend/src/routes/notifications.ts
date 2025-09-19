@@ -393,16 +393,27 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
         createdAt: newNotification.created_at ? newNotification.created_at.getTime() : Date.now()
       };
 
-      const wsSent = websocketClient.sendNotification(wsNotification);
+      let wsSent = false;
+      let wsError = null;
+
+      try {
+        wsSent = await websocketClient.sendNotification(wsNotification);
+      } catch (error) {
+        console.error('❌ WebSocket broadcast failed:', error);
+        wsError = error instanceof Error ? error.message : 'Unknown WebSocket error';
+      }
 
       return {
         success: true,
         data: {
           notification: newNotification,
           websocket_sent: wsSent,
+          websocket_error: wsError,
           message: wsSent 
             ? 'Notification created and broadcasted successfully'
-            : 'Notification created but WebSocket service unavailable'
+            : wsError 
+              ? `Notification created but WebSocket failed: ${wsError}`
+              : 'Notification created but WebSocket service unavailable'
         }
       };
     } catch (error) {

@@ -41,7 +41,6 @@ export type AdminNotification = {
           ws.send(JSON.stringify({ type: 'WELCOME', msg: 'connected' }))
         },
         message(ws, m) {
-          // Try to parse incoming message and broadcast when appropriate
           try {
             let text: string
             if (typeof m === 'string') text = m
@@ -50,18 +49,78 @@ export type AdminNotification = {
             else text = String(m)
 
             const payload = JSON.parse(text)
-            // If backend pushes an ADMIN_NOTIFICATION, broadcast to all admins
-            if (payload && payload.type === 'ADMIN_NOTIFICATION') {
-              server.publish('admin', JSON.stringify(payload))
-              console.log('📣 Broadcast ADMIN_NOTIFICATION to admin topic')
-              return
+            
+            // Validate payload structure
+            if (!payload || typeof payload !== 'object') {
+              console.warn('⚠️ Invalid payload structure received:', payload);
+              ws.send(JSON.stringify({ 
+                type: 'ERROR', 
+                error: 'Invalid payload structure',
+                timestamp: Date.now()
+              }));
+              return;
             }
-          } catch (_) {
-            // fall through to echo for debugging when parsing fails
+
+            // If backend pushes an ADMIN_NOTIFICATION, broadcast to all admins
+            if (payload.type === 'ADMIN_NOTIFICATION') {
+              try {
+                // Validate notification structure
+                if (!payload.data || !payload.data.id || !payload.data.title) {
+                  console.warn('⚠️ Invalid ADMIN_NOTIFICATION structure:', payload);
+                  ws.send(JSON.stringify({ 
+                    type: 'ERROR', 
+                    error: 'Invalid notification structure',
+                    timestamp: Date.now()
+                  }));
+                  return;
+                }
+
+                server.publish('admin', JSON.stringify(payload));
+                console.log('📣 Broadcast ADMIN_NOTIFICATION to admin topic:', payload.data.title);
+                return;
+              } catch (broadcastError) {
+                console.error('❌ Failed to broadcast notification:', broadcastError);
+                ws.send(JSON.stringify({ 
+                  type: 'ERROR', 
+                  error: 'Broadcast failed',
+                  timestamp: Date.now()
+                }));
+                return;
+              }
+            }
+
+            // Handle other message types
+            if (payload.type === 'PING') {
+              ws.send(JSON.stringify({ type: 'PONG', timestamp: Date.now() }));
+              return;
+            }
+
+          } catch (parseError) {
+            console.error('❌ Failed to parse WebSocket message:', {
+              error: parseError instanceof Error ? parseError.message : String(parseError),
+              message: String(m).substring(0, 100), // Log first 100 chars
+              timestamp: Date.now()
+            });
+            
+            // Send error response instead of echo
+            try {
+              ws.send(JSON.stringify({ 
+                type: 'ERROR', 
+                error: 'Message parsing failed',
+                timestamp: Date.now()
+              }));
+            } catch (sendError) {
+              console.error('❌ Failed to send error response:', sendError);
+            }
+            return;
           }
 
-          // echo for debugging
-          ws.send(JSON.stringify({ type: 'ECHO', data: String(m) }))
+          // echo for debugging (fallback)
+          try {
+            ws.send(JSON.stringify({ type: 'ECHO', data: String(m), timestamp: Date.now() }));
+          } catch (echoError) {
+            console.error('❌ Failed to send echo response:', echoError);
+          }
         },
         close() {
           // no-op
