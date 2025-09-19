@@ -1,4 +1,6 @@
 // src/ws/notify.service.ts
+import { simpleMessageQueue } from './messageQueue';
+
 export type AdminNotification = {
     id: string
     title: string
@@ -38,6 +40,7 @@ export type AdminNotification = {
         open(ws) {
           // ใครเข้ามาให้เข้าห้อง "admin" สำหรับ broadcast
           ws.subscribe('admin')
+          
           ws.send(JSON.stringify({ type: 'WELCOME', msg: 'connected' }))
         },
         message(ws, m) {
@@ -133,8 +136,33 @@ export type AdminNotification = {
     const publishTopic = (topic: string, payload: unknown) =>
       server.publish(topic, JSON.stringify(payload))
   
-    const publishAdmin = (n: AdminNotification) =>
-      publishTopic('admin', { type: 'ADMIN_NOTIFICATION', data: n })
+    const publishAdmin = (n: AdminNotification) => {
+      // Use simple message queue for deduplication and queuing
+      const messageId = simpleMessageQueue.enqueue('ADMIN_NOTIFICATION', n, {
+        priority: n.level === 'critical' ? 'critical' : 'normal',
+        maxRetries: 3,
+        metadata: { 
+          type: 'admin_notification',
+          level: n.level || 'info',
+          notificationId: n.id
+        }
+      });
+      
+      console.log(`📤 Admin notification queued: ${messageId}`);
+      
+      // Process queued messages
+      simpleMessageQueue.processQueue(async (message) => {
+        try {
+          server.publish('admin', JSON.stringify({ type: message.type, data: message.data }));
+          return true;
+        } catch (error) {
+          console.error(`❌ Failed to publish message ${message.id}:`, error);
+          return false;
+        }
+      });
+      
+      return messageId;
+    }
   
     return { port: server.port ?? 0, path, publishAdmin, publishTopic }
   }

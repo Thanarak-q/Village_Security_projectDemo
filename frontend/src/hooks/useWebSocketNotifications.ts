@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useErrorHandling } from './useErrorHandling';
 import { useSafeState, useSafeCallback, useSafeMemo } from './useSafeState';
+import { websocketMessageManager } from '../utils/websocketMessageManager';
+import { websocketDiagnostics } from '../utils/websocketDiagnostics';
 
 interface WebSocketNotification {
   id: string;
@@ -32,6 +34,13 @@ interface UseWebSocketNotificationsReturn {
   clearNotifications: () => void;
   errorStats: ErrorStats;
   healthStatus: HealthStatus;
+  queueStatus: {
+    size: number;
+    processing: boolean;
+    oldestMessage?: number;
+    newestMessage?: number;
+    priorityCounts: Record<string, number>;
+  };
 }
 
 export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
@@ -69,15 +78,28 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost/ws';
     console.log('🔗 Attempting to connect to:', wsUrl);
     
+    // Update diagnostics
+    websocketDiagnostics.updateConnection(wsUrl, null);
+    websocketDiagnostics.updateReconnectAttempts(reconnectAttempts.current, maxReconnectAttempts);
+    
     try {
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
+      
+      // Update diagnostics with new connection
+      websocketDiagnostics.updateConnection(wsUrl, ws);
+      
+      // Set up message manager
+      websocketMessageManager.setWebSocket(ws);
       
       ws.onopen = () => {
         console.log('🔔 WebSocket connected');
         setIsConnected(true);
         setConnectionStatus('connected');
         reconnectAttempts.current = 0;
+        
+        // Update message manager connection status
+        websocketMessageManager.setWebSocket(ws);
       };
 
       ws.onmessage = (event) => {
@@ -172,22 +194,32 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
 
       ws.onerror = (error) => {
         console.error('❌ WebSocket error:', error);
-        console.error('❌ WebSocket error details:', {
-          type: error.type,
-          target: error.target,
-          currentTarget: error.currentTarget,
-          timestamp: new Date().toISOString()
-        });
+        
+        // Get more detailed error information
+        const errorDetails = {
+          type: error.type || 'unknown',
+          target: error.target ? 'WebSocket' : 'unknown',
+          currentTarget: error.currentTarget ? 'WebSocket' : 'unknown',
+          readyState: ws.readyState,
+          url: wsUrl,
+          timestamp: new Date().toISOString(),
+          reconnectAttempts: reconnectAttempts.current,
+          maxReconnectAttempts
+        };
+        
+        console.error('❌ WebSocket error details:', errorDetails);
+        
+        // Update diagnostics with error
+        websocketDiagnostics.setLastError(`WebSocket error: ${errorDetails.type} (readyState: ${errorDetails.readyState})`);
+        websocketDiagnostics.logDiagnostics();
         
         setConnectionStatus('error');
         
+        // Create a more descriptive error
+        const webSocketError = new Error(`WebSocket connection failed: ${errorDetails.type} (readyState: ${errorDetails.readyState})`);
+        
         // Handle error with comprehensive error handling
-        handleWebSocketError(error, {
-          connectionStatus: 'error',
-          reconnectAttempts: reconnectAttempts.current,
-          maxReconnectAttempts,
-          wsUrl: wsUrl
-        });
+        handleWebSocketError(webSocketError, errorDetails);
         
         // Attempt to reconnect on error
         if (reconnectAttempts.current < maxReconnectAttempts) {
@@ -196,6 +228,7 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
           
           setTimeout(() => {
             reconnectAttempts.current++;
+            websocketDiagnostics.updateReconnectAttempts(reconnectAttempts.current, maxReconnectAttempts);
             connect();
           }, delay);
         }
@@ -205,6 +238,9 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
         console.log('🔌 WebSocket disconnected:', event.code, event.reason);
         setIsConnected(false);
         setConnectionStatus('disconnected');
+        
+        // Update message manager connection status
+        websocketMessageManager.setWebSocket(null);
         
         // Attempt to reconnect if not a manual close
         if (event.code !== 1000 && reconnectAttempts.current < maxReconnectAttempts) {
@@ -239,20 +275,23 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
   }, []);
 
   const sendMessage = useSafeCallback((message: unknown) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      try {
-        wsRef.current.send(JSON.stringify(message));
-      } catch (error) {
-        handleWebSocketError(
-          error instanceof Error ? error : new Error('Failed to send message'),
-          { messageType: 'user_message' }
-        );
-      }
-    } else {
-      console.warn('⚠️ WebSocket not connected, cannot send message');
+    try {
+      // Use message manager for queuing and deduplication
+      const messageId = websocketMessageManager.sendMessage(
+        'USER_MESSAGE',
+        message,
+        {
+          priority: 'normal',
+          maxRetries: 3,
+          metadata: { source: 'user' }
+        }
+      );
+      
+      console.log(`📤 Message queued/sent: ${messageId}`);
+    } catch (error) {
       handleWebSocketError(
-        new Error('WebSocket not connected'),
-        { action: 'send_message' }
+        error instanceof Error ? error : new Error('Failed to send message'),
+        { messageType: 'user_message' }
       );
     }
   }, [handleWebSocketError]);
@@ -305,6 +344,7 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
   // Memoize error stats and health status to prevent infinite re-renders
   const errorStats = useSafeMemo(() => getErrorStats, [getErrorStats]);
   const healthStatus = useSafeMemo(() => getHealthStatus as HealthStatus, [getHealthStatus]);
+  const queueStatus = useSafeMemo(() => websocketMessageManager.getQueueStatus(), []);
 
   return {
     notifications,
@@ -313,6 +353,7 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
     sendMessage,
     clearNotifications,
     errorStats,
-    healthStatus
+    healthStatus,
+    queueStatus
   };
 }

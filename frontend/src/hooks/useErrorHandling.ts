@@ -71,12 +71,16 @@ export function useErrorHandling(options: Partial<ErrorHandlerOptions> = {}) {
                         error.severity === 'HIGH' ? 'error' : 
                         error.severity === 'MEDIUM' ? 'warn' : 'info';
         
-        console[logLevel](`🚨 Error [${error.severity}]:`, {
-          type: error.type,
-          message: error.message,
-          context: error.context,
-          timestamp: error.timestamp
-        });
+        // Safely log error information
+        const errorInfo = {
+          type: error.type || 'UNKNOWN',
+          message: error.message || 'Unknown error',
+          context: error.context || {},
+          timestamp: error.timestamp || new Date().toISOString(),
+          severity: error.severity || 'MEDIUM'
+        };
+        
+        console[logLevel](`🚨 Error [${errorInfo.severity}]:`, errorInfo);
       }
 
       if (config.showNotifications && error.severity !== 'LOW') {
