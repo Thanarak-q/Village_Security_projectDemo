@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useEffect, useRef } from 'react';
+import { useErrorHandling } from './useErrorHandling';
+import { useSafeState, useSafeCallback, useSafeMemo } from './useSafeState';
 
 interface WebSocketNotification {
   id: string;
@@ -8,25 +10,55 @@ interface WebSocketNotification {
   createdAt: number;
 }
 
+interface ErrorStats {
+  total: number;
+  byType: Record<string, number>;
+  bySeverity: Record<string, number>;
+  retryable: number;
+  critical: number;
+}
+
+interface HealthStatus {
+  status: 'HEALTHY' | 'WARNING' | 'CRITICAL';
+  message: string;
+  color: string;
+}
+
 interface UseWebSocketNotificationsReturn {
   notifications: WebSocketNotification[];
   isConnected: boolean;
   connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error';
   sendMessage: (message: unknown) => void;
   clearNotifications: () => void;
+  errorStats: ErrorStats;
+  healthStatus: HealthStatus;
 }
 
 export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
-  const [notifications, setNotifications] = useState<WebSocketNotification[]>([]);
-  const [isConnected, setIsConnected] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('disconnected');
+  const [notifications, setNotifications] = useSafeState<WebSocketNotification[]>([]);
+  const [isConnected, setIsConnected] = useSafeState(false);
+  const [connectionStatus, setConnectionStatus] = useSafeState<'connecting' | 'connected' | 'disconnected' | 'error'>('disconnected');
   
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
 
-  const connect = useCallback(() => {
+  // Initialize error handling
+  const {
+    handleWebSocketError,
+    handleValidationError,
+    getErrorStats,
+    getHealthStatus
+  } = useErrorHandling({
+    maxErrors: 50,
+    autoRetry: true,
+    maxRetries: 3,
+    retryDelay: 2000,
+    showNotifications: true
+  });
+
+  const connect = useSafeCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       return;
     }
@@ -67,11 +99,16 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
 
           // Handle different message types
           if (data.type === 'ADMIN_NOTIFICATION' && data.data) {
-            // Validate notification data structure
-            if (!data.data.id || !data.data.title) {
-              console.warn('⚠️ Invalid notification structure:', data.data);
-              return;
-            }
+          // Validate notification data structure
+          if (!data.data.id || !data.data.title) {
+            console.warn('⚠️ Invalid notification structure:', data.data);
+            handleValidationError(
+              'Invalid notification structure received',
+              'notification',
+              { receivedData: data.data }
+            );
+            return;
+          }
 
             const notification: WebSocketNotification = {
               id: data.data.id,
@@ -123,6 +160,13 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
           }
         } catch (error) {
           console.error('❌ Error parsing WebSocket message:', error);
+          handleWebSocketError(
+            error instanceof Error ? error : new Error('Message parsing failed'),
+            {
+              messageType: 'unknown',
+              rawData: event.data?.substring(0, 100)
+            }
+          );
         }
       };
 
@@ -134,7 +178,16 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
           currentTarget: error.currentTarget,
           timestamp: new Date().toISOString()
         });
+        
         setConnectionStatus('error');
+        
+        // Handle error with comprehensive error handling
+        handleWebSocketError(error, {
+          connectionStatus: 'error',
+          reconnectAttempts: reconnectAttempts.current,
+          maxReconnectAttempts,
+          wsUrl: wsUrl
+        });
         
         // Attempt to reconnect on error
         if (reconnectAttempts.current < maxReconnectAttempts) {
@@ -169,9 +222,9 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
       setConnectionStatus('error');
       return;
     }
-  }, []);
+  }, [handleValidationError, handleWebSocketError]);
 
-  const disconnect = useCallback(() => {
+  const disconnect = useSafeCallback(() => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
     }
@@ -185,15 +238,26 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
     setConnectionStatus('disconnected');
   }, []);
 
-  const sendMessage = useCallback((message: unknown) => {
+  const sendMessage = useSafeCallback((message: unknown) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(message));
+      try {
+        wsRef.current.send(JSON.stringify(message));
+      } catch (error) {
+        handleWebSocketError(
+          error instanceof Error ? error : new Error('Failed to send message'),
+          { messageType: 'user_message' }
+        );
+      }
     } else {
       console.warn('⚠️ WebSocket not connected, cannot send message');
+      handleWebSocketError(
+        new Error('WebSocket not connected'),
+        { action: 'send_message' }
+      );
     }
-  }, []);
+  }, [handleWebSocketError]);
 
-  const clearNotifications = useCallback(() => {
+  const clearNotifications = useSafeCallback(() => {
     setNotifications([]);
   }, []);
 
@@ -209,7 +273,7 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
       // Clear notifications on unmount to prevent memory leaks
       setNotifications([]);
     };
-  }, [connect, disconnect]);
+  }, [connect, disconnect, setNotifications]);
 
   // Periodic cleanup of old notifications
   useEffect(() => {
@@ -227,7 +291,7 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
     }, 60000); // Run cleanup every minute
 
     return () => clearInterval(cleanupInterval);
-  }, []);
+  }, [setNotifications]);
 
   // Request notification permission
   useEffect(() => {
@@ -238,11 +302,17 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
     }
   }, []);
 
+  // Memoize error stats and health status to prevent infinite re-renders
+  const errorStats = useSafeMemo(() => getErrorStats, [getErrorStats]);
+  const healthStatus = useSafeMemo(() => getHealthStatus as HealthStatus, [getHealthStatus]);
+
   return {
     notifications,
     isConnected,
     connectionStatus,
     sendMessage,
-    clearNotifications
+    clearNotifications,
+    errorStats,
+    healthStatus
   };
 }

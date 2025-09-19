@@ -2,6 +2,17 @@
  * WebSocket client for sending notifications to the WebSocket service
  */
 
+import { 
+  AppError, 
+  WebSocketError, 
+  ErrorType, 
+  ErrorSeverity, 
+  errorHandler,
+  handleAsyncError 
+} from '../utils/errorHandler';
+import { errorRecoveryManager, webSocketCircuitBreaker } from '../utils/errorRecovery';
+import { errorMonitor } from '../utils/errorMonitoring';
+
 interface WebSocketNotification {
   id: string;
   title: string;
@@ -31,14 +42,28 @@ class WebSocketClient {
       this.ws.onopen = () => {
         console.log('🔗 Connected to WebSocket service');
         this.reconnectAttempts = 0;
+        
+        // Record successful connection
+        errorMonitor.recordError(new AppError(
+          'WebSocket connected successfully',
+          ErrorType.WEBSOCKET_CONNECTION,
+          ErrorSeverity.LOW,
+          { timestamp: new Date().toISOString() }
+        ));
       };
 
       this.ws.onclose = (event) => {
-        console.log('🔌 Disconnected from WebSocket service:', {
-          code: event.code,
-          reason: event.reason,
-          wasClean: event.wasClean
-        });
+        const closeError = new WebSocketError(
+          `WebSocket disconnected: ${event.reason || 'Unknown reason'}`,
+          {
+            websocketId: 'main',
+            timestamp: new Date().toISOString()
+          }
+        );
+        
+        errorHandler.handleError(closeError);
+        errorMonitor.recordError(closeError);
+        
         this.ws = null;
         
         // Only attempt reconnect if it wasn't a clean close
@@ -48,20 +73,31 @@ class WebSocketClient {
       };
 
       this.ws.onerror = (error) => {
-        console.error('❌ WebSocket error:', {
-          type: error.type,
-          target: error.target,
-          currentTarget: error.currentTarget,
-          timestamp: new Date().toISOString()
-        });
+        const wsError = new WebSocketError(
+          'WebSocket connection error',
+          {
+            websocketId: 'main',
+            timestamp: new Date().toISOString()
+          },
+          error instanceof Error ? error : new Error('Unknown WebSocket error')
+        );
+        
+        errorHandler.handleError(wsError);
+        errorMonitor.recordError(wsError);
       };
 
     } catch (error) {
-      console.error('❌ Failed to create WebSocket connection:', {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-        timestamp: new Date().toISOString()
-      });
+      const connectionError = new WebSocketError(
+        'Failed to create WebSocket connection',
+        {
+          websocketId: 'main',
+          timestamp: new Date().toISOString()
+        },
+        error instanceof Error ? error : new Error('Unknown connection error')
+      );
+      
+      errorHandler.handleError(connectionError);
+      errorMonitor.recordError(connectionError);
       this.attemptReconnect();
     }
   }
@@ -82,42 +118,79 @@ class WebSocketClient {
   }
 
   public sendNotification(notification: WebSocketNotification): Promise<boolean> {
-    return new Promise((resolve) => {
-      try {
-        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-          console.warn('⚠️ WebSocket not connected, notification not sent:', notification.title);
-          resolve(false);
-          return;
-        }
+    return webSocketCircuitBreaker.execute(async () => {
+      return await handleAsyncError(
+        async () => {
+          if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+            throw new WebSocketError(
+              'WebSocket not connected',
+              {
+                notificationId: notification.id,
+                timestamp: new Date().toISOString()
+              }
+            );
+          }
 
-        const message = {
-          type: 'ADMIN_NOTIFICATION',
-          data: notification
-        };
-        
-        // Add error handling for JSON serialization
-        let serializedMessage: string;
-        try {
-          serializedMessage = JSON.stringify(message);
-        } catch (jsonError) {
-          console.error('❌ Failed to serialize notification:', jsonError);
-          resolve(false);
-          return;
-        }
+          const message = {
+            type: 'ADMIN_NOTIFICATION',
+            data: notification
+          };
+          
+          // Serialize message with error handling
+          let serializedMessage: string;
+          try {
+            serializedMessage = JSON.stringify(message);
+          } catch (jsonError) {
+            throw new AppError(
+              'Failed to serialize notification',
+              ErrorType.WEBSOCKET_SEND,
+              ErrorSeverity.MEDIUM,
+              {
+                notificationId: notification.id,
+                timestamp: new Date().toISOString()
+              },
+              false,
+              jsonError instanceof Error ? jsonError : new Error('JSON serialization failed')
+            );
+          }
 
-        // Add error handling for WebSocket send
-        try {
-          this.ws.send(serializedMessage);
-          console.log('📤 Notification sent to WebSocket service:', notification.title);
-          resolve(true);
-        } catch (sendError) {
-          console.error('❌ Failed to send notification via WebSocket:', sendError);
-          resolve(false);
+          // Send message with error handling
+          try {
+            this.ws.send(serializedMessage);
+            console.log('📤 Notification sent to WebSocket service:', notification.title);
+            
+            // Record successful send
+            errorMonitor.recordError(new AppError(
+              'Notification sent successfully',
+              ErrorType.WEBSOCKET_SEND,
+              ErrorSeverity.LOW,
+              {
+                notificationId: notification.id,
+                timestamp: new Date().toISOString()
+              }
+            ));
+            
+            return true;
+          } catch (sendError) {
+            throw new AppError(
+              'Failed to send notification via WebSocket',
+              ErrorType.WEBSOCKET_SEND,
+              ErrorSeverity.HIGH,
+              {
+                notificationId: notification.id,
+                timestamp: new Date().toISOString()
+              },
+              true,
+              sendError instanceof Error ? sendError : new Error('WebSocket send failed')
+            );
+          }
+        },
+        ErrorType.WEBSOCKET_SEND,
+        {
+          notificationId: notification.id,
+          timestamp: new Date().toISOString()
         }
-      } catch (error) {
-        console.error('❌ Unexpected error in sendNotification:', error);
-        resolve(false);
-      }
+      ) || false;
     });
   }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNotifications } from './useNotifications';
 import { useWebSocketNotifications } from './useWebSocketNotifications';
 import type { Notification } from '@/lib/notifications';
@@ -17,6 +17,18 @@ interface UseHybridNotificationsReturn {
   markAsRead: (notificationId: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   deleteNotificationById: (notificationId: string) => Promise<void>;
+  errorStats: {
+    total: number;
+    byType: Record<string, number>;
+    bySeverity: Record<string, number>;
+    retryable: number;
+    critical: number;
+  };
+  healthStatus: {
+    status: 'HEALTHY' | 'WARNING' | 'CRITICAL';
+    message: string;
+    color: string;
+  };
 }
 
 export function useHybridNotifications() {
@@ -36,7 +48,8 @@ export function useHybridNotifications() {
   const {
     notifications: wsNotifications,
     isConnected: isWebSocketConnected,
-    connectionStatus
+    errorStats: wsErrorStats,
+    healthStatus: wsHealthStatus
   } = useWebSocketNotifications();
 
   const [notifications, setNotifications] = useState<HybridNotification[]>([]);
@@ -181,6 +194,8 @@ export function useHybridNotifications() {
     refreshNotifications,
     markAsRead,
     markAllAsRead,
-    deleteNotificationById
+    deleteNotificationById,
+    errorStats: wsErrorStats,
+    healthStatus: wsHealthStatus
   };
 }
