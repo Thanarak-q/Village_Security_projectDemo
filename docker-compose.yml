@@ -7,8 +7,6 @@ services:
       - ./backend:/app
     env_file:
       - ./backend/.env
-    environment:
-      - DOCKER_ENV=true
     restart: unless-stopped
 
   websocket:
@@ -40,6 +38,7 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+
 
   caddy:
     image: caddy:alpine
