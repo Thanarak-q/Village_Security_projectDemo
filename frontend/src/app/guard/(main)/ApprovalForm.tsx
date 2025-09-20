@@ -170,88 +170,80 @@ function ApprovalForm() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-2 sm:px-4 lg:px-6 py-3 sm:py-6 max-w-full xl:max-w-4xl">
-        {/* Form Card */}
-        <Card className="border-border shadow-sm">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl font-semibold">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-12 h-12 bg-primary/10 rounded-lg">
-                    <House className="w-8 h-8 text-primary" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-foreground">Send Visitor</div>
-                    <div className="text-sm text-muted-foreground">Step {step} of 3</div>
-                  </div>
-                </div>
-              </CardTitle>
-              <ModeToggle />
+    <div className="min-h-screen bg-background flex items-center justify-center p-2 sm:p-4">
+      <div className="w-full max-w-[420px]">
+        <div className="bg-card rounded-2xl border shadow-lg">
+          <div className="px-4 py-4">
+            <div className="flex items-center justify-between mb-2">
+              <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2">
+                <House className="w-6 h-6 sm:w-7 sm:h-7" /> ส่งคำขอเข้าเยี่ยม
+              </h1>
+              <span className="flex items-center gap-2">
+                <ModeToggle />
+              </span>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-6">
+            <div className="text-sm text-muted-foreground">กรุณากรอกข้อมูลผู้มาเยือน</div>
+            <div className="mb-4 mt-2">
               <Progress value={progress} className="h-2 bg-muted" />
             </div>
+          </div>
+          <div className="px-4 pb-4">
             <Form {...visitorForm}>
               <form onSubmit={visitorForm.handleSubmit(onSubmit)} className="space-y-6">
-                 {step === 1 && (
-                   <div className="space-y-4">
-                     <div 
-                       onClick={openFileDialog}
-                       className="w-full min-full max-h-[100%] rounded-lg border border-dashed border-border overflow-hidden relative bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
-                     >
-                       {capturedImage ? (
-                         <>
-                           <img 
-                             src={capturedImage} 
-                             alt="Uploaded" 
-                             className="w-full h-full object-cover"
-                           />
-                           <div className="absolute top-3 right-3">
-                             <button
-                               type="button"
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 clearImage();
-                               }}
-                               className="bg-red-500/90 hover:bg-red-600 text-white rounded-full p-2 text-sm shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 backdrop-blur-sm"
-                               title="ลบรูปภาพ"
-                             >
-                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                               </svg>
-                             </button>
-                           </div>
-                         </>
-                       ) : (
-                         <div className="w-full h-72 flex flex-col items-center justify-center text-muted-foreground">
-                           <Upload className="w-16 h-16 mb-2" />
-                           <div className="text-sm">อัปโหลดรูปภาพ</div>
-                         </div>
-                       )}
-                     </div>
-                     <input
-                       ref={fileInputRef}
-                       type="file"
-                       accept="image/*"
-                       onChange={handleFileUpload}
-                       className="hidden"
-                     />
-                     
-                     <div className="text-xs text-muted-foreground text-center">
-                       * อัปโหลดรูปภาพของรถยนต์/หมายเลขทะเบียน
-                     </div>
-                     {visitorForm.formState.errors.picture_key && (
-                       <div className="text-sm text-red-600 text-center">
-                         {visitorForm.formState.errors.picture_key.message}
-                       </div>
-                     )}
-                   </div>
-                   )}
-
-                  {step === 2 && (
+                {step === 1 && (
+                  <div className="space-y-4">
+                    <div 
+                      onClick={openFileDialog}
+                      className="w-full min-full max-h-[100%] rounded-lg border border-dashed border-border overflow-hidden relative bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
+                    >
+                      {capturedImage ? (
+                        <>
+                          <img 
+                            src={capturedImage} 
+                            alt="Uploaded" 
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute top-3 right-3">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                clearImage();
+                              }}
+                              className="bg-red-500/90 hover:bg-red-600 text-white rounded-full p-2 text-sm shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 backdrop-blur-sm"
+                              title="ลบรูปภาพ"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-full h-72 flex flex-col items-center justify-center text-muted-foreground">
+                          <Upload className="w-16 h-16 mb-2" />
+                          <div className="text-sm">อัปโหลดรูปภาพ</div>
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                    <div className="text-xs text-muted-foreground text-center">
+                      * อัปโหลดรูปภาพของรถยนต์/หมายเลขทะเบียน
+                    </div>
+                    {visitorForm.formState.errors.picture_key && (
+                      <div className="text-sm text-red-600 text-center">
+                        {visitorForm.formState.errors.picture_key.message}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {step === 2 && (
                   <div className="space-y-6">
                     <FormField
                       control={visitorForm.control}
@@ -337,7 +329,6 @@ function ApprovalForm() {
                     </div>
                   </div>
                 )}
-
                 {step === 3 && (
                   <div className="space-y-4">
                     <Input
@@ -365,11 +356,8 @@ function ApprovalForm() {
                         </button>
                       ))}
                     </div>
-
-                    {/* No hidden fields; all additional fields moved to Step 2 */}
                   </div>
                 )}
-
                 <div className="flex gap-4 pt-2">
                   <Button type="button" variant="outline" onClick={goBack} className="flex-1 h-12 text-base">กลับ</Button>
                   {step < 3 ? (
@@ -391,8 +379,8 @@ function ApprovalForm() {
                 </div>
               </form>
             </Form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

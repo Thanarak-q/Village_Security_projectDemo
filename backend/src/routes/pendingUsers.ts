@@ -125,7 +125,6 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
    * @returns {Promise<Object>} A promise that resolves to an object containing a success message.
    */
   .put("/approveUser", async ({ body, currentUser }) => {
-  .put("/approveUser", async ({ body, currentUser }) => {
     try {
       const {
         userId,
