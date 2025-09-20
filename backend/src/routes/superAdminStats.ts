@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
 import db from "../db/drizzle";
-import { admins, villages, residents, guards, houses } from "../db/schema";
+import { admins, villages, residents, guards, houses, admin_villages } from "../db/schema";
 import { eq, count, sql } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 
@@ -57,10 +57,10 @@ export const superAdminStatsRoutes = new Elysia({ prefix: "/api/superadmin" })
           village_id: villages.village_id,
           village_name: villages.village_name,
           village_key: villages.village_key,
-          admin_count: count(admins.admin_id),
+          admin_count: count(admin_villages.admin_id),
         })
         .from(villages)
-        .leftJoin(admins, eq(villages.village_key, admins.village_key))
+        .leftJoin(admin_villages, eq(villages.village_key, admin_villages.village_key))
         .groupBy(villages.village_id, villages.village_name, villages.village_key)
         .orderBy(villages.village_name);
 
@@ -72,12 +72,13 @@ export const superAdminStatsRoutes = new Elysia({ prefix: "/api/superadmin" })
           email: admins.email,
           role: admins.role,
           status: admins.status,
-          village_key: admins.village_key,
+          village_key: admin_villages.village_key,
           village_name: villages.village_name,
           createdAt: admins.createdAt,
         })
         .from(admins)
-        .leftJoin(villages, eq(admins.village_key, villages.village_key))
+        .leftJoin(admin_villages, eq(admins.admin_id, admin_villages.admin_id))
+        .leftJoin(villages, eq(admin_villages.village_key, villages.village_key))
         .orderBy(sql`${admins.createdAt} DESC`)
         .limit(10);
 

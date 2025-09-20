@@ -43,6 +43,13 @@
       "when": 1758356958655,
       "tag": "0005_simple_kylun",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1758359430560,
+      "tag": "0006_keen_juggernaut",
+      "breakpoints": true
     }
   ]
 }

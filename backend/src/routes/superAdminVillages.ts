@@ -1,6 +1,6 @@
 import { Elysia, t } from "elysia";
 import db from "../db/drizzle";
-import { villages, admins } from "../db/schema";
+import { villages, admins, admin_villages } from "../db/schema";
 import { eq, count } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { hashPassword } from "../utils/passwordUtils";
@@ -24,10 +24,10 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
           village_id: villages.village_id,
           village_name: villages.village_name,
           village_key: villages.village_key,
-          admin_count: count(admins.admin_id),
+          admin_count: count(admin_villages.admin_id),
         })
         .from(villages)
-        .leftJoin(admins, eq(villages.village_key, admins.village_key))
+        .leftJoin(admin_villages, eq(villages.village_key, admin_villages.village_key))
         .groupBy(villages.village_id, villages.village_name, villages.village_key);
 
       return { success: true, data: villagesWithAdminCount };
@@ -192,8 +192,8 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
       // Check if village has admins
       const villageAdmins = await db
         .select()
-        .from(admins)
-        .where(eq(admins.village_key, existingVillage[0].village_key));
+        .from(admin_villages)
+        .where(eq(admin_villages.village_key, existingVillage[0].village_key));
 
       if (villageAdmins.length > 0) {
         set.status = 400;

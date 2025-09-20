@@ -1,6 +1,6 @@
 import { Elysia, t } from "elysia";
 import db from "../db/drizzle";
-import { admins, villages } from "../db/schema";
+import { admins, villages, admin_villages } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { hashPassword } from "../utils/passwordUtils";
@@ -27,13 +27,14 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
           phone: admins.phone,
           role: admins.role,
           status: admins.status,
-          village_key: admins.village_key,
+          village_key: admin_villages.village_key,
           village_name: villages.village_name,
           createdAt: admins.createdAt,
           updatedAt: admins.updatedAt,
         })
         .from(admins)
-        .leftJoin(villages, eq(admins.village_key, villages.village_key))
+        .leftJoin(admin_villages, eq(admins.admin_id, admin_villages.admin_id))
+        .leftJoin(villages, eq(admin_villages.village_key, villages.village_key))
         .orderBy(admins.createdAt);
 
       return { success: true, data: adminsWithVillage };
@@ -138,7 +139,6 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
           password_hash: hashedPassword,
           phone: phone.trim(),
           role: role,
-          village_key: village_key,
           status: "verified", // Auto-verify admins created by superadmin
         })
         .returning({
@@ -148,8 +148,15 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
           phone: admins.phone,
           role: admins.role,
           status: admins.status,
-          village_key: admins.village_key,
           createdAt: admins.createdAt,
+        });
+
+      // Create admin-village relationship
+      await db
+        .insert(admin_villages)
+        .values({
+          admin_id: newAdmin[0].admin_id,
+          village_key: village_key,
         });
 
       return { success: true, data: newAdmin[0] };
@@ -224,7 +231,7 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
       }
 
       // Check if village exists (if village_key is being updated)
-      if (village_key && village_key !== existingAdmin[0].village_key) {
+      if (village_key) {
         const village = await db
           .select()
           .from(villages)
@@ -268,7 +275,6 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
       if (email !== undefined) updateData.email = email.trim();
       if (phone !== undefined) updateData.phone = phone.trim();
       if (role !== undefined) updateData.role = role;
-      if (village_key !== undefined) updateData.village_key = village_key;
       if (status !== undefined) updateData.status = status;
       updateData.updatedAt = new Date();
 
@@ -284,9 +290,24 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
           phone: admins.phone,
           role: admins.role,
           status: admins.status,
-          village_key: admins.village_key,
           updatedAt: admins.updatedAt,
         });
+
+      // Update admin-village relationship if village_key is provided
+      if (village_key !== undefined) {
+        // Delete existing relationships
+        await db
+          .delete(admin_villages)
+          .where(eq(admin_villages.admin_id, id));
+
+        // Create new relationship
+        await db
+          .insert(admin_villages)
+          .values({
+            admin_id: id,
+            village_key: village_key,
+          });
+      }
 
       return { success: true, data: updatedAdmin[0] };
     } catch (error) {
@@ -322,6 +343,11 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
         set.status = 400;
         return { success: false, error: "Cannot delete superadmin" };
       }
+
+      // Delete admin-village relationships first
+      await db
+        .delete(admin_villages)
+        .where(eq(admin_villages.admin_id, id));
 
       // Delete admin
       await db
