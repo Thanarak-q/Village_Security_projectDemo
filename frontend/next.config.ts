@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react', 'recharts'],
   },
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
+    removeConsole: process.env.NODE_ENV === 'development' ? false : true,
   },
   images: {
     formats: ['image/webp', 'image/avif'],
@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
-    const backendUrl = process.env.BACKEND_URL || "http://localhost:3001";
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://backend:3001";
     return [
       {
         source: "/api/:path*",
