@@ -347,19 +347,21 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         // Create notification for new resident registration
         try {
           // Find admin for this village
-          const [villageAdmin] = await db
-            .select()
-            .from(admins)
-            .where(eq(admins.village_key, newResident.village_key))
-            .limit(1);
+          if (newResident.village_key) {
+            const [villageAdmin] = await db
+              .select()
+              .from(admins)
+              .where(eq(admins.village_key, newResident.village_key))
+              .limit(1);
 
-          if (villageAdmin) {
-            await notificationService.notifyNewResidentRegistration({
-              resident_id: newResident.resident_id,
-              fname: newResident.fname,
-              lname: newResident.lname,
-              village_key: newResident.village_key,
-            });
+            if (villageAdmin) {
+              await notificationService.notifyNewResidentRegistration({
+                resident_id: newResident.resident_id,
+                fname: newResident.fname,
+                lname: newResident.lname,
+                village_key: newResident.village_key,
+              });
+            }
           }
         } catch (notificationError) {
           console.error('Error creating registration notification:', notificationError);
@@ -414,20 +416,21 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         // Create notification for new guard registration
         try {
           // Find admin for this village
-          const [villageAdmin] = await db
-            .select()
-            .from(admins)
-            .where(eq(admins.village_key, newGuard.village_key))
-            .limit(1);
+          if (newGuard.village_key) {
+            const [villageAdmin] = await db
+              .select()
+              .from(admins)
+              .where(eq(admins.village_key, newGuard.village_key))
+              .limit(1);
 
-          if (villageAdmin) {
-            await notificationService.notifyNewGuardRegistration({
-              guard_id: newGuard.guard_id,
-              fname: newGuard.fname,
-              lname: newGuard.lname,
-              village_key: newGuard.village_key,
-              admin_id: villageAdmin.admin_id,
-            });
+            if (villageAdmin && villageAdmin.admin_id) {
+              await notificationService.notifyNewGuardRegistration({
+                guard_id: newGuard.guard_id,
+                fname: newGuard.fname,
+                lname: newGuard.lname,
+                village_key: newGuard.village_key,
+              });
+            }
           }
         } catch (notificationError) {
           console.error('Error creating registration notification:', notificationError);
