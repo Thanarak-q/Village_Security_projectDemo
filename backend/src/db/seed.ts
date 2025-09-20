@@ -717,6 +717,16 @@ const adminData = [
     village_key: "thonglor-village-015",
     status: "pending",
   },
+
+  {
+    email: "superadmin@system.com",
+    username: "superadmin", 
+    password_hash: "superadmin123",
+    phone: "0812345678",
+    village_key: null, // ← ไม่มี village_key
+    role: "superadmin", // ← ระบุ role
+    status: "verified",
+  },
 ];
 
 /**
