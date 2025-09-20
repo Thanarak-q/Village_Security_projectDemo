@@ -6,6 +6,7 @@
 import db from '../db/drizzle';
 import { admin_notifications, villages } from '../db/schema';
 import { eq, and, count } from 'drizzle-orm';
+import { websocketClient } from './websocketClient';
 
 export interface CreateNotificationData {
   village_key: string;
@@ -61,6 +62,23 @@ class NotificationService {
 
 
       console.log(`📢 Created notification: ${notification.title} for village ${data.village_key}`);
+
+      // Send via WebSocket to admins
+      try {
+        const wsNotification = {
+          id: notification.notification_id,
+          title: notification.title,
+          body: notification.message,
+          level: this.getNotificationLevel(data.type),
+          createdAt: notification.created_at ? notification.created_at.getTime() : Date.now()
+        };
+        
+        await websocketClient.sendNotification(wsNotification);
+        console.log(`📤 WebSocket notification sent: ${notification.title}`);
+      } catch (wsError) {
+        console.error('❌ WebSocket notification failed:', wsError);
+        // Don't throw - database save was successful
+      }
 
       return notification;
     } catch (error) {
@@ -214,6 +232,28 @@ class NotificationService {
         rejection_date: new Date().toISOString(),
       }
     });
+  }
+
+  /**
+   * Get notification level based on type
+   */
+  private getNotificationLevel(type: string): 'info' | 'warning' | 'critical' {
+    switch (type) {
+      case 'visitor_pending_too_long':
+      case 'visitor_rejected_review':
+        return 'warning';
+      case 'resident_pending':
+      case 'guard_pending':
+      case 'admin_pending':
+        return 'info';
+      case 'house_updated':
+      case 'member_added':
+      case 'member_removed':
+      case 'status_changed':
+        return 'info';
+      default:
+        return 'info';
+    }
   }
 
 }
