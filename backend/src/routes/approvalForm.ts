@@ -5,7 +5,7 @@ import { requireRole } from "../hooks/requireRole";
 import { eq, and } from "drizzle-orm";
 
 const approvalForm = new Elysia()
-    .onBeforeHandle(requireRole("guards"))
+    .onBeforeHandle(requireRole(["admin", "staff"]))
     .post("/approvalForms", async ({ body, store }: { body: unknown, store: { user?: { id?: string } } }) => {
         type ApprovalFormBody = {
             residentId?: string;
@@ -95,6 +95,6 @@ const approvalForm = new Elysia()
 
         return { success: true, visitorRecordId };
     })
-    .onBeforeHandle(requireRole("residents"));
+    .onBeforeHandle(requireRole(["admin", "staff"]));
 
 export default approvalForm;
