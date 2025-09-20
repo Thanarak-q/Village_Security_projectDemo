@@ -20,6 +20,8 @@ export async function getAllVisitorRecords() {
       guard_id: visitor_records.guard_id,
       house_id: visitor_records.house_id,
       picture_key: visitor_records.picture_key,
+      visitor_name: visitor_records.visitor_name,
+      visitor_id_card: visitor_records.visitor_id_card,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
       record_status: visitor_records.record_status,
@@ -54,6 +56,8 @@ export async function getVisitorRecordsByVillage(villageKey: string) {
       guard_id: visitor_records.guard_id,
       house_id: visitor_records.house_id,
       picture_key: visitor_records.picture_key,
+      visitor_name: visitor_records.visitor_name,
+      visitor_id_card: visitor_records.visitor_id_card,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
       record_status: visitor_records.record_status,
@@ -89,6 +93,8 @@ export async function getVisitorRecordsByResident(residentId: string) {
       guard_id: visitor_records.guard_id,
       house_id: visitor_records.house_id,
       picture_key: visitor_records.picture_key,
+      visitor_name: visitor_records.visitor_name,
+      visitor_id_card: visitor_records.visitor_id_card,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
       record_status: visitor_records.record_status,
@@ -124,6 +130,8 @@ export async function getVisitorRecordsByGuard(guardId: string) {
       guard_id: visitor_records.guard_id,
       house_id: visitor_records.house_id,
       picture_key: visitor_records.picture_key,
+      visitor_name: visitor_records.visitor_name,
+      visitor_id_card: visitor_records.visitor_id_card,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
       record_status: visitor_records.record_status,
@@ -159,6 +167,8 @@ export async function getVisitorRecordsByHouse(houseId: string) {
       guard_id: visitor_records.guard_id,
       house_id: visitor_records.house_id,
       picture_key: visitor_records.picture_key,
+      visitor_name: visitor_records.visitor_name,
+      visitor_id_card: visitor_records.visitor_id_card,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
       record_status: visitor_records.record_status,
@@ -196,6 +206,8 @@ export async function getVisitorRecordsByStatus(
       guard_id: visitor_records.guard_id,
       house_id: visitor_records.house_id,
       picture_key: visitor_records.picture_key,
+      visitor_name: visitor_records.visitor_name,
+      visitor_id_card: visitor_records.visitor_id_card,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
       record_status: visitor_records.record_status,
@@ -225,19 +237,19 @@ export async function getVisitorRecordsByStatus(
  */
 export async function getVisitorRecordsByLineId(lineUserId: string) {
   console.log(`🔍 Querying visitor records for LINE user ID: ${lineUserId}`);
-
+  
   // First, check if the resident exists
   const resident = await db.query.residents.findFirst({
     where: eq(residents.line_user_id, lineUserId),
   });
-
+  
   if (!resident) {
     console.log(`❌ No resident found for LINE user ID: ${lineUserId}`);
     return [];
   }
-
+  
   console.log(`✅ Found resident: ${resident.resident_id} (${resident.fname} ${resident.lname})`);
-
+  
   const result = await db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
@@ -245,6 +257,8 @@ export async function getVisitorRecordsByLineId(lineUserId: string) {
       guard_id: visitor_records.guard_id,
       house_id: visitor_records.house_id,
       picture_key: visitor_records.picture_key,
+      visitor_name: visitor_records.visitor_name,
+      visitor_id_card: visitor_records.visitor_id_card,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
       record_status: visitor_records.record_status,
@@ -589,12 +603,12 @@ export async function getYearlyVisitorRecords() {
 
   // Group records by year
   const recordsByYear: { [key: number]: any[] } = {};
-
+  
   allRecords.forEach(record => {
     if (record.entry_time) {
       const recordDate = new Date(record.entry_time);
       const year = recordDate.getFullYear();
-
+      
       if (!recordsByYear[year]) {
         recordsByYear[year] = [];
       }

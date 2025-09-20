@@ -148,6 +148,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       village_key: currentUser.village_key,
       village_name,
     };
-  });
+  })
+
 
  

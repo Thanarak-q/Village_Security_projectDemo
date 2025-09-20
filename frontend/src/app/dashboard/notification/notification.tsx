@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Bell, Users, Home, Clock, AlertTriangle, Settings, CheckCircle2, Trash2 } from "lucide-react"
+import { useState, useCallback } from "react"
+import { Bell, Users, Home, Clock, AlertTriangle, Settings } from "lucide-react"
+import Link from "next/link"
+
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import {
   Popover,
   PopoverContent,
@@ -11,8 +12,8 @@ import {
 } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { useNotifications } from "@/hooks/useNotifications"
-import { getNotificationIcon, getNotificationColor } from "@/lib/notifications"
+import { useHybridNotifications } from "@/hooks/useHybridNotifications"
+import { getNotificationIcon } from "@/lib/notifications"
 
 // Helper function to format time ago
 function formatTimeAgo(dateString: string): string {
@@ -79,74 +80,31 @@ export default function NotificationComponent() {
     notifications,
     counts,
     loading,
-    error,
-    refreshNotifications,
-    markAsRead,
-    markAllAsRead,
-    deleteNotificationById
-  } = useNotifications();
+    error
+  } = useHybridNotifications();
 
-  // Auto-refresh notifications when popover opens
-  useEffect(() => {
-    if (isOpen) {
-      refreshNotifications();
-    }
-  }, [isOpen, refreshNotifications]);
+  // Refresh notifications when popover opens
 
-  const handleMarkAsRead = async (notificationId: string) => {
-    await markAsRead(notificationId);
-  };
+  const handleOpenChange = useCallback((open: boolean) => {
+    setIsOpen(open);
+  }, []);
 
-  const handleMarkAllAsRead = async () => {
-    await markAllAsRead();
-  };
 
-  const handleDeleteNotification = async (notificationId: string) => {
-    await deleteNotificationById(notificationId);
-  };
 
-  const unreadCount = counts?.unread || 0;
+
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
-          {unreadCount > 0 && (
-            <Badge 
-              variant="destructive" 
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs font-bold"
-            >
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </Badge>
-          )}
         </Button>
       </PopoverTrigger>
       
       <PopoverContent className="w-80 sm:w-96" align="end">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">การแจ้งเตือน</h3>
-          <div className="flex items-center gap-2">
-            {unreadCount > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleMarkAllAsRead}
-                className="text-xs"
-              >
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                อ่านทั้งหมด
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={refreshNotifications}
-              disabled={loading}
-              className="text-xs"
-            >
-              รีเฟรช
-            </Button>
+          <div className="flex flex-col">
+            <h3 className="text-lg font-semibold">การแจ้งเตือน</h3>
           </div>
         </div>
         
@@ -172,11 +130,7 @@ export default function NotificationComponent() {
                 
                 return (
                   <div key={notification.notification_id}>
-                    <div
-                      className={`p-3 rounded-lg transition-colors hover:bg-muted/50 ${
-                        !notification.is_read ? 'bg-primary/10 border-l-4 border-primary dark:bg-primary/20' : ''
-                      }`}
-                    >
+                    <div className="p-3 rounded-lg transition-colors hover:bg-muted/50">
                       <div className="flex items-start gap-2 sm:gap-3">
                         <div className={`p-1.5 sm:p-2 rounded-full bg-muted ${getIconColor(notification.type)}`}>
                           <IconComponent className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -187,26 +141,6 @@ export default function NotificationComponent() {
                             <h4 className="text-xs sm:text-sm font-medium truncate">
                               {notification.title}
                             </h4>
-                            <div className="flex items-center gap-1">
-                              {!notification.is_read && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleMarkAsRead(notification.notification_id)}
-                                  className="h-6 w-6 p-0"
-                                >
-                                  <CheckCircle2 className="h-3 w-3" />
-                                </Button>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteNotification(notification.notification_id)}
-                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
                           </div>
                           
                           <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-2">
@@ -240,7 +174,11 @@ export default function NotificationComponent() {
             <Separator className="mt-4" />
             <div className="flex items-center justify-between mt-4 text-xs text-muted-foreground">
               <span>ทั้งหมด {counts?.total || 0} รายการ</span>
-              <span>ยังไม่อ่าน {unreadCount} รายการ</span>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/dashboard/notification">
+                  ดูการแจ้งเตือนทั้งหมด
+                </Link>
+              </Button>
             </div>
           </>
         )}

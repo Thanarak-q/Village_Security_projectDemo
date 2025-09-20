@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Notification,
+  type Notification,
   NotificationFilters,
   NotificationCounts,
   fetchNotifications,
@@ -31,6 +31,7 @@ export function useNotifications(initialFilters?: NotificationFilters): UseNotif
   const [counts, setCounts] = useState<NotificationCounts | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
 
   const refreshNotifications = useCallback(async (filters: NotificationFilters = {}) => {
     try {
@@ -122,6 +123,15 @@ export function useNotifications(initialFilters?: NotificationFilters): UseNotif
       console.error('Error deleting notification:', err);
     }
   }, [notifications]);
+
+  // Request notification permission on mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        console.log('📣 Notification permission:', permission);
+      });
+    }
+  }, []);
 
   // Load notifications on mount
   useEffect(() => {

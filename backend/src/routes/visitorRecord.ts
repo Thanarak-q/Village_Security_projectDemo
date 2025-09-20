@@ -3,7 +3,6 @@ import {
   getAllVisitorRecords,
   getVisitorRecordsByVillage,
   getVisitorRecordsByResident,
-  getVisitorRecordsByResidentName,
   getVisitorRecordsByGuard,
   getVisitorRecordsByHouse,
   getVisitorRecordsByStatus,
@@ -570,44 +569,6 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
       return {
         success: false,
         error: "Failed to fetch visitor request history",
-      };
-    }
-  })
-
-  /**
-   * Get all visitor records for a specific resident by name.
-   * @param {Object} params - The parameters for the request.
-   * @param {string} params.resident_name - The resident name (e.g., "สมชาย ผาสุก").
-   * @returns {Promise<Object>} A promise that resolves to all visitor records for the resident.
-   */
-  .get("/visitor-records/resident-name/:resident_name", async ({ params }) => {
-    try {
-      const { resident_name } = params;
-
-      if (!resident_name?.trim()) {
-        return {
-          success: false,
-          error: "Resident name is required",
-        };
-      }
-
-      // Decode URL-encoded name
-      const decodedName = decodeURIComponent(resident_name);
-      console.log(`🔍 Fetching visitor records for resident: ${decodedName}`);
-      
-      const result = await getVisitorRecordsByResidentName(decodedName);
-      console.log(`✅ Found ${result.length} visitor records for ${decodedName}`);
-      
-      return {
-        success: true,
-        data: result,
-        total: result.length,
-      };
-    } catch (error) {
-      console.error("Error fetching visitor records by resident name:", error);
-      return {
-        success: false,
-        error: "Failed to fetch visitor records for resident",
       };
     }
   }); 
