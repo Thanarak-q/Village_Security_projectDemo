@@ -4,6 +4,7 @@ import { houses, villages } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { houseActivityLogger } from "../utils/activityLogUtils";
+import { notificationService } from "../services/notificationService";
 
 /**
  * Interface for the create house request body.
@@ -228,6 +229,9 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
           };
         }
 
+        // Get old status for notification
+        const oldStatus = existingHouse[0].status;
+
         // Prepare update data
         const dataToUpdate: any = {};
         if (updateData.address !== undefined)
@@ -263,6 +267,23 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         } catch (logError) {
           console.error("Error logging house update:", logError);
           // Don't fail the request if logging fails
+        }
+
+        // Send notification if status changed
+        if (updateData.status !== undefined && oldStatus !== updateData.status) {
+          try {
+            await notificationService.notifyHouseStatusChange({
+              house_id: house_id,
+              address: updatedHouse.address,
+              old_status: oldStatus,
+              new_status: updateData.status,
+              village_key: currentUser.village_key,
+            });
+            console.log(`📢 House status change notification sent: ${updatedHouse.address}`);
+          } catch (notificationError) {
+            console.error('❌ Error sending house status change notification:', notificationError);
+            // Don't fail the request if notification fails
+          }
         }
 
         return {
@@ -331,6 +352,9 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
           };
         }
 
+        // Get old status for notification
+        const oldStatus = existingHouse[0].status;
+
         // Update house status
         const [updatedHouse] = await db
           .update(houses)
@@ -349,6 +373,23 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         } catch (logError) {
           console.error("Error logging house status update:", logError);
           // Don't fail the request if logging fails
+        }
+
+        // Send notification if status actually changed
+        if (oldStatus !== status) {
+          try {
+            await notificationService.notifyHouseStatusChange({
+              house_id: house_id,
+              address: updatedHouse.address,
+              old_status: oldStatus,
+              new_status: status,
+              village_key: currentUser.village_key,
+            });
+            console.log(`📢 House status change notification sent: ${updatedHouse.address}`);
+          } catch (notificationError) {
+            console.error('❌ Error sending house status change notification:', notificationError);
+            // Don't fail the request if notification fails
+          }
         }
 
         return {

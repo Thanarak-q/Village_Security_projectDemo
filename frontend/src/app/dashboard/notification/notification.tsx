@@ -2,6 +2,8 @@
 
 import { useState, useCallback } from "react"
 import { Bell, Users, Home, Clock, AlertTriangle, Settings } from "lucide-react"
+import Link from "next/link"
+
 import { Button } from "@/components/ui/button"
 import {
   Popover,
@@ -172,6 +174,11 @@ export default function NotificationComponent() {
             <Separator className="mt-4" />
             <div className="flex items-center justify-between mt-4 text-xs text-muted-foreground">
               <span>ทั้งหมด {counts?.total || 0} รายการ</span>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/dashboard/notification">
+                  ดูการแจ้งเตือนทั้งหมด
+                </Link>
+              </Button>
             </div>
           </>
         )}

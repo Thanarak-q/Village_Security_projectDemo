@@ -2,7 +2,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { gsap } from "gsap";
-import NotificationComponent from "./(main)/notification";
+import NotificationComponent from "./notification/notification";
 import { ModeToggle } from "@/components/mode-toggle";
 import { useTheme } from "next-themes";
 import Image from "next/image";
