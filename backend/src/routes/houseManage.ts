@@ -83,11 +83,11 @@ const validateStatus = (
 
 /**
  * The house management routes.
- * Accessible by: admin (เจ้าของโครงการ) only
+ * Accessible by: admin (เจ้าของโครงการ) and staff (นิติ)
  * @type {Elysia}
  */
 export const houseManageRoutes = new Elysia({ prefix: "/api" })
-  .onBeforeHandle(requireRole("admin"))
+  .onBeforeHandle(requireRole(["admin", "staff"]))
   // Get all houses (moved from house.ts)
   .get("/houses", async ({ currentUser }: any) => {
     try {

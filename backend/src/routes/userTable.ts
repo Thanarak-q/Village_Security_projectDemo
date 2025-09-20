@@ -198,11 +198,11 @@ async function createHouseForResident(
 
 /**
  * The user table routes.
- * Accessible by: admin (เจ้าของโครงการ) only
+ * Accessible by: admin (เจ้าของโครงการ) and staff (นิติ)
  * @type {Elysia}
  */
 export const userTableRoutes = new Elysia({ prefix: "/api" })
-  .onBeforeHandle(requireRole(["admin"]))
+  .onBeforeHandle(requireRole(["staff","admin"]))
   /**
    * Get all users for the current user's village.
    * @param {Object} context - The context for the request.
