@@ -10,6 +10,7 @@ import {
 import { eq, sql, and } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { notificationService } from "../services/notificationService";
+import { userManagementActivityLogger } from "../utils/activityLogUtils";
 
 /**
  * Interface for the approve user request.
@@ -95,7 +96,12 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
           updatedAt: guards.updatedAt,
         })
         .from(guards)
-        .where(sql`${guards.status} = 'pending'`);
+        .where(
+          and(
+            eq(guards.status, "pending"),
+            eq(guards.village_key, village_key)
+          )
+        );
 
       return {
         success: true,
@@ -121,6 +127,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
    * Approve a user.
    * @param {Object} context - The context for the request.
    * @param {Object} context.body - The body of the request.
+   * @param {Object} context.currentUser - The current user.
    * @returns {Promise<Object>} A promise that resolves to an object containing a success message.
    */
   .put("/approveUser", async ({ body, currentUser }: any) => {
@@ -163,7 +170,20 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
-      if (currentRole === "resident" && approvedRole === "resident") {
+        if (currentRole === "resident" && approvedRole === "resident") {
+        // Get current resident data for logging
+        const currentResident = await db
+          .select()
+          .from(residents)
+          .where(eq(residents.resident_id, userId));
+
+        if (currentResident.length === 0) {
+          return {
+            success: false,
+            error: "Resident not found",
+          };
+        }
+
         // Approve existing resident
         const updateResult = await db
           .update(residents)
@@ -247,6 +267,19 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
           data: updateResult[0],
         };
       } else if (currentRole === "guard" && approvedRole === "guard") {
+        // Get current guard data for logging
+        const currentGuard = await db
+          .select()
+          .from(guards)
+          .where(eq(guards.guard_id, userId));
+
+        if (currentGuard.length === 0) {
+          return {
+            success: false,
+            error: "Guard not found",
+          };
+        }
+
         // Approve existing guard
         const updateResult = await db
           .update(guards)
@@ -353,6 +386,28 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
         // Delete old resident
         await db.delete(residents).where(eq(residents.resident_id, userId));
 
+        // Log the user approval and role change activity
+        try {
+          const userName = `${resident[0].fname} ${resident[0].lname}`;
+          await userManagementActivityLogger.logUserApproved(
+            currentUser.admin_id,
+            currentUser.username,
+            "guard",
+            userName
+          );
+          await userManagementActivityLogger.logUserRoleChanged(
+            currentUser.admin_id,
+            currentUser.username,
+            userName,
+            "resident",
+            "guard",
+            "verified"
+          );
+        } catch (logError) {
+          console.error("Error logging user approval and role change:", logError);
+          // Don't fail the request if logging fails
+        }
+
         // Notify guard approval
         try {
           await notificationService.notifyUserApproval({
@@ -434,6 +489,29 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
         // Delete old guard
         await db.delete(guards).where(eq(guards.guard_id, userId));
 
+        // Log the user approval and role change activity
+        try {
+          const userName = `${guard[0].fname} ${guard[0].lname}`;
+          await userManagementActivityLogger.logUserApproved(
+            currentUser.admin_id,
+            currentUser.username,
+            "resident",
+            userName,
+            houseNumber
+          );
+          await userManagementActivityLogger.logUserRoleChanged(
+            currentUser.admin_id,
+            currentUser.username,
+            userName,
+            "guard",
+            "resident",
+            "verified"
+          );
+        } catch (logError) {
+          console.error("Error logging user approval and role change:", logError);
+          // Don't fail the request if logging fails
+        }
+
         // Notify resident approval
         try {
           await notificationService.notifyUserApproval({
@@ -471,9 +549,10 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
    * Reject a user.
    * @param {Object} context - The context for the request.
    * @param {Object} context.body - The body of the request.
+   * @param {Object} context.currentUser - The current user.
    * @returns {Promise<Object>} A promise that resolves to an object containing a success message.
    */
-  .put("/rejectUser", async ({ body }) => {
+  .put("/rejectUser", async ({ body, currentUser }: any) => {
     try {
       const { userId, currentRole, reason, notes }: RejectUserRequest =
         body as RejectUserRequest;
@@ -495,6 +574,19 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
       }
 
       if (currentRole === "resident") {
+        // Get current resident data for logging
+        const currentResident = await db
+          .select()
+          .from(residents)
+          .where(eq(residents.resident_id, userId));
+
+        if (currentResident.length === 0) {
+          return {
+            success: false,
+            error: "Resident not found",
+          };
+        }
+
         // Reject resident
         const updateResult = await db
           .update(residents)
@@ -512,12 +604,40 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
           };
         }
 
+        // Log the user rejection activity
+        try {
+          const userName = `${currentResident[0].fname} ${currentResident[0].lname}`;
+          await userManagementActivityLogger.logUserRejected(
+            currentUser.admin_id,
+            currentUser.username,
+            "resident",
+            userName,
+            reason
+          );
+        } catch (logError) {
+          console.error("Error logging user rejection:", logError);
+          // Don't fail the request if logging fails
+        }
+
         return {
           success: true,
           message: "Resident rejected successfully",
           data: updateResult[0],
         };
       } else if (currentRole === "guard") {
+        // Get current guard data for logging
+        const currentGuard = await db
+          .select()
+          .from(guards)
+          .where(eq(guards.guard_id, userId));
+
+        if (currentGuard.length === 0) {
+          return {
+            success: false,
+            error: "Guard not found",
+          };
+        }
+
         // Reject guard
         const updateResult = await db
           .update(guards)
@@ -533,6 +653,21 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             success: false,
             error: "Guard not found",
           };
+        }
+
+        // Log the user rejection activity
+        try {
+          const userName = `${currentGuard[0].fname} ${currentGuard[0].lname}`;
+          await userManagementActivityLogger.logUserRejected(
+            currentUser.admin_id,
+            currentUser.username,
+            "guard",
+            userName,
+            reason
+          );
+        } catch (logError) {
+          console.error("Error logging user rejection:", logError);
+          // Don't fail the request if logging fails
         }
 
         return {
