@@ -70,7 +70,7 @@ export function useHybridNotifications() {
         category: 'realtime' as const,
         is_read: false,
         created_at: new Date(wsNotif.createdAt).toISOString(),
-        read_at: null,
+        read_at: undefined,
         isRealtime: true
       })),
       // Add HTTP notifications (filter out duplicates)
@@ -95,7 +95,7 @@ export function useHybridNotifications() {
     if (httpCounts) {
       setCounts({
         total: httpCounts.total + wsNotifications.length,
-        unread: httpCounts.unread + wsNotifications.filter(n => !n.is_read).length
+        unread: httpCounts.unread + wsNotifications.length
       });
     }
   }, [httpCounts, wsNotifications]);
