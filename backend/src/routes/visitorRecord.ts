@@ -17,7 +17,7 @@ import {
  * @interface
  */
 interface CreateVisitorRecordBody {
-  resident_id: string;
+  resident_id?: string;
   guard_id: string;
   house_id: string;
   picture_key?: string;
@@ -41,9 +41,10 @@ interface UpdateStatusBody {
 const validateVisitorRecordData = (data: CreateVisitorRecordBody) => {
   const errors: string[] = [];
 
-  if (!data.resident_id?.trim()) {
-    errors.push("Resident ID is required");
-  }
+  // resident_id is now optional, so we don't validate it
+  // if (!data.resident_id?.trim()) {
+  //   errors.push("Resident ID is required");
+  // }
 
   if (!data.guard_id?.trim()) {
     errors.push("Guard ID is required");

@@ -4,7 +4,7 @@
 
 export interface VisitorRequest {
   visitor_record_id: string;
-  resident_id: string;
+  resident_id?: string;
   guard_id: string;
   house_id: string;
   picture_key?: string;

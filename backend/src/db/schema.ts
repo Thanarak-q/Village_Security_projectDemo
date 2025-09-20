@@ -146,7 +146,7 @@ export const admins = pgTable("admins", {
     .default("pending"),
   role: text("role")
     .$type<"admin" | "staff" | "superadmin">()
-    .default("admin")
+    .default("staff")
     .notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
