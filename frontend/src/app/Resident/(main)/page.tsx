@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { Car, Clock, Home, ChevronLeft, ChevronRight } from "lucide-react";
-import NotificationComponent from "./notification";
+import NotificationComponent from "../../dashboard/(main)/notification";
 import { useRouter } from "next/navigation";
 import { getAuthData, isAuthenticated } from "@/lib/liffAuth";
 import { gsap } from "gsap";
