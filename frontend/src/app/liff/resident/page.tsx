@@ -20,23 +20,30 @@ export default function ResidentLiffPage() {
 
 
   useEffect(() => {
+    // เพิ่ม timeout สำหรับทั้ง process เพื่อป้องกันการค้าง
+    const processTimeout = setTimeout(() => {
+      if (step === "logging-in") {
+        setStep("error");
+        setMsg("การเข้าสู่ระบบใช้เวลานานเกินไป กรุณาลองใหม่");
+      }
+    }, 30000); // 30 วินาที timeout
+
     const run = async () => {
       try {
+        const liffId = process.env.NEXT_PUBLIC_RESIDENT_LIFF_ID;
+        if (!liffId) {
+          setStep("error");
+          setMsg("ไม่พบ LIFF ID - กรุณาติดต่อผู้ดูแลระบบเพื่อตั้งค่า LIFF ID");
+          return;
+        }
         
         // Initialize LIFF with resident-specific configuration
         const initPromise = svc.init('resident');
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error("LIFF initialization timeout")), 30000);
+          setTimeout(() => reject(new Error("LIFF initialization timeout")), 10000); // ลดเวลา timeout
         });
         
         await Promise.race([initPromise, timeoutPromise]);
-
-        const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-        if (!liffId) {
-          setStep("error");
-          setMsg("ไม่มี NEXT_PUBLIC_LIFF_ID");
-          return;
-        }
 
         // ผู้ใช้ปฏิเสธสิทธิ์
         const qs = new URLSearchParams(window.location.search);
@@ -129,15 +136,17 @@ export default function ResidentLiffPage() {
           setStep("error");
           setMsg("ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่");
         }
-      } catch (e) {
-        console.error("LIFF initialization error:", e);
-        setStep("error");
-        setMsg("เกิดข้อผิดพลาดในการเริ่มต้น LIFF");
-      }
-    };
+       } catch (e) {
+         console.error("LIFF initialization error:", e);
+         setStep("error");
+         setMsg("เกิดข้อผิดพลาดในการเริ่มต้น LIFF");
+       } finally {
+         clearTimeout(processTimeout);
+       }
+     };
 
-    void run();
-  }, [router]);
+     void run();
+   }, [router, step]);
 
   const handleRetry = () => {
     // เคส denied/error ให้ลองใหม่ เคลียร์ session + reload

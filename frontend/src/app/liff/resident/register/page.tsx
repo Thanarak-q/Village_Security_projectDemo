@@ -38,7 +38,7 @@ function ResidentRegisterPageContent() {
     village_key: '',
     userType: 'resident' as 'resident' | 'guard',
     profile_image_url: '',
-    role: 'resident' as 'resident' | 'guard', // Explicit role for LINE Login channels
+    line_display_name: '',
   });
 
   const [lineProfile, setLineProfile] = useState<{ userId?: string; displayName?: string; pictureUrl?: string } | null>(null);
@@ -104,12 +104,12 @@ function ResidentRegisterPageContent() {
           const profile = await svc.getProfile();
           if (profile && profile.userId !== "unknown") {
             setLineProfile(profile);
-            setFormData(prev => ({
-              ...prev,
-              username: profile.displayName || '',
-              email: '', // Always empty, user must fill
-              profile_image_url: profile.pictureUrl || '',
-            }));
+             setFormData(prev => ({
+               ...prev,
+               line_display_name: profile.displayName || '',
+               email: '', // Always empty, user must fill
+               profile_image_url: profile.pictureUrl || '',
+             }));
           }
         } catch (profileErr) {
           console.warn('Failed to get LINE profile:', profileErr);

@@ -86,8 +86,14 @@ export class LiffService {
    * @param channelType - The channel type ('resident', 'guard', or 'default')
    * @returns The LIFF ID for the specified channel type
    */
-  private getLiffId(_channelType: 'resident' | 'guard' | 'default'): string | undefined {
-    // Use the same LIFF ID for both guard and resident since they share the same channel
+  private getLiffId(channelType: 'resident' | 'guard' | 'default'): string | undefined {
+    // Use different LIFF IDs for guard and resident
+    if (channelType === 'guard') {
+      return process.env.NEXT_PUBLIC_GUARD_LIFF_ID || process.env.NEXT_PUBLIC_LIFF_ID;
+    } else if (channelType === 'resident') {
+      return process.env.NEXT_PUBLIC_RESIDENT_LIFF_ID || process.env.NEXT_PUBLIC_LIFF_ID;
+    }
+    // Default fallback
     return process.env.NEXT_PUBLIC_LIFF_ID;
   }
 
@@ -160,7 +166,7 @@ export class LiffService {
       });
       this.initialized = true;
     } catch (error) {
-      console.warn("LIFF init failed:", error);
+      console.error("LIFF init failed:", error);
       throw error; // Re-throw to handle in the calling code
     }
   }
@@ -177,7 +183,7 @@ export class LiffService {
         // รอให้ OAuth redirect (promise ค้างไว้)
         return new Promise<never>(() => {});
       } catch (error) {
-        console.warn("Failed to login:", error);
+        console.error("Failed to login:", error);
       }
     }
   }
@@ -327,7 +333,10 @@ export class LiffService {
 export const LIFF_ID = process.env.NEXT_PUBLIC_LIFF_ID;
 
 if (!LIFF_ID && typeof window !== 'undefined') {
-  throw new Error('NEXT_PUBLIC_LIFF_ID environment variable is required');
+  console.error('❌ NEXT_PUBLIC_LIFF_ID environment variable is required');
+  console.error('📝 Please set NEXT_PUBLIC_LIFF_ID in your environment variables');
+  console.error('🔗 Get your LIFF ID from: https://developers.line.biz/');
+  // Don't throw error immediately, let the app show a user-friendly message
 }
 
 export const initLiff = async (): Promise<boolean> => {

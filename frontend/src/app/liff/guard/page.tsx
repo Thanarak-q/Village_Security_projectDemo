@@ -20,23 +20,30 @@ export default function GuardLiffPage() {
 
 
   useEffect(() => {
+    // เพิ่ม timeout สำหรับทั้ง process เพื่อป้องกันการค้าง
+    const processTimeout = setTimeout(() => {
+      if (step === "logging-in") {
+        setStep("error");
+        setMsg("การเข้าสู่ระบบใช้เวลานานเกินไป กรุณาลองใหม่");
+      }
+    }, 30000); // 30 วินาที timeout
+
     const run = async () => {
       try {
+        const liffId = process.env.NEXT_PUBLIC_GUARD_LIFF_ID;
+        if (!liffId) {
+          setStep("error");
+          setMsg("ไม่พบ LIFF ID - กรุณาติดต่อผู้ดูแลระบบเพื่อตั้งค่า LIFF ID");
+          return;
+        }
         
         // Initialize LIFF with guard-specific configuration
         const initPromise = svc.init('guard');
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error("LIFF initialization timeout")), 30000);
+          setTimeout(() => reject(new Error("LIFF initialization timeout")), 10000); // ลดเวลา timeout
         });
         
         await Promise.race([initPromise, timeoutPromise]);
-
-        const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-        if (!liffId) {
-          setStep("error");
-          setMsg("ไม่มี NEXT_PUBLIC_LIFF_ID");
-          return;
-        }
 
         // ผู้ใช้ปฏิเสธสิทธิ์
         const qs = new URLSearchParams(window.location.search);
@@ -50,8 +57,17 @@ export default function GuardLiffPage() {
         if (!svc.isLoggedIn()) {
           setStep("logging-in");
           setMsg("กำลังเข้าสู่ระบบด้วย LINE สำหรับยามรักษาความปลอดภัย...");
-          await svc.login(window.location.href);
-          return; // จะ redirect ออกไป
+          try {
+            // ใช้ setTimeout เพื่อให้ UI อัปเดตก่อน redirect
+            setTimeout(() => {
+              svc.login(window.location.href);
+            }, 100);
+          } catch (error) {
+            console.error("Login failed:", error);
+            setStep("error");
+            setMsg("ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่");
+          }
+          return;
         }
 
         // 2) เคส session ค้าง: isLoggedIn() = true แต่ไม่มี access token → re-login
@@ -61,7 +77,15 @@ export default function GuardLiffPage() {
           setStep("logging-in");
           setMsg("รีเฟรชสิทธิ์เข้าใช้งาน LINE...");
           svc.logout();
-          await svc.login(window.location.href);
+          try {
+            setTimeout(() => {
+              svc.login(window.location.href);
+            }, 100);
+          } catch (error) {
+            console.error("Re-login failed:", error);
+            setStep("error");
+            setMsg("ไม่สามารถรีเฟรชสิทธิ์ได้ กรุณาลองใหม่");
+          }
           return;
         }
 
@@ -74,7 +98,15 @@ export default function GuardLiffPage() {
           setStep("logging-in");
           setMsg("รีเฟรชสิทธิ์เข้าใช้งาน LINE...");
           svc.logout();
-          await svc.login(window.location.href);
+          try {
+            setTimeout(() => {
+              svc.login(window.location.href);
+            }, 100);
+          } catch (error) {
+            console.error("Profile re-login failed:", error);
+            setStep("error");
+            setMsg("ไม่สามารถดึงข้อมูลโปรไฟล์ได้ กรุณาลองใหม่");
+          }
           return;
         }
 
@@ -88,13 +120,14 @@ export default function GuardLiffPage() {
           setIdToken(idToken);
           try {
             const authResult = await verifyLiffToken(idToken, 'guard');
+            console.log('🔍 Guard Auth Result:', authResult);
             
             if (authResult.success && authResult.user && authResult.token) {
-              // User exists in database, store auth data and redirect to Resident Page
+              // User exists in database, store auth data and redirect to Dashboard
               storeAuthData(authResult.user, authResult.token);
               setStep("ready");
               setMsg("เข้าสู่ระบบสำเร็จ กำลังพาไปหน้าหลัก...");
-              setTimeout(() => router.replace("/Resident"), 1000);
+              setTimeout(() => router.replace("/dashboard"), 1000);
             } else if (authResult.expectedRole) {
               // User is already registered but using wrong LIFF app
               setStep("ready");
@@ -137,15 +170,13 @@ export default function GuardLiffPage() {
     };
 
     void run();
-  }, [router]);
 
-  const handleRetry = () => {
-    // เคส denied/error ให้ลองใหม่ เคลียร์ session + reload
-    setStep("init");
-    setMsg("กำลังเตรียม LIFF สำหรับยามรักษาความปลอดภัย...");
-    svc.clearCache();
-    svc.retryConsent();
-  };
+    // Cleanup timeout
+    return () => {
+      clearTimeout(processTimeout);
+    };
+  }, [router, step]);
+
 
 
   return (
@@ -161,11 +192,6 @@ export default function GuardLiffPage() {
             <>
               <Loader2 className="w-12 h-12 animate-spin text-green-400" />
               <p className="text-gray-300">{msg}</p>
-              <div className="mt-4 p-3 bg-yellow-900/20 rounded-lg border border-yellow-500/30">
-                <p className="text-sm text-yellow-200">
-                  💡 หากหน้าเว็บไม่ทำงาน กรุณาเปิดลิงก์นี้ในแอป LINE
-                </p>
-              </div>
             </>
           ) : step === "ready" ? (
             <>
@@ -193,23 +219,11 @@ export default function GuardLiffPage() {
             <>
               <XCircle className="w-12 h-12 text-yellow-400" />
               <p className="text-yellow-300">{msg}</p>
-              <button
-                onClick={handleRetry}
-                className="mt-4 px-4 py-2 bg-yellow-400 text-black font-semibold rounded-lg shadow-md hover:bg-yellow-300 transition"
-              >
-                ลองใหม่
-              </button>
             </>
           ) : (
             <>
               <XCircle className="w-12 h-12 text-rose-500" />
               <p className="text-rose-300">{msg}</p>
-              <button
-                onClick={handleRetry}
-                className="mt-4 px-4 py-2 bg-rose-500 text-white font-semibold rounded-lg shadow-md hover:bg-rose-400 transition"
-              >
-                โหลดใหม่
-              </button>
             </>
           )}
         </div>

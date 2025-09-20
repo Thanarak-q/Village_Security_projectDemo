@@ -6,7 +6,8 @@ services:
     volumes:
       - ./backend:/app
     env_file:
-      - ./backend/.env
+      - ./backend/.envu
+      
     restart: unless-stopped
 
   frontend:
@@ -20,6 +21,10 @@ services:
     environment:
       - WATCHPACK_POLLING=true
       - CHOKIDAR_USEPOLLING=true
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+      - NEXT_PUBLIC_RESIDENT_LIFF_ID=2008071362-Eqg9y1Qa
+      - NEXT_PUBLIC_GUARD_LIFF_ID=2008071362-kOm2J3jx
+      - NEXT_PUBLIC_LIFF_ID=2008071362-Eqg9y1Qa
     depends_on:
       - backend
     restart: unless-stopped
