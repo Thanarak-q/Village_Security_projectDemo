@@ -3,7 +3,7 @@ import { LiffService } from '@/lib/liff';
 
 interface LineProfile {
   userId: string;
-  displayName: string;
+  displayName?: string;
   pictureUrl?: string;
   statusMessage?: string;
 }

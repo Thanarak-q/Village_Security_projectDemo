@@ -57,7 +57,7 @@ export default function LandingPage() {
       try {
         const res = await fetch("/api/auth/me", { credentials: "include" });
         if (!cancelled && res.ok) setIsLoggedIn(true);
-      } catch (_) {
+      } catch {
         // ignore network errors; remain logged out
       } finally {
         if (!cancelled) setLoading(false);
