@@ -667,7 +667,36 @@ const ResidentPage = () => {
         return;
       }
 
-      console.log("User is authenticated as resident:", user);
+      // Debug: Log user status
+      console.log("🔍 User status check:", {
+        status: user.status,
+        fname: user.fname,
+        lname: user.lname,
+        email: user.email
+      });
+
+      // Check user status - redirect pending users to pending page
+      if (user.status === "pending") {
+        console.log("❌ User status is pending, redirecting to pending page");
+        router.push("/Resident/pending");
+        return;
+      }
+
+      // Check if user is disabled
+      if (user.status === "disable") {
+        console.log("❌ User is disabled, redirecting to login");
+        router.push("/liff/resident");
+        return;
+      }
+
+      // Only verified users can access the main page
+      if (user.status !== "verified") {
+        console.log("❌ User status is not verified, redirecting to pending page");
+        router.push("/Resident/pending");
+        return;
+      }
+
+      console.log("✅ User is verified resident:", user);
       console.log("User village_key:", user?.village_key);
       console.log("Full user object:", JSON.stringify(user, null, 2));
       setCurrentUser(user);
