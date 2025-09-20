@@ -10,6 +10,21 @@ services:
       
     restart: unless-stopped
 
+  websocket:
+    build: ./websocket
+    ports:
+      - "3002:3002"
+    volumes:
+      - ./websocket:/app
+      - /app/node_modules
+    environment:
+      - WS_PORT=3002
+      - WS_PATH=/ws
+      - WS_IDLE_TIMEOUT=120
+      - NODE_ENV=development
+    command: bun run dev
+    restart: unless-stopped
+
   frontend:
     build: ./frontend
     ports:
@@ -28,6 +43,7 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+
 
   caddy:
     image: caddy:alpine

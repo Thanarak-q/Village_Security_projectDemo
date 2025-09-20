@@ -8,7 +8,7 @@ const approvalForm = new Elysia()
     .onBeforeHandle(requireRole("guards"))
     .post("/approvalForms", async ({ body, store }: { body: unknown, store: { user?: { id?: string } } }) => {
         type ApprovalFormBody = {
-            residentId: string;
+            residentId?: string;
             houseId: string;
             pictureKey?: string;
             licensePlate?: string;
@@ -27,9 +27,10 @@ const approvalForm = new Elysia()
         const guardId = store?.user?.id;
         const errors: string[] = [];
 
-        if (!residentId || typeof residentId !== "string" || !residentId.trim()) {
-            errors.push("Resident ID is required and must be a non-empty string.");
-        }
+        // residentId is now optional
+        // if (!residentId || typeof residentId !== "string" || !residentId.trim()) {
+        //     errors.push("Resident ID is required and must be a non-empty string.");
+        // }
         if (!houseId || typeof houseId !== "string" || !houseId.trim()) {
             errors.push("House ID is required and must be a non-empty string.");
         }
@@ -49,7 +50,7 @@ const approvalForm = new Elysia()
 
         // Insert visitor record
         const [result] = await db.insert(visitor_records).values({
-            resident_id: residentId,
+            resident_id: residentId || null,
             guard_id: guardId,
             house_id: houseId,
             picture_key: pictureKey,

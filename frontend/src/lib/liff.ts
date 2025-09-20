@@ -86,6 +86,7 @@ export class LiffService {
    * @param channelType - The channel type ('resident', 'guard', or 'default')
    * @returns The LIFF ID for the specified channel type
    */
+
   private getLiffId(channelType: 'resident' | 'guard' | 'default'): string | undefined {
     // Use different LIFF IDs for guard and resident
     if (channelType === 'guard') {
@@ -93,7 +94,7 @@ export class LiffService {
     } else if (channelType === 'resident') {
       return process.env.NEXT_PUBLIC_RESIDENT_LIFF_ID || process.env.NEXT_PUBLIC_LIFF_ID;
     }
-    // Default fallback
+
     return process.env.NEXT_PUBLIC_LIFF_ID;
   }
 
@@ -116,7 +117,7 @@ export class LiffService {
     this.initPromise = new Promise((resolve) => {
       if (typeof window === "undefined") { resolve(); return; }
 
-      const liffId = this.getLiffId(channelType);
+      const liffId = this.getLiffId();
       if (!liffId) { console.warn("LIFF ID not configured for channel type:", channelType); resolve(); return; }
 
       const w = window as Window & { liff?: LiffSDK };

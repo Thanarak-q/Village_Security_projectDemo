@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,11 +11,12 @@ import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { LiffService } from '@/lib/liff';
 import { registerLiffUser, storeAuthData } from '@/lib/liffAuth';
 import { validateRegistrationForm, validateField, type ValidationError as ZodValidationError } from '@/lib/validation';
+import Image from 'next/image';
 
 const svc = LiffService.getInstance();
 
 function ResidentRegisterPageContent() {
-  const router = useRouter();
+  // const router = useRouter(); // Unused
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -290,10 +291,12 @@ function ResidentRegisterPageContent() {
                 <h3 className="text-sm font-medium text-zinc-300 mb-2">ข้อมูลจาก LINE</h3>
                 <div className="flex items-center space-x-3">
                   {lineProfile.pictureUrl && (
-                    <img 
+                    <Image 
                       src={lineProfile.pictureUrl} 
                       alt="Profile" 
-                      className="w-10 h-10 rounded-full"
+                      width={40}
+                      height={40}
+                      className="rounded-full"
                     />
                   )}
                   <div>

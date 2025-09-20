@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useRef, lazy, Suspense } from "react";
 import { gsap } from "gsap";
+import { Button } from "@/components/ui/button";
 import {
   TotalUsersCard,
   DailyAccessCard,
@@ -18,6 +19,7 @@ export default function Page() {
   const cardsRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
+
 
   useEffect(() => {
     fetch("/api/auth/me", {

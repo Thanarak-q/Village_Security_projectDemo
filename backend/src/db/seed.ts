@@ -16,9 +16,99 @@ import {
   house_members,
   visitor_records,
   admin_activity_logs,
+  admin_notifications,
 } from "./schema";
 import { eq, sql } from "drizzle-orm";
 import { hashPassword } from "../utils/passwordUtils";
+
+/**
+ * An array of mock notification data for admin notifications.
+ * @type {Array<Object>}
+ */
+const notificationData = [
+  // User Approval Notifications
+  {
+    type: "resident_pending",
+    category: "user_approval",
+    title: "ผู้อยู่อาศัยใหม่รอการอนุมัติ",
+    message: "มีผู้อยู่อาศัยใหม่ 3 คน รอการอนุมัติเข้าอยู่ในหมู่บ้าน",
+    is_read: false,
+    data: {
+      pending_count: 3,
+      residents: [
+        { id: "res_1", name: "สมชาย ผาสุก" },
+        { id: "res_2", name: "สมหญิง ผาสุก" },
+        { id: "res_3", name: "อีกคนหนึ่ง" },
+      ],
+    },
+  },
+  {
+    type: "guard_pending",
+    category: "user_approval",
+    title: "ยามรักษาความปลอดภัยรอการอนุมัติ",
+    message: "มียามรักษาความปลอดภัยใหม่ 2 คน รอการอนุมัติเข้าทำงาน",
+    is_read: false,
+    data: { pending_count: 2 },
+  },
+  {
+    type: "admin_pending",
+    category: "user_approval",
+    title: "ผู้ดูแลระบบรอการอนุมัติ",
+    message: "มีผู้ดูแลระบบใหม่ 1 คน รอการอนุมัติเข้าทำงาน",
+    is_read: false,
+    data: { pending_count: 1 },
+  },
+  // House Management Notifications
+  {
+    type: "house_updated",
+    category: "house_management",
+    title: "ข้อมูลบ้านได้รับการอัปเดต",
+    message: "บ้านเลขที่ 123/45 ได้รับการอัปเดตสถานะเป็น 'occupied'",
+    is_read: true,
+    data: { house_id: "house_12345", new_status: "occupied" },
+  },
+  {
+    type: "member_added",
+    category: "house_management",
+    title: "สมาชิกใหม่เข้าอยู่ในบ้าน",
+    message: "บ้านเลขที่ 67/89 มีสมาชิกใหม่เข้าอยู่: สมชาย ผาสุก",
+    is_read: false,
+    data: { house_id: "house_6789", member_name: "สมชาย ผาสุก" },
+  },
+  {
+    type: "member_removed",
+    category: "house_management",
+    title: "สมาชิกย้ายออกจากบ้าน",
+    message: "บ้านเลขที่ 12/34 สมาชิก สมหญิง ผาสุก ย้ายออกแล้ว",
+    is_read: false,
+    data: { house_id: "house_1234", member_name: "สมหญิง ผาสุก" },
+  },
+  {
+    type: "status_changed",
+    category: "house_management",
+    title: "สถานะบ้านเปลี่ยนแปลง",
+    message: "บ้านเลขที่ 456/78 เปลี่ยนสถานะจาก 'available' เป็น 'disable'",
+    is_read: false,
+    data: { house_id: "house_45678", from: "available", to: "disable" },
+  },
+  // Visitor Management Notifications
+  {
+    type: "visitor_pending_too_long",
+    category: "visitor_management",
+    title: "ผู้เยี่ยมรอการอนุมัตินานเกินไป",
+    message: "มีผู้เยี่ยม 5 คน รอการอนุมัติมากกว่า 2 ชั่วโมงแล้ว",
+    is_read: false,
+    data: { pending_count: 5, wait_time: "> 2 hours" },
+  },
+  {
+    type: "visitor_rejected_review",
+    category: "visitor_management",
+    title: "ผู้เยี่ยมถูกปฏิเสธ - ต้องการการตรวจสอบ",
+    message: "มีผู้เยี่ยม 2 คน ถูกปฏิเสธและต้องการการตรวจสอบเพิ่มเติม",
+    is_read: false,
+    data: { rejected_count: 2 },
+  },
+];
 
 /**
  * An array of mock data for villages.
@@ -728,58 +818,78 @@ export async function clearDb() {
   // Check if villages or houses exist before deleting
   console.log("Clearing database");
 
+  // Clear admin_notifications first (has foreign key to admins)
+  console.log("Clearing admin_notifications");
+  try {
+    await db.delete(admin_notifications);
+    console.log("Cleared admin_notifications");
+  } catch (error) {
+    // Table might not exist yet, ignore error
+    console.log("admin_notifications table doesn't exist yet, skipping...");
+  }
+
   console.log("Clearing admin_activity_logs");
-  const existingAdminActivityLogs = await db
-    .select()
-    .from(admin_activity_logs)
-    .limit(1);
-  if (existingAdminActivityLogs.length > 0) {
+  try {
     await db.delete(admin_activity_logs);
+    console.log("Cleared admin_activity_logs");
+  } catch (error) {
+    console.log("admin_activity_logs table doesn't exist yet, skipping...");
   }
 
   console.log("Clearing visitor_records");
-  const existingVisitorRecords = await db
-    .select()
-    .from(visitor_records)
-    .limit(1);
-  if (existingVisitorRecords.length > 0) {
+  try {
     await db.delete(visitor_records);
+    console.log("Cleared visitor_records");
+  } catch (error) {
+    console.log("visitor_records table doesn't exist yet, skipping...");
   }
 
   console.log("Clearing house_members");
-  const existingHouseMembers = await db.select().from(house_members).limit(1);
-  if (existingHouseMembers.length > 0) {
+  try {
     await db.delete(house_members);
+    console.log("Cleared house_members");
+  } catch (error) {
+    console.log("house_members table doesn't exist yet, skipping...");
   }
 
   console.log("Clearing admins");
-  const existingAdmins = await db.select().from(admins).limit(1);
-  if (existingAdmins.length > 0) {
+  try {
     await db.delete(admins);
+    console.log("Cleared admins");
+  } catch (error) {
+    console.log("admins table doesn't exist yet, skipping...");
   }
 
   console.log("Clearing guards");
-  const existingGuards = await db.select().from(guards).limit(1);
-  if (existingGuards.length > 0) {
+  try {
     await db.delete(guards);
+    console.log("Cleared guards");
+  } catch (error) {
+    console.log("guards table doesn't exist yet, skipping...");
   }
 
   console.log("Clearing residents");
-  const existingResidents = await db.select().from(residents).limit(1);
-  if (existingResidents.length > 0) {
+  try {
     await db.delete(residents);
+    console.log("Cleared residents");
+  } catch (error) {
+    console.log("residents table doesn't exist yet, skipping...");
   }
 
   console.log("Clearing houses");
-  const existingHouses = await db.select().from(houses).limit(1);
-  if (existingHouses.length > 0) {
+  try {
     await db.delete(houses);
+    console.log("Cleared houses");
+  } catch (error) {
+    console.log("houses table doesn't exist yet, skipping...");
   }
 
   console.log("Clearing villages");
-  const existingVillages = await db.select().from(villages).limit(1);
-  if (existingVillages.length > 0) {
+  try {
     await db.delete(villages);
+    console.log("Cleared villages");
+  } catch (error) {
+    console.log("villages table doesn't exist yet, skipping...");
   }
 }
 
@@ -1270,7 +1380,7 @@ async function createVisitorRecordsData() {
             ];
           const randomStatus =
             recordStatuses[Math.floor(Math.random() * recordStatuses.length)];
-
+// admin_suk
           // Generate realistic timestamps
           const entryTime = generateRandomTimestamp();
 
@@ -1298,6 +1408,73 @@ async function createVisitorRecordsData() {
   }
 
   return visitorRecordsData;
+}
+
+/**
+ * Creates notification data with proper village_key references.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of notification data objects.
+ */
+async function createNotificationData() {
+  console.log("Creating notification data...");
+
+  // Fetch all villages from database
+  const allVillages = await db.select().from(villages);
+
+  if (allVillages.length === 0) {
+    console.log("No villages found. Please seed villages first.");
+    return [];
+  }
+
+  const notificationDataWithReferences: Array<{
+    village_key: string;
+    type: string;
+    category: string;
+    title: string;
+    message: string;
+    data?: string;
+    created_at?: Date;
+  }> = [];
+
+  // Generate timestamps for notifications (spread across the last 30 days)
+  function generateRandomTimestamp(): Date {
+    const now = new Date();
+    const randomDaysAgo = Math.floor(Math.random() * 30); // Last 30 days
+    const randomHours = Math.floor(Math.random() * 24);
+    const randomMinutes = Math.floor(Math.random() * 60);
+
+    const timestamp = new Date(now);
+    timestamp.setDate(timestamp.getDate() - randomDaysAgo);
+    timestamp.setHours(randomHours, randomMinutes, 0, 0);
+
+    return timestamp;
+  }
+
+  // Create notifications for each village
+  for (const village of allVillages) {
+    // Create 3-8 notifications per village
+    const numNotifications = Math.floor(Math.random() * 6) + 3;
+    
+    for (let i = 0; i < numNotifications; i++) {
+      const randomNotification = notificationData[
+        Math.floor(Math.random() * notificationData.length)
+      ];
+      
+      const createdTime = generateRandomTimestamp();
+
+      notificationDataWithReferences.push({
+        village_key: village.village_key,
+        type: randomNotification.type,
+        category: randomNotification.category,
+        title: randomNotification.title,
+        message: randomNotification.message,
+        data: randomNotification.data,
+        created_at: createdTime,
+      });
+    }
+  }
+
+  console.log(`Created ${notificationDataWithReferences.length} notification records`);
+  return notificationDataWithReferences;
 }
 
 // Function to create admin_activity_logs data by fetching existing data
@@ -1354,13 +1531,24 @@ async function seed() {
   } else {
     console.log("No visitor_records data to insert");
   }
+
+  console.log("Creating and inserting admin_notifications");
+  const notificationDataWithReferences = await createNotificationData();
+  if (notificationDataWithReferences.length > 0) {
+    await db.insert(admin_notifications).values(notificationDataWithReferences);
+    console.log("Completed inserting admin_notifications");
+  } else {
+    console.log("No notification data to insert");
+  }
 }
 
-// Execute the seeding process and log any errors.
-seed().then(() => {
-  console.log("Database seeding completed successfully!");
-  process.exit(0);
-}).catch((error) => {
-  console.error("Seeding failed:", error);
-  process.exit(1);
-});
+// Execute the seeding process only when this file is run directly
+if (require.main === module) {
+  seed().then(() => {
+    console.log("Database seeding completed successfully!");
+    process.exit(0);
+  }).catch((error) => {
+    console.error("Seeding failed:", error);
+    process.exit(1);
+  });
+}

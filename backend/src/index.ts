@@ -14,6 +14,7 @@ import { userTableRoutes } from "./routes/userTable";
 import { pendingUsersRoutes } from "./routes/pendingUsers";
 import { authRoutes } from "./routes/auth";
 import { adminSettingsRoutes } from "./routes/adminSettings";
+import { adminActivityLogsRoutes } from "./routes/adminActivityLogs";
 import { liffAuthRoutes } from "./routes/(line)/liffAuth";
 import { villagesRoutes } from "./routes/villages";
 import { notificationsRoutes } from "./routes/notifications";
@@ -50,31 +51,7 @@ const healthCheck = new Elysia().get("/api/health", async () => {
 });
 
 const app = new Elysia()
-  .use(
-    cors({
-      origin:
-        process.env.NODE_ENV === "production"
-          ? ["https://yourdomain.com"] // เปลี่ยนเป็น domain จริงของคุณ
-          : process.env.ALLOWED_ORIGINS?.split(",") || [
-              "http://localhost",
-              "http://localhost:80",
-              "http://127.0.0.1",
-              "http://127.0.0.1:80",
-              "http://localhost:3000", // fallback for direct frontend access
-              "https://9cad948af0e2.ngrok-free.app", // current ngrok URL
-            ],
-      credentials: true,
-      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-      allowedHeaders: [
-        "Content-Type",
-        "Authorization",
-        "Cookie",
-        "X-Requested-With",
-        "X-Forwarded-For",
-        "X-Real-IP",
-      ],
-    })
-  )
+  .use(cors())
   .use(
     cookie({
       httpOnly: true,
@@ -83,50 +60,7 @@ const app = new Elysia()
       maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
     })
   )
-  .use(jwt({ name: "jwt", secret: "super-secret", exp: "7d" }))
-  /**
-   * SECURITY ENHANCEMENT: Comprehensive Security Headers Middleware
-   *
-   * Added security headers to protect against various attacks:
-   * - MIME type sniffing attacks
-   * - Clickjacking attacks
-   * - XSS attacks
-   * - Information leakage
-   * - Unauthorized API access
-   * - Man-in-the-middle attacks (production)
-   */
-  .onBeforeHandle(({ set }) => {
-    // SECURITY: Prevent MIME type sniffing attacks
-    set.headers["X-Content-Type-Options"] = "nosniff";
-
-    // SECURITY: Prevent clickjacking attacks
-    set.headers["X-Frame-Options"] = "DENY";
-
-    // SECURITY: Enable XSS protection in browsers
-    set.headers["X-XSS-Protection"] = "1; mode=block";
-
-    // SECURITY: Control referrer information leakage
-    set.headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-
-    // SECURITY: Restrict browser API access
-    set.headers["Permissions-Policy"] =
-      "camera=(), microphone=(), geolocation=(), payment=()";
-
-    // SECURITY: Prevent cross-domain policy files
-    set.headers["X-Permitted-Cross-Domain-Policies"] = "none";
-
-    // SECURITY: Force HTTPS in production (HSTS)
-    if (process.env.NODE_ENV === "production") {
-      set.headers["Strict-Transport-Security"] =
-        "max-age=31536000; includeSubDomains; preload";
-    }
-
-    // SECURITY: Content Security Policy to prevent XSS and injection attacks
-    set.headers["Content-Security-Policy"] =
-      process.env.NODE_ENV === "production"
-        ? "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self';"
-        : "default-src 'self' 'unsafe-eval' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self';";
-  })
+  .use(jwt({ name: "jwt", secret: process.env.JWT_SECRET || "super-secret", exp: "7d" }))
   .use(healthCheck)
   .use(houseManageRoutes)
   .use(visitorRecordRoutes)
@@ -138,9 +72,12 @@ const app = new Elysia()
   .use(pendingUsersRoutes)
   .use(authRoutes)
   .use(adminSettingsRoutes)
+  .use(adminActivityLogsRoutes)
   .use(liffAuthRoutes)
   .use(villagesRoutes)
   .use(notificationsRoutes)
+  // .use(residentApi)
+  // .use(approvalForm)
   .get("/", () => "Hello Village Security API!");
 
 // Initialize database connection and start server
@@ -150,15 +87,22 @@ async function startServer() {
     await testConnection();
 
     const port = parseInt(process.env.PORT || "3001");
-    app.listen(port, () => {
+    
+    // Start the Elysia app and get the server
+    const server = app.listen({
+      port,
+      hostname: '0.0.0.0'
+    }, () => {
       console.log(
-        `🦊 Village Security API is running at http://localhost:${port}`
+        `🦊 Village Security API is running on port ${port}`
       );
       console.log(
-        `📊 Health check available at http://localhost:${port}/api/health`
+        `📊 Health check available at /api/health`
       );
       console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
     });
+    
+    
   } catch (error) {
     console.error("❌ Failed to start server:", error);
     process.exit(1);

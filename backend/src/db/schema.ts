@@ -6,8 +6,8 @@
  */
 
 import { unique } from "drizzle-orm/gel-core";
-import { pgTable, text, timestamp, uuid, date, index, boolean } from "drizzle-orm/pg-core";
-import { status } from "elysia";
+import { pgTable, text, timestamp, uuid, date, index, boolean, jsonb } from "drizzle-orm/pg-core";
+// import { status } from "elysia"; // Not used in this file
 
 /**
  * Schema for the `villages` table. Represents a distinct village or community.
@@ -146,7 +146,7 @@ export const admins = pgTable("admins", {
     .default("pending"),
   role: text("role")
     .$type<"admin" | "staff" | "superadmin">()
-    .default("admin")
+    .default("staff")
     .notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -253,7 +253,6 @@ export type AdminActivityLogInsert = typeof admin_activity_logs.$inferInsert;
  */
 export const admin_notifications = pgTable("admin_notifications", {
   notification_id: uuid("notification_id").primaryKey().defaultRandom(),
-  admin_id: uuid("admin_id").references(() => admins.admin_id).notNull(),
   village_key: text("village_key").references(() => villages.village_key).notNull(),
   type: text("type")
     .$type<"resident_pending" | "guard_pending" | "admin_pending" | "house_updated" | "member_added" | "member_removed" | "status_changed" | "visitor_pending_too_long" | "visitor_rejected_review">()
@@ -263,20 +262,13 @@ export const admin_notifications = pgTable("admin_notifications", {
     .notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
-  data: text("data").$type<Record<string, any>>(), 
-  is_read: boolean("is_read").default(false),
-  priority: text("priority")
-    .$type<"low" | "medium" | "high" | "urgent">()
-    .default("medium"),
+  data: jsonb("data").$type<Record<string, any>>(), 
   created_at: timestamp("created_at").defaultNow(),
-  read_at: timestamp("read_at"),
 }, (table) => [
   // Indexes for admin_notifications table
-  index("idx_admin_notifications_admin_id").on(table.admin_id),
   index("idx_admin_notifications_village_key").on(table.village_key),
-  index("idx_admin_notifications_is_read").on(table.is_read),
   index("idx_admin_notifications_created_at").on(table.created_at),
-  index("idx_admin_notifications_admin_id_is_read").on(table.admin_id, table.is_read),
+  index("idx_admin_notifications_type").on(table.type),
 ]);
 
 /**
