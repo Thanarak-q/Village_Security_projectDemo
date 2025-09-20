@@ -9,7 +9,7 @@ import {
 } from "../db/schema";
 import { eq, sql, and } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
-import { userManagementActivityLogger } from "../utils/activityLogUtils";
+import { notificationService } from "../services/notificationService";
 
 /**
  * Interface for the approve user request.
@@ -125,6 +125,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
    * @returns {Promise<Object>} A promise that resolves to an object containing a success message.
    */
   .put("/approveUser", async ({ body, currentUser }) => {
+  .put("/approveUser", async ({ body, currentUser }) => {
     try {
       const {
         userId,
@@ -228,19 +229,18 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
           }
         }
 
-        // Log the user approval activity
+        // Create notification for resident approval
         try {
-          const userName = `${currentResident[0].fname} ${currentResident[0].lname}`;
-          await userManagementActivityLogger.logUserApproved(
-            currentUser.admin_id,
-            currentUser.username,
-            "resident",
-            userName,
-            houseNumber
-          );
-        } catch (logError) {
-          console.error("Error logging user approval:", logError);
-          // Don't fail the request if logging fails
+          await notificationService.notifyUserApproval({
+            user_id: userId,
+            user_type: 'resident',
+            fname: updateResult[0].fname,
+            lname: updateResult[0].lname,
+            village_key: updateResult[0].village_key,
+            admin_id: currentUser.admin_id,
+          });
+        } catch (notificationError) {
+          console.error('Error creating approval notification:', notificationError);
         }
 
         return {
@@ -279,18 +279,18 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
           };
         }
 
-        // Log the user approval activity
+        // Create notification for guard approval
         try {
-          const userName = `${currentGuard[0].fname} ${currentGuard[0].lname}`;
-          await userManagementActivityLogger.logUserApproved(
-            currentUser.admin_id,
-            currentUser.username,
-            "guard",
-            userName
-          );
-        } catch (logError) {
-          console.error("Error logging user approval:", logError);
-          // Don't fail the request if logging fails
+          await notificationService.notifyUserApproval({
+            user_id: userId,
+            user_type: 'guard',
+            fname: updateResult[0].fname,
+            lname: updateResult[0].lname,
+            village_key: updateResult[0].village_key,
+            admin_id: currentUser.admin_id,
+          });
+        } catch (notificationError) {
+          console.error('Error creating approval notification:', notificationError);
         }
 
         return {
