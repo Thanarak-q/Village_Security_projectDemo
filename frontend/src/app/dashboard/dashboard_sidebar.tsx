@@ -5,7 +5,6 @@ import {
   BookUser,
   Building,
   History,
-  Bell,
 } from "lucide-react";
 
 import {
