@@ -8,7 +8,7 @@ import { requireRole } from "../hooks/requireRole";
  * @type {Elysia}
  */
 export const visitorRecordYearlyRoutes = new Elysia({ prefix: "/api" })
-  .onBeforeHandle(requireRole("admin"))
+  .onBeforeHandle(requireRole(["admin", "staff"]))
   // .onBeforeHandle(requireRole(["admin", "staff"]))
   /**
    * Get yearly visitor records statistics.

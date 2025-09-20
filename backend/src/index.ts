@@ -14,6 +14,7 @@ import { userTableRoutes } from "./routes/userTable";
 import { pendingUsersRoutes } from "./routes/pendingUsers";
 import { authRoutes } from "./routes/auth";
 import { adminSettingsRoutes } from "./routes/adminSettings";
+import { adminActivityLogsRoutes } from "./routes/adminActivityLogs";
 import { liffAuthRoutes } from "./routes/(line)/liffAuth";
 import { villagesRoutes } from "./routes/villages";
 import { notificationsRoutes } from "./routes/notifications";
@@ -138,6 +139,7 @@ const app = new Elysia()
   .use(pendingUsersRoutes)
   .use(authRoutes)
   .use(adminSettingsRoutes)
+  .use(adminActivityLogsRoutes)
   .use(liffAuthRoutes)
   .use(villagesRoutes)
   .use(notificationsRoutes)
