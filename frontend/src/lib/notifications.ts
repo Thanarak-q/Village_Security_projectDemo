@@ -10,7 +10,7 @@ export interface Notification {
   category: string;
   title: string;
   message: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   is_read: boolean;
   priority: string;
   created_at: string;

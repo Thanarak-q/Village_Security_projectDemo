@@ -12,7 +12,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { useNotifications } from "@/hooks/useNotifications"
-import { getNotificationIcon, getNotificationColor } from "@/lib/notifications"
+import { getNotificationIcon } from "@/lib/notifications"
 
 // Helper function to format time ago
 function formatTimeAgo(dateString: string): string {

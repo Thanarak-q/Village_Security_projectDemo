@@ -19,6 +19,7 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Upload, Home } from "lucide-react";
+import Image from "next/image";
 
 const visitorSchema = z.object({
   license_plate: z.string().min(1, "ต้องการเลขทะเบียน"),
@@ -138,10 +139,13 @@ function ApprovalForm() {
                    <div className="space-y-4">
                      <div className="w-full h-56 rounded-lg border border-dashed border-blue-300/70 overflow-hidden relative bg-gray-50">
                        {capturedImage ? (
-                         <img 
+                         <Image 
                            src={capturedImage} 
                            alt="Uploaded" 
-                           className="w-full h-full object-cover"
+                           className="object-cover w-full h-full"
+                           width={400}
+                           height={224}
+                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                          />
                        ) : (
                          <div className="w-full h-full flex flex-col items-center justify-center text-blue-500">

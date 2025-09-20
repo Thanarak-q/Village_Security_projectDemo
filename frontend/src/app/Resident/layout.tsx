@@ -1,4 +1,4 @@
-import Navbar from "./navbar";
+// import Navbar from "./navbar"; // Unused import
 import { LiffProvider } from "@/components/LiffProvider";
 
 export default function ResidentLayout({ children }: { children: React.ReactNode }) {

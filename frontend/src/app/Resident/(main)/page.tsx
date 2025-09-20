@@ -10,6 +10,7 @@ import { getAuthData, isAuthenticated } from "@/lib/liffAuth";
 import { gsap } from "gsap";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import Image from "next/image";
 
 interface VisitorRequest {
   id: string;
@@ -116,10 +117,12 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [dragOffset, setDragOffset] = useState(0);
   const [touchStartTime, setTouchStartTime] = useState<number | null>(null);
   const [lastTouchTime, setLastTouchTime] = useState<number | null>(null);
   const [lastTouchX, setLastTouchX] = useState<number | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [velocity, setVelocity] = useState(0);
 
   // Sort by smallest id first
@@ -505,10 +508,13 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
                     <div className="mb-3">
                       <div className="w-full h-48 bg-muted rounded-lg flex items-center justify-center overflow-hidden border">
                         {sortedPending[currentIndex].carImage ? (
-                          <img
+                          <Image
                             src={`/${sortedPending[currentIndex].carImage}`}
                             alt={`Car ${sortedPending[currentIndex].plateNumber}`}
                             className="object-cover w-full h-full"
+                            width={400}
+                            height={192}
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           />
                         ) : (
                           <Car className="w-12 h-12 text-muted-foreground" />
