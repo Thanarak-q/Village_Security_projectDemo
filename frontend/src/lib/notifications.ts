@@ -95,47 +95,8 @@ export async function getNotificationCounts(): Promise<NotificationCounts> {
   return response.data;
 }
 
-/**
- * Mark a notification as read
- */
-export async function markNotificationAsRead(notificationId: string): Promise<void> {
-  const response = await apiRequest(`/api/notifications/${notificationId}/read`, {
-    method: 'PUT'
-  });
-  
-  if (!response.success) {
-    throw new Error(response.error || 'Failed to mark notification as read');
-  }
-}
 
-/**
- * Mark all notifications as read
- */
-export async function markAllNotificationsAsRead(): Promise<{ updated_count: number }> {
-  const response = await apiRequest('/api/notifications/read-all', {
-    method: 'PUT',
-    body: JSON.stringify({})
-  });
-  
-  if (!response.success) {
-    throw new Error(response.error || 'Failed to mark all notifications as read');
-  }
-  
-  return response.data;
-}
 
-/**
- * Delete a notification
- */
-export async function deleteNotification(notificationId: string): Promise<void> {
-  const response = await apiRequest(`/api/notifications/${notificationId}`, {
-    method: 'DELETE'
-  });
-  
-  if (!response.success) {
-    throw new Error(response.error || 'Failed to delete notification');
-  }
-}
 
 // Helper functions for UI
 export function getNotificationIcon(type: string): string {

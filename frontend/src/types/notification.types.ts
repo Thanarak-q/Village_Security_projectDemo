@@ -85,16 +85,11 @@ export interface ApiNotification {
   data?: Record<string, unknown> | null;
   created_at: string;
   village_name?: string;
-  seen_at?: string | null;
-  read_at?: string | null;
-  is_read: boolean;
 }
 
 // Notification counts
 export interface NotificationCounts {
   total: number;
-  unread: number;
-  unseen?: number;
 }
 
 // Error classes

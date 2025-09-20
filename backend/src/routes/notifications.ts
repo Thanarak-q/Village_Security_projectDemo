@@ -111,8 +111,7 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
       return {
         success: true,
         data: {
-          total: totalResult[0]?.count || 0,
-          unread: 0 // Notifications are broadcast, no individual read status
+          total: totalResult[0]?.count || 0
         }
       };
     } catch (error) {
@@ -125,107 +124,8 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
     }
   })
 
-  // PUT /api/notifications/:id/read - Mark notification as read
-  .put('/:id/read', async (context: any) => {
-    try {
-      const { currentUser, params } = context;
-      const { id } = params;
 
-      // Note: Mark as read is no longer supported as notifications are broadcast
-      // Return the notification without updating
-      const result = await db
-        .select()
-        .from(admin_notifications)
-        .where(and(
-          eq(admin_notifications.notification_id, id),
-          eq(admin_notifications.village_key, currentUser.village_key)
-        ))
-        .limit(1);
 
-      if (result.length === 0) {
-        return {
-          success: false,
-          error: 'Notification not found or access denied'
-        };
-      }
-
-      return {
-        success: true,
-        data: result[0],
-        message: 'Notification retrieved (read status not applicable for broadcast notifications)'
-      };
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-      return {
-        success: false,
-        error: 'Failed to mark notification as read'
-      };
-    }
-  })
-
-  // PUT /api/notifications/read-all - Mark all notifications as read
-  .put('/read-all', async (context: any) => {
-    try {
-      const { currentUser } = context;
-
-      // Note: Mark all as read is no longer supported as notifications are broadcast
-      // Return count of notifications for the village
-      const result = await db
-        .select({ count: count() })
-        .from(admin_notifications)
-        .where(eq(admin_notifications.village_key, currentUser.village_key));
-
-      return {
-        success: true,
-        data: {
-          total_notifications: result[0]?.count || 0
-        },
-        message: 'Notifications retrieved (read status not applicable for broadcast notifications)'
-      };
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-      return {
-        success: false,
-        error: 'Failed to mark all notifications as read'
-      };
-    }
-  })
-
-  // DELETE /api/notifications/:id - Delete a notification
-  .delete('/:id', async (context: any) => {
-    try {
-      const { currentUser, params } = context;
-      const { id } = params;
-
-      const result = await db
-        .delete(admin_notifications)
-        .where(and(
-          eq(admin_notifications.notification_id, id),
-          eq(admin_notifications.village_key, currentUser.village_key)
-        ))
-        .returning();
-
-      if (result.length === 0) {
-        return {
-          success: false,
-          error: 'Notification not found or access denied'
-        };
-      }
-
-      return {
-        success: true,
-        data: {
-          deleted_id: id
-        }
-      };
-    } catch (error) {
-      console.error('Error deleting notification:', error);
-      return {
-        success: false,
-        error: 'Failed to delete notification'
-      };
-    }
-  })
 
   // POST /api/notifications/test - Create test notification (development only)
   .post('/test', async (context: any) => {
