@@ -45,7 +45,6 @@ export default function CreateNotificationTest() {
           message: formData.body,
           type: 'system',
           category: 'realtime',
-          priority: formData.level === 'critical' ? 'high' : formData.level === 'warning' ? 'medium' : 'low',
           target: formData.target
         })
       });

@@ -6,16 +6,15 @@
 import db from '../db/drizzle';
 import { admin_notifications, villages } from '../db/schema';
 import { eq, and, count } from 'drizzle-orm';
+import { websocketClient } from './websocketClient';
 
 export interface CreateNotificationData {
-  admin_id: string;
   village_key: string;
   type: 'resident_pending' | 'guard_pending' | 'admin_pending' | 'house_updated' | 'member_added' | 'member_removed' | 'status_changed' | 'visitor_pending_too_long' | 'visitor_rejected_review';
   category: 'user_approval' | 'house_management' | 'visitor_management';
   title: string;
   message: string;
   data?: Record<string, any>;
-  priority?: 'low' | 'medium' | 'high' | 'urgent';
 }
 
 class NotificationService {
@@ -45,15 +44,12 @@ class NotificationService {
       const [notification] = await db
         .insert(admin_notifications)
         .values({
-          admin_id: data.admin_id,
           village_key: data.village_key,
           type: data.type,
           category: data.category,
           title: data.title,
           message: data.message,
           data: serializedData ? JSON.parse(serializedData) : null,
-          priority: data.priority || 'medium',
-          is_read: false,
           created_at: new Date(),
         })
         .returning();
@@ -65,11 +61,24 @@ class NotificationService {
         .where(eq(villages.village_key, data.village_key));
 
 
-      // Update notification counts
-      console.log(`📊 Updating notification counts for user: ${data.admin_id}`);
-      await this.updateNotificationCounts(data.admin_id);
+      console.log(`📢 Created notification: ${notification.title} for village ${data.village_key}`);
 
-      console.log(`📢 Created notification: ${notification.title} for admin ${data.admin_id}`);
+      // Send via WebSocket to admins
+      try {
+        const wsNotification = {
+          id: notification.notification_id,
+          title: notification.title,
+          body: notification.message,
+          level: this.getNotificationLevel(data.type),
+          createdAt: notification.created_at ? notification.created_at.getTime() : Date.now()
+        };
+        
+        await websocketClient.sendNotification(wsNotification);
+        console.log(`📤 WebSocket notification sent: ${notification.title}`);
+      } catch (wsError) {
+        console.error('❌ WebSocket notification failed:', wsError);
+        // Don't throw - database save was successful
+      }
 
       return notification;
     } catch (error) {
@@ -86,16 +95,13 @@ class NotificationService {
     fname: string;
     lname: string;
     village_key: string;
-    admin_id: string;
   }) {
     return this.createNotification({
-      admin_id: residentData.admin_id,
       village_key: residentData.village_key,
       type: 'resident_pending',
       category: 'user_approval',
       title: 'ผู้อยู่อาศัยใหม่รอการอนุมัติ',
       message: `มีผู้อยู่อาศัยใหม่ ${residentData.fname} ${residentData.lname} รอการอนุมัติเข้าอยู่ในหมู่บ้าน`,
-      priority: 'high',
       data: {
         resident_id: residentData.resident_id,
         resident_name: `${residentData.fname} ${residentData.lname}`,
@@ -112,16 +118,13 @@ class NotificationService {
     fname: string;
     lname: string;
     village_key: string;
-    admin_id: string;
   }) {
     return this.createNotification({
-      admin_id: guardData.admin_id,
       village_key: guardData.village_key,
       type: 'guard_pending',
       category: 'user_approval',
       title: 'ยามรักษาความปลอดภัยใหม่รอการอนุมัติ',
       message: `มียามรักษาความปลอดภัยใหม่ ${guardData.fname} ${guardData.lname} รอการอนุมัติเข้าทำงาน`,
-      priority: 'medium',
       data: {
         guard_id: guardData.guard_id,
         guard_name: `${guardData.fname} ${guardData.lname}`,
@@ -139,18 +142,15 @@ class NotificationService {
     fname: string;
     lname: string;
     village_key: string;
-    admin_id: string;
   }) {
     const userTypeText = userData.user_type === 'resident' ? 'ผู้อยู่อาศัย' : 'ยามรักษาความปลอดภัย';
     
     return this.createNotification({
-      admin_id: userData.admin_id,
       village_key: userData.village_key,
       type: userData.user_type === 'resident' ? 'member_added' : 'status_changed',
       category: userData.user_type === 'resident' ? 'house_management' : 'user_approval',
       title: `${userTypeText}ได้รับการอนุมัติ`,
       message: `${userTypeText} ${userData.fname} ${userData.lname} ได้รับการอนุมัติแล้ว`,
-      priority: 'low',
       data: {
         user_id: userData.user_id,
         user_type: userData.user_type,
@@ -169,16 +169,13 @@ class NotificationService {
     old_status: string;
     new_status: string;
     village_key: string;
-    admin_id: string;
   }) {
     return this.createNotification({
-      admin_id: houseData.admin_id,
       village_key: houseData.village_key,
       type: 'house_updated',
       category: 'house_management',
       title: 'สถานะบ้านเปลี่ยนแปลง',
       message: `บ้านเลขที่ ${houseData.address} เปลี่ยนสถานะจาก '${houseData.old_status}' เป็น '${houseData.new_status}'`,
-      priority: 'medium',
       data: {
         house_id: houseData.house_id,
         house_address: houseData.address,
@@ -197,16 +194,13 @@ class NotificationService {
     visitor_name: string;
     wait_time: string;
     village_key: string;
-    admin_id: string;
   }) {
     return this.createNotification({
-      admin_id: visitorData.admin_id,
       village_key: visitorData.village_key,
       type: 'visitor_pending_too_long',
       category: 'visitor_management',
       title: 'ผู้เยี่ยมรอการอนุมัตินานเกินไป',
       message: `ผู้เยี่ยม ${visitorData.visitor_name} รอการอนุมัติเป็นเวลา ${visitorData.wait_time} แล้ว`,
-      priority: 'urgent',
       data: {
         visitor_record_id: visitorData.visitor_record_id,
         visitor_name: visitorData.visitor_name,
@@ -224,16 +218,13 @@ class NotificationService {
     visitor_name: string;
     reason: string;
     village_key: string;
-    admin_id: string;
   }) {
     return this.createNotification({
-      admin_id: visitorData.admin_id,
       village_key: visitorData.village_key,
       type: 'visitor_rejected_review',
       category: 'visitor_management',
       title: 'ผู้เยี่ยมถูกปฏิเสธ',
       message: `ผู้เยี่ยม ${visitorData.visitor_name} ถูกปฏิเสธ: ${visitorData.reason}`,
-      priority: 'high',
       data: {
         visitor_record_id: visitorData.visitor_record_id,
         visitor_name: visitorData.visitor_name,
@@ -244,37 +235,27 @@ class NotificationService {
   }
 
   /**
-   * Update notification counts and broadcast to user
+   * Get notification level based on type
    */
-  async updateNotificationCounts(adminId: string) {
-    try {
-      // Get current counts from database
-      const [totalResult, unreadResult] = await Promise.all([
-        db.select({ count: count() })
-          .from(admin_notifications)
-          .where(eq(admin_notifications.admin_id, adminId)),
-        
-        db.select({ count: count() })
-          .from(admin_notifications)
-          .where(and(
-            eq(admin_notifications.admin_id, adminId),
-            eq(admin_notifications.is_read, false)
-          ))
-      ]);
-
-      const counts = {
-        total: totalResult[0]?.count || 0,
-        unread: unreadResult[0]?.count || 0
-      };
-
-      console.log(`📊 Updated notification counts for user: ${adminId}`, counts);
-
-      return counts;
-    } catch (error) {
-      console.error('Error updating notification counts:', error);
-      throw error;
+  private getNotificationLevel(type: string): 'info' | 'warning' | 'critical' {
+    switch (type) {
+      case 'visitor_pending_too_long':
+      case 'visitor_rejected_review':
+        return 'warning';
+      case 'resident_pending':
+      case 'guard_pending':
+      case 'admin_pending':
+        return 'info';
+      case 'house_updated':
+      case 'member_added':
+      case 'member_removed':
+      case 'status_changed':
+        return 'info';
+      default:
+        return 'info';
     }
   }
+
 }
 
 // Export singleton instance
