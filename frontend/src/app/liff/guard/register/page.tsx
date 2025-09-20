@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ import Image from 'next/image';
 const svc = LiffService.getInstance();
 
 function GuardRegisterPageContent() {
-  // const router = useRouter(); // Unused
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -118,11 +118,11 @@ function GuardRegisterPageContent() {
             if (verifyResult.success && verifyResult.user) {
               // Check if user has guard role
               if (verifyResult.user.role === 'guard') {
-                // User already exists as guard, redirect to dashboard
+                // User already exists as guard, redirect to guard main page
                 console.log('User already exists as guard:', verifyResult.user);
                 setError('คุณได้ลงทะเบียนเป็นยามรักษาความปลอดภัยแล้ว กำลังนำคุณไปยังหน้าหลัก...');
                 setTimeout(() => {
-                  router.push('/dashboard');
+                  router.push('/guard');
                 }, 2000);
                 return;
               } else {
@@ -279,9 +279,9 @@ function GuardRegisterPageContent() {
           console.log('🎉 User now has multiple roles:', result.existingRoles);
         }
         
-        // Redirect to dashboard after successful guard registration
+        // Redirect to guard main page after successful guard registration
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push('/guard');
         }, 2000); // Wait 2 seconds to show success message
       } else {
         console.error('Registration failed:', result);

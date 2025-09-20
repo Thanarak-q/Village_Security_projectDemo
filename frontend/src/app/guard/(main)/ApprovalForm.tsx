@@ -18,49 +18,70 @@ import { useForm } from "react-hook-form";
 import { useMemo, useState, useEffect, useRef } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Upload, Home, House } from "lucide-react";
+import { Upload, Home, House, User, Search } from "lucide-react";
 import axios from "axios";
 import { ModeToggle } from "@/components/mode-toggle";
+import { getAuthData } from "@/lib/liffAuth";
 
 const visitorSchema = z.object({
   picture_key: z.string().optional(),
   license_plate: z.string()
     .min(1, "กรุณาระบุเลขทะเบียน")
     .regex(/^[ก-๙A-Za-z0-9\s-]+$/, "เลขทะเบียนไม่สามารถใช้อักษรพิเศษได้"),
-  guard_name: z.string()
-    .min(1, "กรุณาระบุชื่อผู้รับผิดชอบ")
-    .regex(/^[ก-๙A-Za-z\s]+$/, "ชื่อไม่สามารถใช้อักษรพิเศษได้"),
-  house_address: z.string()
-    .min(1, "กรุณาระบุบ้านเลขที่"),
-  guard_email: z.string().min(1, "กรุณาระบุอีเมล").email("อีเมลไม่ถูกต้อง"),
+  house_id: z.string()
+    .min(1, "กรุณาเลือกบ้าน"),
   entry_time: z.string().min(1, "กรุณาระบุเวลาเข้า"),
   visit_purpose: z.string()
     .optional()
 });
 
 function ApprovalForm() {
-  const [houseAddress, setHouseAddress] = useState<string[]>([]);
+  const [houses, setHouses] = useState<Array<{ house_id: string; address: string; village_key: string }>>([]);
+  const [currentUser, setCurrentUser] = useState<{ id: string; fname: string; lname: string; email: string; village_key: string } | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const fetchHouseAddress = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get("/api/houses", { 
-          withCredentials: true 
-        });
-        
-        const json = response.data;
-        const listRaw = json?.data;
-        const addresses = Array.isArray(listRaw)
-          ? listRaw.map((h) => h.address ?? "").filter((v): v is string => Boolean(v))
-          : [];
-        setHouseAddress(addresses);
+        // Get current user from auth data
+        const { user } = getAuthData();
+        if (user) {
+          setCurrentUser({
+            id: user.id,
+            fname: user.fname,
+            lname: user.lname,
+            email: user.email || '',
+            village_key: user.village_key || ''
+          });
+
+          // Fetch houses data filtered by user's village
+          const { token } = getAuthData();
+          const housesResponse = await axios.get("/api/houses", { 
+            withCredentials: true,
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          const allHouses = housesResponse.data?.data || [];
+          // Filter houses by current user's village
+          const villageHouses = allHouses.filter((house: any) => 
+            house.village_key === user.village_key
+          );
+          console.log('🏠 Houses filtered by village:', {
+            userVillage: user.village_key,
+            totalHouses: allHouses.length,
+            villageHouses: villageHouses.length
+          });
+          setHouses(villageHouses);
+        }
       } catch (err) {
-        console.log("Error fetching house addresses:", err);
+        console.log("Error fetching data:", err);
       }
     };
-    fetchHouseAddress();
+    fetchData();
   }, []);
   
   const getLocalDateTimeForInput = () => {
@@ -74,9 +95,7 @@ function ApprovalForm() {
     defaultValues: {
       picture_key: "",
       license_plate: "",
-      guard_name: "",      
-      house_address: "",
-      guard_email: "",
+      house_id: "",
       entry_time: getLocalDateTimeForInput(),
       visit_purpose: "",
     },
@@ -85,33 +104,39 @@ function ApprovalForm() {
   const [step, setStep] = useState<number>(1);
   const progress = step === 1 ? 25 : step === 2 ? 60 : 100;
 
-  useEffect(() => {
-    if (step === 3 && houseAddress.length > 0 && !visitorForm.getValues("house_address")) {
-      visitorForm.setValue("house_address", houseAddress[0]);
-    }
-  }, [step, houseAddress, visitorForm]);
-
   const [houseQuery, setHouseQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const housesPerPage = 5;
+
   const filteredHouses = useMemo(
     () =>
-      houseAddress.filter((h) =>
-        String(h).toLowerCase().includes(houseQuery.toLowerCase())
+      houses.filter((h) =>
+        h.address.toLowerCase().includes(houseQuery.toLowerCase())
       ),
-    [houseAddress, houseQuery]
+    [houses, houseQuery]
   );
+
+  const paginatedHouses = useMemo(() => {
+    const startIndex = (currentPage - 1) * housesPerPage;
+    const endIndex = startIndex + housesPerPage;
+    return filteredHouses.slice(startIndex, endIndex);
+  }, [filteredHouses, currentPage, housesPerPage]);
+
+  const totalPages = Math.ceil(filteredHouses.length / housesPerPage);
+
+  // Reset to first page when search query changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [houseQuery]);
 
   const goNext = async () => {
     if (step === 1) {
       setStep(2);
     }
     if (step === 2) {
-      const isValid = await visitorForm.trigger(["license_plate", "guard_name", "guard_email", "entry_time"]);
+      const isValid = await visitorForm.trigger(["license_plate", "entry_time"]);
       if (!isValid) {
         return;
-      }
-      
-      if (houseAddress.length > 0) {
-        visitorForm.setValue("house_address", houseAddress[0]);
       }
       
       setStep(3);
@@ -125,14 +150,10 @@ function ApprovalForm() {
 
   const isStep2Valid = () => {
     const licensePlate = visitorForm.watch("license_plate");
-    const guardName = visitorForm.watch("guard_name");
-    const guardEmail = visitorForm.watch("guard_email");
     const entryTime = visitorForm.watch("entry_time");
     
     return (
       licensePlate?.trim() !== "" &&
-      guardName?.trim() !== "" &&
-      guardEmail?.trim() !== "" &&
       entryTime?.trim() !== ""
     );
   };
@@ -165,8 +186,44 @@ function ApprovalForm() {
     }
   };
 
-  async function onSubmit() {
-    //code body
+  async function onSubmit(data: z.infer<typeof visitorSchema>) {
+    try {
+      console.log("🚀 Submitting form data:", data);
+      
+      const { token } = getAuthData();
+      
+      const response = await axios.post("/api/approvalForms", {
+        houseId: data.house_id,
+        pictureKey: data.picture_key,
+        licensePlate: data.license_plate,
+        visitPurpose: data.visit_purpose
+      }, {
+        withCredentials: true,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log("✅ Form submitted successfully:", response.data);
+      
+      if (response.data.success) {
+        alert(`ส่งคำขอสำเร็จ! รหัสการเยี่ยม: ${response.data.visitorId}`);
+        // Reset form or redirect
+        visitorForm.reset();
+        setStep(1);
+        setCapturedImage(null);
+        setCurrentPage(1);
+      }
+    } catch (error) {
+      console.error("❌ Error submitting form:", error);
+      if (axios.isAxiosError(error)) {
+        const errorMessage = error.response?.data?.error || error.message;
+        alert(`เกิดข้อผิดพลาด: ${errorMessage}`);
+      } else {
+        alert("เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ");
+      }
+    }
   }
 
   return (
@@ -279,42 +336,36 @@ function ApprovalForm() {
                         </FormItem>
                       )}
                     />
-                    <div className="grid grid-cols-1 gap-6">
-                      <FormField
-                        control={visitorForm.control}
-                        name="guard_name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-base font-medium select-none pointer-events-none">ชื่อเจ้าหน้าที่</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="ชื่อผู้รับผิดชอบ" 
-                                {...field} 
-                                className="h-12 text-base focus-visible:ring-ring" 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
+                    <div className="space-y-6">
+                      {/* Current Guard Information Display */}
+                      <div className="space-y-2">
+                        <label className="text-base font-medium text-foreground">เจ้าหน้าที่ผู้รับผิดชอบ</label>
+                        {currentUser ? (
+                          <div className="flex items-center gap-3 p-4 rounded-lg border border-border bg-muted/30">
+                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                              <User className="w-5 h-5" />
+                            </span>
+                            <div className="flex-1">
+                              <p className="font-medium text-foreground">{currentUser.fname} {currentUser.lname}</p>
+                              <p className="text-sm text-muted-foreground">{currentUser.email}</p>
+                            </div>
+                            <div className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                              กำลังใช้งาน
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-4 rounded-lg border border-dashed border-muted-foreground/30 text-center text-muted-foreground">
+                            <User className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            <p>ไม่พบข้อมูลผู้ใช้</p>
+                          </div>
                         )}
-                      />
-                      <FormField
-                        control={visitorForm.control}
-                        name="guard_email"
-                        render={({ field }) => (
-                          <FormItem className="md:col-span-2">
-                            <FormLabel className="text-base font-medium select-none pointer-events-none">อีเมลเจ้าหน้าที่</FormLabel>
-                            <FormControl>
-                              <Input type="email" placeholder="example@gmail.com" {...field} className="h-12 text-base focus-visible:ring-ring" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      </div>
+
                       <FormField
                         control={visitorForm.control}
                         name="entry_time"
                         render={({ field }) => (
-                          <FormItem className="md:col-span-2">
+                          <FormItem>
                             <FormLabel className="text-base font-medium select-none pointer-events-none">เวลาเข้า</FormLabel>
                             <FormControl>
                               <Input type="datetime-local" {...field} readOnly className="h-12 text-base bg-muted/60 select-none pointer-events-none" />
@@ -331,31 +382,114 @@ function ApprovalForm() {
                 )}
                 {step === 3 && (
                   <div className="space-y-4">
-                    <Input
-                      placeholder="ค้นหาด้วยเลขที่บ้าน"
-                      value={houseQuery}
-                      onChange={(e) => setHouseQuery(e.target.value)}
-                      className="h-12 text-base"
+                    <FormField
+                      control={visitorForm.control}
+                      name="house_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-base font-medium select-none pointer-events-none">
+                            เลือกบ้าน
+                            {currentUser?.village_key && (
+                              <span className="text-sm text-muted-foreground ml-2">
+                                (หมู่บ้าน: {currentUser.village_key})
+                              </span>
+                            )}
+                          </FormLabel>
+                          <FormControl>
+                            <div className="space-y-3">
+                              <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                                <Input
+                                  placeholder="ค้นหาด้วยเลขที่บ้านหรือรหัสบ้าน"
+                                  value={houseQuery}
+                                  onChange={(e) => setHouseQuery(e.target.value)}
+                                  className="h-12 text-base pl-10"
+                                />
+                              </div>
+                               <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                                 {paginatedHouses.map((house) => (
+                                   <button
+                                     key={house.house_id}
+                                     type="button"
+                                     onClick={() => {
+                                       visitorForm.setValue("house_id", house.house_id);
+                                       setHouseQuery(house.address);
+                                     }}
+                                     className={`w-full text-left px-4 py-4 rounded-lg border flex items-center gap-3 ${
+                                       visitorForm.watch("house_id") === house.house_id
+                                         ? "border-primary bg-primary/10"
+                                         : "border-border hover:border-ring"
+                                     }`}
+                                   >
+                                     <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                                       <Home className="w-4 h-4" />
+                                     </span>
+                                     <div className="flex-1">
+                                       <p className="font-medium">บ้าน {house.address}</p>
+                                     </div>
+                                     {visitorForm.watch("house_id") === house.house_id && (
+                                       <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                                         <div className="w-2 h-2 rounded-full bg-white"></div>
+                                       </div>
+                                     )}
+                                   </button>
+                                 ))}
+                                 {filteredHouses.length === 0 && (
+                                   <div className="text-center py-4">
+                                     {houseQuery ? (
+                                       <p className="text-muted-foreground">ไม่พบบ้านที่ตรงกับการค้นหา</p>
+                                     ) : (
+                                       <div className="space-y-2">
+                                         <p className="text-muted-foreground">ไม่มีบ้านในหมู่บ้านนี้</p>
+                                         {currentUser?.village_key && (
+                                           <p className="text-xs text-muted-foreground">
+                                             หมู่บ้าน: {currentUser.village_key}
+                                           </p>
+                                         )}
+                                       </div>
+                                     )}
+                                   </div>
+                                 )}
+                               </div>
+                               {totalPages > 1 && (
+                                 <div className="flex items-center justify-between pt-3 border-t">
+                                   <Button
+                                     type="button"
+                                     variant="outline"
+                                     size="sm"
+                                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                     disabled={currentPage === 1}
+                                     className="flex items-center gap-2"
+                                   >
+                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                     </svg>
+                                     ก่อนหน้า
+                                   </Button>
+                                   <span className="text-sm text-muted-foreground">
+                                     หน้า {currentPage} จาก {totalPages}
+                                   </span>
+                                   <Button
+                                     type="button"
+                                     variant="outline"
+                                     size="sm"
+                                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                     disabled={currentPage === totalPages}
+                                     className="flex items-center gap-2"
+                                   >
+                                     ถัดไป
+                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                     </svg>
+                                   </Button>
+                                 </div>
+                               )}
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                    <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                      {filteredHouses.map((house) => (
-                        <button
-                          key={house}
-                          type="button"
-                          onClick={() => visitorForm.setValue("house_address", house)}
-                          className={`w-full text-left px-4 py-4 rounded-lg border flex items-center gap-3 ${
-                            visitorForm.watch("house_address") === house
-                              ? "border-primary bg-primary/10"
-                              : "border-border hover:border-ring"
-                          }`}
-                        >
-                           <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-                             <Home className="w-4 h-4" />
-                           </span>
-                          <span className="font-medium">บ้าน {house}</span>
-                        </button>
-                      ))}
-                    </div>
                   </div>
                 )}
                 <div className="flex gap-4 pt-2">

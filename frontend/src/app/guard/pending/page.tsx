@@ -14,15 +14,21 @@ export default function GuardPendingPage() {
 
   useEffect(() => {
     const checkAuthAndStatus = () => {
+      console.log("🛡️ Guard pending page - checking authentication and status");
+      
       // Check if user is authenticated
       if (!isAuthenticated()) {
+        console.log("❌ User not authenticated, redirecting to guard LIFF");
         router.push("/liff/guard");
         return;
       }
 
       // Get user data and check status
       const { user } = getAuthData();
+      console.log("🔍 Guard pending - user data:", user);
+      
       if (!user || user.role !== "guard") {
+        console.log("❌ User is not a guard, redirecting to appropriate page");
         if (user?.role === "resident") {
           router.push("/liff/resident");
         } else {
@@ -31,19 +37,31 @@ export default function GuardPendingPage() {
         return;
       }
 
+      // Debug: Log user status
+      console.log("🔍 Guard pending - status check:", {
+        status: user.status,
+        fname: user.fname,
+        lname: user.lname,
+        email: user.email,
+        role: user.role
+      });
+
       // Check if user is verified
       if (user.status === "verified") {
+        console.log("✅ Guard is verified, redirecting to main page");
         router.push("/guard");
         return;
       }
 
       // If user is disabled
       if (user.status === "disable") {
+        console.log("❌ Guard is disabled, redirecting to login");
         router.push("/liff/guard");
         return;
       }
 
       // User is pending - show pending page
+      console.log("⏳ Guard is pending, showing pending page");
       setCurrentUser(user);
       setIsCheckingAuth(false);
     };
@@ -51,8 +69,19 @@ export default function GuardPendingPage() {
     checkAuthAndStatus();
   }, [router]);
 
-  const handleRefresh = () => {
-    window.location.reload();
+  const handleRefresh = async () => {
+    try {
+      console.log("🔄 Refreshing guard status...");
+      // Clear cached data
+      localStorage.removeItem('liffUser');
+      localStorage.removeItem('liffToken');
+      
+      // Force reload to get fresh data
+      window.location.reload();
+    } catch (error) {
+      console.error('Error refreshing:', error);
+      window.location.reload();
+    }
   };
 
   const handleLogout = () => {
@@ -110,7 +139,9 @@ export default function GuardPendingPage() {
                 <p><span className="font-medium">เบอร์โทร:</span> {currentUser.phone}</p>
                 <p><span className="font-medium">หมู่บ้าน:</span> {currentUser.village_key}</p>
                 <p><span className="font-medium">ตำแหน่ง:</span> รปภ.</p>
+                <p><span className="font-medium">สถานะ:</span> <span className="font-bold text-red-600">{currentUser.status}</span></p>
               </div>
+
             </div>
           )}
 
