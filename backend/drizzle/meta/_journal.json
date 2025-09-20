@@ -36,6 +36,13 @@
       "when": 1753946286754,
       "tag": "0004_add_admin_notifications_table",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1758356958655,
+      "tag": "0005_simple_kylun",
+      "breakpoints": true
     }
   ]
 }

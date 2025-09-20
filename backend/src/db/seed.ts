@@ -13,6 +13,7 @@ import {
   residents,
   guards,
   admins,
+  admin_villages,
   house_members,
   visitor_records,
   admin_activity_logs,
@@ -672,14 +673,23 @@ const guardData = [
  * @type {Array<Object>}
  */
 const adminData = [
+  // Super Admin
+  {
+    email: "superadmin@email.com",
+    username: "superadmin",
+    password_hash: "password123",
+    phone: "0890000000",
+    status: "verified",
+    role: "superadmin",
+  },
   // หมู่บ้านผาสุก
   {
     email: "admin.pha@email.com",
     username: "admin_pha",
     password_hash: "password123",
     phone: "0891234567",
-    village_key: "pha-suk-village-001",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านสุขสันต์
   {
@@ -687,8 +697,8 @@ const adminData = [
     username: "admin_suk",
     password_hash: "password123",
     phone: "0891234568",
-    village_key: "suk-san-village-002",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านร่มเย็น
   {
@@ -696,8 +706,8 @@ const adminData = [
     username: "admin_rom",
     password_hash: "password123",
     phone: "0891234569",
-    village_key: "rom-yen-village-003",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านสวนทอง
   {
@@ -705,8 +715,8 @@ const adminData = [
     username: "admin_suan",
     password_hash: "password123",
     phone: "0891234570",
-    village_key: "suan-thong-village-004",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านลุมพินี
   {
@@ -714,8 +724,8 @@ const adminData = [
     username: "admin_lum",
     password_hash: "password123",
     phone: "0891234571",
-    village_key: "lumphini-village-005",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านรัตนา
   {
@@ -723,8 +733,8 @@ const adminData = [
     username: "admin_rat",
     password_hash: "password123",
     phone: "0891234572",
-    village_key: "rattana-village-006",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านศรีสุข
   {
@@ -732,8 +742,8 @@ const adminData = [
     username: "admin_sri",
     password_hash: "password123",
     phone: "0891234573",
-    village_key: "sri-suk-village-007",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านธนารมย์
   {
@@ -741,8 +751,8 @@ const adminData = [
     username: "admin_thana",
     password_hash: "password123",
     phone: "0891234574",
-    village_key: "thanarom-village-008",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านสวนสวรรค์
   {
@@ -750,8 +760,8 @@ const adminData = [
     username: "admin_sawan",
     password_hash: "password123",
     phone: "0891234575",
-    village_key: "suan-sawan-village-009",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านสุขุมวิท
   {
@@ -759,8 +769,8 @@ const adminData = [
     username: "admin_sukhumvit",
     password_hash: "password123",
     phone: "0891234576",
-    village_key: "sukhumvit-village-010",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านรัชดา
   {
@@ -768,8 +778,8 @@ const adminData = [
     username: "admin_ratchada",
     password_hash: "password123",
     phone: "0891234577",
-    village_key: "ratchada-village-011",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านลาดพร้าว
   {
@@ -777,8 +787,8 @@ const adminData = [
     username: "admin_lad",
     password_hash: "password123",
     phone: "0891234578",
-    village_key: "ladprao-village-012",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านบางนา
   {
@@ -786,8 +796,8 @@ const adminData = [
     username: "admin_bang",
     password_hash: "password123",
     phone: "0891234579",
-    village_key: "bangna-village-013",
     status: "pending",
+    role: "admin",
   },
   // หมู่บ้านอโศก
   {
@@ -795,8 +805,8 @@ const adminData = [
     username: "admin_asoke",
     password_hash: "password123",
     phone: "0891234580",
-    village_key: "asoke-village-014",
     status: "pending",
+    role: "admin",
   },
   // หมู่บ้านทองหล่อ
   {
@@ -804,20 +814,52 @@ const adminData = [
     username: "admin_thong",
     password_hash: "password123",
     phone: "0891234581",
-    village_key: "thonglor-village-015",
     status: "pending",
-  },
-
-  {
-    email: "superadmin@system.com",
-    username: "superadmin", 
-    password_hash: "superadmin123",
-    phone: "0812345678",
-    village_key: null, // ← ไม่มี village_key
-    role: "superadmin", // ← ระบุ role
-    status: "verified",
+    role: "admin",
   },
 ];
+
+/**
+ * Creates admin_villages data based on the original admin-village relationships
+ * @returns {Promise<Array>} Array of admin_villages data
+ */
+async function createAdminVillagesData() {
+  const adminVillagesData = [];
+  
+  // Mapping of admin usernames to their original village_keys
+  const adminVillageMapping = [
+    { username: "admin_pha", village_key: "pha-suk-village-001" },
+    { username: "admin_suk", village_key: "suk-san-village-002" },
+    { username: "admin_rom", village_key: "rom-yen-village-003" },
+    { username: "admin_suan", village_key: "suan-thong-village-004" },
+    { username: "admin_lum", village_key: "lumphini-village-005" },
+    { username: "admin_rat", village_key: "rattana-village-006" },
+    { username: "admin_sri", village_key: "sri-suk-village-007" },
+    { username: "admin_thana", village_key: "thanarom-village-008" },
+    { username: "admin_sawan", village_key: "suan-sawan-village-009" },
+    { username: "admin_sukhumvit", village_key: "sukhumvit-village-010" },
+    { username: "admin_ratchada", village_key: "ratchada-village-011" },
+    { username: "admin_lad", village_key: "ladprao-village-012" },
+    { username: "admin_bang", village_key: "bangna-village-013" },
+    { username: "admin_asoke", village_key: "asoke-village-014" },
+    { username: "admin_thong", village_key: "thonglor-village-015" },
+  ];
+
+  // Get all admins from database
+  const allAdmins = await db.select().from(admins);
+  
+  for (const mapping of adminVillageMapping) {
+    const admin = allAdmins.find((a: any) => a.username === mapping.username);
+    if (admin) {
+      adminVillagesData.push({
+        admin_id: admin.admin_id,
+        village_key: mapping.village_key,
+      });
+    }
+  }
+
+  return adminVillagesData;
+}
 
 /**
  * Clears all data from the database tables in the correct order to avoid foreign key constraints.
@@ -860,6 +902,14 @@ export async function clearDb() {
     console.log("Cleared house_members");
   } catch (error) {
     console.log("house_members table doesn't exist yet, skipping...");
+  }
+
+  console.log("Clearing admin_villages");
+  try {
+    await db.delete(admin_villages);
+    console.log("Cleared admin_villages");
+  } catch (error) {
+    console.log("admin_villages table doesn't exist yet, skipping...");
   }
 
   console.log("Clearing admins");
@@ -1523,6 +1573,15 @@ async function seed() {
   );
   await db.insert(admins).values(hashedAdminData as any);
   console.log("Completed inserting admins");
+
+  console.log("Creating and inserting admin_villages");
+  const adminVillagesData = await createAdminVillagesData();
+  if (adminVillagesData.length > 0) {
+    await db.insert(admin_villages).values(adminVillagesData);
+    console.log("Completed inserting admin_villages");
+  } else {
+    console.log("No admin_villages data to insert");
+  }
 
   console.log("Creating and inserting house_members");
   const houseMembersData = await createHouseMembersData();
