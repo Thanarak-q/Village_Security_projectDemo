@@ -39,7 +39,7 @@ function GuardRegisterPageContent() {
     village_key: '',
     userType: 'guard' as 'resident' | 'guard',
     profile_image_url: '',
-    role: 'guard' as 'resident' | 'guard', // Explicit role for LINE Login channels
+    line_display_name: '',
   });
 
   const [lineProfile, setLineProfile] = useState<{ userId?: string; displayName?: string; pictureUrl?: string } | null>(null);
@@ -55,7 +55,7 @@ function GuardRegisterPageContent() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || ''}/api/villages/check/${encodeURIComponent(villageKey)}`
+        `${process.env.NEXT_PUBLIC_API_URL || window.location.origin}/api/villages/check/${encodeURIComponent(villageKey)}`
       );
       
       if (response.ok) {
@@ -100,6 +100,74 @@ function GuardRegisterPageContent() {
 
         setIdToken(token);
 
+        // Check if user already exists as guard
+        try {
+          const verifyResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || window.location.origin}/api/liff/verify`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              idToken: token,
+              role: 'guard'
+            }),
+          });
+
+          if (verifyResponse.ok) {
+            const verifyResult = await verifyResponse.json();
+            if (verifyResult.success && verifyResult.user) {
+              // Check if user has guard role
+              if (verifyResult.user.role === 'guard') {
+                // User already exists as guard, redirect to dashboard
+                console.log('User already exists as guard:', verifyResult.user);
+                setError('คุณได้ลงทะเบียนเป็นยามรักษาความปลอดภัยแล้ว กำลังนำคุณไปยังหน้าหลัก...');
+                setTimeout(() => {
+                  router.push('/dashboard');
+                }, 2000);
+                return;
+              } else {
+                // User exists but not as guard, allow registration
+                console.log('User exists as', verifyResult.user.role, 'allowing guard registration');
+                // Continue with registration
+              }
+            }
+          } else if (verifyResponse.status === 404) {
+            // User doesn't exist as guard, check if they exist as resident
+            console.log('User not found as guard, checking if they exist as resident...');
+            
+            // Check if user exists as resident
+            const residentVerifyResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || window.location.origin}/api/liff/verify`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ 
+                idToken: token,
+                role: 'resident'
+              }),
+            });
+
+            if (residentVerifyResponse.ok) {
+              const residentResult = await residentVerifyResponse.json();
+              if (residentResult.success && residentResult.user) {
+                console.log('User exists as resident, allowing guard registration:', residentResult.user);
+                // User exists as resident, allow guard registration (multi-role user)
+              }
+            }
+            // If user doesn't exist as resident either, continue with registration
+          } else {
+            // Other error, show error message
+            const errorData = await verifyResponse.json().catch(() => ({}));
+            console.error('Verification error:', errorData);
+            setError('เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์ กรุณาลองใหม่');
+            setLoading(false);
+            return;
+          }
+        } catch (verifyErr) {
+          console.warn('Failed to verify user existence:', verifyErr);
+          // Continue with registration if verification fails
+        }
+
         // Get LINE profile data and auto-fill form
         try {
           const profile = await svc.getProfile();
@@ -107,9 +175,9 @@ function GuardRegisterPageContent() {
             setLineProfile(profile);
             setFormData(prev => ({
               ...prev,
-              username: profile.displayName || '',
               email: '', // Always empty, user must fill
               profile_image_url: profile.pictureUrl || '',
+              line_display_name: profile.displayName || '',
             }));
           }
         } catch (profileErr) {
@@ -177,7 +245,10 @@ function GuardRegisterPageContent() {
     // Validate form before submission
     const validationErrors = validateForm();
     if (validationErrors.length > 0) {
-      setError('กรุณาตรวจสอบข้อมูลที่กรอก');
+      // Show specific validation errors
+      const errorMessages = validationErrors.map(err => `${err.field}: ${err.message}`).join(', ');
+      setError(`กรุณาตรวจสอบข้อมูลที่กรอก: ${errorMessages}`);
+      console.error('Validation errors:', validationErrors);
       return;
     }
 
@@ -207,6 +278,11 @@ function GuardRegisterPageContent() {
         if (result.existingRoles && result.existingRoles.length > 1) {
           console.log('🎉 User now has multiple roles:', result.existingRoles);
         }
+        
+        // Redirect to dashboard after successful guard registration
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 2000); // Wait 2 seconds to show success message
       } else {
         console.error('Registration failed:', result);
         
@@ -215,6 +291,10 @@ function GuardRegisterPageContent() {
           setError('คุณได้ลงทะเบียนเป็นลูกบ้านแล้ว หากต้องการเป็นยามรักษาความปลอดภัยด้วย กรุณาใช้แอปยามรักษาความปลอดภัย');
         } else if (result.error?.includes('already registered as guard')) {
           setError('คุณได้ลงทะเบียนเป็นยามรักษาความปลอดภัยแล้ว');
+        } else if (result.error?.includes('Invalid ID token')) {
+          setError('LINE token หมดอายุ กรุณาเข้าสู่ระบบใหม่');
+        } else if (result.error?.includes('Validation failed')) {
+          setError('ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบข้อมูลที่กรอก');
         } else if (result.canRegisterAs && result.canRegisterAs.length > 0) {
           setError(`คุณสามารถลงทะเบียนเป็น ${result.canRegisterAs.includes('resident') ? 'ลูกบ้าน' : ''}${result.canRegisterAs.includes('resident') && result.canRegisterAs.includes('guard') ? ' หรือ ' : ''}${result.canRegisterAs.includes('guard') ? 'ยามรักษาความปลอดภัย' : ''} ได้`);
         } else {

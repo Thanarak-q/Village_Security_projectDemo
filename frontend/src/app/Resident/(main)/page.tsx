@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { Car, Clock, Home, ChevronLeft, ChevronRight } from "lucide-react";
 import NotificationComponent from "../../dashboard/(main)/notification";
@@ -59,6 +60,7 @@ const fetchPendingVisitorRequests = async (lineUserId: string): Promise<ApiVisit
   const result = await response.json();
   return result.success ? result.data : [];
 };
+
 
 const fetchVisitorHistory = async (lineUserId: string): Promise<ApiVisitorRequest[]> => {
   const response = await fetch(`/api/visitor-requests/history/line/${encodeURIComponent(lineUserId)}`);
@@ -423,14 +425,11 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
   }, []);
 
   return (
-    <div>
-      {/* Header with request count and navigation */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <h3 className="text-lg font-semibold text-foreground">คำขออนุมัติ</h3>
-          <span className="bg-primary/10 text-primary text-xs font-medium px-2 py-0.5 rounded-full border">
-            {sortedPending.length}
-          </span>
+    <div className="min-h-screen bg-white-50">
+      <div className="bg-white px-4 py-4 flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-gray-800">หมู่บ้านร่มรื่น</h1>
+        <div className="relative">
+          <NotificationComponent />
         </div>
         {sortedPending.length > 1 && (
           <div className="flex items-center gap-1">
