@@ -4,6 +4,7 @@ import { admins } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { hashPassword, verifyPassword } from "../utils/passwordUtils";
+import { adminSettingsActivityLogger } from "../utils/activityLogUtils";
 
 /**
  * The admin settings routes.
@@ -11,7 +12,7 @@ import { hashPassword, verifyPassword } from "../utils/passwordUtils";
  * @type {Elysia}
  */
 export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
-  .onBeforeHandle(requireRole("admin"))
+  .onBeforeHandle(requireRole(["admin", "staff"]))
 
   /**
    * Get the current admin's profile for the settings page.
@@ -132,6 +133,29 @@ export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
           updatedAt: admins.updatedAt,
         });
 
+      // Log the profile update activity
+      try {
+        const logResult = await adminSettingsActivityLogger.logProfileUpdated(
+          admin_id,
+          existingAdmin[0].username,
+          updateData,
+          {
+            username: existingAdmin[0].username,
+            email: existingAdmin[0].email,
+            phone: existingAdmin[0].phone
+          }
+        );
+        // Only log if there were actual changes
+        if (logResult) {
+          console.log("Profile update logged successfully");
+        } else {
+          console.log("No actual changes detected, skipping log");
+        }
+      } catch (logError) {
+        console.error("Error logging profile update:", logError);
+        // Don't fail the request if logging fails
+      }
+
       return { success: true, data: result[0] };
     } catch (error) {
       console.error("Error updating admin profile:", error);
@@ -206,6 +230,17 @@ export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
           email: admins.email,
           updatedAt: admins.updatedAt,
         });
+
+      // Log the password change activity
+      try {
+        await adminSettingsActivityLogger.logPasswordChanged(
+          admin_id,
+          existingAdmin[0].username
+        );
+      } catch (logError) {
+        console.error("Error logging password change:", logError);
+        // Don't fail the request if logging fails
+      }
 
       return {
         success: true,
@@ -331,6 +366,30 @@ export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
           status: admins.status,
           updatedAt: admins.updatedAt,
         });
+
+      // Log the settings update activity
+      try {
+        const logResult = await adminSettingsActivityLogger.logSettingsUpdated(
+          admin_id,
+          existingAdmin[0].username,
+          updateData,
+          {
+            username: existingAdmin[0].username,
+            email: existingAdmin[0].email,
+            phone: existingAdmin[0].phone
+          },
+          passwordChanged
+        );
+        // Only log if there were actual changes
+        if (logResult) {
+          console.log("Settings update logged successfully");
+        } else {
+          console.log("No actual changes detected, skipping log");
+        }
+      } catch (logError) {
+        console.error("Error logging settings update:", logError);
+        // Don't fail the request if logging fails
+      }
 
       return {
         success: true,

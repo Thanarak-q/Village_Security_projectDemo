@@ -3,6 +3,7 @@ import db from "../db/drizzle";
 import { houses, villages } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
+import { houseActivityLogger } from "../utils/activityLogUtils";
 
 /**
  * Interface for the create house request body.
@@ -148,6 +149,18 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         })
         .returning();
 
+      // Log the house creation activity
+      try {
+        await houseActivityLogger.logHouseCreated(
+          currentUser.admin_id,
+          houseData.address.trim(),
+          adminVillageKey
+        );
+      } catch (logError) {
+        console.error("Error logging house creation:", logError);
+        // Don't fail the request if logging fails
+      }
+
       return {
         success: true,
         message: "House created successfully!",
@@ -229,6 +242,29 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
           .where(eq(houses.house_id, house_id))
           .returning();
 
+        // Log the house update activity
+        try {
+          const logResult = await houseActivityLogger.logHouseUpdated(
+            currentUser.admin_id,
+            house_id,
+            existingHouse[0].address,
+            dataToUpdate,
+            {
+              address: existingHouse[0].address,
+              status: existingHouse[0].status || undefined
+            }
+          );
+          // Only log if there were actual changes
+          if (logResult) {
+            console.log("House update logged successfully");
+          } else {
+            console.log("No actual changes detected, skipping log");
+          }
+        } catch (logError) {
+          console.error("Error logging house update:", logError);
+          // Don't fail the request if logging fails
+        }
+
         return {
           success: true,
           message: "House updated successfully!",
@@ -302,6 +338,19 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
           .where(eq(houses.house_id, house_id))
           .returning();
 
+        // Log the house status update activity
+        try {
+          await houseActivityLogger.logHouseStatusUpdated(
+            currentUser.admin_id,
+            existingHouse[0].address,
+            existingHouse[0].status || "unknown",
+            status
+          );
+        } catch (logError) {
+          console.error("Error logging house status update:", logError);
+          // Don't fail the request if logging fails
+        }
+
         return {
           success: true,
           message: "House status updated successfully!",
@@ -362,6 +411,18 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
 
       // Delete house
       await db.delete(houses).where(eq(houses.house_id, house_id));
+
+      // Log the house deletion activity
+      try {
+        await houseActivityLogger.logHouseDeleted(
+          currentUser.admin_id,
+          houseInfo.address,
+          houseInfo.village_key || "unknown"
+        );
+      } catch (logError) {
+        console.error("Error logging house deletion:", logError);
+        // Don't fail the request if logging fails
+      }
 
       return {
         success: true,

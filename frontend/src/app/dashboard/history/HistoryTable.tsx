@@ -91,6 +91,9 @@ export default function HistoryTable() {
   // State for search term
   const [searchTerm, setSearchTerm] = useState("");
   
+  // State for status filter
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(() => {
@@ -221,21 +224,25 @@ export default function HistoryTable() {
     });
   };
 
-  // Filter admin history by search term
+  // Filter admin history by search term - focus on admin name
   const filteredAdminHistory = adminHistoryData.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.note.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.user_email.toLowerCase().includes(searchTerm.toLowerCase())
+    (item.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+    (item.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
   );
 
-  // Filter visitor history by search term
-  const filteredVisitorHistory = visitorHistoryData.filter(item =>
-    item.resident_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.guard_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.visit_purpose.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.record_status.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter visitor history by search term and status - focus on license plate
+  const filteredVisitorHistory = visitorHistoryData.filter(item => {
+    // Search filter - focus on license plate only
+    const matchesSearch = (item.license_plate?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
+    
+    // Status filter
+    const matchesStatus = statusFilter === "all" || 
+      (statusFilter === "pending" && item.record_status === "pending") ||
+      (statusFilter === "approved" && item.record_status === "approved") ||
+      (statusFilter === "rejected" && item.record_status === "rejected");
+    
+    return matchesSearch && matchesStatus;
+  });
 
   // Function to get current page admin history
   const getCurrentAdminHistory = () => {
@@ -263,10 +270,10 @@ export default function HistoryTable() {
   const totalItems = activeTab === 'adminHistory' ? filteredAdminHistory.length : filteredVisitorHistory.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-  // Reset to first page when changing tab or search
+  // Reset to first page when changing tab, search, or status filter
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab, searchTerm]);
+  }, [activeTab, searchTerm, statusFilter]);
 
   // Function to go to next page
   const goToNextPage = () => {
@@ -357,18 +364,36 @@ export default function HistoryTable() {
                 </button>
               </div>
               
-              {/* Search box and refresh indicator */}
+              {/* Search box, status filter and refresh indicator */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full lg:w-auto">
                 <div className="relative w-full sm:max-w-md">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder="ค้นหาประวัติ..."
+                    placeholder={activeTab === 'adminHistory' ? "ค้นหาจากชื่อผู้ดูแล..." : "ค้นหาจากทะเบียนรถ..."}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 pr-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent w-full text-sm"
                   />
                 </div>
+                
+                {/* Status filter - only show for visitor history tab */}
+                {activeTab === 'visitorHistory' && (
+                  <Select
+                    value={statusFilter}
+                    onValueChange={setStatusFilter}
+                  >
+                    <SelectTrigger className="w-32 sm:w-36 text-sm">
+                      <SelectValue placeholder="สถานะ" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">ทั้งหมด</SelectItem>
+                      <SelectItem value="pending">รอดำเนินการ</SelectItem>
+                      <SelectItem value="approved">อนุมัติแล้ว</SelectItem>
+                      <SelectItem value="rejected">ปฏิเสธ</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
                 
                 {/* Refresh indicator */}
                 {refreshing && (
@@ -491,12 +516,12 @@ export default function HistoryTable() {
                             {/* License plate and resident info */}
                             <div className="min-w-0 flex-1">
                               <div className="font-medium text-foreground text-sm sm:text-base truncate">
-                                {item.license_plate}
+                                {item.license_plate || 'ไม่ระบุ'}
                               </div>
                               {/* Show purpose on mobile */}
                               <div className="sm:hidden text-xs text-muted-foreground mt-1">
-                                <div className="truncate">{item.visit_purpose}</div>
-                                <div className="truncate">บ้าน: {item.house_address}</div>
+                                <div className="truncate">{item.visit_purpose || 'ไม่ระบุ'}</div>
+                                <div className="truncate">บ้าน: {item.house_address || 'ไม่ระบุ'}</div>
                               </div>
                             </div>
                           </div>
@@ -504,17 +529,17 @@ export default function HistoryTable() {
                         
                         {/* Resident name column */}
                         <TableCell className="hidden sm:table-cell min-w-[120px]">
-                          <div className="text-sm text-foreground truncate">{item.resident_name}</div>
+                          <div className="text-sm text-foreground truncate">{item.resident_name || 'ไม่ระบุ'}</div>
                         </TableCell>
 
                         {/* Purpose column */}
                         <TableCell className="hidden sm:table-cell min-w-[120px]">
-                          <div className="text-sm text-foreground truncate">{item.visit_purpose}</div>
+                          <div className="text-sm text-foreground truncate">{item.visit_purpose || 'ไม่ระบุ'}</div>
                         </TableCell>
                         
                         {/* House address column */}
                         <TableCell className="text-gray-700 hidden md:table-cell text-sm min-w-[150px]">
-                          <div className="truncate">{item.house_address}</div>
+                          <div className="truncate">{item.house_address || 'ไม่ระบุ'}</div>
                         </TableCell>
                         
                         {/* Entry time column */}
@@ -531,11 +556,20 @@ export default function HistoryTable() {
                                 ? "bg-green-100 text-green-800 hover:bg-green-100"
                                 : item.status === "in_progress"
                                 ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                                : item.status === "pending"
+                                ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                                : item.status === "approved"
+                                ? "bg-green-100 text-green-800 hover:bg-green-100"
+                                : item.status === "rejected"
+                                ? "bg-red-100 text-red-800 hover:bg-red-100"
                                 : "bg-gray-100 text-gray-800 hover:bg-gray-100"
                             }`}
                           >
                             {item.status === "completed" ? "เสร็จสิ้น" : 
                              item.status === "in_progress" ? "กำลังดำเนินการ" : 
+                             item.status === "pending" ? "รอดำเนินการ" :
+                             item.status === "approved" ? "อนุมัติแล้ว" :
+                             item.status === "rejected" ? "ปฏิเสธ" :
                              item.status}
                           </Badge>
                         </TableCell>
