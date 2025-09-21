@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import db from "../db/drizzle";
 import { residents, visitor_records, guards } from "../db/schema";
-import { eq, count, and, gte, lt } from "drizzle-orm";
+import { eq, count, and, gte, lt, inArray } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 
 /**
@@ -60,44 +60,42 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
   .get("/statsCard", async ({ currentUser }: any) => {
     try {
       const { startOfDay, endOfDay } = getTodayDateRange();
-      const { village_key } = currentUser;
+      const { village_keys, role } = currentUser;
 
       // Count total residents (filtered by village if not superadmin)
-      const countResidents = village_key 
-        ? await db.select({ count: count() }).from(residents).where(eq(residents.village_key, village_key))
-        : await db.select({ count: count() }).from(residents);
+      const countResidents = role === "superadmin"
+        ? await db.select({ count: count() }).from(residents)
+        : await db.select({ count: count() }).from(residents).where(inArray(residents.village_key, village_keys));
 
       // Count residents with pending status (filtered by village if not superadmin)
-      const countResidentsPending = village_key
+      const countResidentsPending = role === "superadmin"
         ? await db
             .select({ count: count() })
             .from(residents)
-            .where(and(eq(residents.status, "pending"), eq(residents.village_key, village_key)))
+            .where(eq(residents.status, "pending"))
         : await db
             .select({ count: count() })
             .from(residents)
-            .where(eq(residents.status, "pending"));
+            .where(and(eq(residents.status, "pending"), inArray(residents.village_key, village_keys)));
 
       // Count guards with pending status (filtered by village if not superadmin)
-      const countGuardsPending = village_key
+      const countGuardsPending = role === "superadmin"
         ? await db
             .select({ count: count() })
             .from(guards)
-            .where(and(eq(guards.status, "pending"), eq(guards.village_key, village_key)))
+            .where(eq(guards.status, "pending"))
         : await db
             .select({ count: count() })
             .from(guards)
-            .where(eq(guards.status, "pending"));
+            .where(and(eq(guards.status, "pending"), inArray(guards.village_key, village_keys)));
 
       // Count visitor records for today (filtered by village if not superadmin)
-      const countVisitorRecordToday = village_key
+      const countVisitorRecordToday = role === "superadmin"
         ? await db
             .select({ count: count() })
             .from(visitor_records)
-            .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
             .where(
               and(
-                eq(residents.village_key, village_key),
                 gte(visitor_records.createdAt, startOfDay),
                 lt(visitor_records.createdAt, endOfDay)
               )
@@ -105,22 +103,22 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
         : await db
             .select({ count: count() })
             .from(visitor_records)
+            .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
             .where(
               and(
+                inArray(residents.village_key, village_keys),
                 gte(visitor_records.createdAt, startOfDay),
                 lt(visitor_records.createdAt, endOfDay)
               )
             );
 
       // Count approved visitor records for today (filtered by village if not superadmin)
-      const countApprovedToday = village_key
+      const countApprovedToday = role === "superadmin"
         ? await db
             .select({ count: count() })
             .from(visitor_records)
-            .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
             .where(
               and(
-                eq(residents.village_key, village_key),
                 eq(visitor_records.record_status, "approved"),
                 gte(visitor_records.createdAt, startOfDay),
                 lt(visitor_records.createdAt, endOfDay)
@@ -129,8 +127,10 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
         : await db
             .select({ count: count() })
             .from(visitor_records)
+            .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
             .where(
               and(
+                inArray(residents.village_key, village_keys),
                 eq(visitor_records.record_status, "approved"),
                 gte(visitor_records.createdAt, startOfDay),
                 lt(visitor_records.createdAt, endOfDay)
@@ -138,14 +138,12 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
             );
 
       // Count pending visitor records for today (filtered by village if not superadmin)
-      const countPendingToday = village_key
+      const countPendingToday = role === "superadmin"
         ? await db
             .select({ count: count() })
             .from(visitor_records)
-            .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
             .where(
               and(
-                eq(residents.village_key, village_key),
                 eq(visitor_records.record_status, "pending"),
                 gte(visitor_records.createdAt, startOfDay),
                 lt(visitor_records.createdAt, endOfDay)
@@ -154,8 +152,10 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
         : await db
             .select({ count: count() })
             .from(visitor_records)
+            .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
             .where(
               and(
+                inArray(residents.village_key, village_keys),
                 eq(visitor_records.record_status, "pending"),
                 gte(visitor_records.createdAt, startOfDay),
                 lt(visitor_records.createdAt, endOfDay)
@@ -163,14 +163,12 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
             );
 
       // Count rejected visitor records for today (filtered by village if not superadmin)
-      const countRejectedToday = village_key
+      const countRejectedToday = role === "superadmin"
         ? await db
             .select({ count: count() })
             .from(visitor_records)
-            .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
             .where(
               and(
-                eq(residents.village_key, village_key),
                 eq(visitor_records.record_status, "rejected"),
                 gte(visitor_records.createdAt, startOfDay),
                 lt(visitor_records.createdAt, endOfDay)
@@ -179,8 +177,10 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
         : await db
             .select({ count: count() })
             .from(visitor_records)
+            .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
             .where(
               and(
+                inArray(residents.village_key, village_keys),
                 eq(visitor_records.record_status, "rejected"),
                 gte(visitor_records.createdAt, startOfDay),
                 lt(visitor_records.createdAt, endOfDay)

@@ -19,7 +19,8 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
    */
   .get("/admins", async ({ set }) => {
     try {
-      const adminsWithVillage = await db
+      // Get all admins first
+      const allAdmins = await db
         .select({
           admin_id: admins.admin_id,
           username: admins.username,
@@ -27,17 +28,33 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
           phone: admins.phone,
           role: admins.role,
           status: admins.status,
-          village_key: admin_villages.village_key,
-          village_name: villages.village_name,
           createdAt: admins.createdAt,
           updatedAt: admins.updatedAt,
         })
         .from(admins)
-        .leftJoin(admin_villages, eq(admins.admin_id, admin_villages.admin_id))
-        .leftJoin(villages, eq(admin_villages.village_key, villages.village_key))
         .orderBy(admins.createdAt);
 
-      return { success: true, data: adminsWithVillage };
+      // Get villages for each admin
+      const adminsWithVillages = await Promise.all(
+        allAdmins.map(async (admin) => {
+          const adminVillages = await db
+            .select({
+              village_key: villages.village_key,
+              village_name: villages.village_name,
+            })
+            .from(admin_villages)
+            .innerJoin(villages, eq(admin_villages.village_key, villages.village_key))
+            .where(eq(admin_villages.admin_id, admin.admin_id));
+
+          return {
+            ...admin,
+            village_keys: adminVillages.map(av => av.village_key),
+            villages: adminVillages,
+          };
+        })
+      );
+
+      return { success: true, data: adminsWithVillages };
     } catch (error) {
       console.error("Error fetching admins:", error);
       set.status = 500;

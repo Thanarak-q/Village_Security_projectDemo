@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import db from "../db/drizzle";
 import { houses, villages } from "../db/schema";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { houseActivityLogger } from "../utils/activityLogUtils";
 import { notificationService } from "../services/notificationService";
@@ -12,7 +12,7 @@ import { notificationService } from "../services/notificationService";
  */
 interface CreateHouseBody {
   address: string;
-  // village_key will be automatically assigned from the admin's village.
+  village_key: string; // Admin must specify which village to create house in
 }
 
 /**
@@ -43,6 +43,10 @@ const validateHouseData = (data: CreateHouseBody) => {
 
   if (!data.address?.trim()) {
     errors.push("Address is required");
+  }
+
+  if (!data.village_key?.trim()) {
+    errors.push("Village is required");
   }
 
   return errors;
@@ -91,12 +95,15 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
   // Get all houses (moved from house.ts)
   .get("/houses", async ({ currentUser }: any) => {
     try {
-      const { village_key } = currentUser;
+      const { village_keys, role } = currentUser;
 
-      const result = await db
-        .select()
-        .from(houses)
-        .where(eq(houses.village_key, village_key));
+      const result = role === "superadmin"
+        ? await db.select().from(houses) // Super admin can see all houses
+        : await db
+            .select()
+            .from(houses)
+            .where(inArray(houses.village_key, village_keys));
+
       return {
         success: true,
         data: result,
@@ -125,19 +132,26 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
-      const adminVillageKey = currentUser.village_key;
+      const { village_keys, role } = currentUser;
 
-      // Check if admin's village exists
+      // Check if admin has access to the specified village
+      if (role !== "superadmin" && !village_keys.includes(houseData.village_key)) {
+        return {
+          success: false,
+          error: "You don't have access to this village",
+        };
+      }
+
+      // Check if village exists
       const existingVillage = await db
         .select()
         .from(villages)
-        .where(eq(villages.village_key, adminVillageKey));
+        .where(eq(villages.village_key, houseData.village_key));
 
       if (existingVillage.length === 0) {
         return {
           success: false,
-          error:
-            "Admin's village not found. Please contact system administrator.",
+          error: "Village not found",
         };
       }
 
@@ -146,7 +160,7 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         .insert(houses)
         .values({
           address: houseData.address.trim(),
-          village_key: adminVillageKey, // Use admin's village_key
+          village_key: houseData.village_key, // Use specified village_key
         })
         .returning();
 
@@ -155,7 +169,7 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         await houseActivityLogger.logHouseCreated(
           currentUser.admin_id,
           houseData.address.trim(),
-          adminVillageKey
+          houseData.village_key
         );
       } catch (logError) {
         console.error("Error logging house creation:", logError);

@@ -38,10 +38,13 @@ import {
   AlertTriangle,
   Building,
   Shield,
-  UserCheck
+  UserCheck,
+  Eye
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import VillageMultiSelect from "./components/VillageMultiSelect";
+import AdminDetailDialog from "./components/AdminDetailDialog";
 
 interface Admin {
   admin_id: string;
@@ -50,8 +53,11 @@ interface Admin {
   phone: string;
   role: "admin" | "staff";
   status: "verified" | "pending" | "disable";
-  village_key: string;
-  village_name: string;
+  village_keys: string[];
+  villages: Array<{
+    village_key: string;
+    village_name: string;
+  }>;
   createdAt: string;
   updatedAt: string;
 }
@@ -71,6 +77,7 @@ export default function AdminsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState<Admin | null>(null);
   const [formData, setFormData] = useState({
     username: "",
@@ -78,7 +85,7 @@ export default function AdminsPage() {
     password: "",
     phone: "",
     role: "admin" as "admin" | "staff",
-    village_key: "",
+    village_keys: [] as string[],
   });
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
@@ -141,14 +148,19 @@ export default function AdminsPage() {
 
   const handleCreateAdmin = async () => {
     if (!formData.username.trim() || !formData.email.trim() || 
-        !formData.password.trim() || !formData.phone.trim() || 
-        !formData.village_key) {
+        !formData.password.trim() || !formData.phone.trim()) {
       toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
       return;
     }
 
     if (formData.password.length < 6) {
       toast.error("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร");
+      return;
+    }
+
+    // For staff role, village_keys is required
+    if (formData.role === "staff" && formData.village_keys.length === 0) {
+      toast.error("Staff ต้องมีหมู่บ้านอย่างน้อย 1 หมู่บ้าน");
       return;
     }
 
@@ -173,7 +185,7 @@ export default function AdminsPage() {
           password: "",
           phone: "",
           role: "admin",
-          village_key: "",
+          village_keys: [],
         });
         fetchAdmins();
       } else {
@@ -189,14 +201,20 @@ export default function AdminsPage() {
 
   const handleEditAdmin = async () => {
     if (!selectedAdmin || !formData.username.trim() || 
-        !formData.email.trim() || !formData.phone.trim() || 
-        !formData.village_key) {
+        !formData.email.trim() || !formData.phone.trim()) {
       toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
+      return;
+    }
+
+    // For staff role, village_keys is required
+    if (formData.role === "staff" && formData.village_keys.length === 0) {
+      toast.error("Staff ต้องมีหมู่บ้านอย่างน้อย 1 หมู่บ้าน");
       return;
     }
 
     setSubmitting(true);
     try {
+      // First update admin basic info
       const response = await fetch(`/api/superadmin/admins/${selectedAdmin.admin_id}`, {
         method: "PUT",
         headers: {
@@ -208,27 +226,41 @@ export default function AdminsPage() {
           email: formData.email,
           phone: formData.phone,
           role: formData.role,
-          village_key: formData.village_key,
         }),
       });
 
-      const data = await response.json();
-      if (data.success) {
-        toast.success("แก้ไข Admin สำเร็จ");
-        setIsEditDialogOpen(false);
-        setSelectedAdmin(null);
-        setFormData({
-          username: "",
-          email: "",
-          password: "",
-          phone: "",
-          role: "admin",
-          village_key: "",
-        });
-        fetchAdmins();
-      } else {
-        toast.error(data.error || "Failed to update admin");
+      if (!response.ok) {
+        throw new Error("Failed to update admin");
       }
+
+      // Then update villages
+      const villageResponse = await fetch(`/api/superadmin/admins/${selectedAdmin.admin_id}/villages`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          village_keys: formData.village_keys,
+        }),
+      });
+
+      if (!villageResponse.ok) {
+        throw new Error("Failed to update villages");
+      }
+
+      toast.success("แก้ไข Admin สำเร็จ");
+      setIsEditDialogOpen(false);
+      setSelectedAdmin(null);
+      setFormData({
+        username: "",
+        email: "",
+        password: "",
+        phone: "",
+        role: "admin",
+        village_keys: [],
+      });
+      fetchAdmins();
     } catch (err) {
       toast.error("Failed to update admin");
       console.error("Error updating admin:", err);
@@ -272,7 +304,7 @@ export default function AdminsPage() {
       password: "",
       phone: admin.phone,
       role: admin.role,
-      village_key: admin.village_key,
+      village_keys: admin.village_keys || [],
     });
     setIsEditDialogOpen(true);
   };
@@ -280,6 +312,11 @@ export default function AdminsPage() {
   const openDeleteDialog = (admin: Admin) => {
     setSelectedAdmin(admin);
     setIsDeleteDialogOpen(true);
+  };
+
+  const openDetailDialog = (admin: Admin) => {
+    setSelectedAdmin(admin);
+    setIsDetailDialogOpen(true);
   };
 
   const getRoleDisplayName = (role: string) => {
@@ -409,26 +446,14 @@ export default function AdminsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="village_key">หมู่บ้าน</Label>
-                <Select
-                  value={formData.village_key}
-                  onValueChange={(value) => 
-                    setFormData({ ...formData, village_key: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="เลือกหมู่บ้าน" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {villages.map((village) => (
-                      <SelectItem key={village.village_id} value={village.village_key}>
-                        {village.village_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <VillageMultiSelect
+                villages={villages}
+                selectedVillageKeys={formData.village_keys}
+                onSelectionChange={(villageKeys) => 
+                  setFormData({ ...formData, village_keys: villageKeys })
+                }
+                role={formData.role}
+              />
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
@@ -497,9 +522,19 @@ export default function AdminsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Building className="h-4 w-4" />
-                        <span className="text-sm">{admin.village_name || "ไม่ระบุ"}</span>
+                      <div className="space-y-1">
+                        {admin.villages && admin.villages.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {admin.villages.map((village) => (
+                              <Badge key={village.village_key} variant="outline" className="text-xs">
+                                <Building className="h-3 w-3 mr-1" />
+                                {village.village_name}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">ไม่ระบุหมู่บ้าน</span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -510,7 +545,16 @@ export default function AdminsPage() {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => openDetailDialog(admin)}
+                          title="ดูรายละเอียด"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => openEditDialog(admin)}
+                          title="แก้ไข"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -518,7 +562,8 @@ export default function AdminsPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => openDeleteDialog(admin)}
-                          disabled={admin.role === "superadmin"}
+                          disabled={false}
+                          title="ลบ"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -587,26 +632,14 @@ export default function AdminsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit_village_key">หมู่บ้าน</Label>
-              <Select
-                value={formData.village_key}
-                onValueChange={(value) => 
-                  setFormData({ ...formData, village_key: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="เลือกหมู่บ้าน" />
-                </SelectTrigger>
-                <SelectContent>
-                  {villages.map((village) => (
-                    <SelectItem key={village.village_id} value={village.village_key}>
-                      {village.village_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <VillageMultiSelect
+              villages={villages}
+              selectedVillageKeys={formData.village_keys}
+              onSelectionChange={(villageKeys) => 
+                setFormData({ ...formData, village_keys: villageKeys })
+              }
+              role={formData.role}
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
@@ -643,6 +676,13 @@ export default function AdminsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Admin Detail Dialog */}
+      <AdminDetailDialog
+        admin={selectedAdmin}
+        isOpen={isDetailDialogOpen}
+        onClose={() => setIsDetailDialogOpen(false)}
+      />
     </div>
   );
 }

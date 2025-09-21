@@ -14,7 +14,7 @@
 import { Elysia, t } from "elysia";
 import { admins, villages } from "../db/schema";
 import db from "../db/drizzle";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { verifyPassword } from "../utils/passwordUtils";
 import { requireRole } from "../hooks/requireRole";
 // import { rateLimit } from "../middleware/rateLimiter"; // SECURITY: Rate limiting (temporarily disabled)
@@ -133,21 +133,25 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
    * @returns {Object} An object containing the current user's information.
    */
   .get("/me", async ({ currentUser }: any) => {
-    const village_name = currentUser.village_key
-      ? await db
-          .select({ village_name: villages.village_name })
-          .from(villages)
-          .where(eq(villages.village_key, currentUser.village_key))
-          .then((res) => (res[0] ? res[0].village_name : null))
-      : null;
+    // Get village information for all assigned villages
+    let villages_info = [];
+    if (currentUser.village_keys && currentUser.village_keys.length > 0) {
+      villages_info = await db
+        .select({ 
+          village_key: villages.village_key,
+          village_name: villages.village_name 
+        })
+        .from(villages)
+        .where(inArray(villages.village_key, currentUser.village_keys));
+    }
 
     return {
       id: currentUser.admin_id,
       username: currentUser.username,
       email: currentUser.email,
       role: currentUser.role,
-      village_key: currentUser.village_key,
-      village_name,
+      village_keys: currentUser.village_keys || [],
+      villages: villages_info,
     };
   })
 

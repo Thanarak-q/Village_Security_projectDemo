@@ -52,6 +52,25 @@ export default function AddHouseDialog({
   async function onSubmit(data: FormData) {
     setIsSubmitting(true);
     try {
+      // Get current user data to get village_keys
+      const userResponse = await fetch("/api/auth/me", {
+        credentials: "include",
+      });
+      
+      if (!userResponse.ok) {
+        throw new Error("Failed to get user data");
+      }
+      
+      const userData = await userResponse.json();
+      
+      // Use the first village if admin has multiple villages
+      const villageKey = userData.village_keys?.[0];
+      
+      if (!villageKey) {
+        alert("ไม่พบหมู่บ้านที่ assigned กรุณาติดต่อ Super Admin");
+        return;
+      }
+
       // Make API call to create new house
       const response = await fetch("/api/house-manage", {
         method: "POST",
@@ -60,6 +79,7 @@ export default function AddHouseDialog({
         },
         body: JSON.stringify({
           address: data.address.trim(),
+          village_key: villageKey,
         }),
       });
 

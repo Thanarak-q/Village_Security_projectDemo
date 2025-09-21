@@ -75,19 +75,19 @@ export const requireRole = (required: string | string[] = "*") => {
       return { error: "Forbidden: You do not have the required role to access this resource." };
     }
 
-    // Get village_key from admin_villages table
-    let village_key = null;
+    // Get village_keys from admin_villages table
+    let village_keys: string[] = [];
     if (user.role !== "superadmin") {
-      const adminVillage = await db.query.admin_villages.findFirst({
+      const adminVillages = await db.query.admin_villages.findMany({
         where: eq(admin_villages.admin_id, user.admin_id),
       });
-      village_key = adminVillage?.village_key || null;
+      village_keys = adminVillages.map(av => av.village_key);
     }
 
-    // Add village_key to currentUser
+    // Add village_keys to currentUser
     context.currentUser = {
       ...user,
-      village_key,
+      village_keys,
     };
   };
 };
