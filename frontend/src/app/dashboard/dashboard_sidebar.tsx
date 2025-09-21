@@ -6,6 +6,7 @@ import {
   Building,
   History,
   Bell,
+  Settings,
 } from "lucide-react";
 
 import {
@@ -50,6 +51,21 @@ const items = [
   },
 ];
 
+const getAdminItems = (userRole: string) => {
+  const baseItems = [...items];
+  
+  // Add village selection for admin/superadmin users
+  if (userRole === "admin" || userRole === "superadmin") {
+    baseItems.push({
+      title: "เปลี่ยนหมู่บ้าน",
+      url: "/admin-village-selection",
+      icon: Settings,
+    });
+  }
+  
+  return baseItems;
+};
+
 const AppSidebar = memo(function AppSidebar() {
   const pathname = usePathname();
   const { theme } = useTheme();
@@ -63,20 +79,49 @@ const AppSidebar = memo(function AppSidebar() {
     role: AdminRole;
     village_name?: string;
   } | null>(null);
+  const [selectedVillageName, setSelectedVillageName] = useState<string>("");
 
   useEffect(() => {
-    fetch("/api/auth/me", {
-      credentials: "include",
-    })
-      .then((res) => {
+    const fetchUserData = async () => {
+      try {
+        const res = await fetch("/api/auth/me", {
+          credentials: "include",
+        });
+        
         if (res.status === 401) {
           return null;
         }
-        return res.json();
-      })
-      .then((json) => {
-        if (json) setUserData(json);
-      });
+        
+        const json = await res.json();
+        if (json) {
+          setUserData(json);
+          
+          // If user is admin/superadmin, get the selected village name
+          if (json.role === "admin" || json.role === "superadmin") {
+            const selectedVillageKey = sessionStorage.getItem("selectedVillage");
+            if (selectedVillageKey) {
+              try {
+                const villageRes = await fetch(`/api/villages/check/${selectedVillageKey}`, {
+                  credentials: "include",
+                });
+                if (villageRes.ok) {
+                  const villageData = await villageRes.json();
+                  if (villageData.exists) {
+                    setSelectedVillageName(villageData.village_name);
+                  }
+                }
+              } catch (error) {
+                console.error("Error fetching village name:", error);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+
+    fetchUserData();
   }, []);
 
 
@@ -99,7 +144,7 @@ const AppSidebar = memo(function AppSidebar() {
               </div>
               <div>
                 <p className="scroll-m-20 text-xl font-semibold tracking-tight">
-                  {userData?.village_name || "manager"}
+                  {selectedVillageName || userData?.village_name || "manager"}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   ระบบจัดการหมู่บ้าน
@@ -110,7 +155,7 @@ const AppSidebar = memo(function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent className="border-t border-border">
             <SidebarMenu>
-              {items.map((item) => (
+              {getAdminItems(userData?.role || "").map((item) => (
                 <SidebarMenuItem key={item.title} className="group">
                   <SidebarMenuButton
                     asChild

@@ -99,6 +99,7 @@ const Page: React.FC = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [shouldRedirect, setShouldRedirect] = useState(false);
+  const [redirectPath, setRedirectPath] = useState("/dashboard");
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -276,8 +277,45 @@ const Page: React.FC = () => {
       console.log("Login successful");
       toast.success("Login successful!");
 
-      // Trigger success animation
-      animateLoginSuccess();
+      // Get user data to check role
+      try {
+        const userResponse = await fetch("/api/auth/me", {
+          credentials: "include",
+        });
+        
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          
+          // Check if user is admin or superadmin
+          if (userData.role === "admin" || userData.role === "superadmin") {
+            // Trigger success animation then redirect to village selection
+            animateLoginSuccess(() => {
+              setShouldRedirect(true);
+              // Store redirect path in state
+              setRedirectPath("/admin-village-selection");
+            });
+          } else {
+            // Regular user - redirect to dashboard
+            animateLoginSuccess(() => {
+              setShouldRedirect(true);
+              setRedirectPath("/dashboard");
+            });
+          }
+        } else {
+          // Fallback to dashboard if user data fetch fails
+          animateLoginSuccess(() => {
+            setShouldRedirect(true);
+            setRedirectPath("/dashboard");
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        // Fallback to dashboard
+        animateLoginSuccess(() => {
+          setShouldRedirect(true);
+          setRedirectPath("/dashboard");
+        });
+      }
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "Something went wrong";
@@ -288,7 +326,7 @@ const Page: React.FC = () => {
     }
   }
 
-  const animateLoginSuccess = () => {
+  const animateLoginSuccess = (callback?: () => void) => {
     const tl = gsap.timeline();
 
     // Get the center position between username and password fields
@@ -368,7 +406,11 @@ const Page: React.FC = () => {
         // Wait then redirect (shorter wait)
         .call(() => {
           setTimeout(() => {
-            setShouldRedirect(true);
+            if (callback) {
+              callback();
+            } else {
+              setShouldRedirect(true);
+            }
           }, 1200);
         });
     }
@@ -376,9 +418,9 @@ const Page: React.FC = () => {
 
   useEffect(() => {
     if (shouldRedirect) {
-      router.push("/dashboard");
+      router.push(redirectPath);
     }
-  }, [shouldRedirect, router]);
+  }, [shouldRedirect, redirectPath, router]);
 
   useEffect(() => {
     const isShortScreen = window.innerHeight < 800;

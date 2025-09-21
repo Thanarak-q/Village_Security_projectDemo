@@ -123,6 +123,14 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
     set.status = 200;
     return { success: true };
   })
+  .post("/logout", ({ set }: any) => {
+    set.headers = {
+      ...set.headers,
+      "Set-Cookie": `auth_token=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`,
+    };
+    set.status = 200;
+    return { success: true };
+  })
 
   // .decorate('currentUser', null) // ประกาศว่า context จะมี currentUser (เริ่มเป็น null)
   .onBeforeHandle(requireRole("*"))

@@ -1,7 +1,7 @@
 "use client";
 
 import { Home } from "lucide-react";
-import NotificationComponent from "../../dashboard/(main)/notification";
+// import NotificationComponent from "@/app/dashboard/(main)/notification";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { ApprovalCards } from "../components/Approvalcards";
@@ -47,7 +47,7 @@ const ResidentPage = () => {
               </h1>
               <span className="flex items-center gap-2">
                 <ModeToggle />
-                <NotificationComponent />
+                {/* <NotificationComponent /> */}
               </span>
             </div>
             <p className="text-sm text-muted-foreground">สวัสดี {TARGET_RESIDENT_NAME} 👋</p>
