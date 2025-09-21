@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
-import { Bell, Search, Filter, CheckCircle, Trash2, RefreshCw, Users, Home, AlertTriangle, Settings, Clock, Eye, EyeOff } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Bell, Search, Filter, RefreshCw, Users, Home, AlertTriangle, Settings, Clock } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -88,8 +88,6 @@ export default function NotificationsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const [selectedNotifications, setSelectedNotifications] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
 
@@ -98,10 +96,7 @@ export default function NotificationsPage() {
     counts,
     loading,
     error,
-    refreshNotifications,
-    markAsRead,
-    markAllAsRead,
-    deleteNotificationById
+    refreshNotifications
   } = useHybridNotifications();
 
   // Filter notifications based on search and filters
@@ -113,11 +108,8 @@ export default function NotificationsPage() {
 
     const matchesType = selectedType === "all" || notification.type === selectedType;
     const matchesCategory = selectedCategory === "all" || notification.category === selectedCategory;
-    const matchesStatus = selectedStatus === "all" || 
-      (selectedStatus === "read" && notification.is_read) ||
-      (selectedStatus === "unread" && !notification.is_read);
 
-    return matchesSearch && matchesType && matchesCategory && matchesStatus;
+    return matchesSearch && matchesType && matchesCategory;
   });
 
   // Pagination
@@ -126,67 +118,13 @@ export default function NotificationsPage() {
   const endIndex = startIndex + itemsPerPage;
   const paginatedNotifications = filteredNotifications.slice(startIndex, endIndex);
 
-  // Handle individual notification actions
-  const handleMarkAsRead = useCallback(async (notificationId: string) => {
-    try {
-      await markAsRead(notificationId);
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-    }
-  }, [markAsRead]);
 
-  const handleDelete = useCallback(async (notificationId: string) => {
-    try {
-      await deleteNotificationById(notificationId);
-      setSelectedNotifications(prev => prev.filter(id => id !== notificationId));
-    } catch (error) {
-      console.error('Error deleting notification:', error);
-    }
-  }, [deleteNotificationById]);
 
-  // Handle bulk actions
-  const handleSelectAll = useCallback(() => {
-    if (selectedNotifications.length === paginatedNotifications.length) {
-      setSelectedNotifications([]);
-    } else {
-      setSelectedNotifications(paginatedNotifications.map(n => n.notification_id));
-    }
-  }, [selectedNotifications.length, paginatedNotifications]);
-
-  const handleBulkMarkAsRead = useCallback(async () => {
-    try {
-      for (const notificationId of selectedNotifications) {
-        await markAsRead(notificationId);
-      }
-      setSelectedNotifications([]);
-    } catch (error) {
-      console.error('Error marking notifications as read:', error);
-    }
-  }, [selectedNotifications, markAsRead]);
-
-  const handleBulkDelete = useCallback(async () => {
-    try {
-      for (const notificationId of selectedNotifications) {
-        await deleteNotificationById(notificationId);
-      }
-      setSelectedNotifications([]);
-    } catch (error) {
-      console.error('Error deleting notifications:', error);
-    }
-  }, [selectedNotifications, deleteNotificationById]);
-
-  const handleMarkAllAsRead = useCallback(async () => {
-    try {
-      await markAllAsRead();
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-    }
-  }, [markAllAsRead]);
 
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedType, selectedCategory, selectedStatus]);
+  }, [searchTerm, selectedType, selectedCategory]);
 
   // Get unique types and categories for filter dropdowns
   const uniqueTypes = Array.from(new Set(notifications.map(n => n.type)));
@@ -212,20 +150,11 @@ export default function NotificationsPage() {
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             รีเฟรช
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleMarkAllAsRead}
-            disabled={loading || counts?.unread === 0}
-          >
-            <CheckCircle className="h-4 w-4 mr-2" />
-            อ่านทั้งหมด
-          </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">ทั้งหมด</CardTitle>
@@ -233,24 +162,6 @@ export default function NotificationsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{counts?.total || 0}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">ยังไม่อ่าน</CardTitle>
-            <EyeOff className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{counts?.unread || 0}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">อ่านแล้ว</CardTitle>
-            <Eye className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{(counts?.total || 0) - (counts?.unread || 0)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -312,54 +223,11 @@ export default function NotificationsPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="สถานะ" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">ทั้งหมด</SelectItem>
-                  <SelectItem value="unread">ยังไม่อ่าน</SelectItem>
-                  <SelectItem value="read">อ่านแล้ว</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Bulk Actions */}
-      {selectedNotifications.length > 0 && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  เลือกแล้ว {selectedNotifications.length} รายการ
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBulkMarkAsRead}
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  อ่านที่เลือก
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBulkDelete}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  ลบที่เลือก
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Notifications List */}
       <Card>
@@ -370,13 +238,6 @@ export default function NotificationsPage() {
               <CardDescription>
                 แสดง {startIndex + 1}-{Math.min(endIndex, filteredNotifications.length)} จาก {filteredNotifications.length} รายการ
               </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                checked={selectedNotifications.length === paginatedNotifications.length && paginatedNotifications.length > 0}
-                onCheckedChange={handleSelectAll}
-              />
-              <span className="text-sm text-muted-foreground">เลือกทั้งหมด</span>
             </div>
           </div>
         </CardHeader>
@@ -398,25 +259,11 @@ export default function NotificationsPage() {
               <div className="space-y-2">
                 {paginatedNotifications.map((notification, index) => {
                   const IconComponent = getIconComponent(getNotificationIcon(notification.type));
-                  const isSelected = selectedNotifications.includes(notification.notification_id);
                   
                   return (
                     <div key={notification.notification_id}>
-                      <div className={`p-4 rounded-lg border transition-colors hover:bg-muted/50 ${
-                        isSelected ? 'bg-muted/50 border-primary' : ''
-                      } ${!notification.is_read ? 'border-l-4 border-l-blue-500' : ''}`}>
+                      <div className="p-4 rounded-lg border transition-colors hover:bg-muted/50">
                         <div className="flex items-start gap-3">
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedNotifications(prev => [...prev, notification.notification_id]);
-                              } else {
-                                setSelectedNotifications(prev => prev.filter(id => id !== notification.notification_id));
-                              }
-                            }}
-                          />
-                          
                           <div className={`p-2 rounded-full bg-muted ${getNotificationColor(notification.type)}`}>
                             <IconComponent className="h-4 w-4" />
                           </div>
@@ -428,11 +275,6 @@ export default function NotificationsPage() {
                                   <h4 className="text-sm font-medium truncate">
                                     {notification.title}
                                   </h4>
-                                  {!notification.is_read && (
-                                    <Badge variant="secondary" className="text-xs">
-                                      ใหม่
-                                    </Badge>
-                                  )}
                                   <Badge variant="outline" className="text-xs">
                                     {notificationTypeLabels[notification.type as keyof typeof notificationTypeLabels] || notification.type}
                                   </Badge>
@@ -449,41 +291,6 @@ export default function NotificationsPage() {
                                   </div>
                                   <span>{formatTimeAgo(notification.created_at)}</span>
                                 </div>
-                              </div>
-                              
-                              <div className="flex items-center gap-1 ml-2">
-                                {!notification.is_read && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleMarkAsRead(notification.notification_id)}
-                                    className="h-8 w-8 p-0"
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                )}
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                      <Settings className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    {!notification.is_read && (
-                                      <DropdownMenuItem onClick={() => handleMarkAsRead(notification.notification_id)}>
-                                        <Eye className="h-4 w-4 mr-2" />
-                                        ทำเครื่องหมายว่าอ่านแล้ว
-                                      </DropdownMenuItem>
-                                    )}
-                                    <DropdownMenuItem 
-                                      onClick={() => handleDelete(notification.notification_id)}
-                                      className="text-red-600"
-                                    >
-                                      <Trash2 className="h-4 w-4 mr-2" />
-                                      ลบ
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
                               </div>
                             </div>
                           </div>

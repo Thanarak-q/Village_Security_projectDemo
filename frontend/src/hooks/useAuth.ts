@@ -13,6 +13,8 @@ interface User {
   resident_id?: string; // For residents
   guard_id?: string;    // For guards
   admin_id?: string;    // For admins
+  village_key?: string;
+  village_name?: string;
 }
 
 export function useAuth() {

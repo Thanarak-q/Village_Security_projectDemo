@@ -10,7 +10,7 @@ import { errorRecoveryManager } from '../utils/errorRecovery';
 import { requireRole } from '../hooks/requireRole';
 
 export const errorMonitoringRoutes = new Elysia({ prefix: '/api/monitoring' })
-  .onBeforeHandle(requireRole(['admin', 'superadmin']))
+  .onBeforeHandle(requireRole(['admin', 'staff', 'superadmin']))
 
   // GET /api/monitoring/health - Get system health status
   .get('/health', async () => {

@@ -47,7 +47,7 @@ export function useErrorHandling(options: Partial<ErrorHandlerOptions> = {}) {
     message: string,
     type: ErrorInfo['type'],
     severity: ErrorInfo['severity'] = 'MEDIUM',
-    context?: Record<string, any>,
+    context?: Record<string, unknown>,
     retryable: boolean = false
   ): ErrorInfo => {
     return {
