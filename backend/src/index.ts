@@ -21,6 +21,7 @@ import { notificationsRoutes } from "./routes/notifications";
 import { superAdminVillagesRoutes } from "./routes/superAdminVillages";
 import { superAdminAdminsRoutes } from "./routes/superAdminAdmins";
 import { superAdminStatsRoutes } from "./routes/superAdminStats";
+import { adminManagementRoutes } from "./routes/adminManagement";
 /**
  * SECURITY ENHANCEMENT: Secure Health Check Endpoint
  *
@@ -84,6 +85,7 @@ const app = new Elysia()
   .use(superAdminVillagesRoutes)
   .use(superAdminAdminsRoutes)
   .use(superAdminStatsRoutes)
+  .use(adminManagementRoutes)
   .get("/", () => "Hello Village Security API!");
 
 // Initialize database connection and start server

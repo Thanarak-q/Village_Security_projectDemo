@@ -59,22 +59,22 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
         password, 
         phone, 
         role, 
-        village_key 
+        village_keys 
       } = body as {
         username: string;
         email: string;
         password: string;
         phone: string;
         role: "admin" | "staff";
-        village_key: string;
+        village_keys?: string[]; // Optional: can create admin without villages
       };
 
       // Validation
-      if (!username || !email || !password || !phone || !role || !village_key) {
+      if (!username || !email || !password || !phone || !role) {
         set.status = 400;
         return { 
           success: false, 
-          error: "All fields are required (username, email, password, phone, role, village_key)" 
+          error: "All fields are required (username, email, password, phone, role)" 
         };
       }
 
@@ -94,15 +94,36 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
         return { success: false, error: "Role must be either 'admin' or 'staff'" };
       }
 
-      // Check if village exists
-      const village = await db
-        .select()
-        .from(villages)
-        .where(eq(villages.village_key, village_key));
-
-      if (village.length === 0) {
+      // For staff role, village_keys is required
+      if (role === "staff" && (!village_keys || village_keys.length === 0)) {
         set.status = 400;
-        return { success: false, error: "Village not found" };
+        return { success: false, error: "Staff must be assigned to at least one village" };
+      }
+
+      // Check if villages exist (if village_keys provided)
+      if (village_keys && village_keys.length > 0) {
+        const existingVillages = await db
+          .select()
+          .from(villages)
+          .where(eq(villages.village_key, village_keys[0])); // Check first village
+
+        if (existingVillages.length === 0) {
+          set.status = 400;
+          return { success: false, error: "One or more villages not found" };
+        }
+
+        // Validate all village_keys exist
+        for (const villageKey of village_keys) {
+          const village = await db
+            .select()
+            .from(villages)
+            .where(eq(villages.village_key, villageKey));
+          
+          if (village.length === 0) {
+            set.status = 400;
+            return { success: false, error: `Village ${villageKey} not found` };
+          }
+        }
       }
 
       // Check if username already exists
@@ -151,15 +172,25 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
           createdAt: admins.createdAt,
         });
 
-      // Create admin-village relationship
-      await db
-        .insert(admin_villages)
-        .values({
+      // Create admin-village relationships (if village_keys provided)
+      if (village_keys && village_keys.length > 0) {
+        const adminVillageData = village_keys.map(villageKey => ({
           admin_id: newAdmin[0].admin_id,
-          village_key: village_key,
-        });
+          village_key: villageKey,
+        }));
 
-      return { success: true, data: newAdmin[0] };
+        await db
+          .insert(admin_villages)
+          .values(adminVillageData);
+      }
+
+      return { 
+        success: true, 
+        data: {
+          ...newAdmin[0],
+          village_keys: village_keys || []
+        }
+      };
     } catch (error) {
       console.error("Error creating admin:", error);
       set.status = 500;
@@ -359,5 +390,206 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
       console.error("Error deleting admin:", error);
       set.status = 500;
       return { success: false, error: "Failed to delete admin" };
+    }
+  })
+
+  /**
+   * Add villages to an admin
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.params - The route parameters.
+   * @param {Object} context.body - The body of the request.
+   * @returns {Promise<Object>} Success message
+   */
+  .post("/admins/:id/villages", async ({ params, body, set }) => {
+    try {
+      const { id } = params as { id: string };
+      const { village_keys } = body as { village_keys: string[] };
+
+      // Validation
+      if (!village_keys || !Array.isArray(village_keys) || village_keys.length === 0) {
+        set.status = 400;
+        return { success: false, error: "village_keys array is required" };
+      }
+
+      // Check if admin exists
+      const existingAdmin = await db
+        .select()
+        .from(admins)
+        .where(eq(admins.admin_id, id));
+
+      if (existingAdmin.length === 0) {
+        set.status = 404;
+        return { success: false, error: "Admin not found" };
+      }
+
+      // Validate all villages exist
+      for (const villageKey of village_keys) {
+        const village = await db
+          .select()
+          .from(villages)
+          .where(eq(villages.village_key, villageKey));
+        
+        if (village.length === 0) {
+          set.status = 400;
+          return { success: false, error: `Village ${villageKey} not found` };
+        }
+      }
+
+      // Check for existing relationships to avoid duplicates
+      const existingRelations = await db
+        .select()
+        .from(admin_villages)
+        .where(eq(admin_villages.admin_id, id));
+
+      const existingVillageKeys = existingRelations.map(rel => rel.village_key);
+      const newVillageKeys = village_keys.filter(key => !existingVillageKeys.includes(key));
+
+      if (newVillageKeys.length === 0) {
+        return { success: true, message: "All villages are already assigned to this admin" };
+      }
+
+      // Create new admin-village relationships
+      const adminVillageData = newVillageKeys.map(villageKey => ({
+        admin_id: id,
+        village_key: villageKey,
+      }));
+
+      await db
+        .insert(admin_villages)
+        .values(adminVillageData);
+
+      return { 
+        success: true, 
+        message: `Added ${newVillageKeys.length} village(s) to admin`,
+        added_villages: newVillageKeys
+      };
+    } catch (error) {
+      console.error("Error adding villages to admin:", error);
+      set.status = 500;
+      return { success: false, error: "Failed to add villages to admin" };
+    }
+  })
+
+  /**
+   * Remove a village from an admin
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.params - The route parameters.
+   * @returns {Promise<Object>} Success message
+   */
+  .delete("/admins/:id/villages/:village_key", async ({ params, set }) => {
+    try {
+      const { id, village_key } = params as { id: string; village_key: string };
+
+      // Check if admin exists
+      const existingAdmin = await db
+        .select()
+        .from(admins)
+        .where(eq(admins.admin_id, id));
+
+      if (existingAdmin.length === 0) {
+        set.status = 404;
+        return { success: false, error: "Admin not found" };
+      }
+
+      // Check if relationship exists
+      const existingRelation = await db
+        .select()
+        .from(admin_villages)
+        .where(and(
+          eq(admin_villages.admin_id, id),
+          eq(admin_villages.village_key, village_key)
+        ));
+
+      if (existingRelation.length === 0) {
+        set.status = 404;
+        return { success: false, error: "Village not assigned to this admin" };
+      }
+
+      // Remove the relationship
+      await db
+        .delete(admin_villages)
+        .where(and(
+          eq(admin_villages.admin_id, id),
+          eq(admin_villages.village_key, village_key)
+        ));
+
+      return { success: true, message: "Village removed from admin successfully" };
+    } catch (error) {
+      console.error("Error removing village from admin:", error);
+      set.status = 500;
+      return { success: false, error: "Failed to remove village from admin" };
+    }
+  })
+
+  /**
+   * Update admin's villages (replace all)
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.params - The route parameters.
+   * @param {Object} context.body - The body of the request.
+   * @returns {Promise<Object>} Success message
+   */
+  .put("/admins/:id/villages", async ({ params, body, set }) => {
+    try {
+      const { id } = params as { id: string };
+      const { village_keys } = body as { village_keys: string[] };
+
+      // Validation
+      if (!Array.isArray(village_keys)) {
+        set.status = 400;
+        return { success: false, error: "village_keys must be an array" };
+      }
+
+      // Check if admin exists
+      const existingAdmin = await db
+        .select()
+        .from(admins)
+        .where(eq(admins.admin_id, id));
+
+      if (existingAdmin.length === 0) {
+        set.status = 404;
+        return { success: false, error: "Admin not found" };
+      }
+
+      // Validate all villages exist (if any provided)
+      if (village_keys.length > 0) {
+        for (const villageKey of village_keys) {
+          const village = await db
+            .select()
+            .from(villages)
+            .where(eq(villages.village_key, villageKey));
+          
+          if (village.length === 0) {
+            set.status = 400;
+            return { success: false, error: `Village ${villageKey} not found` };
+          }
+        }
+      }
+
+      // Remove all existing relationships
+      await db
+        .delete(admin_villages)
+        .where(eq(admin_villages.admin_id, id));
+
+      // Create new relationships (if any villages provided)
+      if (village_keys.length > 0) {
+        const adminVillageData = village_keys.map(villageKey => ({
+          admin_id: id,
+          village_key: villageKey,
+        }));
+
+        await db
+          .insert(admin_villages)
+          .values(adminVillageData);
+      }
+
+      return { 
+        success: true, 
+        message: `Updated admin villages successfully`,
+        village_keys: village_keys
+      };
+    } catch (error) {
+      console.error("Error updating admin villages:", error);
+      set.status = 500;
+      return { success: false, error: "Failed to update admin villages" };
     }
   });
