@@ -136,10 +136,10 @@ export type GuardInsert = typeof guards.$inferInsert;
  */
 export const admins = pgTable("admins", {
   admin_id: uuid("admin_id").primaryKey().defaultRandom(),
-  email: text("email").notNull().unique(),
+  email: text("email").unique(),
   username: text("username").notNull().unique(),
   password_hash: text("password_hash").notNull(),
-  phone: text("phone").notNull(),
+  phone: text("phone"),
   village_key: text("village_key").references(() => villages.village_key),
   status: text("status")
     .$type<"verified" | "pending" | "disable">()
