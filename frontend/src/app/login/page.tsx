@@ -98,7 +98,6 @@ Gsaploginbutton.displayName = "Gsaploginbutton";
 const Page: React.FC = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [shouldRedirect, setShouldRedirect] = useState(false);
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -276,8 +275,26 @@ const Page: React.FC = () => {
       console.log("Login successful");
       toast.success("Login successful!");
 
-      // Trigger success animation
-      animateLoginSuccess();
+      // Get redirect URL based on user role
+      try {
+        const redirectResponse = await fetch("/api/redirect/dashboard", {
+          credentials: "include",
+        });
+        
+        if (redirectResponse.ok) {
+          const redirectData = await redirectResponse.json();
+          if (redirectData.success) {
+            // Trigger success animation
+            animateLoginSuccess(redirectData.redirect_url);
+            return; // Exit early with proper redirect
+          }
+        }
+      } catch (redirectError) {
+        console.error("Error getting redirect URL:", redirectError);
+      }
+
+      // Fallback to default dashboard
+      animateLoginSuccess("/dashboard");
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "Something went wrong";
@@ -288,7 +305,7 @@ const Page: React.FC = () => {
     }
   }
 
-  const animateLoginSuccess = () => {
+  const animateLoginSuccess = (redirectUrl: string = "/dashboard") => {
     const tl = gsap.timeline();
 
     // Get the center position between username and password fields
@@ -368,17 +385,12 @@ const Page: React.FC = () => {
         // Wait then redirect (shorter wait)
         .call(() => {
           setTimeout(() => {
-            setShouldRedirect(true);
+            router.push(redirectUrl);
           }, 1200);
         });
     }
   };
 
-  useEffect(() => {
-    if (shouldRedirect) {
-      router.push("/dashboard");
-    }
-  }, [shouldRedirect, router]);
 
   useEffect(() => {
     const isShortScreen = window.innerHeight < 800;
