@@ -1,5 +1,4 @@
-import { useEffect, useRef } from 'react';
-import { useErrorHandling } from './useErrorHandling';
+import { useEffect, useRef, useCallback } from 'react';
 import { useSafeState, useSafeCallback, useSafeMemo } from './useSafeState';
 import { websocketMessageManager } from '../utils/websocketMessageManager';
 import { websocketDiagnostics } from '../utils/websocketDiagnostics';
@@ -27,6 +26,9 @@ interface HealthStatus {
   color: string;
 }
 
+type ErrorType = 'WEBSOCKET' | 'API' | 'VALIDATION' | 'NETWORK' | 'UNKNOWN';
+type ErrorSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
 interface UseWebSocketNotificationsReturn {
   notifications: WebSocketNotification[];
   isConnected: boolean;
@@ -52,6 +54,18 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
   const [notifications, setNotifications] = useSafeState<WebSocketNotification[]>([]);
   const [isConnected, setIsConnected] = useSafeState(false);
   const [connectionStatus, setConnectionStatus] = useSafeState<'connecting' | 'connected' | 'disconnected' | 'error'>('disconnected');
+  const [errorStats, setErrorStats] = useSafeState<ErrorStats>({
+    total: 0,
+    byType: {},
+    bySeverity: {},
+    retryable: 0,
+    critical: 0
+  });
+  const [healthStatus, setHealthStatus] = useSafeState<HealthStatus>({
+    status: 'HEALTHY',
+    message: 'System is operating normally',
+    color: 'green'
+  });
   
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -72,21 +86,83 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
     return fromOptions || fromUser || fromEnv || null;
   }, [overrideVillageKey, user?.village_key]);
 
-  // Initialize error handling
-  const {
-    handleWebSocketError,
-    handleValidationError,
-    getErrorStats,
-    getHealthStatus
-  } = useErrorHandling({
-    maxErrors: 50,
-    autoRetry: true,
-    maxRetries: 3,
-    retryDelay: 2000,
-    showNotifications: true
-  });
+  const calculateHealthStatus = useCallback((stats: ErrorStats): HealthStatus => {
+    const criticalCount = stats.bySeverity['CRITICAL'] || 0;
+    if (criticalCount > 0) {
+      return {
+        status: 'CRITICAL',
+        message: `${criticalCount} critical errors detected`,
+        color: 'red'
+      };
+    }
 
-  const subscribeToVillage = useSafeCallback((ws: WebSocket, villageKey: string) => {
+    const highCount = stats.bySeverity['HIGH'] || 0;
+    if (highCount > 5) {
+      return {
+        status: 'WARNING',
+        message: `${highCount} high severity errors detected`,
+        color: 'orange'
+      };
+    }
+
+    return {
+      status: 'HEALTHY',
+      message: 'System is operating normally',
+      color: 'green'
+    };
+  }, []);
+
+  const recordError = useCallback((
+    type: ErrorType,
+    severity: ErrorSeverity,
+    message: string,
+    context?: Record<string, unknown>,
+    retryable: boolean = false
+  ) => {
+    const logFn = severity === 'CRITICAL' || severity === 'HIGH'
+      ? console.error
+      : severity === 'MEDIUM'
+        ? console.warn
+        : console.info;
+
+    logFn(`[${type}] ${message}`, context);
+
+    setErrorStats(prev => {
+      const updated: ErrorStats = {
+        total: prev.total + 1,
+        byType: { ...prev.byType, [type]: (prev.byType[type] || 0) + 1 },
+        bySeverity: { ...prev.bySeverity, [severity]: (prev.bySeverity[severity] || 0) + 1 },
+        retryable: retryable ? prev.retryable + 1 : prev.retryable,
+        critical: prev.critical
+      };
+
+      updated.critical = updated.bySeverity['CRITICAL'] || 0;
+      setHealthStatus(calculateHealthStatus(updated));
+      return updated;
+    });
+  }, [calculateHealthStatus]);
+
+  const handleWebSocketError = useCallback((
+    error: Event | Error | string,
+    context?: Record<string, unknown>
+  ) => {
+    const message = error instanceof Error ? error.message : typeof error === 'string'
+      ? error
+      : 'WebSocket connection error';
+    recordError('WEBSOCKET', 'HIGH', message, context, true);
+  }, [recordError]);
+
+  const handleValidationError = useCallback((
+    error: Error | string,
+    field?: string,
+    context?: Record<string, unknown>
+  ) => {
+    const message = error instanceof Error ? error.message : error;
+    const details = field ? { ...context, field } : context;
+    recordError('VALIDATION', 'LOW', message, details, false);
+  }, [recordError]);
+
+  const subscribeToVillage = useCallback((ws: WebSocket, villageKey: string) => {
     const trimmedKey = villageKey.trim();
 
     if (!trimmedKey) {
@@ -412,9 +488,6 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
     }
   }, []);
 
-  // Memoize error stats and health status to prevent infinite re-renders
-  const errorStats = useSafeMemo(() => getErrorStats, [getErrorStats]);
-  const healthStatus = useSafeMemo(() => getHealthStatus as HealthStatus, [getHealthStatus]);
   const queueStatus = useSafeMemo(() => websocketMessageManager.getQueueStatus(), []);
 
   return {

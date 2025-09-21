@@ -32,11 +32,7 @@ export function useMessageDeduplication(options: Partial<MessageDeduplicationOpt
   const resolvedVillageKey = useMemo(() => {
     const fromOptions = typeof overrideVillageKey === 'string' ? overrideVillageKey.trim() : '';
     const fromUser = typeof user?.village_key === 'string' ? user.village_key.trim() : '';
-    const fromEnv = typeof process.env.NEXT_PUBLIC_DEFAULT_VILLAGE_KEY === 'string'
-      ? process.env.NEXT_PUBLIC_DEFAULT_VILLAGE_KEY.trim()
-      : '';
-
-    return fromOptions || fromUser || fromEnv || null;
+    return fromOptions || fromUser || null;
   }, [overrideVillageKey, user?.village_key]);
   const [queueStatus, setQueueStatus] = useState(websocketMessageManager.getQueueStatus());
   const statusUpdateInterval = useRef<NodeJS.Timeout>();
