@@ -1,6 +1,6 @@
 {
-  "id": "64721fdd-da62-4405-a69e-9e83c9724e62",
-  "prevId": "642948c0-7af7-4adb-ba4b-d9a305fe545e",
+  "id": "bb4ff1ba-f722-4d57-931c-d5bc0ee4ecf5",
+  "prevId": "64721fdd-da62-4405-a69e-9e83c9724e62",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -339,6 +339,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "village_key": {
+          "name": "village_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "status": {
           "name": "status",
           "type": "text",
@@ -383,9 +389,38 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "idx_admins_village_key": {
+          "name": "idx_admins_village_key",
+          "columns": [
+            {
+              "expression": "village_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "admins_village_key_villages_village_key_fk": {
+          "name": "admins_village_key_villages_village_key_fk",
+          "tableFrom": "admins",
+          "tableTo": "villages",
+          "columnsFrom": [
+            "village_key"
+          ],
+          "columnsTo": [
+            "village_key"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "admins_email_unique": {
