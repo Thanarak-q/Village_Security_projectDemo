@@ -1,7 +1,6 @@
 /**
  * API service functions for visitor requests
  */
-import { buildApiUrl } from '../../utils/apiBase';
 
 export interface VisitorRequest {
   visitor_record_id: string;
@@ -35,7 +34,7 @@ export interface ApiResponse<T> {
  */
 export async function fetchPendingRequests(residentId: string): Promise<VisitorRequest[]> {
   try {
-    const url = buildApiUrl(`/api/visitor-requests/pending/${residentId}`);
+    const url = `/api/visitor-requests/pending/${residentId}`;
     const response = await fetch(url, {
       credentials: 'include',
     });
@@ -62,7 +61,7 @@ export async function fetchPendingRequests(residentId: string): Promise<VisitorR
  */
 export async function approveVisitorRequest(recordId: string): Promise<VisitorRequest> {
   try {
-    const url = buildApiUrl(`/api/visitor-requests/${recordId}/approve`);
+    const url = `/api/visitor-requests/${recordId}/approve`;
     const response = await fetch(url, {
       method: 'POST',
       credentials: 'include',
@@ -90,7 +89,7 @@ export async function approveVisitorRequest(recordId: string): Promise<VisitorRe
  */
 export async function denyVisitorRequest(recordId: string): Promise<VisitorRequest> {
   try {
-    const url = buildApiUrl(`/api/visitor-requests/${recordId}/deny`);
+    const url = `/api/visitor-requests/${recordId}/deny`;
     const response = await fetch(url, {
       method: 'POST',
       credentials: 'include',
@@ -118,7 +117,7 @@ export async function denyVisitorRequest(recordId: string): Promise<VisitorReque
  */
 export async function fetchVisitorHistory(residentId: string): Promise<VisitorRequest[]> {
   try {
-    const url = buildApiUrl(`/api/visitor-requests/history/${residentId}`);
+    const url = `/api/visitor-requests/history/${residentId}`;
     const response = await fetch(url, {
       credentials: 'include',
     });
@@ -145,7 +144,7 @@ export async function fetchVisitorHistory(residentId: string): Promise<VisitorRe
  */
 export async function fetchPendingRequestsByLineId(lineUserId: string): Promise<VisitorRequest[]> {
   try {
-    const url = buildApiUrl(`/api/visitor-requests/pending/line/${lineUserId}`);
+    const url = `/api/visitor-requests/pending/line/${lineUserId}`;
     console.log(`🔍 Fetching pending requests from: ${url}`);
     
     const response = await fetch(url, {
@@ -180,7 +179,7 @@ export async function fetchPendingRequestsByLineId(lineUserId: string): Promise<
  */
 export async function fetchVisitorHistoryByLineId(lineUserId: string): Promise<VisitorRequest[]> {
   try {
-    const url = buildApiUrl(`/api/visitor-requests/history/line/${lineUserId}`);
+    const url = `/api/visitor-requests/history/line/${lineUserId}`;
     console.log(`🔍 Fetching history from: ${url}`);
     
     const response = await fetch(url, {

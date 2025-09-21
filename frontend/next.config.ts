@@ -11,15 +11,7 @@ const nextConfig: NextConfig = {
   images: {
     formats: ['image/webp', 'image/avif'],
   },
-  async rewrites() {
-    const backendUrl = process.env.BACKEND_URL || "http://backend:3001";
-    return [
-      {
-        source: "/api/:path*",
-        destination: `${backendUrl}/api/:path*`, // Proxy to Backend
-      },
-    ];
-  },
+  // Caddy handles API routing, no need for Next.js rewrites
 };
 
 export default nextConfig;

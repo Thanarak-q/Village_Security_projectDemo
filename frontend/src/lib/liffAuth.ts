@@ -1,4 +1,3 @@
-import { buildApiUrl } from '../utils/apiBase';
 
 // LIFF Authentication Service
 export interface LiffUser {
@@ -32,7 +31,7 @@ export interface LiffAuthResponse {
 export const verifyLiffToken = async (idToken: string, role?: 'resident' | 'guard'): Promise<LiffAuthResponse> => {
   try {
     
-    const response = await fetch(buildApiUrl('/api/liff/verify'), {
+    const response = await fetch('/api/liff/verify', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -121,7 +120,7 @@ export const registerLiffUser = async (
   }
 ): Promise<LiffAuthResponse> => {
   try {
-    const response = await fetch(buildApiUrl('/api/liff/register'), {
+    const response = await fetch('/api/liff/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -194,7 +193,7 @@ export const registerLiffUser = async (
 // Get user profile by LINE user ID
 export const getLiffUserProfile = async (lineUserId: string): Promise<LiffAuthResponse> => {
   try {
-    const response = await fetch(buildApiUrl(`/api/liff/profile/${lineUserId}`), {
+    const response = await fetch(`/api/liff/profile/${lineUserId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

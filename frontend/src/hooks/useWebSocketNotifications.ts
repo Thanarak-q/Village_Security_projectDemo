@@ -117,31 +117,10 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
 
     setConnectionStatus('connecting');
     
-    // Determine WebSocket URL based on environment
-    let wsUrl: string;
-    
-    if (process.env.NEXT_PUBLIC_WS_URL) {
-      // Use explicit WebSocket URL from environment
-      wsUrl = process.env.NEXT_PUBLIC_WS_URL;
-    } else if (typeof window !== 'undefined') {
-      // Running in browser - detect if we're using ngrok or localhost
-      const currentHost = window.location.hostname;
-      const currentProtocol = window.location.protocol;
-      
-      if (currentHost.includes('ngrok.io') || currentHost.includes('ngrok-free.app')) {
-        // Using ngrok - use secure WebSocket
-        wsUrl = `wss://${currentHost}/ws`;
-      } else if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
-        // Local development
-        wsUrl = 'ws://localhost/ws';
-      } else {
-        // Production or other environment
-        wsUrl = `${currentProtocol === 'https:' ? 'wss:' : 'ws:'}//${currentHost}/ws`;
-      }
-    } else {
-      // Server-side rendering fallback
-      wsUrl = 'ws://localhost/ws';
-    }
+    // Use simple relative WebSocket URL - Caddy handles routing
+    const wsUrl = typeof window !== 'undefined' 
+      ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
+      : 'ws://localhost/ws';
     
     console.log('🔗 Attempting to connect to:', wsUrl);
     

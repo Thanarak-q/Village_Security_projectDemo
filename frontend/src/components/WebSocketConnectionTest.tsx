@@ -5,7 +5,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { websocketDiagnostics } from '../utils/websocketDiagnostics';
-import { buildApiUrl, getApiBaseUrl } from '../utils/apiBase';
 
 interface WebSocketConnectionTestProps {
   className?: string;
@@ -42,26 +41,10 @@ export const WebSocketConnectionTest: React.FC<WebSocketConnectionTestProps> = (
       }
       addTestResult('✅ WebSocket is supported');
 
-      // Test URL format
-      // Determine WebSocket URL based on environment
-      let testUrl: string;
-      
-      if (process.env.NEXT_PUBLIC_WS_URL) {
-        testUrl = process.env.NEXT_PUBLIC_WS_URL;
-      } else if (typeof window !== 'undefined') {
-        const currentHost = window.location.hostname;
-        const currentProtocol = window.location.protocol;
-        
-        if (currentHost.includes('ngrok.io') || currentHost.includes('ngrok-free.app')) {
-          testUrl = `wss://${currentHost}/ws`;
-        } else if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
-          testUrl = 'ws://localhost/ws';
-        } else {
-          testUrl = `${currentProtocol === 'https:' ? 'wss:' : 'ws:'}//${currentHost}/ws`;
-        }
-      } else {
-        testUrl = 'ws://localhost/ws';
-      }
+      // Test URL format - use simple relative URL
+      const testUrl = typeof window !== 'undefined' 
+        ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
+        : 'ws://localhost/ws';
       if (!testUrl.startsWith('ws://') && !testUrl.startsWith('wss://')) {
         addTestResult('❌ Invalid WebSocket URL format');
         return;
@@ -125,9 +108,8 @@ export const WebSocketConnectionTest: React.FC<WebSocketConnectionTestProps> = (
     
     try {
       // Test HTTP endpoint first
-      const resolvedBase = getApiBaseUrl();
-      const healthUrl = buildApiUrl('/api/health');
-      addTestResult(`Checking HTTP endpoint via: ${resolvedBase ? healthUrl : '/api/health (relative)'}`);
+      const healthUrl = '/api/health';
+      addTestResult(`Checking HTTP endpoint via: ${healthUrl}`);
       const response = await fetch(healthUrl);
       
       if (response.ok) {

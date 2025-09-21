@@ -3,7 +3,6 @@
  * This file provides functions to interact with the notifications API
  */
 
-import { buildApiUrl } from '../utils/apiBase';
 
 // Types for notifications
 export interface Notification {
@@ -34,8 +33,7 @@ export interface NotificationCounts {
 
 // Helper function to make API requests
 async function apiRequest(endpoint: string, options: RequestInit = {}) {
-  const url = buildApiUrl(endpoint);
-  const response = await fetch(url, {
+  const response = await fetch(endpoint, {
     ...options,
     headers: {
       'Content-Type': 'application/json',

@@ -54,7 +54,7 @@ function GuardRegisterPageContent() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || ''}/api/villages/check/${encodeURIComponent(villageKey)}`
+        `/api/villages/check/${encodeURIComponent(villageKey)}`
       );
       
       if (response.ok) {
