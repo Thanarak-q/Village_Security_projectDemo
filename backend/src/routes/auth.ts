@@ -144,6 +144,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
     return {
       id: currentUser.admin_id,
       username: currentUser.username,
+      email: currentUser.email,
       role: currentUser.role,
       village_key: currentUser.village_key,
       village_name,

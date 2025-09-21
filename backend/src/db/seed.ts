@@ -946,10 +946,27 @@ export async function clearDb() {
 
   console.log("Clearing villages");
   try {
+    // First try to disable foreign key checks temporarily
+    await db.execute(sql`SET session_replication_role = replica`);
     await db.delete(villages);
+    await db.execute(sql`SET session_replication_role = DEFAULT`);
     console.log("Cleared villages");
   } catch (error) {
-    console.log("villages table doesn't exist yet, skipping...");
+    console.log("Error clearing villages:", error);
+    // Try to clear with CASCADE if there are foreign key constraints
+    try {
+      await db.execute(sql`DELETE FROM villages CASCADE`);
+      console.log("Cleared villages with CASCADE");
+    } catch (cascadeError) {
+      console.log("Could not clear villages:", cascadeError);
+      // Last resort: truncate with CASCADE
+      try {
+        await db.execute(sql`TRUNCATE TABLE villages CASCADE`);
+        console.log("Truncated villages with CASCADE");
+      } catch (truncateError) {
+        console.log("Could not truncate villages:", truncateError);
+      }
+    }
   }
 }
 
@@ -1547,9 +1564,34 @@ async function createNotificationData() {
 async function seed() {
   await clearDb();
   console.log("Cleared database");
+  
+  // Check if villages already exist before inserting
+  console.log("Checking existing villages...");
+  const existingVillages = await db.select().from(villages);
+  if (existingVillages.length > 0) {
+    console.log(`Found ${existingVillages.length} existing villages. Clearing them...`);
+    await db.delete(villages);
+    console.log("Cleared existing villages");
+  }
+  
   console.log("Inserting villages");
-  await db.insert(villages).values(villageData);
-  console.log("Completed inserting villages");
+  try {
+    await db.insert(villages).values(villageData);
+    console.log("Completed inserting villages");
+  } catch (error) {
+    console.log("Error inserting villages:", error);
+    // If there are still conflicts, try to insert one by one with conflict handling
+    console.log("Attempting to insert villages one by one...");
+    for (const village of villageData) {
+      try {
+        await db.insert(villages).values(village);
+        console.log(`Inserted village: ${village.village_name}`);
+      } catch (insertError) {
+        console.log(`Skipped duplicate village: ${village.village_name} (${village.village_key})`);
+      }
+    }
+    console.log("Completed inserting villages (with conflict handling)");
+  }
 
   console.log("Inserting houses");
   await db.insert(houses).values(houseData as any);
