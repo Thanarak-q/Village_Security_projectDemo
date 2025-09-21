@@ -65,13 +65,14 @@ class NotificationService {
 
       // Send via WebSocket to admins
       try {
-        const wsNotification = {
-          id: notification.notification_id,
-          title: notification.title,
-          body: notification.message,
-          level: this.getNotificationLevel(data.type),
-          createdAt: notification.created_at ? notification.created_at.getTime() : Date.now()
-        };
+      const wsNotification = {
+        id: notification.notification_id,
+        title: notification.title,
+        body: notification.message,
+        level: this.getNotificationLevel(data.type),
+        createdAt: notification.created_at ? notification.created_at.getTime() : Date.now(),
+        villageKey: notification.village_key
+      };
         
         await websocketClient.sendNotification(wsNotification);
         console.log(`📤 WebSocket notification sent: ${notification.title}`);

@@ -1,18 +1,43 @@
 // src/ws/notify.service.ts
 import { simpleMessageQueue } from './messageQueue';
 
+const ADMIN_TOPIC_PREFIX = 'admin:';
+
+const sanitizeVillageKey = (value: unknown): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const normalized = trimmed.toLowerCase();
+  const sanitized = normalized.replace(/[^a-z0-9_-]/g, '');
+
+  if (!sanitized) {
+    return null;
+  }
+
+  return sanitized;
+};
+
+const getAdminTopic = (villageKey: string) => `${ADMIN_TOPIC_PREFIX}${villageKey}`;
+
 export type AdminNotification = {
     id: string
     title: string
     body?: string
     level?: 'info' | 'warning' | 'critical'
     createdAt: number // epoch ms
+    villageKey: string
   }
   
-  export type NotifyService = {
+export type NotifyService = {
     port: number
     path: string
-    publishAdmin: (n: AdminNotification) => number
+    publishAdmin: (n: AdminNotification) => string
     publishTopic: (topic: string, payload: unknown) => number
   }
   
@@ -38,9 +63,11 @@ export type AdminNotification = {
       websocket: {
         idleTimeout,
         open(ws) {
-          // ใครเข้ามาให้เข้าห้อง "admin" สำหรับ broadcast
-          ws.subscribe('admin')
-          
+          ws.data = {
+            currentAdminTopic: null as string | null,
+            villageKey: null as string | null
+          };
+
           ws.send(JSON.stringify({ type: 'WELCOME', msg: 'connected' }))
         },
         message(ws, m) {
@@ -64,7 +91,41 @@ export type AdminNotification = {
               return;
             }
 
-            // If backend pushes an ADMIN_NOTIFICATION, broadcast to all admins
+            // Handle admin subscription requests
+            if (payload.type === 'SUBSCRIBE_ADMIN') {
+              const requestedVillageKey = sanitizeVillageKey(payload.data?.villageKey);
+
+              if (!requestedVillageKey) {
+                ws.send(JSON.stringify({
+                  type: 'ERROR',
+                  error: 'Invalid village key',
+                  timestamp: Date.now()
+                }));
+                return;
+              }
+
+              const topic = getAdminTopic(requestedVillageKey);
+
+              if (ws.data?.currentAdminTopic && ws.data.currentAdminTopic !== topic) {
+                ws.unsubscribe(ws.data.currentAdminTopic);
+              }
+
+              ws.subscribe(topic);
+              ws.data = {
+                ...ws.data,
+                currentAdminTopic: topic,
+                villageKey: requestedVillageKey
+              };
+
+              ws.send(JSON.stringify({
+                type: 'SUBSCRIBED_ADMIN',
+                villageKey: requestedVillageKey,
+                timestamp: Date.now()
+              }));
+              return;
+            }
+
+            // If backend pushes an ADMIN_NOTIFICATION, broadcast to the correct village topic
             if (payload.type === 'ADMIN_NOTIFICATION') {
               try {
                 // Validate notification structure
@@ -78,8 +139,21 @@ export type AdminNotification = {
                   return;
                 }
 
-                server.publish('admin', JSON.stringify(payload));
-                console.log('📣 Broadcast ADMIN_NOTIFICATION to admin topic:', payload.data.title);
+                const targetVillageKey = sanitizeVillageKey(payload.data.villageKey);
+
+                if (!targetVillageKey) {
+                  console.warn('⚠️ ADMIN_NOTIFICATION missing valid village key:', payload);
+                  ws.send(JSON.stringify({
+                    type: 'ERROR',
+                    error: 'Notification missing village key',
+                    timestamp: Date.now()
+                  }));
+                  return;
+                }
+
+                const topic = getAdminTopic(targetVillageKey);
+                server.publish(topic, JSON.stringify(payload));
+                console.log('📣 Broadcast ADMIN_NOTIFICATION to topic', topic, 'title:', payload.data.title);
                 return;
               } catch (broadcastError) {
                 console.error('❌ Failed to broadcast notification:', broadcastError);
@@ -135,16 +209,30 @@ export type AdminNotification = {
   
     const publishTopic = (topic: string, payload: unknown) =>
       server.publish(topic, JSON.stringify(payload))
-  
+
     const publishAdmin = (n: AdminNotification) => {
+      const sanitizedVillageKey = sanitizeVillageKey(n.villageKey);
+
+      if (!sanitizedVillageKey) {
+        console.error('❌ Cannot queue admin notification without valid village key:', n);
+        return 'invalid_village_key';
+      }
+
+      const topic = getAdminTopic(sanitizedVillageKey);
+      const payload = {
+        ...n,
+        villageKey: sanitizedVillageKey
+      };
+
       // Use simple message queue for deduplication and queuing
-      const messageId = simpleMessageQueue.enqueue('ADMIN_NOTIFICATION', n, {
+      const messageId = simpleMessageQueue.enqueue('ADMIN_NOTIFICATION', payload, {
         priority: n.level === 'critical' ? 'critical' : 'normal',
         maxRetries: 3,
         metadata: { 
           type: 'admin_notification',
           level: n.level || 'info',
-          notificationId: n.id
+          notificationId: n.id,
+          topic
         }
       });
       
@@ -153,7 +241,22 @@ export type AdminNotification = {
       // Process queued messages
       simpleMessageQueue.processQueue(async (message) => {
         try {
-          server.publish('admin', JSON.stringify({ type: message.type, data: message.data }));
+          const targetTopic = typeof message.metadata?.topic === 'string'
+            ? message.metadata.topic
+            : getAdminTopic(
+                sanitizeVillageKey(
+                  (message.data && typeof message.data === 'object' && 'villageKey' in (message.data as Record<string, unknown>))
+                    ? (message.data as Record<string, unknown>).villageKey
+                    : ''
+                ) || 'unknown'
+              );
+
+          if (!targetTopic || targetTopic.endsWith('unknown')) {
+            console.warn('⚠️ Skipping message with unknown village topic:', message.id);
+            return true;
+          }
+
+          server.publish(targetTopic, JSON.stringify({ type: message.type, data: message.data }));
           return true;
         } catch (error) {
           console.error(`❌ Failed to publish message ${message.id}:`, error);

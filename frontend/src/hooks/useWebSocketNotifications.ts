@@ -3,6 +3,7 @@ import { useErrorHandling } from './useErrorHandling';
 import { useSafeState, useSafeCallback, useSafeMemo } from './useSafeState';
 import { websocketMessageManager } from '../utils/websocketMessageManager';
 import { websocketDiagnostics } from '../utils/websocketDiagnostics';
+import { useAuth } from './useAuth';
 
 interface WebSocketNotification {
   id: string;
@@ -43,7 +44,11 @@ interface UseWebSocketNotificationsReturn {
   };
 }
 
-export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
+interface UseWebSocketNotificationsOptions {
+  villageKey?: string;
+}
+
+export function useWebSocketNotifications(options: UseWebSocketNotificationsOptions = {}): UseWebSocketNotificationsReturn {
   const [notifications, setNotifications] = useSafeState<WebSocketNotification[]>([]);
   const [isConnected, setIsConnected] = useSafeState(false);
   const [connectionStatus, setConnectionStatus] = useSafeState<'connecting' | 'connected' | 'disconnected' | 'error'>('disconnected');
@@ -52,6 +57,20 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
+  const subscribedVillageRef = useRef<string | null>(null);
+
+  const { villageKey: overrideVillageKey } = options;
+  const { user } = useAuth();
+
+  const resolvedVillageKey = useSafeMemo(() => {
+    const fromOptions = typeof overrideVillageKey === 'string' ? overrideVillageKey.trim() : '';
+    const fromUser = typeof user?.village_key === 'string' ? user.village_key.trim() : '';
+    const fromEnv = typeof process.env.NEXT_PUBLIC_DEFAULT_VILLAGE_KEY === 'string'
+      ? process.env.NEXT_PUBLIC_DEFAULT_VILLAGE_KEY.trim()
+      : '';
+
+    return fromOptions || fromUser || fromEnv || null;
+  }, [overrideVillageKey, user?.village_key]);
 
   // Initialize error handling
   const {
@@ -67,6 +86,30 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
     showNotifications: true
   });
 
+  const subscribeToVillage = useSafeCallback((ws: WebSocket, villageKey: string) => {
+    const trimmedKey = villageKey.trim();
+
+    if (!trimmedKey) {
+      console.warn('⚠️ Attempted to subscribe with empty village key');
+      return;
+    }
+
+    try {
+      ws.send(JSON.stringify({
+        type: 'SUBSCRIBE_ADMIN',
+        data: { villageKey: trimmedKey }
+      }));
+      subscribedVillageRef.current = trimmedKey;
+      console.log(`🪪 Requested admin subscription for village ${trimmedKey}`);
+    } catch (error) {
+      console.error('❌ Failed to send subscription request:', error);
+      handleWebSocketError(
+        error instanceof Error ? error : new Error('Subscription request failed'),
+        { messageType: 'subscribe_admin', villageKey: trimmedKey }
+      );
+    }
+  }, [handleWebSocketError]);
+
   const connect = useSafeCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       return;
@@ -74,8 +117,32 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
 
     setConnectionStatus('connecting');
     
-    // Use the WebSocket URL through Caddy proxy (port 80)
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost/ws';
+    // Determine WebSocket URL based on environment
+    let wsUrl: string;
+    
+    if (process.env.NEXT_PUBLIC_WS_URL) {
+      // Use explicit WebSocket URL from environment
+      wsUrl = process.env.NEXT_PUBLIC_WS_URL;
+    } else if (typeof window !== 'undefined') {
+      // Running in browser - detect if we're using ngrok or localhost
+      const currentHost = window.location.hostname;
+      const currentProtocol = window.location.protocol;
+      
+      if (currentHost.includes('ngrok.io') || currentHost.includes('ngrok-free.app')) {
+        // Using ngrok - use secure WebSocket
+        wsUrl = `wss://${currentHost}/ws`;
+      } else if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
+        // Local development
+        wsUrl = 'ws://localhost/ws';
+      } else {
+        // Production or other environment
+        wsUrl = `${currentProtocol === 'https:' ? 'wss:' : 'ws:'}//${currentHost}/ws`;
+      }
+    } else {
+      // Server-side rendering fallback
+      wsUrl = 'ws://localhost/ws';
+    }
+    
     console.log('🔗 Attempting to connect to:', wsUrl);
     
     // Update diagnostics
@@ -100,6 +167,12 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
         
         // Update message manager connection status
         websocketMessageManager.setWebSocket(ws);
+
+        if (resolvedVillageKey) {
+          subscribeToVillage(ws, resolvedVillageKey);
+        } else {
+          console.warn('⚠️ No village key available for WebSocket subscription');
+        }
       };
 
       ws.onmessage = (event) => {
@@ -172,6 +245,13 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
             console.log('👋 Welcome message:', data.msg);
           } else if (data.type === 'ECHO') {
             console.log('🔄 Echo response:', data.data);
+          } else if (data.type === 'SUBSCRIBED_ADMIN') {
+            if (data.villageKey) {
+              subscribedVillageRef.current = data.villageKey;
+              console.log('✅ Subscription confirmed for village:', data.villageKey);
+            } else {
+              console.warn('⚠️ Subscription confirmation received without village key');
+            }
           } else if (data.type === 'ERROR') {
             console.error('❌ WebSocket server error:', data.error);
             setConnectionStatus('error');
@@ -258,7 +338,7 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
       setConnectionStatus('error');
       return;
     }
-  }, [handleValidationError, handleWebSocketError]);
+  }, [handleValidationError, handleWebSocketError, resolvedVillageKey, subscribeToVillage]);
 
   const disconnect = useSafeCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -273,6 +353,18 @@ export function useWebSocketNotifications(): UseWebSocketNotificationsReturn {
     setIsConnected(false);
     setConnectionStatus('disconnected');
   }, []);
+
+  useEffect(() => {
+    if (!resolvedVillageKey) {
+      subscribedVillageRef.current = null;
+      return;
+    }
+
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN && subscribedVillageRef.current !== resolvedVillageKey) {
+      subscribeToVillage(ws, resolvedVillageKey);
+    }
+  }, [resolvedVillageKey, subscribeToVillage]);
 
   const sendMessage = useSafeCallback((message: unknown) => {
     try {

@@ -290,7 +290,8 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
         title: newNotification.title,
         body: newNotification.message,
         level: level || 'info',
-        createdAt: newNotification.created_at ? newNotification.created_at.getTime() : Date.now()
+        createdAt: newNotification.created_at ? newNotification.created_at.getTime() : Date.now(),
+        villageKey: villageKey
       };
 
       let wsSent = false;

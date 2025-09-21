@@ -19,6 +19,7 @@ interface WebSocketNotification {
   body?: string;
   level?: 'info' | 'warning' | 'critical';
   createdAt: number;
+  villageKey: string;
 }
 
 class WebSocketClient {
@@ -121,6 +122,18 @@ class WebSocketClient {
     return webSocketCircuitBreaker.execute(async () => {
       return await handleAsyncError(
         async () => {
+          if (!notification.villageKey || typeof notification.villageKey !== 'string') {
+            throw new AppError(
+              'Notification missing village key',
+              ErrorType.WEBSOCKET_SEND,
+              ErrorSeverity.MEDIUM,
+              {
+                notificationId: notification.id,
+                timestamp: new Date().toISOString()
+              }
+            );
+          }
+
           if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
             throw new WebSocketError(
               'WebSocket not connected',
