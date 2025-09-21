@@ -3,7 +3,7 @@
  * This hook provides state management and API integration for notifications
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   type Notification,
   NotificationFilters,
@@ -25,9 +25,17 @@ export function useNotifications(initialFilters?: NotificationFilters): UseNotif
   const [counts, setCounts] = useState<NotificationCounts | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isRefreshingRef = useRef(false);
+  const hasInitialFetchRunRef = useRef(false);
 
 
   const refreshNotifications = useCallback(async (filters: NotificationFilters = {}) => {
+    if (isRefreshingRef.current) {
+      return;
+    }
+
+    isRefreshingRef.current = true;
+
     try {
       setLoading(true);
       setError(null);
@@ -44,6 +52,7 @@ export function useNotifications(initialFilters?: NotificationFilters): UseNotif
       setError(errorMessage);
       console.error('Error fetching notifications:', err);
     } finally {
+      isRefreshingRef.current = false;
       setLoading(false);
     }
   }, [initialFilters]);
@@ -62,6 +71,10 @@ export function useNotifications(initialFilters?: NotificationFilters): UseNotif
 
   // Load notifications on mount
   useEffect(() => {
+    if (hasInitialFetchRunRef.current) {
+      return;
+    }
+    hasInitialFetchRunRef.current = true;
     refreshNotifications();
   }, [refreshNotifications]);
 

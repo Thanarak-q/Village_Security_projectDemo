@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { websocketDiagnostics } from '../utils/websocketDiagnostics';
+import { buildApiUrl, getApiBaseUrl } from '../utils/apiBase';
 
 interface WebSocketConnectionTestProps {
   className?: string;
@@ -124,8 +125,10 @@ export const WebSocketConnectionTest: React.FC<WebSocketConnectionTestProps> = (
     
     try {
       // Test HTTP endpoint first
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      const response = await fetch(`${baseUrl}/api/health`);
+      const resolvedBase = getApiBaseUrl();
+      const healthUrl = buildApiUrl('/api/health');
+      addTestResult(`Checking HTTP endpoint via: ${resolvedBase ? healthUrl : '/api/health (relative)'}`);
+      const response = await fetch(healthUrl);
       
       if (response.ok) {
         addTestResult('✅ HTTP server is responding');

@@ -3,6 +3,8 @@
  * This file provides functions to interact with the notifications API
  */
 
+import { buildApiUrl } from '../utils/apiBase';
+
 // Types for notifications
 export interface Notification {
   notification_id: string;
@@ -30,11 +32,10 @@ export interface NotificationCounts {
   unread: number;
 }
 
-const API_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-
 // Helper function to make API requests
 async function apiRequest(endpoint: string, options: RequestInit = {}) {
-  const response = await fetch(`${API_BACKEND_URL}${endpoint}`, {
+  const url = buildApiUrl(endpoint);
+  const response = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',

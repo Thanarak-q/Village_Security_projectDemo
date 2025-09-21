@@ -9,16 +9,9 @@
   
   # WebSocket service with proper WebSocket headers
   reverse_proxy /ws websocket:3002 {
-    header_up Host {host}
-    header_up X-Real-IP {remote}
-    header_up X-Forwarded-For {remote}
-    header_up X-Forwarded-Proto {scheme}
-    header_up Upgrade {>Upgrade}
-    header_up Connection {>Connection}
-    header_up Sec-WebSocket-Key {>Sec-WebSocket-Key}
-    header_up Sec-WebSocket-Version {>Sec-WebSocket-Version}
-    header_up Sec-WebSocket-Extensions {>Sec-WebSocket-Extensions}
-    header_up Sec-WebSocket-Protocol {>Sec-WebSocket-Protocol}
+    transport http {
+      versions 1.1
+    }
   }
   
   # Frontend (catch-all for SPA routing)

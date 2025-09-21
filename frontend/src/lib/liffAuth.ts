@@ -1,3 +1,5 @@
+import { buildApiUrl } from '../utils/apiBase';
+
 // LIFF Authentication Service
 export interface LiffUser {
   id: string;
@@ -26,17 +28,11 @@ export interface LiffAuthResponse {
   message?: string; // Custom success/error message
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-
-if (!API_BASE_URL && typeof window !== 'undefined') {
-  throw new Error('NEXT_PUBLIC_API_BASE_URL environment variable is required');
-}
-
 // Verify LINE ID token with backend
 export const verifyLiffToken = async (idToken: string, role?: 'resident' | 'guard'): Promise<LiffAuthResponse> => {
   try {
     
-    const response = await fetch(`${API_BASE_URL}/api/liff/verify`, {
+    const response = await fetch(buildApiUrl('/api/liff/verify'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -125,7 +121,7 @@ export const registerLiffUser = async (
   }
 ): Promise<LiffAuthResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/liff/register`, {
+    const response = await fetch(buildApiUrl('/api/liff/register'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -198,7 +194,7 @@ export const registerLiffUser = async (
 // Get user profile by LINE user ID
 export const getLiffUserProfile = async (lineUserId: string): Promise<LiffAuthResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/liff/profile/${lineUserId}`, {
+    const response = await fetch(buildApiUrl(`/api/liff/profile/${lineUserId}`), {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
