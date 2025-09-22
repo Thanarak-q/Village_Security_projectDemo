@@ -229,6 +229,10 @@ const Page: React.FC = () => {
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     setLoading(true);
+    
+    // Clear sessionStorage before login to prevent cross-user data
+    sessionStorage.clear();
+    
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",

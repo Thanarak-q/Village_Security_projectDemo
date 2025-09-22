@@ -29,43 +29,15 @@ export const redirectRoutes = new Elysia({ prefix: "/api/redirect" })
       };
     }
 
-    // Admin: Redirect to regular dashboard with village selection
+    // Admin: Always redirect to village selection page
     if (role === "admin") {
-      // If admin has only one village, auto-select it
-      if (village_keys && village_keys.length === 1) {
-        return {
-          success: true,
-          redirect_url: "/dashboard",
-          user_info: {
-            role,
-            village_keys,
-            selected_village: village_keys[0],
-            auto_selected: true,
-          },
-        };
-      }
-
-      // If admin has multiple villages, redirect to village selection
-      if (village_keys && village_keys.length > 1) {
-        return {
-          success: true,
-          redirect_url: "/dashboard/village-select",
-          user_info: {
-            role,
-            village_keys,
-            needs_village_selection: true,
-          },
-        };
-      }
-
-      // If admin has no villages assigned
       return {
         success: true,
-        redirect_url: "/dashboard",
+        redirect_url: "/admin-village-selection",
         user_info: {
           role,
-          village_keys: [],
-          message: "No villages assigned. Please contact super admin.",
+          village_keys,
+          needs_village_selection: true,
         },
       };
     }

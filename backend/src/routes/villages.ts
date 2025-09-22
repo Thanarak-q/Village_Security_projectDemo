@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import db from "../db/drizzle";
 import { villages, admins } from "../db/schema";
-import { eq, or } from "drizzle-orm";
+import { eq, or, inArray } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 
 export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
@@ -59,7 +59,7 @@ export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
         };
       }
 
-      const { role, village_key } = currentUser;
+      const { role, village_keys } = currentUser;
       
       let adminVillages;
       
@@ -70,8 +70,8 @@ export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
           village_name: villages.village_name,
         }).from(villages);
       } else {
-        // Regular admin can only see their assigned village
-        if (!village_key) {
+        // Regular admin can only see their assigned villages
+        if (!village_keys || village_keys.length === 0) {
           return { 
             success: true, 
             data: [], 
@@ -85,7 +85,7 @@ export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
             village_name: villages.village_name,
           })
           .from(villages)
-          .where(eq(villages.village_key, village_key));
+          .where(inArray(villages.village_key, village_keys));
       }
       
       return {

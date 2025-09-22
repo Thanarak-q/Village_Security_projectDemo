@@ -38,6 +38,9 @@ const VillageSelectionPage = () => {
   const logoutRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
+    // Clear any existing selected village when entering village selection
+    sessionStorage.removeItem("selectedVillage");
+    
     // Check authentication and get admin data
     const checkAuth = async () => {
       try {
@@ -167,7 +170,10 @@ const VillageSelectionPage = () => {
         credentials: "include",
       });
       
+      // Clear all session data
       sessionStorage.clear();
+      localStorage.clear();
+      
       router.push("/login");
       toast.success("Logged out successfully");
     } catch (error) {

@@ -227,10 +227,11 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         }
 
         // Check if admin can update this house (same village)
-        if (existingHouse[0].village_key !== currentUser.village_key) {
+        const { village_keys, role } = currentUser;
+        if (role !== "superadmin" && !village_keys.includes(existingHouse[0].village_key)) {
           return {
             success: false,
-            error: "You can only update houses in your own village!",
+            error: "You can only update houses in your assigned villages!",
           };
         }
 
@@ -291,7 +292,7 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
               address: updatedHouse.address,
               old_status: oldStatus,
               new_status: updateData.status,
-              village_key: currentUser.village_key,
+              village_key: existingHouse[0].village_key,
             });
             console.log(`📢 House status change notification sent: ${updatedHouse.address}`);
           } catch (notificationError) {
@@ -359,10 +360,11 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         }
 
         // Check if admin can update this house (same village)
-        if (existingHouse[0].village_key !== currentUser.village_key) {
+        const { village_keys, role } = currentUser;
+        if (role !== "superadmin" && !village_keys.includes(existingHouse[0].village_key)) {
           return {
             success: false,
-            error: "You can only update houses in your own village!",
+            error: "You can only update houses in your assigned villages!",
           };
         }
 
@@ -397,7 +399,7 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
               address: updatedHouse.address,
               old_status: oldStatus,
               new_status: status,
-              village_key: currentUser.village_key,
+              village_key: existingHouse[0].village_key,
             });
             console.log(`📢 House status change notification sent: ${updatedHouse.address}`);
           } catch (notificationError) {
@@ -451,17 +453,18 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
           success: false,
           error: "House not found!",
         };
-      }
+        }
 
-      // Check if admin can delete this house (same village)
-      if (existingHouse[0].village_key !== currentUser.village_key) {
-        return {
-          success: false,
-          error: "You can only delete houses in your own village!",
-        };
-      }
+        // Check if admin can delete this house (same village)
+        const { village_keys, role } = currentUser;
+        if (role !== "superadmin" && !village_keys.includes(existingHouse[0].village_key)) {
+          return {
+            success: false,
+            error: "You can only delete houses in your assigned villages!",
+          };
+        }
 
-      // Store house info for logging before deletion
+        // Store house info for logging before deletion
       const houseInfo = existingHouse[0];
 
       // Delete house

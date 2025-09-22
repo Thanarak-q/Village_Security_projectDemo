@@ -34,6 +34,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               window.location.href = "/admin-village-selection";
               return;
             }
+            
+            // Verify that the selected village is in the user's accessible villages
+            if (json.village_keys && !json.village_keys.includes(selectedVillage)) {
+              // Clear invalid selected village and redirect to selection
+              sessionStorage.removeItem("selectedVillage");
+              window.location.href = "/admin-village-selection";
+              return;
+            }
           }
         }
       } catch (error) {
