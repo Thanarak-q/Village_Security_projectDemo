@@ -48,9 +48,13 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
    * @param {Object} context.currentUser - The current user.
    * @returns {Promise<Object>} A promise that resolves to an object containing the pending users.
    */
-  .get("/pendingUsers", async ({ currentUser }: any) => {
+  .get("/pendingUsers", async ({ currentUser, query }: any) => {
     try {
       const { village_keys, role } = currentUser;
+      
+      // Get selected village from query parameter, fallback to all villages
+      const selectedVillageKey = query?.village_key;
+      const targetVillageKeys = selectedVillageKey ? [selectedVillageKey] : village_keys;
       // Get pending residents data with house address
       const pendingResidentsData = await db
         .select({
@@ -72,7 +76,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             eq(residents.status, "pending"),
             role === "superadmin" 
               ? sql`1=1` // Super admin can see all pending residents
-              : inArray(residents.village_key, village_keys)
+              : inArray(residents.village_key, targetVillageKeys)
           )
         )
         // .where(sql`${residents.status} = 'pending'`)
@@ -103,7 +107,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             eq(guards.status, "pending"),
             role === "superadmin" 
               ? sql`1=1` // Super admin can see all pending guards
-              : inArray(guards.village_key, village_keys)
+              : inArray(guards.village_key, targetVillageKeys)
           )
         );
 

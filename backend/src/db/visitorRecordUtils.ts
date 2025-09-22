@@ -6,7 +6,7 @@
 
 import db from "./drizzle";
 import { visitor_records, houses, residents, guards } from "./schema";
-import { eq, sql, and, gte, lte } from "drizzle-orm";
+import { eq, sql, and, gte, lte, inArray } from "drizzle-orm";
 
 /**
  * Retrieves all visitor records, joining them with related resident, guard, and house information.
@@ -423,9 +423,11 @@ export async function getVisitorRecordsByResidentName(residentName: string) {
 
 /**
  * Retrieves and compiles statistics for visitor records for the current week (Sunday to Saturday).
+ * @param {string[]} villageKeys - Array of village keys to filter by (optional).
+ * @param {string} role - User role for permission checking.
  * @returns {Promise<Object>} A promise that resolves to an object containing weekly statistics, including counts per day and a summary.
  */
-export async function getWeeklyVisitorRecords() {
+export async function getWeeklyVisitorRecords(villageKeys?: string[], role?: string) {
   // Calculate the start and end of current week (Sunday to Saturday)
   const now = new Date();
   const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
@@ -437,21 +439,39 @@ export async function getWeeklyVisitorRecords() {
   endOfWeek.setDate(startOfWeek.getDate() + 6); // Go to Saturday
   endOfWeek.setHours(23, 59, 59, 999);
 
-  // Get all visitor records for the current week
-  const weeklyRecords = await db
+  // Build query with village filtering if provided
+  let query = db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
       entry_time: visitor_records.entry_time,
       record_status: visitor_records.record_status,
       createdAt: visitor_records.createdAt,
     })
-    .from(visitor_records)
-    .where(
+    .from(visitor_records);
+
+  // Add village filtering if villageKeys provided and user is not superadmin
+  if (villageKeys && villageKeys.length > 0 && role !== "superadmin") {
+    query = query
+      .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
+      .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
+      .where(
+        and(
+          inArray(houses.village_key, villageKeys),
+          gte(visitor_records.entry_time, startOfWeek),
+          lte(visitor_records.entry_time, endOfWeek)
+        )
+      );
+  } else {
+    // No village filtering for superadmin or when no villageKeys provided
+    query = query.where(
       and(
         gte(visitor_records.entry_time, startOfWeek),
         lte(visitor_records.entry_time, endOfWeek)
       )
     );
+  }
+
+  const weeklyRecords = await query;
 
   // Initialize data structure for each day of the week
   const weekDays = [
@@ -503,9 +523,11 @@ export async function getWeeklyVisitorRecords() {
 
 /**
  * Retrieves and compiles statistics for visitor records for each month of the current year.
+ * @param {string[]} villageKeys - Array of village keys to filter by (optional).
+ * @param {string} role - User role for permission checking.
  * @returns {Promise<Object>} A promise that resolves to an object containing monthly statistics and a summary.
  */
-export async function getMonthlyVisitorRecords() {
+export async function getMonthlyVisitorRecords(villageKeys?: string[], role?: string) {
   // Get current year
   const currentYear = new Date().getFullYear();
 
@@ -513,21 +535,39 @@ export async function getMonthlyVisitorRecords() {
   const startOfYear = new Date(currentYear, 0, 1); // January 1st
   const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59, 999); // December 31st
 
-  // Get all visitor records for the current year
-  const yearlyRecords = await db
+  // Build query with village filtering if provided
+  let query = db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
       entry_time: visitor_records.entry_time,
       record_status: visitor_records.record_status,
       createdAt: visitor_records.createdAt,
     })
-    .from(visitor_records)
-    .where(
+    .from(visitor_records);
+
+  // Add village filtering if villageKeys provided and user is not superadmin
+  if (villageKeys && villageKeys.length > 0 && role !== "superadmin") {
+    query = query
+      .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
+      .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
+      .where(
+        and(
+          inArray(houses.village_key, villageKeys),
+          gte(visitor_records.entry_time, startOfYear),
+          lte(visitor_records.entry_time, endOfYear)
+        )
+      );
+  } else {
+    // No village filtering for superadmin or when no villageKeys provided
+    query = query.where(
       and(
         gte(visitor_records.entry_time, startOfYear),
         lte(visitor_records.entry_time, endOfYear)
       )
     );
+  }
+
+  const yearlyRecords = await query;
 
   // Initialize data structure for each month
   const months = [
@@ -588,11 +628,13 @@ export async function getMonthlyVisitorRecords() {
 
 /**
  * Retrieves and compiles statistics for visitor records, aggregated by year.
+ * @param {string[]} villageKeys - Array of village keys to filter by (optional).
+ * @param {string} role - User role for permission checking.
  * @returns {Promise<Object>} A promise that resolves to an object containing yearly statistics and a summary.
  */
-export async function getYearlyVisitorRecords() {
-  // Get all visitor records with their years
-  const allRecords = await db
+export async function getYearlyVisitorRecords(villageKeys?: string[], role?: string) {
+  // Build query with village filtering if provided
+  let query = db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
       entry_time: visitor_records.entry_time,
@@ -600,6 +642,16 @@ export async function getYearlyVisitorRecords() {
       createdAt: visitor_records.createdAt,
     })
     .from(visitor_records);
+
+  // Add village filtering if villageKeys provided and user is not superadmin
+  if (villageKeys && villageKeys.length > 0 && role !== "superadmin") {
+    query = query
+      .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
+      .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
+      .where(inArray(houses.village_key, villageKeys));
+  }
+
+  const allRecords = await query;
 
   // Group records by year
   const recordsByYear: { [key: number]: any[] } = {};

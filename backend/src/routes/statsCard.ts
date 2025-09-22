@@ -57,15 +57,19 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
    * Get resident count and visitor record stats for today.
    * @returns {Promise<Object>} A promise that resolves to an object containing the statistics data.
    */
-  .get("/statsCard", async ({ currentUser }: any) => {
+  .get("/statsCard", async ({ currentUser, query }: any) => {
     try {
       const { startOfDay, endOfDay } = getTodayDateRange();
       const { village_keys, role } = currentUser;
+      
+      // Get selected village from query parameter, fallback to all villages
+      const selectedVillageKey = query?.village_key;
+      const targetVillageKeys = selectedVillageKey ? [selectedVillageKey] : village_keys;
 
       // Count total residents (filtered by village if not superadmin)
       const countResidents = role === "superadmin"
         ? await db.select({ count: count() }).from(residents)
-        : await db.select({ count: count() }).from(residents).where(inArray(residents.village_key, village_keys));
+        : await db.select({ count: count() }).from(residents).where(inArray(residents.village_key, targetVillageKeys));
 
       // Count residents with pending status (filtered by village if not superadmin)
       const countResidentsPending = role === "superadmin"
@@ -76,7 +80,7 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
         : await db
             .select({ count: count() })
             .from(residents)
-            .where(and(eq(residents.status, "pending"), inArray(residents.village_key, village_keys)));
+            .where(and(eq(residents.status, "pending"), inArray(residents.village_key, targetVillageKeys)));
 
       // Count guards with pending status (filtered by village if not superadmin)
       const countGuardsPending = role === "superadmin"
@@ -87,7 +91,7 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
         : await db
             .select({ count: count() })
             .from(guards)
-            .where(and(eq(guards.status, "pending"), inArray(guards.village_key, village_keys)));
+            .where(and(eq(guards.status, "pending"), inArray(guards.village_key, targetVillageKeys)));
 
       // Count visitor records for today (filtered by village if not superadmin)
       const countVisitorRecordToday = role === "superadmin"
@@ -106,7 +110,7 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
             .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
             .where(
               and(
-                inArray(residents.village_key, village_keys),
+                inArray(residents.village_key, targetVillageKeys),
                 gte(visitor_records.createdAt, startOfDay),
                 lt(visitor_records.createdAt, endOfDay)
               )
@@ -130,7 +134,7 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
             .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
             .where(
               and(
-                inArray(residents.village_key, village_keys),
+                inArray(residents.village_key, targetVillageKeys),
                 eq(visitor_records.record_status, "approved"),
                 gte(visitor_records.createdAt, startOfDay),
                 lt(visitor_records.createdAt, endOfDay)
@@ -155,7 +159,7 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
             .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
             .where(
               and(
-                inArray(residents.village_key, village_keys),
+                inArray(residents.village_key, targetVillageKeys),
                 eq(visitor_records.record_status, "pending"),
                 gte(visitor_records.createdAt, startOfDay),
                 lt(visitor_records.createdAt, endOfDay)
@@ -180,7 +184,7 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
             .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
             .where(
               and(
-                inArray(residents.village_key, village_keys),
+                inArray(residents.village_key, targetVillageKeys),
                 eq(visitor_records.record_status, "rejected"),
                 gte(visitor_records.createdAt, startOfDay),
                 lt(visitor_records.createdAt, endOfDay)

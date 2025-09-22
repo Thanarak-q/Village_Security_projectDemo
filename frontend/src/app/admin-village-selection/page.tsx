@@ -140,6 +140,11 @@ const VillageSelectionPage = () => {
     // Store selected village in sessionStorage for dashboard access
     sessionStorage.setItem("selectedVillage", villageKey);
 
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new CustomEvent('villageChanged', { 
+      detail: { villageKey } 
+    }));
+
     // Animation for selection
     const selectedCard = document.querySelector(`[data-village-key="${villageKey}"]`);
     if (selectedCard) {
