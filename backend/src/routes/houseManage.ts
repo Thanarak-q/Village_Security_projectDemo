@@ -92,22 +92,39 @@ const validateStatus = (
  */
 export const houseManageRoutes = new Elysia({ prefix: "/api" })
   .onBeforeHandle(requireRole(["admin", "staff"]))
-  // Get all houses (moved from house.ts)
-  .get("/houses", async ({ currentUser }: any) => {
+  // Get houses by village_key query parameter
+  .get("/houses", async ({ query, currentUser }: any) => {
     try {
+      const { village_key } = query;
       const { village_keys, role } = currentUser;
 
-      const result = role === "superadmin"
-        ? await db.select().from(houses) // Super admin can see all houses
-        : await db
-            .select()
-            .from(houses)
-            .where(inArray(houses.village_key, village_keys));
+      // Validate village_key parameter
+      if (!village_key || typeof village_key !== 'string') {
+        return {
+          success: false,
+          error: "Village key is required",
+        };
+      }
+
+      // Check if admin has access to the specified village
+      if (role !== "superadmin" && !village_keys.includes(village_key)) {
+        return {
+          success: false,
+          error: "You don't have access to this village",
+        };
+      }
+
+      // Fetch houses for the specific village
+      const result = await db
+        .select()
+        .from(houses)
+        .where(eq(houses.village_key, village_key));
 
       return {
         success: true,
         data: result,
         total: result.length,
+        village_key: village_key,
       };
     } catch (error) {
       console.error("Error fetching houses:", error);
