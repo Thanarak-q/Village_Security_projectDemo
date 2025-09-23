@@ -46,6 +46,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
    * Get all pending users.
    * @param {Object} context - The context for the request.
    * @param {Object} context.currentUser - The current user.
+   * @param {Object} context.query - The query parameters.
    * @returns {Promise<Object>} A promise that resolves to an object containing the pending users.
    */
   .get("/pendingUsers", async ({ currentUser, query }: any) => {

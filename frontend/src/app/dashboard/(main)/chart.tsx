@@ -116,8 +116,8 @@ const WeeklyAccessBarChart = memo(function WeeklyAccessBarChart() {
           endpoint = '/api/visitor-record-weekly'
       }
 
-      // Get selected village from sessionStorage
-      const selectedVillage = sessionStorage.getItem('selectedVillage');
+      // Get selected village from sessionStorage (with SSR safety check)
+      const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem('selectedVillage') : null;
       const url = selectedVillage 
         ? `${endpoint}?village_key=${encodeURIComponent(selectedVillage)}`
         : endpoint;

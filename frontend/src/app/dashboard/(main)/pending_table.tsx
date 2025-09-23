@@ -128,8 +128,8 @@ export default function PendingTable() {
       }
       setError(null);
       
-      // Get selected village from sessionStorage
-      const selectedVillage = sessionStorage.getItem('selectedVillage');
+      // Get selected village from sessionStorage (with SSR safety check)
+      const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem('selectedVillage') : null;
       const url = selectedVillage 
         ? `/api/pendingUsers?village_key=${encodeURIComponent(selectedVillage)}`
         : '/api/pendingUsers';
