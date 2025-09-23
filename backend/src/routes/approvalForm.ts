@@ -3,8 +3,9 @@ import db from "../db/drizzle";
 import { visitor_records } from "../db/schema";
 import { requireRole } from "../hooks/requireRole";
 import { eq, and } from "drizzle-orm";
+import { saveBase64Image, getImageExtension } from "../utils/imageUtils";
 
-const approvalForm = new Elysia()
+const approvalForm = new Elysia({ prefix: "/api" })
     .onBeforeHandle(requireRole("guards"))
     .post("/approvalForms", async ({ body, store }: { body: unknown, store: { user?: { id?: string } } }) => {
         type ApprovalFormBody = {
@@ -48,19 +49,38 @@ const approvalForm = new Elysia()
             return { error: errors };
         }
 
+        let savedImageFilename: string | null = null;
+
+        // Save image to db/images directory if provided
+        if (pictureKey && pictureKey.trim()) {
+            try {
+                console.log("📸 Saving image to db/images directory...");
+                const imageExtension = getImageExtension(pictureKey);
+                savedImageFilename = await saveBase64Image(pictureKey, `visitor_${Date.now()}.${imageExtension}`);
+                console.log(`✅ Image saved as: ${savedImageFilename}`);
+            } catch (imageError) {
+                console.error("❌ Failed to save image:", imageError);
+                return { error: "Failed to save image file" };
+            }
+        }
+
         // Insert visitor record
         const [result] = await db.insert(visitor_records).values({
             resident_id: residentId || null,
             guard_id: guardId,
             house_id: houseId,
-            picture_key: pictureKey,
+            picture_key: savedImageFilename, // Store filename instead of base64 data
             license_plate: licensePlate,
             visit_purpose: visitPurpose,
             createdAt: new Date(),
             record_status: "pending"
         }).returning();
 
-        return { success: true, visitorId: result?.visitor_record_id };
+        return { 
+            success: true, 
+            visitorId: result?.visitor_record_id,
+            imageFilename: savedImageFilename 
+        };
     })
     // After inserting the visitor record, notify the resident with matching house_id
     // Endpoint for resident to accept a visitor record

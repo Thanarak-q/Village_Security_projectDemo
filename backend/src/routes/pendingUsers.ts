@@ -10,6 +10,7 @@ import {
 import { eq, sql, and } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { notificationService } from "../services/notificationService";
+import { userManagementActivityLogger } from "../utils/activityLogUtils";
 
 /**
  * Interface for the approve user request.
@@ -235,8 +236,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             user_type: 'resident',
             fname: updateResult[0].fname,
             lname: updateResult[0].lname,
-            village_key: updateResult[0].village_key,
-            admin_id: currentUser.admin_id,
+            village_key: updateResult[0].village_key || '',
           });
         } catch (notificationError) {
           console.error('Error creating approval notification:', notificationError);
@@ -285,8 +285,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             user_type: 'guard',
             fname: updateResult[0].fname,
             lname: updateResult[0].lname,
-            village_key: updateResult[0].village_key,
-            admin_id: currentUser.admin_id,
+            village_key: updateResult[0].village_key || '',
           });
         } catch (notificationError) {
           console.error('Error creating approval notification:', notificationError);
@@ -460,7 +459,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
    * @param {Object} context.currentUser - The current user.
    * @returns {Promise<Object>} A promise that resolves to an object containing a success message.
    */
-  .put("/rejectUser", async ({ body, currentUser }) => {
+  .put("/rejectUser", async ({ body, currentUser }: any) => {
     try {
       const { userId, currentRole, reason, notes }: RejectUserRequest =
         body as RejectUserRequest;

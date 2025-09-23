@@ -5,9 +5,14 @@ import { Card, CardContent } from "@/components/ui/card";
 
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { Car, Clock, Home, ChevronLeft, ChevronRight } from "lucide-react";
-import NotificationComponent from "../../dashboard/(main)/notification";
+// import NotificationComponent from "../../dashboard/(main)/notification";
 import { useRouter } from "next/navigation";
-import { getAuthData, isAuthenticated } from "@/lib/liffAuth";
+import {
+  getAuthData,
+  isAuthenticated,
+  LiffUser,
+  clearAuthData,
+} from "@/lib/liffAuth";
 import { gsap } from "gsap";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
@@ -27,6 +32,8 @@ interface ApprovalCardsProps {
   items: VisitorRequest[];
   onApprove: (id: string) => void;
   onDeny: (id: string) => void;
+  villageName: string;
+  villageNameError: string | null;
 }
 
 interface ApiVisitorRequest {
@@ -39,7 +46,7 @@ interface ApiVisitorRequest {
   visitor_id_card?: string;
   license_plate?: string;
   entry_time: string;
-  record_status: 'pending' | 'approved' | 'rejected';
+  record_status: "pending" | "approved" | "rejected";
   visit_purpose?: string;
   createdAt: string;
   updatedAt: string;
@@ -52,18 +59,27 @@ interface ApiVisitorRequest {
 }
 
 // API functions for fetching visitor records by LINE user ID
-const fetchPendingVisitorRequests = async (lineUserId: string): Promise<ApiVisitorRequest[]> => {
-  const response = await fetch(`/api/visitor-requests/pending/line/${encodeURIComponent(lineUserId)}`);
+const fetchPendingVisitorRequests = async (
+  lineUserId: string
+): Promise<ApiVisitorRequest[]> => {
+  const response = await fetch(
+    `/api/visitor-requests/pending/line/${encodeURIComponent(lineUserId)}`
+  );
   if (!response.ok) {
-    throw new Error(`Failed to fetch pending visitor requests: ${response.statusText}`);
+    throw new Error(
+      `Failed to fetch pending visitor requests: ${response.statusText}`
+    );
   }
   const result = await response.json();
   return result.success ? result.data : [];
 };
 
-
-const fetchVisitorHistory = async (lineUserId: string): Promise<ApiVisitorRequest[]> => {
-  const response = await fetch(`/api/visitor-requests/history/line/${encodeURIComponent(lineUserId)}`);
+const fetchVisitorHistory = async (
+  lineUserId: string
+): Promise<ApiVisitorRequest[]> => {
+  const response = await fetch(
+    `/api/visitor-requests/history/line/${encodeURIComponent(lineUserId)}`
+  );
   if (!response.ok) {
     throw new Error(`Failed to fetch visitor history: ${response.statusText}`);
   }
@@ -73,7 +89,7 @@ const fetchVisitorHistory = async (lineUserId: string): Promise<ApiVisitorReques
 
 const approveVisitorRequest = async (id: string): Promise<void> => {
   const response = await fetch(`/api/visitor-requests/${id}/approve`, {
-    method: 'POST',
+    method: "POST",
   });
   if (!response.ok) {
     throw new Error(`Failed to approve request: ${response.statusText}`);
@@ -82,39 +98,69 @@ const approveVisitorRequest = async (id: string): Promise<void> => {
 
 const denyVisitorRequest = async (id: string): Promise<void> => {
   const response = await fetch(`/api/visitor-requests/${id}/deny`, {
-    method: 'POST',
+    method: "POST",
   });
   if (!response.ok) {
     throw new Error(`Failed to deny request: ${response.statusText}`);
   }
 };
 
+const fetchVillageName = async (villageKey: string): Promise<string> => {
+  console.log("🔍 Fetching village name for key:", villageKey);
+  const response = await fetch(
+    `/api/villages/check/${encodeURIComponent(villageKey)}`
+  );
+  console.log("📡 Village API response status:", response.status);
+  if (!response.ok) {
+    console.error("❌ Village API error:", response.statusText);
+    throw new Error(`Failed to fetch village info: ${response.statusText}`);
+  }
+  const result = await response.json();
+  console.log("📋 Village API result:", result);
+  if (result.exists && result.village_name) {
+    console.log("✅ Village name found:", result.village_name);
+    return result.village_name;
+  }
+  console.error("❌ Village not found in result:", result);
+  throw new Error(`Village not found for key: ${villageKey}`);
+};
+
 const transformApiData = (apiData: ApiVisitorRequest): VisitorRequest => {
   // Format the entry time to display format
   const entryTime = new Date(apiData.entry_time);
-  const timeString = entryTime.toLocaleTimeString('th-TH', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
+  const timeString = entryTime.toLocaleTimeString("th-TH", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
   });
 
   return {
     id: apiData.visitor_record_id,
-    plateNumber: apiData.license_plate || 'ไม่ระบุ',
-    visitorName: apiData.visitor_name || apiData.visit_purpose || 'ไม่ระบุ',
+    plateNumber: apiData.license_plate || "ไม่ระบุ",
+    visitorName: apiData.visitor_name || apiData.visit_purpose || "ไม่ระบุ",
     destination: apiData.house_address,
     time: timeString,
-    carImage: apiData.picture_key || 'car1.jpg', // fallback to default image
-    status: apiData.record_status === 'approved' ? 'approved' : 
-             apiData.record_status === 'rejected' ? 'denied' : undefined,
+    carImage: apiData.picture_key || "car1.jpg", // fallback to default image
+    status:
+      apiData.record_status === "approved"
+        ? "approved"
+        : apiData.record_status === "rejected"
+        ? "denied"
+        : undefined,
   };
 };
 
-const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny }) => {
+const ApprovalCards: React.FC<ApprovalCardsProps> = ({
+  items,
+  onApprove,
+  onDeny,
+  villageName,
+  villageNameError,
+}) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
-  
+
   // Touch/swipe state
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -131,7 +177,10 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
   const sortedPending = [...items].sort((a, b) => Number(a.id) - Number(b.id));
 
   const nextCard = (skipCount: number = 1) => {
-    const newIndex = Math.min(currentIndex + skipCount, sortedPending.length - 1);
+    const newIndex = Math.min(
+      currentIndex + skipCount,
+      sortedPending.length - 1
+    );
     if (newIndex !== currentIndex && !isAnimating && cardRef.current) {
       setIsAnimating(true);
       // card out to the left
@@ -149,9 +198,9 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
             opacity: 1,
             duration: 0.3,
             ease: "power2.out",
-            onComplete: () => setIsAnimating(false)
+            onComplete: () => setIsAnimating(false),
           });
-        }
+        },
       });
     }
   };
@@ -175,9 +224,9 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
             opacity: 1,
             duration: 0.3,
             ease: "power2.out",
-            onComplete: () => setIsAnimating(false)
+            onComplete: () => setIsAnimating(false),
           });
-        }
+        },
       });
     }
   };
@@ -200,7 +249,7 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
     const currentTouch = e.targetTouches[0].clientX;
     const now = Date.now();
     const diff = currentTouch - touchStart;
-    
+
     // Calculate velocity based on recent movement
     if (lastTouchTime && lastTouchX !== null) {
       const timeDiff = now - lastTouchTime;
@@ -210,12 +259,12 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
         setVelocity(currentVelocity);
       }
     }
-    
+
     setDragOffset(diff);
     setTouchEnd(currentTouch);
     setLastTouchTime(now);
     setLastTouchX(currentTouch);
-    
+
     // Apply visual feedback that follows finger movement
     if (cardRef.current) {
       gsap.set(cardRef.current, { x: diff * 0.4 });
@@ -224,18 +273,18 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
 
   const handleTouchEnd = () => {
     if (!touchStart || !touchEnd || isAnimating || !touchStartTime) return;
-    
+
     const now = Date.now();
     const totalTime = now - touchStartTime;
     const diff = touchStart - touchEnd;
-    
+
     // Calculate final velocity
     const finalVelocity = Math.abs(diff) / totalTime;
-    
+
     // Calculate how many cards to skip based on velocity and distance
     let skipCount = 1;
     const absDiff = Math.abs(diff);
-    
+
     if (finalVelocity > 1.5) {
       // Very fast swipe - skip multiple cards
       skipCount = Math.min(Math.floor(absDiff / 80) + 1, 5); // Max 5 cards
@@ -252,10 +301,10 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
       // Slow swipe - normal single card
       skipCount = 1;
     }
-    
+
     // Dynamic thresholds based on velocity and distance
     let minDistance = 30; // Base minimum distance
-    
+
     if (finalVelocity > 1.0) {
       // Very fast swipe - very low threshold
       minDistance = 15;
@@ -269,14 +318,14 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
       // Slow swipe - higher threshold
       minDistance = 60;
     }
-    
+
     const isLeftSwipe = diff > minDistance;
     const isRightSwipe = diff < -minDistance;
-    
+
     // Reset drag state
     setIsDragging(false);
     setDragOffset(0);
-    
+
     if (isLeftSwipe && currentIndex < sortedPending.length - 1) {
       nextCard(skipCount);
     } else if (isRightSwipe && currentIndex > 0) {
@@ -288,11 +337,11 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
         gsap.to(cardRef.current, {
           x: 0,
           duration: snapDuration,
-          ease: "power2.out"
+          ease: "power2.out",
         });
       }
     }
-    
+
     setTouchStart(null);
     setTouchEnd(null);
     setTouchStartTime(null);
@@ -318,7 +367,7 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
     if (!touchStart || isAnimating) return;
     const now = Date.now();
     const diff = e.clientX - touchStart;
-    
+
     // Calculate velocity based on recent movement
     if (lastTouchTime && lastTouchX !== null) {
       const timeDiff = now - lastTouchTime;
@@ -328,12 +377,12 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
         setVelocity(currentVelocity);
       }
     }
-    
+
     setDragOffset(diff);
     setTouchEnd(e.clientX);
     setLastTouchTime(now);
     setLastTouchX(e.clientX);
-    
+
     if (cardRef.current) {
       gsap.set(cardRef.current, { x: diff * 0.4 });
     }
@@ -341,18 +390,18 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
 
   const handleMouseUp = () => {
     if (!touchStart || isAnimating || !touchStartTime) return;
-    
+
     const now = Date.now();
     const totalTime = now - touchStartTime;
     const diff = touchStart - (touchEnd || touchStart);
-    
+
     // Calculate final velocity
     const finalVelocity = Math.abs(diff) / totalTime;
-    
+
     // Calculate how many cards to skip based on velocity and distance
     let skipCount = 1;
     const absDiff = Math.abs(diff);
-    
+
     if (finalVelocity > 1.5) {
       // Very fast swipe - skip multiple cards
       skipCount = Math.min(Math.floor(absDiff / 80) + 1, 5); // Max 5 cards
@@ -369,10 +418,10 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
       // Slow swipe - normal single card
       skipCount = 1;
     }
-    
+
     // Dynamic thresholds based on velocity and distance
     let minDistance = 30; // Base minimum distance
-    
+
     if (finalVelocity > 1.0) {
       // Very fast swipe - very low threshold
       minDistance = 15;
@@ -386,13 +435,13 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
       // Slow swipe - higher threshold
       minDistance = 60;
     }
-    
+
     const isLeftSwipe = diff > minDistance;
     const isRightSwipe = diff < -minDistance;
-    
+
     setIsDragging(false);
     setDragOffset(0);
-    
+
     if (isLeftSwipe && currentIndex < sortedPending.length - 1) {
       nextCard(skipCount);
     } else if (isRightSwipe && currentIndex > 0) {
@@ -404,11 +453,11 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
         gsap.to(cardRef.current, {
           x: 0,
           duration: snapDuration,
-          ease: "power2.out"
+          ease: "power2.out",
         });
       }
     }
-    
+
     setTouchStart(null);
     setTouchEnd(null);
     setTouchStartTime(null);
@@ -427,10 +476,13 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
   return (
     <div className="min-h-screen bg-white-50">
       <div className="bg-white px-4 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-gray-800">หมู่บ้านร่มรื่น</h1>
-        <div className="relative">
+        <h1 className="text-xl font-semibold text-gray-800">
+          {villageName ||
+            (villageNameError ? "ไม่พบข้อมูลหมู่บ้าน" : "กำลังโหลด...")}
+        </h1>
+        {/* <div className="relative">
           <NotificationComponent />
-        </div>
+        </div> */}
         {sortedPending.length > 1 && (
           <div className="flex items-center gap-1">
             <Button
@@ -447,7 +499,9 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
             </span>
             <Button
               onClick={() => nextCard()}
-              disabled={currentIndex === sortedPending.length - 1 || isAnimating}
+              disabled={
+                currentIndex === sortedPending.length - 1 || isAnimating
+              }
               variant="outline"
               size="sm"
               className="h-7 w-7 p-0 border-border hover:bg-accent"
@@ -462,18 +516,18 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
       <div className="min-h-[350px] relative overflow-hidden">
         {/* Swipe indicators */}
         {/* Simple swipe hint */}
-          {sortedPending.length > 1 && (
-            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 bg-black/10 backdrop-blur-sm rounded-full px-2 py-1 text-xs text-muted-foreground opacity-50">
-              ปัดแรงๆ เพื่อข้ามหลายการ์ด
-            </div>
-          )}
-        
+        {sortedPending.length > 1 && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 bg-black/10 backdrop-blur-sm rounded-full px-2 py-1 text-xs text-muted-foreground opacity-50">
+            ปัดแรงๆ เพื่อข้ามหลายการ์ด
+          </div>
+        )}
+
         {sortedPending.length > 0 ? (
           <div ref={cardRef}>
             <Card className="shadow-sm border-border bg-background/50">
               <CardContent className="p-3">
                 {/* Swipeable area - only the top part with info */}
-                <div 
+                <div
                   className="touch-none select-none"
                   onTouchStart={handleTouchStart}
                   onTouchMove={handleTouchMove}
@@ -482,11 +536,13 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
                   onMouseLeave={handleMouseUp}
-                  style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                  style={{ cursor: isDragging ? "grabbing" : "grab" }}
                 >
-                  <div className={`transition-all duration-200 ${
-                    isDragging ? 'scale-102' : 'scale-100'
-                  }`}>
+                  <div
+                    className={`transition-all duration-200 ${
+                      isDragging ? "scale-102" : "scale-100"
+                    }`}
+                  >
                     <div className="flex items-start gap-2 mb-3">
                       <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
                         <Car className="w-4 h-4 text-muted-foreground" />
@@ -496,7 +552,8 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
                           {sortedPending[currentIndex].plateNumber}
                         </div>
                         <div className="text-muted-foreground text-sm truncate">
-                          {sortedPending[currentIndex].visitorName} • {sortedPending[currentIndex].destination}
+                          {sortedPending[currentIndex].visitorName} •{" "}
+                          {sortedPending[currentIndex].destination}
                         </div>
                         <div className="text-muted-foreground text-xs flex items-center gap-1 mt-1">
                           <Clock className="w-3 h-3 flex-shrink-0" />
@@ -522,7 +579,7 @@ const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny 
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Action buttons - not swipeable, always clickable */}
                 <div className="flex gap-2 mt-3">
                   <Button
@@ -562,43 +619,87 @@ const ResidentPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  
+  const [currentUser, setCurrentUser] = useState<LiffUser | null>(null);
+  const [villageName, setVillageName] = useState<string>("");
+  const [villageNameError, setVillageNameError] = useState<string | null>(null);
+
   // Confirmation dialog state
   const [confirmationDialog, setConfirmationDialog] = useState<{
     isOpen: boolean;
-    type: 'approve' | 'reject';
+    type: "approve" | "reject";
     request: VisitorRequest | null;
     isLoading: boolean;
   }>({
     isOpen: false,
-    type: 'approve',
+    type: "approve",
     request: null,
     isLoading: false,
   });
 
-  // Target LINE user ID for สมชาย ผาสุก
-  const TARGET_LINE_USER_ID = "Ue529194c37fd43a24cf96d8648299d90";
-  const TARGET_RESIDENT_NAME = "สมชาย ผาสุก";
+  // Set initial village name immediately
+  useEffect(() => {
+    console.log("🚀 Component mounted, setting initial village name");
+    setVillageName("กำลังโหลด...");
+  }, []);
 
   // Check authentication and role on component mount
   useEffect(() => {
+    console.log("🔐 Starting authentication check");
     const checkAuthAndRole = () => {
       // Check if user is authenticated
+      console.log("🔍 Checking if user is authenticated...");
       if (!isAuthenticated()) {
-        console.log('User not authenticated, proceeding without authentication');
-        setIsCheckingAuth(false);
+        console.log("❌ User not authenticated, redirecting to LIFF login");
+        router.push("/liff/resident");
         return;
       }
+      console.log("✅ User is authenticated");
 
       // Get user data and check role
       const { user } = getAuthData();
-      if (!user || user.role !== 'resident') {
-        console.log('User is not a resident, proceeding without authentication');
-        setIsCheckingAuth(false);
+      if (!user || user.role !== "resident") {
+        console.log("User is not a resident, redirecting to appropriate page");
+        if (user?.role === "guard") {
+          router.push("/liff/guard");
+        } else {
+          router.push("/liff/resident");
+        }
         return;
       }
 
-      console.log('User is authenticated as resident:', user.username);
+      // Debug: Log user status
+      console.log("🔍 User status check:", {
+        status: user.status,
+        fname: user.fname,
+        lname: user.lname,
+        email: user.email
+      });
+
+      // Check user status - redirect pending users to pending page
+      if (user.status === "pending") {
+        console.log("❌ User status is pending, redirecting to pending page");
+        router.push("/Resident/pending");
+        return;
+      }
+
+      // Check if user is disabled
+      if (user.status === "disable") {
+        console.log("❌ User is disabled, redirecting to login");
+        router.push("/liff/resident");
+        return;
+      }
+
+      // Only verified users can access the main page
+      if (user.status !== "verified") {
+        console.log("❌ User status is not verified, redirecting to pending page");
+        router.push("/Resident/pending");
+        return;
+      }
+
+      console.log("✅ User is verified resident:", user);
+      console.log("User village_key:", user?.village_key);
+      console.log("Full user object:", JSON.stringify(user, null, 2));
+      setCurrentUser(user);
       setIsCheckingAuth(false);
     };
 
@@ -607,31 +708,62 @@ const ResidentPage = () => {
 
   // Fetch data on component mount
   useEffect(() => {
+    console.log("📊 Data loading useEffect triggered");
+    console.log("👤 Current user:", currentUser);
     const loadData = async () => {
-      console.log("🔄 Starting data load for LINE user ID:", TARGET_LINE_USER_ID);
+      if (!currentUser?.lineUserId) {
+        console.log("❌ No current user or LINE user ID available");
+        return;
+      }
+      console.log("✅ Current user has LINE user ID, proceeding with data load");
+
+      console.log(
+        "🔄 Starting data load for LINE user ID:",
+        currentUser.lineUserId
+      );
       try {
         setLoading(true);
         setError(null);
         console.log("🚀 Starting API calls...");
+        
+        // Set a temporary village name immediately
+        setVillageName("กำลังโหลด...");
+        setVillageNameError(null);
 
         // Test backend connection first
         console.log("🔍 Testing backend connection...");
-        const healthResponse = await fetch('/api/health');
-        console.log("🏥 Backend health check:", healthResponse.status);
+        try {
+          const healthResponse = await fetch("/api/health");
+          console.log("🏥 Backend health check:", healthResponse.status);
+          if (!healthResponse.ok) {
+            throw new Error(
+              `Backend health check failed: ${healthResponse.status}`
+            );
+          }
+        } catch (healthError) {
+          console.warn("⚠️ Backend health check failed:", healthError);
+          // Continue with data fetching - maybe backend is running but health endpoint is different
+        }
 
         // Fetch pending visitor requests and history separately
-        console.log(`🔍 Fetching pending visitor requests for LINE user ID: ${TARGET_LINE_USER_ID}`);
-        const pendingData = await fetchPendingVisitorRequests(TARGET_LINE_USER_ID);
-        
-        console.log(`🔍 Fetching visitor history for LINE user ID: ${TARGET_LINE_USER_ID}`);
-        const historyData = await fetchVisitorHistory(TARGET_LINE_USER_ID);
+        console.log(
+          `🔍 Fetching pending visitor requests for LINE user ID: ${currentUser.lineUserId}`
+        );
+        const pendingData = await fetchPendingVisitorRequests(
+          currentUser.lineUserId
+        );
+
+        console.log(
+          `🔍 Fetching visitor history for LINE user ID: ${currentUser.lineUserId}`
+        );
+        const historyData = await fetchVisitorHistory(currentUser.lineUserId);
 
         // Debug: Log raw data before transformation
         console.log("Raw API data:", {
           pendingData: pendingData,
           historyData: historyData,
           pendingCount: pendingData?.length || 0,
-          historyCount: historyData?.length || 0
+          historyCount: historyData?.length || 0,
         });
 
         // Transform API data to component format
@@ -641,15 +773,22 @@ const ResidentPage = () => {
         setPendingRequests(transformedPending);
         setHistory(transformedHistory);
 
-        console.log("Transformed data:", { 
-          pending: transformedPending.length, 
+        console.log("Transformed data:", {
+          pending: transformedPending.length,
           history: transformedHistory.length,
-          historyItems: transformedHistory
+          historyItems: transformedHistory,
         });
-
+        
+        // Final check - if village name is still empty, set a fallback
+        if (!villageName) {
+          console.log("⚠️ Village name is still empty, setting final fallback");
+          setVillageName("หมู่บ้านผาสุก (ทดสอบ)");
+          setVillageNameError(null);
+        }
       } catch (err) {
-        console.error('❌ Error loading visitor data:', err);
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        console.error("❌ Error loading visitor data:", err);
+        const errorMessage =
+          err instanceof Error ? err.message : "Unknown error";
         setError(`ไม่สามารถโหลดข้อมูลได้: ${errorMessage}`);
 
         // Fallback to mock data for development
@@ -676,10 +815,42 @@ const ResidentPage = () => {
       }
     };
 
-    if (!isCheckingAuth) {
+    if (!isCheckingAuth && currentUser) {
       loadData();
     }
-  }, [TARGET_LINE_USER_ID, isCheckingAuth]);
+  }, [currentUser, isCheckingAuth]);
+
+  // Fetch village name separately (not dependent on visitor data)
+  useEffect(() => {
+    const fetchVillage = async () => {
+      if (!currentUser?.village_key) {
+        console.log("No village key found for user");
+        setVillageNameError("No village key found for user");
+        setVillageName("");
+        return;
+      }
+
+      try {
+        console.log("Fetching village name for key:", currentUser.village_key);
+        const villageName = await fetchVillageName(currentUser.village_key);
+        setVillageName(villageName);
+        setVillageNameError(null);
+        console.log("Village name loaded:", villageName);
+      } catch (error) {
+        console.error("Failed to fetch village name:", error);
+        setVillageNameError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load village name"
+        );
+        setVillageName("");
+      }
+    };
+
+    if (currentUser) {
+      fetchVillage();
+    }
+  }, [currentUser]);
 
   // Show loading state while checking authentication
   if (isCheckingAuth) {
@@ -699,7 +870,7 @@ const ResidentPage = () => {
 
     setConfirmationDialog({
       isOpen: true,
-      type: 'approve',
+      type: "approve",
       request,
       isLoading: false,
     });
@@ -711,7 +882,7 @@ const ResidentPage = () => {
 
     setConfirmationDialog({
       isOpen: true,
-      type: 'reject',
+      type: "reject",
       request,
       isLoading: false,
     });
@@ -721,16 +892,19 @@ const ResidentPage = () => {
     if (!confirmationDialog.request) return;
 
     const { request, type } = confirmationDialog;
-    
-    setConfirmationDialog(prev => ({ ...prev, isLoading: true }));
+
+    setConfirmationDialog((prev) => ({ ...prev, isLoading: true }));
 
     try {
       // Optimistic update - remove from pending immediately
-      setPendingRequests(prev => prev.filter((req) => req.id !== request.id));
-      setHistory(prev => [{ ...request, status: type === 'approve' ? 'approved' : 'denied' }, ...prev]);
+      setPendingRequests((prev) => prev.filter((req) => req.id !== request.id));
+      setHistory((prev) => [
+        { ...request, status: type === "approve" ? "approved" : "denied" },
+        ...prev,
+      ]);
 
       // Call API
-      if (type === 'approve') {
+      if (type === "approve") {
         await approveVisitorRequest(request.id);
         console.log("Approved for:", request.plateNumber);
       } else {
@@ -741,38 +915,50 @@ const ResidentPage = () => {
       // Close dialog
       setConfirmationDialog({
         isOpen: false,
-        type: 'approve',
+        type: "approve",
         request: null,
         isLoading: false,
       });
     } catch (error) {
-      console.error(`Error ${type === 'approve' ? 'approving' : 'denying'} request:`, error);
-      
+      console.error(
+        `Error ${type === "approve" ? "approving" : "denying"} request:`,
+        error
+      );
+
       // Rollback on error
-      setPendingRequests(prev => [...prev, request]);
-      setHistory(prev => prev.filter((req) => req.id !== request.id));
-      
+      setPendingRequests((prev) => [...prev, request]);
+      setHistory((prev) => prev.filter((req) => req.id !== request.id));
+
       // Show error and close dialog
       setConfirmationDialog({
         isOpen: false,
-        type: 'approve',
+        type: "approve",
         request: null,
         isLoading: false,
       });
-      
-      alert(`เกิดข้อผิดพลาดในการ${type === 'approve' ? 'อนุมัติ' : 'ปฏิเสธ'} กรุณาลองใหม่อีกครั้ง`);
+
+      alert(
+        `เกิดข้อผิดพลาดในการ${
+          type === "approve" ? "อนุมัติ" : "ปฏิเสธ"
+        } กรุณาลองใหม่อีกครั้ง`
+      );
     }
   };
 
   const handleCloseDialog = () => {
     if (confirmationDialog.isLoading) return; // Prevent closing while loading
-    
+
     setConfirmationDialog({
       isOpen: false,
-      type: 'approve',
+      type: "approve",
       request: null,
       isLoading: false,
     });
+  };
+
+  const handleLogout = () => {
+    clearAuthData();
+    router.push("/liff/resident");
   };
 
   return (
@@ -784,16 +970,35 @@ const ResidentPage = () => {
           <div className="px-4 py-4">
             <div className="flex items-center justify-between mb-2">
               <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2">
-                <Home className="w-6 h-6 sm:w-7 sm:h-7" /> หมู่บ้านร่มรื่น
+                <Home className="w-6 h-6 sm:w-7 sm:h-7" />
+                {villageName ||
+                  (villageNameError ? "ไม่พบข้อมูลหมู่บ้าน" : "กำลังโหลด...")}
               </h1>
               <span className="flex items-center gap-2">
                 <ModeToggle />
-                <NotificationComponent />
+                {/* <NotificationComponent /> */}
+                <Button
+                  onClick={handleLogout}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs px-2 py-1 h-7"
+                >
+                  ออกจากระบบ
+                </Button>
               </span>
             </div>
-            <p className="text-sm text-muted-foreground">สวัสดี {TARGET_RESIDENT_NAME} 👋</p>
+            <p className="text-sm text-muted-foreground">
+              สวัสดี{" "}
+              {currentUser
+                ? `${currentUser.fname} ${currentUser.lname}`
+                : "ผู้อยู่อาศัย"}{" "}
+              👋
+            </p>
             <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-              📋 แสดงข้อมูลสำหรับ: {TARGET_RESIDENT_NAME} (LINE ID: {TARGET_LINE_USER_ID})
+              📋 แสดงข้อมูลสำหรับ:{" "}
+              {currentUser
+                ? `${currentUser.fname} ${currentUser.lname}`
+                : "ผู้อยู่อาศัย"}
             </p>
           </div>
 
@@ -801,12 +1006,18 @@ const ResidentPage = () => {
           <div className="px-4 py-4">
             {loading ? (
               <div className="flex items-center justify-center h-32">
-                <p className="text-muted-foreground text-sm">กำลังโหลดข้อมูล...</p>
+                <p className="text-muted-foreground text-sm">
+                  กำลังโหลดข้อมูล...
+                </p>
               </div>
             ) : error ? (
               <div className="flex flex-col items-center justify-center h-32 gap-2">
                 <p className="text-red-500 text-sm text-center">{error}</p>
-                <Button onClick={() => window.location.reload()} variant="outline" size="sm">
+                <Button
+                  onClick={() => window.location.reload()}
+                  variant="outline"
+                  size="sm"
+                >
                   ลองใหม่
                 </Button>
               </div>
@@ -815,15 +1026,21 @@ const ResidentPage = () => {
                 items={pendingRequests}
                 onApprove={handleApprove}
                 onDeny={handleDeny}
+                villageName={villageName}
+                villageNameError={villageNameError}
               />
             )}
           </div>
 
           {/* History Section */}
           <div className="px-4 py-4">
-            <h2 className="text-lg font-semibold text-foreground mb-4">ประวัติล่าสุด</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-4">
+              ประวัติล่าสุด
+            </h2>
             {history.length === 0 ? (
-              <p className="text-muted-foreground text-center py-6">ยังไม่มีประวัติ</p>
+              <p className="text-muted-foreground text-center py-6">
+                ยังไม่มีประวัติ
+              </p>
             ) : (
               <div className="space-y-3 max-h-[300px] overflow-y-auto">
                 {history.map((item) => (
@@ -855,7 +1072,9 @@ const ResidentPage = () => {
                               : "bg-red-600 hover:bg-red-700 text-white dark:bg-red-900/30 dark:text-red-400"
                           }`}
                         >
-                          {item.status === "approved" ? "อนุมัติแล้ว" : "ปฏิเสธ"}
+                          {item.status === "approved"
+                            ? "อนุมัติแล้ว"
+                            : "ปฏิเสธ"}
                         </div>
                       </div>
                     </CardContent>
@@ -873,23 +1092,27 @@ const ResidentPage = () => {
         onClose={handleCloseDialog}
         onConfirm={handleConfirmAction}
         title={
-          confirmationDialog.type === 'approve'
-            ? 'ยืนยันการอนุมัติ'
-            : 'ยืนยันการปฏิเสธ'
+          confirmationDialog.type === "approve"
+            ? "ยืนยันการอนุมัติ"
+            : "ยืนยันการปฏิเสธ"
         }
         description={
           confirmationDialog.request
-            ? `คุณแน่ใจหรือว่าต้องการ${confirmationDialog.type === 'approve' ? 'อนุมัติ' : 'ปฏิเสธ'}คำขอสำหรับ:
+            ? `คุณแน่ใจหรือว่าต้องการ${
+                confirmationDialog.type === "approve" ? "อนุมัติ" : "ปฏิเสธ"
+              }คำขอสำหรับ:
               
               🚗 ทะเบียน: ${confirmationDialog.request.plateNumber}
               👤 ผู้มาเยือน: ${confirmationDialog.request.visitorName}
               🏠 ปลายทาง: ${confirmationDialog.request.destination}
               ⏰ เวลา: ${confirmationDialog.request.time}`
-            : ''
+            : ""
         }
         type={confirmationDialog.type}
         isLoading={confirmationDialog.isLoading}
-        confirmText={confirmationDialog.type === 'approve' ? 'อนุมัติ' : 'ปฏิเสธ'}
+        confirmText={
+          confirmationDialog.type === "approve" ? "อนุมัติ" : "ปฏิเสธ"
+        }
         cancelText="ยกเลิก"
       />
     </div>

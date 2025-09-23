@@ -10,6 +10,14 @@ const nextConfig: NextConfig = {
   },
   images: {
     formats: ['image/webp', 'image/avif'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'profile.line-scdn.net',
+        port: '',
+        pathname: '/**',
+      },
+    ],
   },
   async rewrites() {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://backend:3001";

@@ -123,11 +123,11 @@ export default function GuardLiffPage() {
             console.log('🔍 Guard Auth Result:', authResult);
             
             if (authResult.success && authResult.user && authResult.token) {
-              // User exists in database, store auth data and redirect to Dashboard
+              // User exists in database, store auth data and redirect to Guard main page
               storeAuthData(authResult.user, authResult.token);
               setStep("ready");
               setMsg("เข้าสู่ระบบสำเร็จ กำลังพาไปหน้าหลัก...");
-              setTimeout(() => router.replace("/dashboard"), 1000);
+              setTimeout(() => router.replace("/guard"), 1000);
             } else if (authResult.expectedRole) {
               // User is already registered but using wrong LIFF app
               setStep("ready");
