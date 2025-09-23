@@ -12,6 +12,7 @@ import { Loader2, AlertCircle, CheckCircle, WifiOff, RefreshCw } from 'lucide-re
 import { LiffService } from '@/lib/liff';
 import { registerLiffUser, storeAuthData } from '@/lib/liffAuth';
 import { validateRegistrationForm, validateField } from '@/lib/validation';
+import Image from 'next/image';
 
 const svc = LiffService.getInstance();
 
@@ -491,10 +492,12 @@ function LiffRegisterPageContent() {
                 <h3 className="text-sm font-medium text-zinc-300 mb-2">ข้อมูลจาก LINE</h3>
                 <div className="flex items-center space-x-3">
                   {lineProfile.pictureUrl && (
-                    <img 
+                    <Image 
                       src={lineProfile.pictureUrl} 
                       alt="Profile" 
-                      className="w-10 h-10 rounded-full"
+                      width={40}
+                      height={40}
+                      className="rounded-full"
                     />
                   )}
                   <div>

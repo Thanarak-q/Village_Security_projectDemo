@@ -13,7 +13,7 @@
  */
 
 import db from "../db/drizzle";
-import { admins } from "../db/schema";
+import { admins, admin_villages } from "../db/schema";
 import { eq } from "drizzle-orm";
 
 /**
@@ -75,6 +75,19 @@ export const requireRole = (required: string | string[] = "*") => {
       return { error: "Forbidden: You do not have the required role to access this resource." };
     }
 
-    context.currentUser = user;
+    // Get village_keys from admin_villages table
+    let village_keys: string[] = [];
+    if (user.role !== "superadmin") {
+      const adminVillages = await db.query.admin_villages.findMany({
+        where: eq(admin_villages.admin_id, user.admin_id),
+      });
+      village_keys = adminVillages.map(av => av.village_key);
+    }
+
+    // Add village_keys to currentUser
+    context.currentUser = {
+      ...user,
+      village_keys,
+    };
   };
 };

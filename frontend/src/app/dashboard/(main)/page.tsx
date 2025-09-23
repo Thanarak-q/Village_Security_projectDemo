@@ -15,6 +15,7 @@ const WeeklyAccessBarChart = lazy(() => import("./chart"));
 
 export default function Page() {
   const [data, setData] = useState<unknown>(null);
+  const [selectedVillageName, setSelectedVillageName] = useState<string>("");
   const { data: statsData, loading: statsLoading, error: statsError } = useStatsData();
   const cardsRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
@@ -35,6 +36,23 @@ export default function Page() {
       .then((json) => {
         if (json) setData(json);
       });
+
+    // Get selected village name
+    const selectedVillageKey = sessionStorage.getItem("selectedVillage");
+    if (selectedVillageKey) {
+      fetch(`/api/villages/check/${selectedVillageKey}`, {
+        credentials: "include",
+      })
+        .then((res) => res.json())
+        .then((villageData) => {
+          if (villageData.exists) {
+            setSelectedVillageName(villageData.village_name);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching village name:", error);
+        });
+    }
   }, []);
 
   // GSAP smooth scroll-up animations
@@ -98,6 +116,35 @@ export default function Page() {
     };
   }, [data]);
 
+  // Refetch data when selected village changes
+  useEffect(() => {
+    const handleVillageChange = () => {
+      const selectedVillageKey = sessionStorage.getItem("selectedVillage");
+      if (selectedVillageKey) {
+        fetch(`/api/villages/check/${selectedVillageKey}`, {
+          credentials: "include",
+        })
+          .then((res) => res.json())
+          .then((villageData) => {
+            if (villageData.exists) {
+              setSelectedVillageName(villageData.village_name);
+            }
+          })
+          .catch((error) => {
+            console.error("Error fetching village name:", error);
+          });
+      } else {
+        setSelectedVillageName("");
+      }
+    };
+
+    window.addEventListener('villageChanged', handleVillageChange);
+    
+    return () => {
+      window.removeEventListener('villageChanged', handleVillageChange);
+    };
+  }, []);
+
   // if (!data) return <p>Loading...</p>;
   // if (data.role !== "admin") {
   //   window.location.href = "/login";
@@ -111,8 +158,13 @@ export default function Page() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 lg:mb-8">
           <div className="space-y-1">
             <h1 className="scroll-m-20 text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-foreground">
-              {/* สวัสดี, คุณผู้จัดการ {data.username} 👋 */}
+              {/* สวัสดี, คุณผู้จัดการ 👋 */}
             </h1>
+            {selectedVillageName && (
+              <p className="text-xs sm:text-sm md:text-base text-muted-foreground">
+                {/* หมู่บ้าน: {selectedVillageName} */}
+              </p>
+            )}
             {/* <p className="text-xs sm:text-sm md:text-base text-gray-500">
               วันนี้ {new Date().toLocaleDateString("th-TH", {
                 weekday: "long",

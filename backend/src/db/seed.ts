@@ -13,6 +13,7 @@ import {
   residents,
   guards,
   admins,
+  admin_villages,
   house_members,
   visitor_records,
   admin_activity_logs,
@@ -672,14 +673,23 @@ const guardData = [
  * @type {Array<Object>}
  */
 const adminData = [
+  // Super Admin
+  {
+    email: "superadmin@email.com",
+    username: "superadmin",
+    password_hash: "password123",
+    phone: "0890000000",
+    status: "verified",
+    role: "superadmin",
+  },
   // หมู่บ้านผาสุก
   {
     email: "admin.pha@email.com",
     username: "admin_pha",
     password_hash: "password123",
     phone: "0891234567",
-    village_key: "pha-suk-village-001",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านสุขสันต์
   {
@@ -687,8 +697,8 @@ const adminData = [
     username: "admin_suk",
     password_hash: "password123",
     phone: "0891234568",
-    village_key: "suk-san-village-002",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านร่มเย็น
   {
@@ -696,8 +706,8 @@ const adminData = [
     username: "admin_rom",
     password_hash: "password123",
     phone: "0891234569",
-    village_key: "rom-yen-village-003",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านสวนทอง
   {
@@ -705,8 +715,8 @@ const adminData = [
     username: "admin_suan",
     password_hash: "password123",
     phone: "0891234570",
-    village_key: "suan-thong-village-004",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านลุมพินี
   {
@@ -714,8 +724,8 @@ const adminData = [
     username: "admin_lum",
     password_hash: "password123",
     phone: "0891234571",
-    village_key: "lumphini-village-005",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านรัตนา
   {
@@ -723,8 +733,8 @@ const adminData = [
     username: "admin_rat",
     password_hash: "password123",
     phone: "0891234572",
-    village_key: "rattana-village-006",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านศรีสุข
   {
@@ -732,8 +742,8 @@ const adminData = [
     username: "admin_sri",
     password_hash: "password123",
     phone: "0891234573",
-    village_key: "sri-suk-village-007",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านธนารมย์
   {
@@ -741,8 +751,8 @@ const adminData = [
     username: "admin_thana",
     password_hash: "password123",
     phone: "0891234574",
-    village_key: "thanarom-village-008",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านสวนสวรรค์
   {
@@ -750,8 +760,8 @@ const adminData = [
     username: "admin_sawan",
     password_hash: "password123",
     phone: "0891234575",
-    village_key: "suan-sawan-village-009",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านสุขุมวิท
   {
@@ -759,8 +769,8 @@ const adminData = [
     username: "admin_sukhumvit",
     password_hash: "password123",
     phone: "0891234576",
-    village_key: "sukhumvit-village-010",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านรัชดา
   {
@@ -768,8 +778,8 @@ const adminData = [
     username: "admin_ratchada",
     password_hash: "password123",
     phone: "0891234577",
-    village_key: "ratchada-village-011",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านลาดพร้าว
   {
@@ -777,8 +787,8 @@ const adminData = [
     username: "admin_lad",
     password_hash: "password123",
     phone: "0891234578",
-    village_key: "ladprao-village-012",
     status: "verified",
+    role: "admin",
   },
   // หมู่บ้านบางนา
   {
@@ -786,8 +796,8 @@ const adminData = [
     username: "admin_bang",
     password_hash: "password123",
     phone: "0891234579",
-    village_key: "bangna-village-013",
     status: "pending",
+    role: "admin",
   },
   // หมู่บ้านอโศก
   {
@@ -795,8 +805,8 @@ const adminData = [
     username: "admin_asoke",
     password_hash: "password123",
     phone: "0891234580",
-    village_key: "asoke-village-014",
     status: "pending",
+    role: "admin",
   },
   // หมู่บ้านทองหล่อ
   {
@@ -804,10 +814,52 @@ const adminData = [
     username: "admin_thong",
     password_hash: "password123",
     phone: "0891234581",
-    village_key: "thonglor-village-015",
     status: "pending",
+    role: "admin",
   },
 ];
+
+/**
+ * Creates admin_villages data based on the original admin-village relationships
+ * @returns {Promise<Array>} Array of admin_villages data
+ */
+async function createAdminVillagesData() {
+  const adminVillagesData = [];
+  
+  // Mapping of admin usernames to their original village_keys
+  const adminVillageMapping = [
+    { username: "admin_pha", village_key: "pha-suk-village-001" },
+    { username: "admin_suk", village_key: "suk-san-village-002" },
+    { username: "admin_rom", village_key: "rom-yen-village-003" },
+    { username: "admin_suan", village_key: "suan-thong-village-004" },
+    { username: "admin_lum", village_key: "lumphini-village-005" },
+    { username: "admin_rat", village_key: "rattana-village-006" },
+    { username: "admin_sri", village_key: "sri-suk-village-007" },
+    { username: "admin_thana", village_key: "thanarom-village-008" },
+    { username: "admin_sawan", village_key: "suan-sawan-village-009" },
+    { username: "admin_sukhumvit", village_key: "sukhumvit-village-010" },
+    { username: "admin_ratchada", village_key: "ratchada-village-011" },
+    { username: "admin_lad", village_key: "ladprao-village-012" },
+    { username: "admin_bang", village_key: "bangna-village-013" },
+    { username: "admin_asoke", village_key: "asoke-village-014" },
+    { username: "admin_thong", village_key: "thonglor-village-015" },
+  ];
+
+  // Get all admins from database
+  const allAdmins = await db.select().from(admins);
+  
+  for (const mapping of adminVillageMapping) {
+    const admin = allAdmins.find((a: any) => a.username === mapping.username);
+    if (admin) {
+      adminVillagesData.push({
+        admin_id: admin.admin_id,
+        village_key: mapping.village_key,
+      });
+    }
+  }
+
+  return adminVillagesData;
+}
 
 /**
  * Clears all data from the database tables in the correct order to avoid foreign key constraints.
@@ -852,6 +904,14 @@ export async function clearDb() {
     console.log("house_members table doesn't exist yet, skipping...");
   }
 
+  console.log("Clearing admin_villages");
+  try {
+    await db.delete(admin_villages);
+    console.log("Cleared admin_villages");
+  } catch (error) {
+    console.log("admin_villages table doesn't exist yet, skipping...");
+  }
+
   console.log("Clearing admins");
   try {
     await db.delete(admins);
@@ -886,10 +946,27 @@ export async function clearDb() {
 
   console.log("Clearing villages");
   try {
+    // First try to disable foreign key checks temporarily
+    await db.execute(sql`SET session_replication_role = replica`);
     await db.delete(villages);
+    await db.execute(sql`SET session_replication_role = DEFAULT`);
     console.log("Cleared villages");
   } catch (error) {
-    console.log("villages table doesn't exist yet, skipping...");
+    console.log("Error clearing villages:", error);
+    // Try to clear with CASCADE if there are foreign key constraints
+    try {
+      await db.execute(sql`DELETE FROM villages CASCADE`);
+      console.log("Cleared villages with CASCADE");
+    } catch (cascadeError) {
+      console.log("Could not clear villages:", cascadeError);
+      // Last resort: truncate with CASCADE
+      try {
+        await db.execute(sql`TRUNCATE TABLE villages CASCADE`);
+        console.log("Truncated villages with CASCADE");
+      } catch (truncateError) {
+        console.log("Could not truncate villages:", truncateError);
+      }
+    }
   }
 }
 
@@ -1487,9 +1564,34 @@ async function createNotificationData() {
 async function seed() {
   await clearDb();
   console.log("Cleared database");
+  
+  // Check if villages already exist before inserting
+  console.log("Checking existing villages...");
+  const existingVillages = await db.select().from(villages);
+  if (existingVillages.length > 0) {
+    console.log(`Found ${existingVillages.length} existing villages. Clearing them...`);
+    await db.delete(villages);
+    console.log("Cleared existing villages");
+  }
+  
   console.log("Inserting villages");
-  await db.insert(villages).values(villageData);
-  console.log("Completed inserting villages");
+  try {
+    await db.insert(villages).values(villageData);
+    console.log("Completed inserting villages");
+  } catch (error) {
+    console.log("Error inserting villages:", error);
+    // If there are still conflicts, try to insert one by one with conflict handling
+    console.log("Attempting to insert villages one by one...");
+    for (const village of villageData) {
+      try {
+        await db.insert(villages).values(village);
+        console.log(`Inserted village: ${village.village_name}`);
+      } catch (insertError) {
+        console.log(`Skipped duplicate village: ${village.village_name} (${village.village_key})`);
+      }
+    }
+    console.log("Completed inserting villages (with conflict handling)");
+  }
 
   console.log("Inserting houses");
   await db.insert(houses).values(houseData as any);
@@ -1513,6 +1615,15 @@ async function seed() {
   );
   await db.insert(admins).values(hashedAdminData as any);
   console.log("Completed inserting admins");
+
+  console.log("Creating and inserting admin_villages");
+  const adminVillagesData = await createAdminVillagesData();
+  if (adminVillagesData.length > 0) {
+    await db.insert(admin_villages).values(adminVillagesData);
+    console.log("Completed inserting admin_villages");
+  } else {
+    console.log("No admin_villages data to insert");
+  }
 
   console.log("Creating and inserting house_members");
   const houseMembersData = await createHouseMembersData();

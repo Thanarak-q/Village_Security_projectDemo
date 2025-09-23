@@ -119,6 +119,9 @@ export default function UserManagementTable() {
   
   // State สำหรับเก็บจำนวนผู้ใช้ที่รออนุมัติ
   const [pendingCount, setPendingCount] = useState(0);
+  
+  // State for selected village info
+  const [selectedVillageName, setSelectedVillageName] = useState<string>("");
 
   // Fetch data from API
   const fetchUsers = async (isRefresh = false) => {
@@ -130,7 +133,11 @@ export default function UserManagementTable() {
       }
       setError(null);
       
-      const response = await fetch("/api/userTable");
+      // Get selected village from sessionStorage (with SSR safety check)
+      const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem("selectedVillage") : null;
+      const url = selectedVillage ? `/api/userTable?village_key=${encodeURIComponent(selectedVillage)}` : "/api/userTable";
+      
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -155,7 +162,11 @@ export default function UserManagementTable() {
   // Fetch pending users count
   const fetchPendingCount = async () => {
     try {
-      const response = await fetch("/api/pendingUsers");
+      // Get selected village from sessionStorage (with SSR safety check)
+      const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem("selectedVillage") : null;
+      const url = selectedVillage ? `/api/pendingUsers?village_key=${encodeURIComponent(selectedVillage)}` : "/api/pendingUsers";
+      
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -173,6 +184,48 @@ export default function UserManagementTable() {
   useEffect(() => {
     fetchUsers();
     fetchPendingCount();
+  }, []);
+
+  // Listen for village changes and refresh data
+  useEffect(() => {
+    const handleVillageChange = () => {
+      fetchUsers(true);
+      fetchPendingCount();
+      updateSelectedVillageName();
+    };
+
+    window.addEventListener('villageChanged', handleVillageChange);
+    
+    return () => {
+      window.removeEventListener('villageChanged', handleVillageChange);
+    };
+  }, []);
+
+  // Update selected village name
+  const updateSelectedVillageName = async () => {
+    const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem("selectedVillage") : null;
+    if (selectedVillage) {
+      try {
+        const response = await fetch(`/api/villages/check/${selectedVillage}`, {
+          credentials: "include",
+        });
+        if (response.ok) {
+          const villageData = await response.json();
+          if (villageData.exists) {
+            setSelectedVillageName(villageData.village_name);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching village name:", error);
+      }
+    } else {
+      setSelectedVillageName("");
+    }
+  };
+
+  // Initialize selected village name
+  useEffect(() => {
+    updateSelectedVillageName();
   }, []);
 
   // Function to handle edit button click
@@ -335,6 +388,18 @@ export default function UserManagementTable() {
     <div className="space-y-4 sm:space-y-6">
       {/* Main table section */}
       <div className="bg-background rounded-lg shadow-sm border border-border p-4 sm:p-6">
+        {/* Village indicator */}
+        {selectedVillageName && (
+          <div className="mb-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Home className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-primary">
+                กำลังดูข้อมูลของ: <span className="font-semibold">{selectedVillageName}</span>
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Header with tabs and search */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
           {/* User type tabs and pending users button */}

@@ -116,7 +116,13 @@ const WeeklyAccessBarChart = memo(function WeeklyAccessBarChart() {
           endpoint = '/api/visitor-record-weekly'
       }
 
-      const response = await fetch(endpoint, {
+      // Get selected village from sessionStorage (with SSR safety check)
+      const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem('selectedVillage') : null;
+      const url = selectedVillage 
+        ? `${endpoint}?village_key=${encodeURIComponent(selectedVillage)}`
+        : endpoint;
+
+      const response = await fetch(url, {
         method: 'GET',
         credentials: 'include', // Include cookies for authentication
         headers: {
@@ -219,6 +225,23 @@ const WeeklyAccessBarChart = memo(function WeeklyAccessBarChart() {
   // Fetch data when component mounts or period changes
   useEffect(() => {
     fetchData(selectedPeriod)
+  }, [selectedPeriod, fetchData])
+
+  // Refetch when selected village changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      fetchData(selectedPeriod)
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Also listen for custom event when village changes in same tab
+    window.addEventListener('villageChanged', handleStorageChange)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('villageChanged', handleStorageChange)
+    }
   }, [selectedPeriod, fetchData])
 
   const totalApproved = chartData.reduce((sum, item) => sum + item.approved, 0)

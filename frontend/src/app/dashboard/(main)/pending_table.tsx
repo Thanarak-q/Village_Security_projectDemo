@@ -128,7 +128,13 @@ export default function PendingTable() {
       }
       setError(null);
       
-      const response = await fetch("/api/pendingUsers");
+      // Get selected village from sessionStorage (with SSR safety check)
+      const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem('selectedVillage') : null;
+      const url = selectedVillage 
+        ? `/api/pendingUsers?village_key=${encodeURIComponent(selectedVillage)}`
+        : '/api/pendingUsers';
+        
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -152,6 +158,23 @@ export default function PendingTable() {
 
   useEffect(() => {
     fetchPendingUsers();
+  }, []);
+
+  // Refetch when selected village changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      fetchPendingUsers();
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Also listen for custom event when village changes in same tab
+    window.addEventListener('villageChanged', handleStorageChange)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('villageChanged', handleStorageChange)
+    }
   }, []);
 
   // ฟังก์ชันสำหรับเปิดฟอร์มอนุมัติเมื่อคลิกปุ่ม "ดำเนินการ"

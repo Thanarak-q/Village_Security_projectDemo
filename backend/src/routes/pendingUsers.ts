@@ -7,7 +7,7 @@ import {
   houses,
   house_members,
 } from "../db/schema";
-import { eq, sql, and } from "drizzle-orm";
+import { eq, sql, and, inArray } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { notificationService } from "../services/notificationService";
 import { userManagementActivityLogger } from "../utils/activityLogUtils";
@@ -46,11 +46,16 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
    * Get all pending users.
    * @param {Object} context - The context for the request.
    * @param {Object} context.currentUser - The current user.
+   * @param {Object} context.query - The query parameters.
    * @returns {Promise<Object>} A promise that resolves to an object containing the pending users.
    */
-  .get("/pendingUsers", async ({ currentUser }: any) => {
+  .get("/pendingUsers", async ({ currentUser, query }: any) => {
     try {
-      const { village_key } = currentUser;
+      const { village_keys, role } = currentUser;
+      
+      // Get selected village from query parameter, fallback to all villages
+      const selectedVillageKey = query?.village_key;
+      const targetVillageKeys = selectedVillageKey ? [selectedVillageKey] : village_keys;
       // Get pending residents data with house address
       const pendingResidentsData = await db
         .select({
@@ -70,7 +75,9 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
         .where(
           and(
             eq(residents.status, "pending"),
-            eq(residents.village_key, village_key)
+            role === "superadmin" 
+              ? sql`1=1` // Super admin can see all pending residents
+              : inArray(residents.village_key, targetVillageKeys)
           )
         )
         // .where(sql`${residents.status} = 'pending'`)
@@ -99,7 +106,9 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
         .where(
           and(
             eq(guards.status, "pending"),
-            eq(guards.village_key, village_key)
+            role === "superadmin" 
+              ? sql`1=1` // Super admin can see all pending guards
+              : inArray(guards.village_key, targetVillageKeys)
           )
         );
 

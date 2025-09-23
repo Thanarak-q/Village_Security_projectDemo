@@ -8,7 +8,7 @@ import {
   house_members,
   visitor_records,
 } from "../db/schema";
-import { eq, sql, and } from "drizzle-orm";
+import { eq, sql, and, inArray } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { userManagementActivityLogger } from "../utils/activityLogUtils";
 import { notificationService } from "../services/notificationService";
@@ -207,11 +207,16 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
    * Get all users for the current user's village.
    * @param {Object} context - The context for the request.
    * @param {Object} context.currentUser - The current user.
+   * @param {Object} context.query - The query parameters.
    * @returns {Promise<Object>} A promise that resolves to an object containing the user data.
    */
-  .get("/userTable", async ({ currentUser }: any) => {
+  .get("/userTable", async ({ currentUser, query }: any) => {
     try {
-      const { village_key } = currentUser;
+      const { village_keys, role } = currentUser;
+      
+      // Get selected village from query parameter, fallback to all villages
+      const selectedVillageKey = query?.village_key;
+      const targetVillageKeys = selectedVillageKey ? [selectedVillageKey] : village_keys;
 
       const residentsData = await db
         .select({
@@ -231,7 +236,9 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
         .from(residents)
         .where(
           and(
-            eq(residents.village_key, village_key),
+            role === "superadmin" 
+              ? sql`1=1` // Super admin can see all residents
+              : inArray(residents.village_key, targetVillageKeys),
             sql`${residents.status} != 'pending'`
           )
         )
@@ -259,7 +266,9 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
         .from(guards)
         .where(
           and(
-            eq(guards.village_key, village_key),
+            role === "superadmin" 
+              ? sql`1=1` // Super admin can see all guards
+              : inArray(guards.village_key, targetVillageKeys),
             sql`${guards.status} != 'pending'`
           )
         );
@@ -362,7 +371,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
                 resident_id: userId,
                 resident_name: `${oldResident[0].fname} ${oldResident[0].lname}`,
                 house_address: houseMember[0].address,
-                old_status: oldResident[0].status,
+                old_status: oldResident[0].status || 'unknown',
                 new_status: status,
                 village_key: oldResident[0].village_key || '',
               });

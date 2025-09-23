@@ -147,7 +147,11 @@ export default function PendingUsersDialog({
       }
       setError(null);
       
-      const response = await fetch("/api/pendingUsers");
+      // Get selected village from sessionStorage (with SSR safety check)
+      const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem("selectedVillage") : null;
+      const url = selectedVillage ? `/api/pendingUsers?village_key=${encodeURIComponent(selectedVillage)}` : "/api/pendingUsers";
+      
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -171,6 +175,19 @@ export default function PendingUsersDialog({
 
   useEffect(() => {
     fetchPendingUsers();
+  }, []);
+
+  // Listen for village changes and refresh data
+  useEffect(() => {
+    const handleVillageChange = () => {
+      fetchPendingUsers(true);
+    };
+
+    window.addEventListener('villageChanged', handleVillageChange);
+    
+    return () => {
+      window.removeEventListener('villageChanged', handleVillageChange);
+    };
   }, []);
 
   // Refresh data when dialog opens
