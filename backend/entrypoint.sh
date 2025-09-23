@@ -10,3 +10,7 @@ bun run src/db/seed.ts
 
 # รันแอป
 bun run dev 
+
+
+
+
