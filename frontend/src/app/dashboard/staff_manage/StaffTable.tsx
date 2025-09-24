@@ -134,7 +134,14 @@ export function StaffTable({ staffMembers, onStaffUpdated, onStaffDeleted, loadi
                   {staff.username}
                 </TableCell>
                 <TableCell>
-                  {format(new Date(staff.created_at), "dd MMM yyyy", { locale: th })}
+                  {staff.created_at ? (() => {
+                    try {
+                      return format(new Date(staff.created_at), "dd MMM yyyy", { locale: th });
+                    } catch (error) {
+                      console.error('Date formatting error:', error, 'created_at:', staff.created_at);
+                      return 'Invalid Date';
+                    }
+                  })() : 'N/A'}
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>

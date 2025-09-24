@@ -111,7 +111,8 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
           village_key,
           village_name: village[0].village_name,
           role: "staff",
-          status: "verified"
+          status: "verified",
+          created_at: newStaff[0].createdAt
         }
       };
     } catch (error) {
