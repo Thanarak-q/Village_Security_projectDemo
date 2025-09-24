@@ -22,6 +22,7 @@ import { superAdminVillagesRoutes } from "./routes/superAdminVillages";
 import { superAdminAdminsRoutes } from "./routes/superAdminAdmins";
 import { superAdminStatsRoutes } from "./routes/superAdminStats";
 import { adminManagementRoutes } from "./routes/adminManagement";
+import { staffManagementRoutes } from "./routes/staffManagement";
 import { redirectRoutes } from "./routes/redirect";
 import { villageSelectionRoutes } from "./routes/villageSelection";
 /**
@@ -88,6 +89,7 @@ const app = new Elysia()
   .use(superAdminAdminsRoutes)
   .use(superAdminStatsRoutes)
   .use(adminManagementRoutes)
+  .use(staffManagementRoutes)
   .use(redirectRoutes)
   .use(villageSelectionRoutes)
   .get("/", () => "Hello Village Security API!");

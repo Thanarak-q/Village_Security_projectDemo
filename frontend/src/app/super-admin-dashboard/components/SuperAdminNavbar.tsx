@@ -86,15 +86,15 @@ export default function Navbar() {
                 </p>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
+            {/* <DropdownMenuSeparator />
+            {/* <DropdownMenuItem
               className="cursor-pointer"
               onClick={() => router.push("/dashboard")}
             >
-              <User className="mr-2 h-4 w-4" />
-              <span>ไปยัง Dashboard ปกติ</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
+              {/* <User className="mr-2 h-4 w-4" />
+              <span>ไปยัง Dashboard ปกติ</span> */}
+            {/* </DropdownMenuItem> */} 
+            {/* <DropdownMenuSeparator />  */}
             <DropdownMenuItem
               className="cursor-pointer text-red-600 focus:text-red-600"
               onClick={handleLogout}

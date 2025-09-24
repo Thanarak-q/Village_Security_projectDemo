@@ -7,6 +7,7 @@ import {
   History,
   Bell,
   Settings,
+  Users,
 } from "lucide-react";
 
 import {
@@ -43,6 +44,11 @@ const items = [
     title: "จัดการบ้าน",
     url: "/dashboard/house_manage",
     icon: Building,
+  },
+  {
+    title: "จัดการนิติบุคคล",
+    url: "/dashboard/staff_manage",
+    icon: Users,
   },
   {
     title: "ประวัติ",

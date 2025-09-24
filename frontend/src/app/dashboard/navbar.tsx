@@ -220,8 +220,8 @@ function Navbar() {
         };
       case "/dashboard/setting_manage":
         return {
-          title: "การตั้งค่า",
-          subtitle: "จัดการการตั้งค่าระบบ",
+          title: "การตั้งค่าบัญชีผู้ใช้",
+          subtitle: "จัดการการตั้งค่าข้อมูลบัญชีผู้ใช้",
           titleClass:
             "text-lg sm:text-xl md:text-2xl font-semibold tracking-tight text-foreground",
           subtitleClass: "text-xs sm:text-sm text-muted-foreground",
@@ -230,6 +230,14 @@ function Navbar() {
         return {
           title: "ประวัติ",
           subtitle: "ดูประวัติการใช้งานระบบ",
+          titleClass:
+            "text-lg sm:text-xl md:text-2xl font-semibold tracking-tight text-foreground",
+          subtitleClass: "text-xs sm:text-sm text-muted-foreground",
+        };
+      case "/dashboard/staff_manage":
+        return {
+          title: "จัดการนิติบุคคล",
+          subtitle: "จัดการข้อมูลนิติบุคคลทั้งหมดในระบบ",
           titleClass:
             "text-lg sm:text-xl md:text-2xl font-semibold tracking-tight text-foreground",
           subtitleClass: "text-xs sm:text-sm text-muted-foreground",
@@ -330,7 +338,7 @@ function Navbar() {
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/setting_manage" className="cursor-pointer">
                   <Settings className="mr-2 h-4 w-4" />
-                  <span>การตั้งค่า</span>
+                  <span>การตั้งค่าบัญชีผู้ใช้</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
