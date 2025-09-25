@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { isAuthenticated, getAuthData } from "@/lib/liffAuth";
+// DISABLED: LIFF authentication
+// import { isAuthenticated, getAuthData } from "@/lib/liffAuth";
 import ApprovalForm from "./ApprovalForm";
 
 function page() {
@@ -10,6 +11,11 @@ function page() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
+    // DISABLED: LIFF authentication check - skip all auth checks
+    console.log("🚫 LIFF authentication disabled - allowing direct access");
+    setIsCheckingAuth(false);
+    
+    /* DISABLED: Original LIFF authentication logic
     const checkAuthAndStatus = () => {
       console.log("🛡️ Guard authentication check starting");
       
@@ -70,6 +76,7 @@ function page() {
     };
 
     checkAuthAndStatus();
+    */
   }, [router]);
 
   // Show loading state while checking authentication

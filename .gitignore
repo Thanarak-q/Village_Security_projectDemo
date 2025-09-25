@@ -1,6 +1,9 @@
 # Database data
 dbdata/
 
+# License plate images
+license_plate_images/
+
 # Node modules
 node_modules/
 

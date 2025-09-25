@@ -36,8 +36,8 @@ export async function getAllVisitorRecords() {
       village_key: houses.village_key,
     })
     .from(visitor_records)
-    .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
-    .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
+    .leftJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
+    .leftJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id));
 
   return result;
@@ -72,8 +72,8 @@ export async function getVisitorRecordsByVillage(villageKey: string) {
       village_key: houses.village_key,
     })
     .from(visitor_records)
-    .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
-    .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
+    .leftJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
+    .leftJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
     .where(eq(houses.village_key, villageKey));
 
@@ -183,8 +183,8 @@ export async function getVisitorRecordsByHouse(houseId: string) {
       village_key: houses.village_key,
     })
     .from(visitor_records)
-    .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
-    .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
+    .leftJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
+    .leftJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
     .where(eq(visitor_records.house_id, houseId));
 
@@ -222,8 +222,8 @@ export async function getVisitorRecordsByStatus(
       village_key: houses.village_key,
     })
     .from(visitor_records)
-    .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
-    .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
+    .leftJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
+    .leftJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
     .where(eq(visitor_records.record_status, status));
 
