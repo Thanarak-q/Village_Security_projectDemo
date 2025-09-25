@@ -71,7 +71,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
       });
 
       // Both guard and resident use the same LINE channel ID
-      const clientId = process.env.LINE_CHANNEL_ID || '2008071362';
+      const clientId = process.env.LINE_CHANNEL_ID || '2008174551';
       
       console.log('🔍 Using Channel ID:', clientId, 'for', isGuardRequest ? 'guard' : isResidentRequest ? 'resident' : 'default');
 
@@ -238,7 +238,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
                                 referer.includes('/liff/resident') || referer.includes('resident')
                               ));
 
-      const clientId = process.env.LINE_CHANNEL_ID || '2008071362';
+      const clientId = process.env.LINE_CHANNEL_ID || '2008174551';
       
       console.log('🔍 Registration - Using Channel ID:', clientId, 'for', isGuardRequest ? 'guard' : isResidentRequest ? 'resident' : 'default');
 

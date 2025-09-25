@@ -33,7 +33,7 @@ interface VisitorRecordAPI {
   resident_id: string;
   guard_id: string;
   house_id: string;
-  picture_key: string;
+  license_image: string;
   license_plate: string;
   entry_time: string;
   record_status: string;
@@ -71,7 +71,7 @@ interface VisitorHistory {
   guard_name: string;
   guard_email: string;
   house_address: string;
-  picture_key: string;
+  license_image: string;
   exit_time?: string;
 }
 
@@ -170,7 +170,7 @@ export default function HistoryTable() {
           guard_name: record.guard_name,
           guard_email: record.guard_email,
           house_address: record.house_address,
-          picture_key: record.picture_key,
+          license_image: record.license_image,
         }));
         
         setVisitorHistoryData(transformedVisitorHistory);

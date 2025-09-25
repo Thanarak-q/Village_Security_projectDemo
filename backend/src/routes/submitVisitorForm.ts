@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
 import db from "../db/drizzle";
-import { visitor_records, house_members } from "../db/schema";
+import { visitor_records} from "../db/schema";
 import { eq } from "drizzle-orm";
 import { saveBase64Image, getImageExtension } from "../utils/imageUtils";
 
@@ -13,7 +13,8 @@ const approvalForm = new Elysia({ prefix: "/api" }).post(
       residentId?: string;
       visitorIDCard: string;
       houseId: string;
-      pictureKey?: string;
+      licenseImage?: string;
+      idCardImage?: string;
       licensePlate?: string;
       visitPurpose?: string;
     };
@@ -21,7 +22,8 @@ const approvalForm = new Elysia({ prefix: "/api" }).post(
     const {
       visitorIDCard,
       houseId,
-      pictureKey,
+      licenseImage,
+      idCardImage,
       licensePlate,
       visitPurpose,
     } = (body || {}) as ApprovalFormBody;
@@ -43,18 +45,35 @@ const approvalForm = new Elysia({ prefix: "/api" }).post(
     }
 
     let savedImageFilename: string | null = null;
+    let savedIdCardImageFilename: string | null = null;
 
     // Save base64 image to disk and store filename
-    if (pictureKey && pictureKey.trim()) {
+    if (licenseImage && licenseImage.trim()) {
       try {
-        const imageExtension = getImageExtension(pictureKey);
+        const imageExtension = getImageExtension(licenseImage);
         savedImageFilename = await saveBase64Image(
-          pictureKey,
-          `visitor_${Date.now()}.${imageExtension}`
+          licenseImage,
+          `visitor_license_${Date.now()}.${imageExtension}`,
+          'license'
         );
       } catch (err) {
         console.error("Failed to save image:", err);
         return { error: "Failed to save image file" };
+      }
+    }
+
+    // Save ID card image if provided
+    if (idCardImage && idCardImage.trim()) {
+      try {
+        const imageExtension = getImageExtension(idCardImage);
+        savedIdCardImageFilename = await saveBase64Image(
+          idCardImage,
+          `visitor_id_card_${Date.now()}.${imageExtension}`,
+          'id_card'
+        );
+      } catch (err) {
+        console.error("Failed to save ID card image:", err);
+        return { error: "Failed to save ID card image file" };
       }
     }
 
@@ -65,7 +84,8 @@ const approvalForm = new Elysia({ prefix: "/api" }).post(
       guard_id: null,
       house_id: houseId,
       visitor_id_card: visitorIDCard,
-      picture_key: savedImageFilename,
+      license_image: savedImageFilename,
+      id_card_image: savedIdCardImageFilename,
       license_plate: licensePlate,
       visit_purpose: visitPurpose,
     });
@@ -76,7 +96,8 @@ const approvalForm = new Elysia({ prefix: "/api" }).post(
           guard_id: null,
           house_id: houseId,
           visitor_id_card: visitorIDCard,
-          picture_key: savedImageFilename,
+          license_image: savedImageFilename,
+          id_card_image: savedIdCardImageFilename,
           license_plate: licensePlate,
           visit_purpose: visitPurpose,
           createdAt: new Date(),
@@ -88,6 +109,7 @@ const approvalForm = new Elysia({ prefix: "/api" }).post(
         success: true,
         visitorId: inserted?.visitor_record_id,
         imageFilename: savedImageFilename,
+        idCardImageFilename: savedIdCardImageFilename,
         message: "Visitor record created successfully",
       };
     } catch (dbError) {

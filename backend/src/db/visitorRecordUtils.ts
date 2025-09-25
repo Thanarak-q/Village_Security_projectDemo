@@ -19,7 +19,8 @@ export async function getAllVisitorRecords() {
       resident_id: visitor_records.resident_id,
       guard_id: visitor_records.guard_id,
       house_id: visitor_records.house_id,
-      picture_key: visitor_records.picture_key,
+      id_card_image: visitor_records.id_card_image,
+      license_image: visitor_records.license_image,
       visitor_name: visitor_records.visitor_name,
       visitor_id_card: visitor_records.visitor_id_card,
       license_plate: visitor_records.license_plate,
@@ -55,7 +56,8 @@ export async function getVisitorRecordsByVillage(villageKey: string) {
       resident_id: visitor_records.resident_id,
       guard_id: visitor_records.guard_id,
       house_id: visitor_records.house_id,
-      picture_key: visitor_records.picture_key,
+      id_card_image: visitor_records.id_card_image,
+      license_image: visitor_records.license_image,
       visitor_name: visitor_records.visitor_name,
       visitor_id_card: visitor_records.visitor_id_card,
       license_plate: visitor_records.license_plate,
@@ -92,7 +94,8 @@ export async function getVisitorRecordsByResident(residentId: string) {
       resident_id: visitor_records.resident_id,
       guard_id: visitor_records.guard_id,
       house_id: visitor_records.house_id,
-      picture_key: visitor_records.picture_key,
+      id_card_image: visitor_records.id_card_image,
+      license_image: visitor_records.license_image,
       visitor_name: visitor_records.visitor_name,
       visitor_id_card: visitor_records.visitor_id_card,
       license_plate: visitor_records.license_plate,
@@ -129,7 +132,8 @@ export async function getVisitorRecordsByGuard(guardId: string) {
       resident_id: visitor_records.resident_id,
       guard_id: visitor_records.guard_id,
       house_id: visitor_records.house_id,
-      picture_key: visitor_records.picture_key,
+      id_card_image: visitor_records.id_card_image,
+      license_image: visitor_records.license_image,
       visitor_name: visitor_records.visitor_name,
       visitor_id_card: visitor_records.visitor_id_card,
       license_plate: visitor_records.license_plate,
@@ -166,7 +170,8 @@ export async function getVisitorRecordsByHouse(houseId: string) {
       resident_id: visitor_records.resident_id,
       guard_id: visitor_records.guard_id,
       house_id: visitor_records.house_id,
-      picture_key: visitor_records.picture_key,
+      id_card_image: visitor_records.id_card_image,
+      license_image: visitor_records.license_image,
       visitor_name: visitor_records.visitor_name,
       visitor_id_card: visitor_records.visitor_id_card,
       license_plate: visitor_records.license_plate,
@@ -205,7 +210,7 @@ export async function getVisitorRecordsByStatus(
       resident_id: visitor_records.resident_id,
       guard_id: visitor_records.guard_id,
       house_id: visitor_records.house_id,
-      picture_key: visitor_records.picture_key,
+      license_image: visitor_records.license_image,
       visitor_name: visitor_records.visitor_name,
       visitor_id_card: visitor_records.visitor_id_card,
       license_plate: visitor_records.license_plate,
@@ -256,7 +261,7 @@ export async function getVisitorRecordsByLineId(lineUserId: string) {
       resident_id: visitor_records.resident_id,
       guard_id: visitor_records.guard_id,
       house_id: visitor_records.house_id,
-      picture_key: visitor_records.picture_key,
+      license_image: visitor_records.license_image,
       visitor_name: visitor_records.visitor_name,
       visitor_id_card: visitor_records.visitor_id_card,
       license_plate: visitor_records.license_plate,
@@ -289,7 +294,7 @@ export async function getVisitorRecordsByLineId(lineUserId: string) {
  * @param {string} [data.resident_id] - The UUID of the resident being visited (optional).
  * @param {string} data.guard_id - The UUID of the guard who logged the visit.
  * @param {string} data.house_id - The UUID of the house being visited.
- * @param {string} [data.picture_key] - An optional key for a visitor photo.
+ * @param {string} [data.license_image] - An optional key for a visitor photo.
  * @param {string} [data.license_plate] - An optional license plate number.
  * @param {"approved" | "pending" | "rejected"} [data.record_status="pending"] - The initial status of the record.
  * @param {string} [data.visit_purpose] - The purpose of the visit.
@@ -299,7 +304,7 @@ export async function createVisitorRecord(data: {
   resident_id?: string;
   guard_id: string;
   house_id: string;
-  picture_key?: string;
+  license_image?: string;
   license_plate?: string;
   record_status?: "approved" | "pending" | "rejected";
   visit_purpose?: string;
@@ -310,7 +315,7 @@ export async function createVisitorRecord(data: {
       resident_id: data.resident_id || null,
       guard_id: data.guard_id,
       house_id: data.house_id,
-      picture_key: data.picture_key,
+      license_image: data.license_image,
       license_plate: data.license_plate,
       record_status: data.record_status || "pending",
       visit_purpose: data.visit_purpose,
@@ -372,7 +377,8 @@ export async function getVisitorRecordsByResidentName(residentName: string) {
         resident_id: visitor_records.resident_id,
         guard_id: visitor_records.guard_id,
         house_id: visitor_records.house_id,
-        picture_key: visitor_records.picture_key,
+      id_card_image: visitor_records.id_card_image,
+      license_image: visitor_records.license_image,
         license_plate: visitor_records.license_plate,
         entry_time: visitor_records.entry_time,
 

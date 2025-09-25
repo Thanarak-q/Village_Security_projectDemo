@@ -976,7 +976,8 @@ async function createVisitorRecordsData() {
     resident_id: string;
     guard_id: string;
     house_id: string;
-    picture_key?: string;
+    id_card_image?: string;
+    license_image?: string;
     license_plate?: string;
     record_status: "approved" | "pending" | "rejected";
     visit_purpose?: string;
@@ -1138,7 +1139,8 @@ async function createVisitorRecordsData() {
           resident_id: resident.resident_id,
           guard_id: randomGuard.guard_id,
           house_id: randomHouse.house_id,
-          picture_key: randomPictureKey || undefined,
+          id_card_image: randomPictureKey || undefined,
+          license_image: randomPictureKey || undefined,
           license_plate: randomLicensePlate || undefined,
           record_status: randomStatus,
           visit_purpose: randomVisitPurpose,
@@ -1221,7 +1223,8 @@ async function createVisitorRecordsData() {
           resident_id: randomResident.resident_id,
           guard_id: randomGuard.guard_id,
           house_id: randomHouse.house_id,
-          picture_key: randomPictureKey || undefined,
+          id_card_image: randomPictureKey || undefined,
+          license_image: randomPictureKey || undefined,
           license_plate: randomLicensePlate || undefined,
           record_status: randomStatus,
           visit_purpose: randomVisitPurpose,
@@ -1299,7 +1302,8 @@ async function createVisitorRecordsData() {
           resident_id: randomResident.resident_id,
           guard_id: randomGuard.guard_id,
           house_id: randomHouse.house_id,
-          picture_key: randomPictureKey || undefined,
+          id_card_image: randomPictureKey || undefined,
+          license_image: randomPictureKey || undefined,
           license_plate: randomLicensePlate || undefined,
           record_status: randomStatus,
           visit_purpose: randomVisitPurpose,
@@ -1388,7 +1392,8 @@ async function createVisitorRecordsData() {
             resident_id: randomResident.resident_id,
             guard_id: randomGuard.guard_id,
             house_id: randomHouse.house_id,
-            picture_key: randomPictureKey || undefined,
+            id_card_image: randomPictureKey || undefined,
+            license_image: randomPictureKey || undefined,
             license_plate: randomLicensePlate || undefined,
             record_status: randomStatus,
             visit_purpose: randomVisitPurpose,

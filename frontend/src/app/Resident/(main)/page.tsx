@@ -41,7 +41,7 @@ interface ApiVisitorRequest {
   resident_id: string;
   guard_id: string;
   house_id: string;
-  picture_key?: string;
+  license_image?: string;
   visitor_name?: string;
   visitor_id_card?: string;
   license_plate?: string;
@@ -140,7 +140,7 @@ const transformApiData = (apiData: ApiVisitorRequest): VisitorRequest => {
     visitorName: apiData.visitor_name || apiData.visit_purpose || "ไม่ระบุ",
     destination: apiData.house_address,
     time: timeString,
-    carImage: apiData.picture_key || "car1.jpg", // fallback to default image
+    carImage: apiData.license_image || "car1.jpg", // fallback to default image
     status:
       apiData.record_status === "approved"
         ? "approved"

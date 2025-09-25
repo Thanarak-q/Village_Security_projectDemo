@@ -7,7 +7,8 @@ export interface VisitorRequest {
   resident_id?: string;
   guard_id: string;
   house_id: string;
-  picture_key?: string;
+  license_image?: string;
+  id_card_image?: string;
   license_plate?: string;
   entry_time: string;
   exit_time?: string;

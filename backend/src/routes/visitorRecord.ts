@@ -20,7 +20,7 @@ interface CreateVisitorRecordBody {
   resident_id?: string;
   guard_id: string;
   house_id: string;
-  picture_key?: string;
+  license_image?: string;
   license_plate?: string;
   visit_purpose?: string;
 }

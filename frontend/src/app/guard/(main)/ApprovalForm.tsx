@@ -25,7 +25,8 @@ import { ModeToggle } from "@/components/mode-toggle";
 // import { getAuthData } from "@/lib/liffAuth";
 
 const visitorSchema = z.object({
-  picture_key: z.string().optional(),
+  license_image: z.string().optional(),
+  id_card_image: z.string().optional(),
   visitor_id_card: z
     .string()
     .min(1, "กรุณากรอกเลขบัตรประชาชน")
@@ -51,7 +52,9 @@ function ApprovalForm() {
     village_key: string;
   } | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [capturedIdCardImage, setCapturedIdCardImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const idCardFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -85,7 +88,8 @@ function ApprovalForm() {
   const visitorForm = useForm<z.infer<typeof visitorSchema>>({
     resolver: zodResolver(visitorSchema),
     defaultValues: {
-      picture_key: "",
+      license_image: "",
+      id_card_image: "",
       license_plate: "",
       visitor_id_card: "",
       house_id: "",
@@ -174,8 +178,21 @@ function ApprovalForm() {
       reader.onload = (e) => {
         const result = e.target?.result as string;
         setCapturedImage(result);
-        visitorForm.setValue("picture_key", result);
+        visitorForm.setValue("license_image", result);
         // console.log(visitorForm.getValues("picture_key"));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleIdCardUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setCapturedIdCardImage(result);
+        visitorForm.setValue("id_card_image", result);
       };
       reader.readAsDataURL(file);
     }
@@ -185,11 +202,23 @@ function ApprovalForm() {
     fileInputRef.current?.click();
   };
 
+  const openIdCardFileDialog = () => {
+    idCardFileInputRef.current?.click();
+  };
+
   const clearImage = () => {
     setCapturedImage(null);
-    visitorForm.setValue("picture_key", "");
+    visitorForm.setValue("license_image", "");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
+    }
+  };
+
+  const clearIdCardImage = () => {
+    setCapturedIdCardImage(null);
+    visitorForm.setValue("id_card_image", "");
+    if (idCardFileInputRef.current) {
+      idCardFileInputRef.current.value = "";
     }
   };
 
@@ -205,8 +234,12 @@ function ApprovalForm() {
         visitPurpose: data.visit_purpose?.trim() ? data.visit_purpose : undefined,
       };
 
-      if (data.picture_key && data.picture_key.trim()) {
-        payload.pictureKey = data.picture_key;
+      if (data.license_image && data.license_image.trim()) {
+        payload.licenseImage = data.license_image;
+      }
+
+      if (data.id_card_image && data.id_card_image.trim()) {
+        payload.idCardImage = data.id_card_image;
       }
 
       const response = await axios.post("/api/approvalForms", payload, {
@@ -225,6 +258,7 @@ function ApprovalForm() {
         setStep(1);
         setCapturedImage(null);
         setCurrentPage(1);
+        setCapturedIdCardImage(null);
       } else if (response.data?.error) {
         const err = response.data.error;
         const message = Array.isArray(err) ? err.join("\n") : String(err);
@@ -247,7 +281,7 @@ function ApprovalForm() {
         <div className="bg-card rounded-2xl border shadow-lg">
           <div className="px-4 py-4">
             <div className="flex items-center justify-between mb-5">
-              <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2 slect-none pointer-events-none">
                 <House className="w-6 h-6 sm:w-7 sm:h-7" /> ส่งคำขอเข้าเยี่ยม
               </h1>
               <span className="flex items-center gap-2">
@@ -266,7 +300,11 @@ function ApprovalForm() {
                 className="space-y-6"
               >
                 {step === 1 && (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
+                    {/* License plate/car image upload */}
+                    <FormLabel className="text-base font-medium select-none">
+                      รูปภาพรถ/ป้ายทะเบียน
+                    </FormLabel>
                     <div
                       onClick={openFileDialog}
                       className="w-full max-h-[100%] rounded-lg border border-dashed overflow-hidden relative cursor-pointer hover:bg-muted transition-colors"
@@ -305,9 +343,9 @@ function ApprovalForm() {
                           </div>
                         </>
                       ) : (
-                        <div className="w-full h-72 flex flex-col items-center justify-center text-muted-foreground">
+                        <div className="w-full h-48 flex flex-col items-center justify-center text-muted-foreground">
                           <Upload className="w-16 h-16 mb-2" />
-                          <div className="text-sm">อัปโหลดรูปภาพ</div>
+                          <div className="text-sm">อัปโหลดรูปภาพรถ/ป้ายทะเบียน</div>
                         </div>
                       )}
                     </div>
@@ -318,12 +356,70 @@ function ApprovalForm() {
                       onChange={handleFileUpload}
                       className="hidden"
                     />
-                    <div className="text-xs text-muted-foreground text-center">
-                      * อัปโหลดรูปภาพของรถยนต์/หมายเลขทะเบียน
-                    </div>
-                    {visitorForm.formState.errors.picture_key && (
+                    {visitorForm.formState.errors.license_image && (
                       <div className="text-sm text-red-600 text-center">
-                        {visitorForm.formState.errors.picture_key.message}
+                        {visitorForm.formState.errors.license_image.message}
+                      </div>
+                    )}
+
+                    {/* ID card image upload */}
+                    <FormLabel className="text-base font-medium select-none">
+                      รูปภาพบัตรประชาชน
+                    </FormLabel>
+                    <div
+                      onClick={openIdCardFileDialog}
+                      className="w-full max-h-[100%] rounded-lg border border-dashed overflow-hidden relative cursor-pointer hover:bg-muted transition-colors"
+                    >
+                      {capturedIdCardImage ? (
+                        <>
+                          <img
+                            src={capturedIdCardImage}
+                            alt="ID Card"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute top-3 right-3">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                clearIdCardImage();
+                              }}
+                              className="bg-red-500/90 hover:bg-red-600 text-white rounded-full p-2 text-sm shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 backdrop-blur-sm"
+                              title="ลบรูปบัตรประชาชน"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M6 18L18 6M6 6l12 12"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-full h-48 flex flex-col items-center justify-center text-muted-foreground">
+                          <Upload className="w-12 h-12 mb-2" />
+                          <div className="text-sm">อัปโหลดรูปภาพบัตรประชาชน</div>
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      ref={idCardFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleIdCardUpload}
+                      className="hidden"
+                    />
+                    {visitorForm.formState.errors.id_card_image && (
+                      <div className="text-sm text-red-600 text-center">
+                        {visitorForm.formState.errors.id_card_image.message}
                       </div>
                     )}
                   </div>
