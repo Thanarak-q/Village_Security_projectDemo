@@ -12,6 +12,7 @@ const approvalForm = new Elysia({ prefix: "/api" }).post(
     type ApprovalFormBody = {
       residentId?: string;
       visitorIDCard: string;
+      guardId: string;
       houseId: string;
       licenseImage?: string;
       idCardImage?: string;
@@ -22,6 +23,7 @@ const approvalForm = new Elysia({ prefix: "/api" }).post(
     const {
       visitorIDCard,
       houseId,
+      guardId,
       licenseImage,
       idCardImage,
       licensePlate,
@@ -39,7 +41,9 @@ const approvalForm = new Elysia({ prefix: "/api" }).post(
     if (licensePlate !== undefined && (typeof licensePlate !== "string" || !licensePlate.trim())) {
       errors.push("License Plate, if provided, must be a non-empty string.");
     }
-
+    if (!guardId || typeof guardId !== "string" || !guardId.trim()) {
+      errors.push("Guard ID is required and must be a non-empty string.");
+    }
     if (errors.length > 0) {
       return { error: errors };
     }
@@ -81,7 +85,7 @@ const approvalForm = new Elysia({ prefix: "/api" }).post(
 
     console.log("🚀 Inserting visitor record:", {
       resident_id: null,
-      guard_id: null,
+      guard_id: guardId,
       house_id: houseId,
       visitor_id_card: visitorIDCard,
       license_image: savedImageFilename,
@@ -93,7 +97,7 @@ const approvalForm = new Elysia({ prefix: "/api" }).post(
         .insert(visitor_records)
         .values({
           resident_id: null,
-          guard_id: null,
+          guard_id: guardId,
           house_id: houseId,
           visitor_id_card: visitorIDCard,
           license_image: savedImageFilename,

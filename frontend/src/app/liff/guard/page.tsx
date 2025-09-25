@@ -128,6 +128,19 @@ export default function GuardLiffPage() {
               setStep("ready");
               setMsg("เข้าสู่ระบบสำเร็จ กำลังพาไปหน้าหลัก...");
               setTimeout(() => router.replace("/guard"), 1000);
+            } else if (!authResult.success && (authResult.error || '').toLowerCase().includes('token') && (authResult.error || '').toLowerCase().includes('expired')) {
+              // Token expired → force re-login
+              setStep("logging-in");
+              setMsg("LINE token หมดอายุ กำลังเข้าสู่ระบบใหม่...");
+              try {
+                svc.logout();
+                setTimeout(() => { svc.login(window.location.href); }, 100);
+              } catch (reloginErr) {
+                console.error('Re-login after token expired failed:', reloginErr);
+                setStep("error");
+                setMsg("ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่");
+              }
+              return;
             } else if (authResult.expectedRole) {
               // User is already registered but using wrong LIFF app
               setStep("ready");

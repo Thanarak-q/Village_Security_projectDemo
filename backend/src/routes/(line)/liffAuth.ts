@@ -70,9 +70,11 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         requestRole
       });
 
-      // Both guard and resident use the same LINE channel ID
-      const clientId = process.env.LINE_CHANNEL_ID || '2008174551';
-      
+      // Select LINE Login Channel ID by role if provided, fallback to shared ID
+      const guardChannelId = process.env.LINE_CHANNEL_ID_GUARD || process.env.LINE_CHANNEL_ID;
+      const residentChannelId = process.env.LINE_CHANNEL_ID_RESIDENT || process.env.LINE_CHANNEL_ID;
+      const clientId = (isGuardRequest ? guardChannelId : residentChannelId) || process.env.LINE_CHANNEL_ID;
+
       console.log('🔍 Using Channel ID:', clientId, 'for', isGuardRequest ? 'guard' : isResidentRequest ? 'resident' : 'default');
 
       // Verify LINE ID token with LINE API
@@ -238,8 +240,10 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
                                 referer.includes('/liff/resident') || referer.includes('resident')
                               ));
 
-      const clientId = process.env.LINE_CHANNEL_ID || '2008174551';
-      
+      const guardChannelId = process.env.LINE_CHANNEL_ID_GUARD || process.env.LINE_CHANNEL_ID;
+      const residentChannelId = process.env.LINE_CHANNEL_ID_RESIDENT || process.env.LINE_CHANNEL_ID;
+      const clientId = (isGuardRequest ? guardChannelId : residentChannelId) || process.env.LINE_CHANNEL_ID;
+
       console.log('🔍 Registration - Using Channel ID:', clientId, 'for', isGuardRequest ? 'guard' : isResidentRequest ? 'resident' : 'default');
 
       // Verify LINE ID token

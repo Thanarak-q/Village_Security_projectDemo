@@ -2,20 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-// DISABLED: LIFF authentication
-// import { isAuthenticated, getAuthData } from "@/lib/liffAuth";
+import { isAuthenticated, getAuthData } from "@/lib/liffAuth";
 import ApprovalForm from "./ApprovalForm";
 
-function page() {
+function Page() {
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
-    // DISABLED: LIFF authentication check - skip all auth checks
-    console.log("🚫 LIFF authentication disabled - allowing direct access");
-    setIsCheckingAuth(false);
-    
-    /* DISABLED: Original LIFF authentication logic
     const checkAuthAndStatus = () => {
       console.log("🛡️ Guard authentication check starting");
       
@@ -50,11 +44,11 @@ function page() {
       });
 
       // Check user status - redirect pending users to pending page
-      if (user.status === "pending") {
-        console.log("❌ Guard status is pending, redirecting to pending page");
-        router.push("/guard/pending");
-        return;
-      }
+      // if (user.status === "pending") {
+      //   console.log("❌ Guard status is pending, redirecting to pending page");
+      //   router.push("/guard/pending");
+      //   return;
+      // }
 
       // Check if user is disabled
       if (user.status === "disable") {
@@ -64,11 +58,11 @@ function page() {
       }
 
       // Only verified users can access the main page
-      if (user.status !== "verified") {
-        console.log("❌ Guard status is not verified, redirecting to pending page");
-        router.push("/guard/pending");
-        return;
-      }
+      // if (user.status !== "verified") {
+      //   console.log("❌ Guard status is not verified, redirecting to pending page");
+      //   router.push("/guard/pending");
+      //   return;
+      // }
 
       console.log("✅ Guard is verified, allowing access to main page");
       // User is verified - allow access
@@ -76,7 +70,6 @@ function page() {
     };
 
     checkAuthAndStatus();
-    */
   }, [router]);
 
   // Show loading state while checking authentication
@@ -97,4 +90,4 @@ function page() {
     </div>
   );
 }
-export default page;
+export default Page;

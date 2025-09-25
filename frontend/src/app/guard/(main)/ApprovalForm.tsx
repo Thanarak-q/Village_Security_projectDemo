@@ -22,10 +22,11 @@ import { Upload, Home, House, User, Search } from "lucide-react";
 import axios from "axios";
 import { ModeToggle } from "@/components/mode-toggle";
 // DISABLED: LIFF authentication
-// import { getAuthData } from "@/lib/liffAuth";
+import { getAuthData } from "@/lib/liffAuth";
 
 const visitorSchema = z.object({
   license_image: z.string().optional(),
+  guard_id: z.string().min(1, "ต้องการ ID ของผู้รับผิดชอบ"),
   id_card_image: z.string().optional(),
   visitor_id_card: z
     .string()
@@ -44,7 +45,7 @@ function ApprovalForm() {
   const [houses, setHouses] = useState<
     Array<{ house_id: string; address: string; village_key: string }>
   >([]);
-  const [currentUser] = useState<{
+  const [currentUser, setCurrentUser] = useState<{
     id: string;
     fname: string;
     lname: string;
@@ -59,11 +60,18 @@ function ApprovalForm() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch real houses without authentication. Backend falls back to a default village when unauthenticated.
+        const { user, token } = getAuthData();
+        if (user) {
+          setCurrentUser(user);
+          // Ensure guard_id follows current authenticated user
+          visitorForm.setValue("guard_id", user.id);
+        }
+        
         const housesResponse = await axios.get("/api/houses", {
           withCredentials: true,
           headers: {
             "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         });
 
@@ -89,6 +97,7 @@ function ApprovalForm() {
     resolver: zodResolver(visitorSchema),
     defaultValues: {
       license_image: "",
+      guard_id: currentUser?.id,
       id_card_image: "",
       license_plate: "",
       visitor_id_card: "",
@@ -232,6 +241,7 @@ function ApprovalForm() {
         houseId: data.house_id,
         licensePlate: data.license_plate,
         visitPurpose: data.visit_purpose?.trim() ? data.visit_purpose : undefined,
+        guardId: data.guard_id,
       };
 
       if (data.license_image && data.license_image.trim()) {
@@ -242,10 +252,13 @@ function ApprovalForm() {
         payload.idCardImage = data.id_card_image;
       }
 
+      const { token } = getAuthData();
+
       const response = await axios.post("/api/approvalForms", payload, {
         withCredentials: true,
         headers: {
           "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
 
@@ -512,8 +525,6 @@ function ApprovalForm() {
                       )}
                     />
                     <div className="space-y-6">
-                      {/* Current Guard Information Display */}
-
                       <FormField
                         control={visitorForm.control}
                         name="entry_time"
