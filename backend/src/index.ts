@@ -18,7 +18,7 @@ import { adminActivityLogsRoutes } from "./routes/adminActivityLogs";
 import { liffAuthRoutes } from "./routes/(line)/liffAuth";
 import { villagesRoutes } from "./routes/villages";
 import { notificationsRoutes } from "./routes/notifications";
-import approvalForm from "./routes/approvalForm";
+import approvalForm from "./routes/submitVisitorForm";
 /**
  * SECURITY ENHANCEMENT: Secure Health Check Endpoint
  *
