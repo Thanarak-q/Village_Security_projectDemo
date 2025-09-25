@@ -38,6 +38,19 @@ function Navbar() {
   const { theme } = useTheme();
   const [shouldRedirect, setShouldRedirect] = useState(false);
 
+  // Helper function to get role-based greeting
+  const getRoleBasedGreeting = (role: AdminRole) => {
+    switch (role) {
+      case "staff":
+        return "สวัสดีคุณนิติ👋";
+      case "superadmin":
+        return "สวัสดีคุณผู้จัดการสูงสุด👋";
+      case "admin":
+      default:
+        return "สวัสดีคุณผู้จัดการ👋";
+    }
+  };
+
   const currentDate = new Date();
   const thaiDate = new Intl.DateTimeFormat("th-TH", {
     weekday: "long",
@@ -65,7 +78,7 @@ function Navbar() {
   const startAnimation = useCallback(() => {
     if (!titleSpinRef.current || !userData || isAnimatingRef.current) return;
 
-    const titleTexts = ["สวัสดีครับ", `${userData.username}`];
+    const titleTexts = [getRoleBasedGreeting(userData.role), `${userData.username}`];
 
     // Set initial state
     gsap.set(titleSpinRef.current, {
@@ -276,7 +289,7 @@ function Navbar() {
                   >
                     {userData &&
                       (currentTitleIndex === 0
-                        ? "สวัสดีคุณผู้จัดการ👋"
+                        ? getRoleBasedGreeting(userData.role)
                         : `${userData.username} `)}
                   </span>
                 </div>

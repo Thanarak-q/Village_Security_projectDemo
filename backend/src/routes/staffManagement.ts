@@ -45,6 +45,9 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
         };
       }
 
+      // Create prefixed username with "staff_" prefix
+      const prefixedUsername = `staff_${username}`;
+
       // Check if village exists
       const village = await db
         .select()
@@ -60,11 +63,11 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
         };
       }
 
-      // Check if username already exists
+      // Check if prefixed username already exists
       const existingAdmin = await db
         .select()
         .from(admins)
-        .where(eq(admins.username, username))
+        .where(eq(admins.username, prefixedUsername))
         .limit(1);
 
       if (existingAdmin.length > 0) {
@@ -83,7 +86,7 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
       const newStaff = await db
         .insert(admins)
         .values({
-          username,
+          username: prefixedUsername,
           email: null, // No email required
           phone: null, // No phone required
           password_hash: hashedPassword,
@@ -106,7 +109,8 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
         message: "เพิ่มนิติบุคคลสำเร็จ",
         data: {
           admin_id: newStaff[0].admin_id,
-          username,
+          username: prefixedUsername,
+          original_username: username, // Keep original for reference
           password,
           village_key,
           village_name: village[0].village_name,

@@ -8,12 +8,15 @@ import { Plus, Users, Eye } from "lucide-react";
 import { AddStaffForm } from "./AddStaffForm";
 import { StaffTable } from "./StaffTable";
 import { toast } from "sonner";
+import {gsap} from "gsap";
+
+
 
 interface StaffMember {
   admin_id: string;
   username: string;
-  email: string;
-  phone: string;
+  email?: string;
+  phone?: string;
   status: "verified" | "pending" | "disable";
   role: string;
   created_at: string;
@@ -27,17 +30,51 @@ export default function StaffManagePage() {
   const [loading, setLoading] = useState(true);
   const [selectedVillageKey, setSelectedVillageKey] = useState<string>("");
   const [villageName, setVillageName] = useState<string>("");
+  const [userRole, setUserRole] = useState<string>("");
+
+
+  //gsap smooth scroll-up animations
+  
+
+  // 
 
   useEffect(() => {
-    // Get selected village from session storage
-    const villageKey = sessionStorage.getItem("selectedVillage");
-    if (villageKey) {
-      setSelectedVillageKey(villageKey);
-      fetchStaffMembers(villageKey);
-    } else {
-      toast.error("กรุณาเลือกหมู่บ้านก่อน");
-      setLoading(false);
-    }
+    // Check user role first
+    const checkUserRole = async () => {
+      try {
+        const res = await fetch("/api/auth/me", {
+          credentials: "include",
+        });
+        
+        if (res.ok) {
+          const json = await res.json();
+          setUserRole(json.role);
+          
+          // Redirect staff users away from this page
+          if (json.role === "staff") {
+            toast.error("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
+            window.location.href = "/dashboard";
+            return;
+          }
+          
+          // Get selected village from session storage for admin/superadmin
+          const villageKey = sessionStorage.getItem("selectedVillage");
+          if (villageKey) {
+            setSelectedVillageKey(villageKey);
+            fetchStaffMembers(villageKey);
+          } else {
+            toast.error("กรุณาเลือกหมู่บ้านก่อน");
+            setLoading(false);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking user role:", error);
+        toast.error("เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์");
+        setLoading(false);
+      }
+    };
+
+    checkUserRole();
   }, []);
 
   const fetchStaffMembers = async (villageKey: string) => {
@@ -85,13 +122,37 @@ export default function StaffManagePage() {
     toast.success("ลบนิติบุคคลสำเร็จ");
   };
 
-  if (loading) {
+  if (loading || !userRole) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">กำลังโหลด...</p>
         </div>
+      </div>
+    );
+  }
+
+  // Show access denied for staff users
+  if (userRole === "staff") {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-red-600">ไม่มีสิทธิ์เข้าถึง</CardTitle>
+            <CardDescription>
+              คุณไม่มีสิทธิ์เข้าถึงหน้านี้
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Button 
+              onClick={() => window.location.href = "/dashboard"}
+              className="w-full"
+            >
+              กลับไปหน้าหลัก
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -122,65 +183,48 @@ export default function StaffManagePage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6 max-w-7xl">
-        {/* Header */}
-        
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              จัดการนิติบุคคล
+            </CardTitle>
+            <CardDescription>
+              จัดการข้อมูลนิติบุคคลในหมู่บ้าน
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="view" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="view" className="flex items-center gap-2">
+                  <Eye className="h-4 w-4" />
+                  ดูนิติบุคคลทั้งหมด
+                </TabsTrigger>
+                <TabsTrigger value="add" className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  เพิ่มนิติบุคคล
+                </TabsTrigger>
+              </TabsList>
 
-        {/* Main Content */}
-        <Tabs defaultValue="view" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="view" className="flex items-center gap-2">
-              <Eye className="h-4 w-4" />
-              ดูนิติบุคคลทั้งหมด
-            </TabsTrigger>
-            <TabsTrigger value="add" className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              เพิ่มนิติบุคคล
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="view" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  รายการนิติบุคคลทั้งหมด
-                </CardTitle>
-                <CardDescription>
-                  จัดการข้อมูลนิติบุคคลในหมู่บ้าน
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+              <TabsContent value="view" className="space-y-4">
                 <StaffTable
                   staffMembers={staffMembers}
                   onStaffUpdated={handleStaffUpdated}
                   onStaffDeleted={handleStaffDeleted}
                   loading={loading}
                 />
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </TabsContent>
 
-          <TabsContent value="add" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Plus className="h-5 w-5" />
-                  เพิ่มนิติบุคคลใหม่
-                </CardTitle>
-                <CardDescription>
-                  เพิ่มนิติบุคคลใหม่เข้าสู่ระบบ
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+              <TabsContent value="add" className="space-y-4">
                 <AddStaffForm
                   villageKey={selectedVillageKey}
                   villageName={villageName}
                   onStaffAdded={handleStaffAdded}
                 />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

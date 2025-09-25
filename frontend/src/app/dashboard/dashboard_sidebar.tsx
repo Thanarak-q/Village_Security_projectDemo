@@ -60,6 +60,12 @@ const items = [
 const getAdminItems = (userRole: string) => {
   const baseItems = [...items];
   
+  // Hide "จัดการนิติบุคคล" (Legal Entity Management) for staff users
+  if (userRole === "staff") {
+    const filteredItems = baseItems.filter(item => item.title !== "จัดการนิติบุคคล");
+    return filteredItems;
+  }
+  
   // Add village selection for admin/superadmin users
   if (userRole === "admin" || userRole === "superadmin") {
     baseItems.push({
@@ -87,6 +93,7 @@ const AppSidebar = memo(function AppSidebar() {
   } | null>(null);
   const [selectedVillageName, setSelectedVillageName] = useState<string>("");
 
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -102,8 +109,9 @@ const AppSidebar = memo(function AppSidebar() {
         if (json) {
           setUserData(json);
           
-          // If user is admin/superadmin, get the selected village name
+          // Handle village name display for all user types
           if (json.role === "admin" || json.role === "superadmin") {
+            // For admin/superadmin, get the selected village name
             const selectedVillageKey = sessionStorage.getItem("selectedVillage");
             if (selectedVillageKey) {
               try {
@@ -120,6 +128,11 @@ const AppSidebar = memo(function AppSidebar() {
                 console.error("Error fetching village name:", error);
               }
             }
+          }
+          
+          // For all users (including staff), use their assigned village name if available
+          if (json.village_name) {
+            setSelectedVillageName(json.village_name);
           }
         }
       } catch (error) {
@@ -150,7 +163,7 @@ const AppSidebar = memo(function AppSidebar() {
               </div>
               <div>
                 <p className="scroll-m-20 text-xl font-semibold tracking-tight">
-                  {selectedVillageName || userData?.village_name || "manager"}
+                  {selectedVillageName || userData?.village_name || "หมู่บ้าน"}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   ระบบจัดการหมู่บ้าน

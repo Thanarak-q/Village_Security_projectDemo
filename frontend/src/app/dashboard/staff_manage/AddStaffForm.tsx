@@ -198,9 +198,12 @@ export function AddStaffForm({ villageKey, villageName, onStaffAdded }: AddStaff
             <Input
               id="username"
               {...register("username")}
-              placeholder="กรอกชื่อผู้ใช้"
+              placeholder="กรอกชื่อผู้ใช้ (จะถูกเติม staff_ นำหน้า)"
               className={errors.username ? "border-red-500" : ""}
             />
+            <p className="text-sm text-muted-foreground">
+              ชื่อผู้ใช้จริงจะเป็น: <span className="font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">staff_[ชื่อที่กรอก]</span>
+            </p>
             {errors.username && (
               <p className="text-sm text-red-500">{errors.username.message}</p>
             )}
