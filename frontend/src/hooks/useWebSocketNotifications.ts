@@ -10,6 +10,10 @@ interface WebSocketNotification {
   body?: string;
   level?: 'info' | 'warning' | 'critical';
   createdAt: number;
+  type?: string;
+  category?: string;
+  data?: Record<string, unknown>;
+  villageKey?: string;
 }
 
 interface ErrorStats {
@@ -50,6 +54,8 @@ interface UseWebSocketNotificationsOptions {
   villageKey?: string;
 }
 
+const isBrowser = typeof window !== 'undefined';
+
 export function useWebSocketNotifications(options: UseWebSocketNotificationsOptions = {}): UseWebSocketNotificationsReturn {
   const [notifications, setNotifications] = useSafeState<WebSocketNotification[]>([]);
   const [isConnected, setIsConnected] = useSafeState(false);
@@ -79,11 +85,27 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
   const resolvedVillageKey = useSafeMemo(() => {
     const fromOptions = typeof overrideVillageKey === 'string' ? overrideVillageKey.trim() : '';
     const fromUser = typeof user?.village_key === 'string' ? user.village_key.trim() : '';
+    const fromSession = typeof window !== 'undefined'
+      ? (() => {
+          try {
+            return sessionStorage.getItem('selectedVillage')?.trim() || '';
+          } catch (error) {
+            console.warn('⚠️ Unable to read selected village from sessionStorage:', error);
+            return '';
+          }
+        })()
+      : '';
     const fromEnv = typeof process.env.NEXT_PUBLIC_DEFAULT_VILLAGE_KEY === 'string'
       ? process.env.NEXT_PUBLIC_DEFAULT_VILLAGE_KEY.trim()
       : '';
 
-    return fromOptions || fromUser || fromEnv || null;
+    const resolved = fromOptions || fromUser || fromSession || fromEnv || null;
+
+    if (!resolved) {
+      console.warn('⚠️ No village key available for WebSocket subscription');
+    }
+
+    return resolved;
   }, [overrideVillageKey, user?.village_key]);
 
   const calculateHealthStatus = useCallback((stats: ErrorStats): HealthStatus => {
@@ -186,6 +208,32 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
     }
   }, [handleWebSocketError]);
 
+  const getWebSocketUrl = useSafeCallback(() => {
+    if (!isBrowser) {
+      return process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:3002/ws';
+    }
+
+    const overrideUrl = process.env.NEXT_PUBLIC_WS_URL?.trim();
+    if (overrideUrl) {
+      return overrideUrl;
+    }
+
+    const currentHost = window.location.host;
+    const hostname = window.location.hostname;
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+
+    const localDevMatch = currentHost.match(/:(\d+)$/);
+    if (localDevMatch) {
+      const port = localDevMatch[1];
+      if (['3000', '5173', '4173'].includes(port)) {
+        const devPort = process.env.NEXT_PUBLIC_WS_DEV_PORT || '3002';
+        return `${wsProtocol}//${hostname}:${devPort}/ws`;
+      }
+    }
+
+    return `${wsProtocol}//${currentHost}/ws`;
+  }, []);
+
   const connect = useSafeCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       return;
@@ -193,10 +241,7 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
 
     setConnectionStatus('connecting');
     
-    // Use simple relative WebSocket URL - Caddy handles routing
-    const wsUrl = typeof window !== 'undefined' 
-      ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
-      : 'ws://localhost/ws';
+    const wsUrl = getWebSocketUrl();
     
     console.log('🔗 Attempting to connect to:', wsUrl);
     
@@ -215,7 +260,7 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
       websocketMessageManager.setWebSocket(ws);
       
       ws.onopen = () => {
-        console.log('🔔 WebSocket connected');
+        console.log('🔔 WebSocket connected successfully');
         setIsConnected(true);
         setConnectionStatus('connected');
         reconnectAttempts.current = 0;
@@ -224,6 +269,7 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
         websocketMessageManager.setWebSocket(ws);
 
         if (resolvedVillageKey) {
+          console.log('🪪 Subscribing to village:', resolvedVillageKey);
           subscribeToVillage(ws, resolvedVillageKey);
         } else {
           console.warn('⚠️ No village key available for WebSocket subscription');
@@ -265,7 +311,11 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
               title: data.data.title,
               body: data.data.body || '',
               level: data.data.level || 'info',
-              createdAt: data.data.createdAt || Date.now()
+              createdAt: data.data.createdAt || Date.now(),
+              type: data.data.type,
+              category: data.data.category,
+              data: data.data.data,
+              villageKey: data.data.villageKey
             };
             
             // Check for duplicates before adding
@@ -281,8 +331,16 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
               
               // Clean up old notifications (older than 24 hours)
               const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
-              return newNotifications.filter(n => n.createdAt > oneDayAgo);
+          const filtered = newNotifications.filter(n => n.createdAt > oneDayAgo);
+
+              return filtered;
             });
+
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('dashboardRealtimeNotification', {
+                detail: notification
+              }));
+            }
             
             // Show browser notification if permission granted
             if ('Notification' in window && Notification.permission === 'granted') {
@@ -370,14 +428,19 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
       };
 
       ws.onclose = (event) => {
-        console.log('🔌 WebSocket disconnected:', event.code, event.reason);
+        console.log('🔌 WebSocket disconnected:', {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean,
+          reconnectAttempts: reconnectAttempts.current
+        });
         setIsConnected(false);
         setConnectionStatus('disconnected');
         
         // Update message manager connection status
         websocketMessageManager.setWebSocket(null);
         
-        // Attempt to reconnect if not a manual close
+        // Attempt to reconnect if not a manual close and we haven't exceeded max attempts
         if (event.code !== 1000 && reconnectAttempts.current < maxReconnectAttempts) {
           const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
           console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})`);
@@ -386,6 +449,8 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
             reconnectAttempts.current++;
             connect();
           }, delay);
+        } else if (reconnectAttempts.current >= maxReconnectAttempts) {
+          console.error('❌ Max reconnection attempts reached. WebSocket will not reconnect automatically.');
         }
       };
     } catch (error) {
@@ -393,7 +458,7 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
       setConnectionStatus('error');
       return;
     }
-  }, [handleValidationError, handleWebSocketError, resolvedVillageKey, subscribeToVillage]);
+  }, [getWebSocketUrl, handleValidationError, handleWebSocketError, resolvedVillageKey, subscribeToVillage]);
 
   const disconnect = useSafeCallback(() => {
     if (reconnectTimeoutRef.current) {
