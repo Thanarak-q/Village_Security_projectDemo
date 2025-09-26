@@ -56,19 +56,39 @@ export type NotifyService = {
         const { pathname } = new URL(req.url)
         if (pathname === path) {
           if (s.upgrade(req)) return
-          return new Response('Upgrade failed', { status: 500 })
+          return new Response('WebSocket upgrade required', { 
+            status: 426,
+            headers: {
+              'Upgrade': 'websocket',
+              'Connection': 'Upgrade',
+              'Sec-WebSocket-Accept': 'websocket'
+            }
+          })
         }
-        return new Response('OK')
+        return new Response('WebSocket Notification Service', { 
+          status: 200,
+          headers: {
+            'Content-Type': 'text/plain'
+          }
+        })
       },
       websocket: {
         idleTimeout,
         open(ws) {
           ws.data = {
             currentAdminTopic: null as string | null,
-            villageKey: null as string | null
+            villageKey: null as string | null,
+            connectionId: Math.random().toString(36).substring(7),
+            connectedAt: Date.now()
           };
 
-          ws.send(JSON.stringify({ type: 'WELCOME', msg: 'connected' }))
+          console.log('🔗 New WebSocket connection:', ws.data.connectionId);
+          ws.send(JSON.stringify({ 
+            type: 'WELCOME', 
+            msg: 'connected',
+            connectionId: ws.data.connectionId,
+            timestamp: Date.now()
+          }))
         },
         message(ws, m) {
           try {
@@ -199,8 +219,10 @@ export type NotifyService = {
             console.error('❌ Failed to send echo response:', echoError);
           }
         },
-        close() {
-          // no-op
+        close(ws) {
+          if (ws.data?.connectionId) {
+            console.log('🔌 WebSocket disconnected:', ws.data.connectionId);
+          }
         }
       }
     })

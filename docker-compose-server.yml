@@ -7,6 +7,8 @@ services:
       - ./backend/.env
     environment:
       - NODE_ENV=production
+      - DOCKER_ENV=true
+      - WEBSOCKET_URL=ws://websocket:3002/ws
     depends_on:
       - websocket
       - db

@@ -10,7 +10,7 @@
 import { Elysia, t } from 'elysia';
 import { eq, and, desc, count } from 'drizzle-orm';
 import db from '../db/drizzle';
-import { admin_notifications, villages, admins } from '../db/schema';
+import { admin_notifications, villages, admins, admin_villages } from '../db/schema';
 import { requireRole } from '../hooks/requireRole';
 import { websocketClient } from '../services/websocketClient';
 
@@ -260,15 +260,15 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
         };
       }
 
-      // Get the admin's village_key
-      const admin = await db.query.admins.findFirst({
-        where: eq(admins.admin_id, currentUser.admin_id)
+      // Get the admin's village_key from admin_villages table
+      const adminVillage = await db.query.admin_villages.findFirst({
+        where: eq(admin_villages.admin_id, currentUser.admin_id)
       });
 
-      console.log('🔍 Admin found:', admin);
+      console.log('🔍 Admin village found:', adminVillage);
 
-      // Use admin's village_key or default to 'default-village' for testing
-      const villageKey = admin?.village_key || 'default-village';
+      // Use admin's village_key or default to 'pha-suk-village-001' for testing
+      const villageKey = adminVillage?.village_key || 'pha-suk-village-001';
       console.log('🏘️ Using village_key:', villageKey);
 
       // Create notification in database

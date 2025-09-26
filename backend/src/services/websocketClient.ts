@@ -27,22 +27,33 @@ class WebSocketClient {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
+  private isConnecting = false;
 
   constructor() {
     this.connect();
   }
 
   private connect() {
+    if (this.isConnecting) {
+      console.log('⏳ Connection already in progress, skipping...');
+      return;
+    }
+
     try {
-      // Use Docker service name when running in Docker, localhost when running locally
-      const wsUrl = 'ws://websocket:3002/ws';
+      this.isConnecting = true;
+      // Use environment variable if set, otherwise auto-detect
+      const wsUrl = process.env.WEBSOCKET_URL || 
+        (process.env.NODE_ENV === 'production' || process.env.DOCKER_ENV === 'true' 
+          ? 'ws://websocket:3002/ws' 
+          : 'ws://localhost:3002/ws');
       console.log('🔗 Attempting to connect to:', wsUrl);
       
       this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = () => {
-        console.log('🔗 Connected to WebSocket service');
+        console.log('✅ Connected to WebSocket service');
         this.reconnectAttempts = 0;
+        this.isConnecting = false;
         
         // Record successful connection
         errorMonitor.recordError(new AppError(
@@ -66,6 +77,7 @@ class WebSocketClient {
         errorMonitor.recordError(closeError);
         
         this.ws = null;
+        this.isConnecting = false;
         
         // Only attempt reconnect if it wasn't a clean close
         if (!event.wasClean) {
@@ -85,6 +97,7 @@ class WebSocketClient {
         
         errorHandler.handleError(wsError);
         errorMonitor.recordError(wsError);
+        this.isConnecting = false;
       };
 
     } catch (error) {
@@ -99,6 +112,7 @@ class WebSocketClient {
       
       errorHandler.handleError(connectionError);
       errorMonitor.recordError(connectionError);
+      this.isConnecting = false;
       this.attemptReconnect();
     }
   }
