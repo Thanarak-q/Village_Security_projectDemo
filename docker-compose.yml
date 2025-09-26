@@ -7,7 +7,11 @@ services:
       - ./backend:/app
     env_file:
       - ./backend/.env
-      
+    environment:
+      - DOCKER_ENV=true
+      - WEBSOCKET_URL=ws://websocket:3002/ws
+    depends_on:
+      - websocket
     restart: unless-stopped
 
   websocket:

@@ -2,7 +2,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { gsap } from "gsap";
-import NotificationComponent from "./(main)/notification";
+import NotificationComponent from "./notification/notification";
 import { ModeToggle } from "@/components/mode-toggle";
 import { useTheme } from "next-themes";
 import Image from "next/image";
@@ -31,12 +31,27 @@ function Navbar() {
     profileImage?: string;
     role: AdminRole;
   } | null>(null);
+  const [showRealtimeIndicator, setShowRealtimeIndicator] = useState(false);
+  const realtimeIndicatorTimeoutRef = useRef<number | null>(null);
   const titleSpinRef = useRef<HTMLSpanElement>(null);
   const [currentTitleIndex, setCurrentTitleIndex] = useState(0);
   const animationRef = useRef<gsap.core.Timeline | null>(null);
   const isAnimatingRef = useRef(false);
   const { theme } = useTheme();
   const [shouldRedirect, setShouldRedirect] = useState(false);
+
+  // Helper function to get role-based greeting
+  const getRoleBasedGreeting = (role: AdminRole) => {
+    switch (role) {
+      case "staff":
+        return "สวัสดีคุณนิติ👋";
+      case "superadmin":
+        return "สวัสดีคุณผู้จัดการสูงสุด👋";
+      case "admin":
+      default:
+        return "สวัสดีคุณผู้จัดการ👋";
+    }
+  };
 
   const currentDate = new Date();
   const thaiDate = new Intl.DateTimeFormat("th-TH", {
@@ -59,13 +74,38 @@ function Navbar() {
       .then((json) => {
         if (json) setUserData(json);
       });
+
+    const handleRealtimeNotification = () => {
+      setShowRealtimeIndicator(true);
+
+      window.dispatchEvent(new CustomEvent("dashboardNotificationsUpdated"));
+
+      if (realtimeIndicatorTimeoutRef.current) {
+        window.clearTimeout(realtimeIndicatorTimeoutRef.current);
+      }
+
+      realtimeIndicatorTimeoutRef.current = window.setTimeout(() => {
+        setShowRealtimeIndicator(false);
+        realtimeIndicatorTimeoutRef.current = null;
+      }, 2500);
+    };
+
+    window.addEventListener("dashboardRealtimeNotification", handleRealtimeNotification);
+
+    return () => {
+      window.removeEventListener("dashboardRealtimeNotification", handleRealtimeNotification);
+      if (realtimeIndicatorTimeoutRef.current) {
+        window.clearTimeout(realtimeIndicatorTimeoutRef.current);
+        realtimeIndicatorTimeoutRef.current = null;
+      }
+    };
   }, []);
 
   // Function to start animation
   const startAnimation = useCallback(() => {
     if (!titleSpinRef.current || !userData || isAnimatingRef.current) return;
 
-    const titleTexts = ["สวัสดีครับ", `${userData.username}`];
+    const titleTexts = [getRoleBasedGreeting(userData.role), `${userData.username}`];
 
     // Set initial state
     gsap.set(titleSpinRef.current, {
@@ -220,8 +260,8 @@ function Navbar() {
         };
       case "/dashboard/setting_manage":
         return {
-          title: "การตั้งค่า",
-          subtitle: "จัดการการตั้งค่าระบบ",
+          title: "การตั้งค่าบัญชีผู้ใช้",
+          subtitle: "จัดการการตั้งค่าข้อมูลบัญชีผู้ใช้",
           titleClass:
             "text-lg sm:text-xl md:text-2xl font-semibold tracking-tight text-foreground",
           subtitleClass: "text-xs sm:text-sm text-muted-foreground",
@@ -230,6 +270,14 @@ function Navbar() {
         return {
           title: "ประวัติ",
           subtitle: "ดูประวัติการใช้งานระบบ",
+          titleClass:
+            "text-lg sm:text-xl md:text-2xl font-semibold tracking-tight text-foreground",
+          subtitleClass: "text-xs sm:text-sm text-muted-foreground",
+        };
+      case "/dashboard/staff_manage":
+        return {
+          title: "จัดการนิติบุคคล",
+          subtitle: "จัดการข้อมูลนิติบุคคลทั้งหมดในระบบ",
           titleClass:
             "text-lg sm:text-xl md:text-2xl font-semibold tracking-tight text-foreground",
           subtitleClass: "text-xs sm:text-sm text-muted-foreground",
@@ -268,7 +316,7 @@ function Navbar() {
                   >
                     {userData &&
                       (currentTitleIndex === 0
-                        ? "สวัสดีคุณผู้จัดการ"
+                        ? getRoleBasedGreeting(userData.role)
                         : `${userData.username} `)}
                   </span>
                 </div>
@@ -286,7 +334,16 @@ function Navbar() {
           <ModeToggle />
 
           {/* Notification Component */}
-          <NotificationComponent />
+          <div className="relative">
+            <NotificationComponent />
+            <div
+              className={`absolute -top-3 right-0 bg-green-100 dark:bg-green-900/80 text-green-800 dark:text-green-200 text-[11px] font-medium px-2 py-1 rounded-full shadow transition-all duration-300 ${
+                showRealtimeIndicator ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1 pointer-events-none'
+              }`}
+            >
+              มีการแจ้งเตือนใหม่
+            </div>
+          </div>
 
           {/* User Profile Dropdown */}
           <DropdownMenu>
@@ -330,7 +387,7 @@ function Navbar() {
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/setting_manage" className="cursor-pointer">
                   <Settings className="mr-2 h-4 w-4" />
-                  <span>การตั้งค่า</span>
+                  <span>การตั้งค่าบัญชีผู้ใช้</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

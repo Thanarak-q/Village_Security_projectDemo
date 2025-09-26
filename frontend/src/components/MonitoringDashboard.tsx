@@ -90,18 +90,6 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
-  // Check if user has admin role
-  if (!isAuthenticated || !hasRole('admin')) {
-    return (
-      <div className={`bg-white rounded-lg shadow-md p-6 ${className}`}>
-        <div className="text-center text-gray-500">
-          <h3 className="text-lg font-semibold mb-2">Access Denied</h3>
-          <p>You need admin privileges to access monitoring dashboard.</p>
-        </div>
-      </div>
-    );
-  }
-
   const fetchMonitoringData = async () => {
     try {
       const token = localStorage.getItem('auth_token');
@@ -158,6 +146,18 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({
       return () => clearInterval(interval);
     }
   }, [autoRefresh]);
+
+  // Check if user has admin role
+  if (!isAuthenticated || !hasRole('admin')) {
+    return (
+      <div className={`bg-white rounded-lg shadow-md p-6 ${className}`}>
+        <div className="text-center text-gray-500">
+          <h3 className="text-lg font-semibold mb-2">Access Denied</h3>
+          <p>You need admin privileges to access monitoring dashboard.</p>
+        </div>
+      </div>
+    );
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {

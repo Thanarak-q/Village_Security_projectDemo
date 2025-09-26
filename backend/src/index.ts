@@ -18,6 +18,13 @@ import { adminActivityLogsRoutes } from "./routes/adminActivityLogs";
 import { liffAuthRoutes } from "./routes/(line)/liffAuth";
 import { villagesRoutes } from "./routes/villages";
 import { notificationsRoutes } from "./routes/notifications";
+import { superAdminVillagesRoutes } from "./routes/superAdminVillages";
+import { superAdminAdminsRoutes } from "./routes/superAdminAdmins";
+import { superAdminStatsRoutes } from "./routes/superAdminStats";
+import { adminManagementRoutes } from "./routes/adminManagement";
+import { staffManagementRoutes } from "./routes/staffManagement";
+import { redirectRoutes } from "./routes/redirect";
+import { villageSelectionRoutes } from "./routes/villageSelection";
 import approvalForm from "./routes/submitVisitorForm";
 /**
  * SECURITY ENHANCEMENT: Secure Health Check Endpoint
@@ -51,6 +58,12 @@ const healthCheck = new Elysia().get("/api/health", async () => {
   }
 });
 
+const jwtSecret = process.env.JWT_SECRET;
+
+if (!jwtSecret) {
+  throw new Error("JWT_SECRET is required but not set");
+}
+
 const app = new Elysia()
   .use(cors())
   .use(
@@ -61,7 +74,7 @@ const app = new Elysia()
       maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
     })
   )
-  .use(jwt({ name: "jwt", secret: process.env.JWT_SECRET || "super-secret", exp: "7d" }))
+  .use(jwt({ name: "jwt", secret: jwtSecret, exp: "7d" }))
   .use(healthCheck)
   .use(houseManageRoutes)
   .use(visitorRecordRoutes)
@@ -79,6 +92,14 @@ const app = new Elysia()
   .use(notificationsRoutes)
   .use(approvalForm)
   // .use(residentApi)
+  // .use(approvalForm)
+  .use(superAdminVillagesRoutes)
+  .use(superAdminAdminsRoutes)
+  .use(superAdminStatsRoutes)
+  .use(adminManagementRoutes)
+  .use(staffManagementRoutes)
+  .use(redirectRoutes)
+  .use(villageSelectionRoutes)
   .get("/", () => "Hello Village Security API!");
 
 // Initialize database connection and start server

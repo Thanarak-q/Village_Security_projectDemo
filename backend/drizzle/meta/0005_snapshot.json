@@ -1,6 +1,6 @@
 {
-  "id": "642948c0-7af7-4adb-ba4b-d9a305fe545e",
-  "prevId": "2d7af6cd-1b31-4ac0-ad4d-14d5e4d21e3a",
+  "id": "64721fdd-da62-4405-a69e-9e83c9724e62",
+  "prevId": "642948c0-7af7-4adb-ba4b-d9a305fe545e",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -46,208 +46,6 @@
         "admin_activity_logs_admin_id_admins_admin_id_fk": {
           "name": "admin_activity_logs_admin_id_admins_admin_id_fk",
           "tableFrom": "admin_activity_logs",
-          "tableTo": "admins",
-          "columnsFrom": [
-            "admin_id"
-          ],
-          "columnsTo": [
-            "admin_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.admin_notification_delivery": {
-      "name": "admin_notification_delivery",
-      "schema": "",
-      "columns": {
-        "delivery_id": {
-          "name": "delivery_id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "notification_id": {
-          "name": "notification_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "admin_id": {
-          "name": "admin_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "seen_at": {
-          "name": "seen_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "read_at": {
-          "name": "read_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "idx_admin_notification_delivery_unique": {
-          "name": "idx_admin_notification_delivery_unique",
-          "columns": [
-            {
-              "expression": "notification_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "admin_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_admin_notification_delivery_admin_id": {
-          "name": "idx_admin_notification_delivery_admin_id",
-          "columns": [
-            {
-              "expression": "admin_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_admin_notification_delivery_notification_id": {
-          "name": "idx_admin_notification_delivery_notification_id",
-          "columns": [
-            {
-              "expression": "notification_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_admin_notification_delivery_read_at": {
-          "name": "idx_admin_notification_delivery_read_at",
-          "columns": [
-            {
-              "expression": "read_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_admin_notification_delivery_seen_at": {
-          "name": "idx_admin_notification_delivery_seen_at",
-          "columns": [
-            {
-              "expression": "seen_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_admin_notification_delivery_admin_read": {
-          "name": "idx_admin_notification_delivery_admin_read",
-          "columns": [
-            {
-              "expression": "admin_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "read_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_admin_notification_delivery_admin_seen": {
-          "name": "idx_admin_notification_delivery_admin_seen",
-          "columns": [
-            {
-              "expression": "admin_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "seen_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "admin_notification_delivery_notification_id_admin_notifications_notification_id_fk": {
-          "name": "admin_notification_delivery_notification_id_admin_notifications_notification_id_fk",
-          "tableFrom": "admin_notification_delivery",
-          "tableTo": "admin_notifications",
-          "columnsFrom": [
-            "notification_id"
-          ],
-          "columnsTo": [
-            "notification_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "admin_notification_delivery_admin_id_admins_admin_id_fk": {
-          "name": "admin_notification_delivery_admin_id_admins_admin_id_fk",
-          "tableFrom": "admin_notification_delivery",
           "tableTo": "admins",
           "columnsFrom": [
             "admin_id"
@@ -365,18 +163,102 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        }
+      },
+      "foreignKeys": {
+        "admin_notifications_village_key_villages_village_key_fk": {
+          "name": "admin_notifications_village_key_villages_village_key_fk",
+          "tableFrom": "admin_notifications",
+          "tableTo": "villages",
+          "columnsFrom": [
+            "village_key"
+          ],
+          "columnsTo": [
+            "village_key"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.admin_villages": {
+      "name": "admin_villages",
+      "schema": "",
+      "columns": {
+        "admin_village_id": {
+          "name": "admin_village_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
-        "idx_admin_notifications_village_created": {
-          "name": "idx_admin_notifications_village_created",
+        "admin_id": {
+          "name": "admin_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "village_key": {
+          "name": "village_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_admin_villages_admin_id": {
+          "name": "idx_admin_villages_admin_id",
+          "columns": [
+            {
+              "expression": "admin_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_admin_villages_village_key": {
+          "name": "idx_admin_villages_village_key",
           "columns": [
             {
               "expression": "village_key",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_admin_villages_admin_village": {
+          "name": "idx_admin_villages_admin_village",
+          "columns": [
+            {
+              "expression": "admin_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
             },
             {
-              "expression": "created_at",
+              "expression": "village_key",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -389,9 +271,22 @@
         }
       },
       "foreignKeys": {
-        "admin_notifications_village_key_villages_village_key_fk": {
-          "name": "admin_notifications_village_key_villages_village_key_fk",
-          "tableFrom": "admin_notifications",
+        "admin_villages_admin_id_admins_admin_id_fk": {
+          "name": "admin_villages_admin_id_admins_admin_id_fk",
+          "tableFrom": "admin_villages",
+          "tableTo": "admins",
+          "columnsFrom": [
+            "admin_id"
+          ],
+          "columnsTo": [
+            "admin_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "admin_villages_village_key_villages_village_key_fk": {
+          "name": "admin_villages_village_key_villages_village_key_fk",
+          "tableFrom": "admin_villages",
           "tableTo": "villages",
           "columnsFrom": [
             "village_key"
@@ -444,12 +339,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "village_key": {
-          "name": "village_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "status": {
           "name": "status",
           "type": "text",
@@ -462,7 +351,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'admin'"
+          "default": "'staff'"
         },
         "created_at": {
           "name": "created_at",
@@ -494,38 +383,9 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "idx_admins_village_key": {
-          "name": "idx_admins_village_key",
-          "columns": [
-            {
-              "expression": "village_key",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
-      "foreignKeys": {
-        "admins_village_key_villages_village_key_fk": {
-          "name": "admins_village_key_villages_village_key_fk",
-          "tableFrom": "admins",
-          "tableTo": "villages",
-          "columnsFrom": [
-            "village_key"
-          ],
-          "columnsTo": [
-            "village_key"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "admins_email_unique": {
