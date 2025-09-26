@@ -299,16 +299,7 @@ export default function HouseManagementTable() {
         {/* Header */}
         <div className="mb-6">
           {/* Village Info */}
-          {selectedVillageName && (
-            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="flex items-center gap-2">
-                <Home className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                <span className="text-blue-800 dark:text-blue-200 font-medium">
-                  กำลังจัดการบ้านใน: {selectedVillageName}
-                </span>
-              </div>
-            </div>
-          )}
+          
 
           {/* Top Actions */}
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
