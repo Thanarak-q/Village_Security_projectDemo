@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,7 +8,7 @@ import { Plus, Users, Eye } from "lucide-react";
 import { AddStaffForm } from "./AddStaffForm";
 import { StaffTable } from "./StaffTable";
 import { toast } from "sonner";
-import {gsap} from "gsap";
+import { gsap } from "gsap";
 
 
 
@@ -31,10 +31,58 @@ export default function StaffManagePage() {
   const [selectedVillageKey, setSelectedVillageKey] = useState<string>("");
   const [villageName, setVillageName] = useState<string>("");
   const [userRole, setUserRole] = useState<string>("");
+  const cardRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
 
+  // Enhanced GSAP smooth scroll-up animations
+  useEffect(() => {
+    // Small delay to ensure DOM elements are rendered
+    const timer = setTimeout(() => {
+      const cardElement = cardRef.current;
+      const headerElement = headerRef.current;
+      const tabsElement = tabsRef.current;
 
-  //gsap smooth scroll-up animations
-  
+      // Only animate if elements exist
+      if (cardElement && headerElement && tabsElement) {
+        // Set initial state for all elements
+        gsap.set([cardElement, headerElement, tabsElement], {
+          opacity: 0,
+          y: 30
+        });
+
+        // Create timeline for staggered animation
+        const tl = gsap.timeline();
+
+        tl.to(cardElement, {
+          duration: 0.6,
+          opacity: 1,
+          y: 0,
+          ease: "power2.out"
+        })
+          .to(headerElement, {
+            duration: 0.5,
+            opacity: 1,
+            y: 0,
+            ease: "power2.out"
+          }, "-=0.3")
+          .to(tabsElement, {
+            duration: 0.5,
+            opacity: 1,
+            y: 0,
+            ease: "power2.out"
+          }, "-=0.2");
+      }
+    }, 50);
+
+    return () => {
+      clearTimeout(timer);
+      // Kill any existing animations
+      if (cardRef.current) gsap.killTweensOf(cardRef.current);
+      if (headerRef.current) gsap.killTweensOf(headerRef.current);
+      if (tabsRef.current) gsap.killTweensOf(tabsRef.current);
+    };
+  }, []);
 
   // 
 
@@ -45,18 +93,18 @@ export default function StaffManagePage() {
         const res = await fetch("/api/auth/me", {
           credentials: "include",
         });
-        
+
         if (res.ok) {
           const json = await res.json();
           setUserRole(json.role);
-          
+
           // Redirect staff users away from this page
           if (json.role === "staff") {
             toast.error("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
             window.location.href = "/dashboard";
             return;
           }
-          
+
           // Get selected village from session storage for admin/superadmin
           const villageKey = sessionStorage.getItem("selectedVillage");
           if (villageKey) {
@@ -109,8 +157,8 @@ export default function StaffManagePage() {
   };
 
   const handleStaffUpdated = (updatedStaff: StaffMember) => {
-    setStaffMembers(prev => 
-      prev.map(staff => 
+    setStaffMembers(prev =>
+      prev.map(staff =>
         staff.admin_id === updatedStaff.admin_id ? updatedStaff : staff
       )
     );
@@ -145,7 +193,7 @@ export default function StaffManagePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <Button 
+            <Button
               onClick={() => window.location.href = "/dashboard"}
               className="w-full"
             >
@@ -168,7 +216,7 @@ export default function StaffManagePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <Button 
+            <Button
               onClick={() => window.location.href = "/admin-village-selection"}
               className="w-full"
             >
@@ -181,50 +229,52 @@ export default function StaffManagePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              จัดการนิติบุคคล
-            </CardTitle>
-            <CardDescription>
-              จัดการข้อมูลนิติบุคคลในหมู่บ้าน
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="view" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="view" className="flex items-center gap-2">
-                  <Eye className="h-4 w-4" />
-                  ดูนิติบุคคลทั้งหมด
-                </TabsTrigger>
-                <TabsTrigger value="add" className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  เพิ่มนิติบุคคล
-                </TabsTrigger>
-              </TabsList>
+    <div ref={cardRef}>
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-6 max-w-7xl">
+          <Card>
+            <CardHeader ref={headerRef}>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                จัดการนิติบุคคล
+              </CardTitle>
+              <CardDescription>
+                จัดการข้อมูลนิติบุคคลในหมู่บ้าน
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="view" className="space-y-6" ref={tabsRef}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="view" className="flex items-center gap-2">
+                    <Eye className="h-4 w-4" />
+                    ดูนิติบุคคลทั้งหมด
+                  </TabsTrigger>
+                  <TabsTrigger value="add" className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    เพิ่มนิติบุคคล
+                  </TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="view" className="space-y-4">
-                <StaffTable
-                  staffMembers={staffMembers}
-                  onStaffUpdated={handleStaffUpdated}
-                  onStaffDeleted={handleStaffDeleted}
-                  loading={loading}
-                />
-              </TabsContent>
+                <TabsContent value="view" className="space-y-4">
+                  <StaffTable
+                    staffMembers={staffMembers}
+                    onStaffUpdated={handleStaffUpdated}
+                    onStaffDeleted={handleStaffDeleted}
+                    loading={loading}
+                  />
+                </TabsContent>
 
-              <TabsContent value="add" className="space-y-4">
-                <AddStaffForm
-                  villageKey={selectedVillageKey}
-                  villageName={villageName}
-                  onStaffAdded={handleStaffAdded}
-                />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+                <TabsContent value="add" className="space-y-4">
+                  <AddStaffForm
+                    villageKey={selectedVillageKey}
+                    villageName={villageName}
+                    onStaffAdded={handleStaffAdded}
+                  />
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
