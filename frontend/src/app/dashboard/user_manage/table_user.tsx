@@ -389,17 +389,7 @@ export default function UserManagementTable() {
       {/* Main table section */}
       <div className="bg-background rounded-lg shadow-sm border border-border p-4 sm:p-6">
         {/* Village indicator */}
-        {selectedVillageName && (
-          <div className="mb-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
-            <div className="flex items-center gap-2">
-              <Home className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium text-primary">
-                กำลังดูข้อมูลของ: <span className="font-semibold">{selectedVillageName}</span>
-              </span>
-            </div>
-          </div>
-        )}
-
+        
         {/* Header with tabs and search */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
           {/* User type tabs and pending users button */}

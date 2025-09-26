@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Building2, Home, Users, Shield, LogOut } from "lucide-react";
-import { toast } from "sonner";
+// import { toast } from "sonner";
 import { gsap } from "gsap";
 
 interface Village {
@@ -56,7 +56,7 @@ const VillageSelectionPage = () => {
         const userData = await response.json();
         
         if (userData.role !== "admin" && userData.role !== "superadmin") {
-          toast.error("Access denied. Admin role required.");
+          // toast.error("Access denied. Admin role required.");
           router.push("/login");
           return;
         }
@@ -73,14 +73,14 @@ const VillageSelectionPage = () => {
           if (villagesData.success) {
             setVillages(villagesData.data);
           } else {
-            toast.error(villagesData.error || "Failed to fetch villages");
+            // toast.error(villagesData.error || "Failed to fetch villages");
           }
         } else {
-          toast.error("Failed to fetch villages");
+          // toast.error("Failed to fetch villages");
         }
       } catch (error) {
         console.error("Error checking authentication:", error);
-        toast.error("Authentication error");
+        // toast.error("Authentication error");
         router.push("/login");
       } finally {
         setLoading(false);
@@ -161,7 +161,7 @@ const VillageSelectionPage = () => {
     }
 
     // Show success message and redirect
-    toast.success("Village selected successfully!");
+    // toast.success("Village selected successfully!");
     
     setTimeout(() => {
       router.push("/dashboard");
@@ -180,10 +180,10 @@ const VillageSelectionPage = () => {
       localStorage.clear();
       
       router.push("/login");
-      toast.success("Logged out successfully");
+      // toast.success("Logged out successfully");
     } catch (error) {
       console.error("Logout error:", error);
-      toast.error("Logout failed");
+      // toast.error("Logout failed");
     }
   };
 

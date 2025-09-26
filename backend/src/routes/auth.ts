@@ -142,7 +142,9 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
    */
   .get("/me", async ({ currentUser }: any) => {
     // Get village information for all assigned villages
-    let villages_info = [];
+    let villages_info: Array<{ village_key: string; village_name: string }> = [];
+    let village_name: string | null = null;
+    
     if (currentUser.village_keys && currentUser.village_keys.length > 0) {
       villages_info = await db
         .select({ 
@@ -151,6 +153,11 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
         })
         .from(villages)
         .where(inArray(villages.village_key, currentUser.village_keys));
+      
+      // For staff users, get their assigned village name
+      if (currentUser.role === "staff" && villages_info.length > 0) {
+        village_name = villages_info[0].village_name;
+      }
     }
 
     return {
@@ -160,6 +167,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       role: currentUser.role,
       village_keys: currentUser.village_keys || [],
       villages: villages_info,
+      village_name: village_name, // Add village_name for staff users
     };
   })
 

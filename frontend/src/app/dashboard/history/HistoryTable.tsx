@@ -410,11 +410,7 @@ export default function HistoryTable() {
                 >
                   <Car className="h-4 w-4 sm:h-5 sm:w-5" />
                   <span>ประวัติผู้เยี่ยม ({visitorHistoryData.length})</span>
-                  {selectedVillageName && (
-                    <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
-                      {selectedVillageName}
-                    </span>
-                  )}
+                  
                 </button>
               </div>
               

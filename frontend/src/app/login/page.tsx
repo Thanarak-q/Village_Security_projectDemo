@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
 
 import gsap from "gsap";
@@ -277,7 +276,6 @@ const Page: React.FC = () => {
       }
 
       console.log("Login successful");
-      toast.success("Login successful!");
 
       // Get redirect URL based on user role
       try {
@@ -302,7 +300,6 @@ const Page: React.FC = () => {
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "Something went wrong";
-      toast.error(errorMessage);
       // Trigger login failure animation
       animateLoginFailure();
       setLoading(false);
