@@ -6,11 +6,10 @@ export interface LiffUser {
   email: string;
   fname: string;
   lname: string;
-  username: string;
   phone: string;
   village_key: string;
   status: 'verified' | 'pending' | 'disable';
-  profile_image_url?: string;
+  line_profile_url?: string;
   role: 'resident' | 'guard';
 }
 
@@ -27,11 +26,18 @@ export interface LiffAuthResponse {
   message?: string; // Custom success/error message
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+
+if (!API_BASE_URL && typeof window !== 'undefined') {
+  console.warn('NEXT_PUBLIC_API_URL not set, using current origin as fallback');
+}
+
 // Verify LINE ID token with backend
 export const verifyLiffToken = async (idToken: string, role?: 'resident' | 'guard'): Promise<LiffAuthResponse> => {
   try {
+    const apiUrl = `${API_BASE_URL}/api/liff/verify`;
     
-    const response = await fetch('/api/liff/verify', {
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -95,6 +101,17 @@ export const verifyLiffToken = async (idToken: string, role?: 'resident' | 'guar
 
     // Try to parse JSON
     const data = JSON.parse(text);
+    
+    // Ensure the response has the expected structure
+    if (data.success === undefined) {
+      // If no success field, it's an error response
+      return {
+        success: false,
+        error: data.error || 'Unknown error',
+        lineUserId: data.lineUserId
+      };
+    }
+    
     return data;
   } catch (error) {
     console.error('LIFF verification error:', error);
@@ -128,6 +145,8 @@ export const registerLiffUser = async (
       body: JSON.stringify({
         idToken,
         ...userData,
+        // Pass role parameter if provided
+        ...(userData.role && { role: userData.role }),
       }),
     });
 

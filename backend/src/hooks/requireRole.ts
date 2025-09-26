@@ -13,7 +13,7 @@
  */
 
 import db from "../db/drizzle";
-import { admins, admin_villages } from "../db/schema";
+import { admins, admin_villages, guards, residents } from "../db/schema";
 import { eq } from "drizzle-orm";
 
 /**
@@ -56,9 +56,24 @@ export const requireRole = (required: string | string[] = "*") => {
       return { error: "Unauthorized: The provided token has expired." };
     }
 
-    const user = await db.query.admins.findFirst({
-      where: eq(admins.admin_id, payload.id),
-    });
+    // Determine user type from JWT payload
+    const userRole = payload.role;
+    let user = null;
+
+    // Find user in the appropriate table based on their role
+    if (userRole === 'guard') {
+      user = await db.query.guards.findFirst({
+        where: eq(guards.guard_id, payload.id),
+      });
+    } else if (userRole === 'resident') {
+      user = await db.query.residents.findFirst({
+        where: eq(residents.resident_id, payload.id),
+      });
+    } else if (userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff') {
+      user = await db.query.admins.findFirst({
+        where: eq(admins.admin_id, payload.id),
+      });
+    }
 
     if (!user) {
       set.status = 401;
@@ -70,7 +85,7 @@ export const requireRole = (required: string | string[] = "*") => {
       return { error: "Forbidden: The user account is not active." };
     }
 
-    if (required !== "*" && !allowedRoles.includes(user.role)) {
+    if (required !== "*" && !allowedRoles.includes(userRole)) {
       set.status = 403;
       return { error: "Forbidden: You do not have the required role to access this resource." };
     }

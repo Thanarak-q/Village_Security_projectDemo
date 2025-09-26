@@ -89,11 +89,14 @@ export default function LiffPage() {
             const authResult = await verifyLiffToken(idToken);
             
             if (authResult.success && authResult.user && authResult.token) {
-              // User exists in database, store auth data and redirect
+              // User exists in database, store auth data and redirect based on role
               storeAuthData(authResult.user, authResult.token);
               setStep("ready");
               setMsg("เข้าสู่ระบบสำเร็จ กำลังพาไปหน้าหลัก...");
-              setTimeout(() => router.replace("/Resident"), 1000);
+              
+              // Redirect based on user role
+              const redirectPath = authResult.user.role === 'guard' ? '/dashboard' : '/Resident';
+              setTimeout(() => router.replace(redirectPath), 1000);
             } else if (authResult.lineUserId) {
               // User not found, redirect to register page
               console.log('📝 User not found in database, redirecting to register page');

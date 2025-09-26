@@ -25,6 +25,7 @@ import { adminManagementRoutes } from "./routes/adminManagement";
 import { staffManagementRoutes } from "./routes/staffManagement";
 import { redirectRoutes } from "./routes/redirect";
 import { villageSelectionRoutes } from "./routes/villageSelection";
+import approvalForm from "./routes/submitVisitorForm";
 /**
  * SECURITY ENHANCEMENT: Secure Health Check Endpoint
  *
@@ -89,6 +90,7 @@ const app = new Elysia()
   .use(liffAuthRoutes)
   .use(villagesRoutes)
   .use(notificationsRoutes)
+  .use(approvalForm)
   // .use(residentApi)
   // .use(approvalForm)
   .use(superAdminVillagesRoutes)

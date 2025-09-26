@@ -139,7 +139,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
    * @param {Object} context.currentUser - The current user.
    * @returns {Promise<Object>} A promise that resolves to an object containing a success message.
    */
-  .put("/approveUser", async ({ body, currentUser }: any) => {
+  .put("/approveUser", async ({ body, currentUser }) => {
     try {
       const {
         userId,
@@ -266,6 +266,13 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
               lname: updateResult[0].lname,
               village_key: updateResult[0].village_key || '',
             });
+          await notificationService.notifyUserApproval({
+            user_id: userId,
+            user_type: 'resident',
+            fname: updateResult[0].fname,
+            lname: updateResult[0].lname,
+            village_key: updateResult[0].village_key || '',
+          });
         } catch (notificationError) {
           console.error('Error creating approval notification:', notificationError);
         }

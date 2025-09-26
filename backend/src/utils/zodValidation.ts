@@ -38,7 +38,7 @@ export const registrationSchema = z.object({
     .min(1, 'กรุณากรอกรหัสหมู่บ้าน')
     .min(3, 'รหัสหมู่บ้านต้องมีอย่างน้อย 3 ตัวอักษร')
     .max(20, 'รหัสหมู่บ้านต้องไม่เกิน 20 ตัวอักษร')
-    .regex(/^[a-zA-Z0-9]+$/, 'รหัสหมู่บ้านต้องเป็นตัวอักษรและตัวเลขเท่านั้น'),
+    .regex(/^[a-zA-Z0-9\-]+$/, 'รหัสหมู่บ้านต้องเป็นตัวอักษร ตัวเลข และขีดกลางเท่านั้น'),
   
   userType: z
     .enum(['resident', 'guard'])
@@ -96,7 +96,6 @@ export const validateLiffRegistration = (data: {
   village_key: string;
   userType: 'resident' | 'guard';
   profile_image_url?: string;
-  role?: 'resident' | 'guard';
 }): { isValid: boolean; errors: ValidationError[] } => {
   // First validate the basic registration data
   const basicErrors = validateRegistrationData(data);
@@ -170,7 +169,7 @@ export const isValidPhone = (phone: string): boolean => {
 export const isValidVillageKey = (villageKey: string): boolean => {
   if (typeof villageKey !== 'string') return false;
   
-  return /^[a-zA-Z0-9]+$/.test(villageKey) && 
+  return /^[a-zA-Z0-9\-]+$/.test(villageKey) && 
          villageKey.length >= 3 && 
          villageKey.length <= 20;
 };
