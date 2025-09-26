@@ -31,6 +31,8 @@ function Navbar() {
     profileImage?: string;
     role: AdminRole;
   } | null>(null);
+  const [showRealtimeIndicator, setShowRealtimeIndicator] = useState(false);
+  const realtimeIndicatorTimeoutRef = useRef<number | null>(null);
   const titleSpinRef = useRef<HTMLSpanElement>(null);
   const [currentTitleIndex, setCurrentTitleIndex] = useState(0);
   const animationRef = useRef<gsap.core.Timeline | null>(null);
@@ -59,6 +61,31 @@ function Navbar() {
       .then((json) => {
         if (json) setUserData(json);
       });
+
+    const handleRealtimeNotification = () => {
+      setShowRealtimeIndicator(true);
+
+      window.dispatchEvent(new CustomEvent("dashboardNotificationsUpdated"));
+
+      if (realtimeIndicatorTimeoutRef.current) {
+        window.clearTimeout(realtimeIndicatorTimeoutRef.current);
+      }
+
+      realtimeIndicatorTimeoutRef.current = window.setTimeout(() => {
+        setShowRealtimeIndicator(false);
+        realtimeIndicatorTimeoutRef.current = null;
+      }, 2500);
+    };
+
+    window.addEventListener("dashboardRealtimeNotification", handleRealtimeNotification);
+
+    return () => {
+      window.removeEventListener("dashboardRealtimeNotification", handleRealtimeNotification);
+      if (realtimeIndicatorTimeoutRef.current) {
+        window.clearTimeout(realtimeIndicatorTimeoutRef.current);
+        realtimeIndicatorTimeoutRef.current = null;
+      }
+    };
   }, []);
 
   // Function to start animation
@@ -286,7 +313,16 @@ function Navbar() {
           <ModeToggle />
 
           {/* Notification Component */}
-          <NotificationComponent />
+          <div className="relative">
+            <NotificationComponent />
+            <div
+              className={`absolute -top-3 right-0 bg-green-100 dark:bg-green-900/80 text-green-800 dark:text-green-200 text-[11px] font-medium px-2 py-1 rounded-full shadow transition-all duration-300 ${
+                showRealtimeIndicator ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1 pointer-events-none'
+              }`}
+            >
+              มีการแจ้งเตือนใหม่
+            </div>
+          </div>
 
           {/* User Profile Dropdown */}
           <DropdownMenu>

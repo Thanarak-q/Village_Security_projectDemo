@@ -24,8 +24,22 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
       const { page = 1, limit = 20, type, category } = query;
       const offset = (Number(page) - 1) * Number(limit);
 
+      // Get the admin's village_key from admin_villages table
+      const adminVillage = await db.query.admin_villages.findFirst({
+        where: eq(admin_villages.admin_id, currentUser.admin_id)
+      });
+
+      const villageKey = adminVillage?.village_key || currentUser.village_key;
+      
+      if (!villageKey) {
+        return {
+          success: false,
+          error: 'Admin not associated with any village'
+        };
+      }
+
       // Build where conditions - get notifications for the admin's village
-      const whereConditions = [eq(admin_notifications.village_key, currentUser.village_key)];
+      const whereConditions = [eq(admin_notifications.village_key, villageKey)];
       
       if (type) {
         whereConditions.push(eq(admin_notifications.type, type as any));
@@ -101,11 +115,25 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
     try {
       const { currentUser } = context;
 
+      // Get the admin's village_key from admin_villages table
+      const adminVillage = await db.query.admin_villages.findFirst({
+        where: eq(admin_villages.admin_id, currentUser.admin_id)
+      });
+
+      const villageKey = adminVillage?.village_key || currentUser.village_key;
+      
+      if (!villageKey) {
+        return {
+          success: false,
+          error: 'Admin not associated with any village'
+        };
+      }
+
       // Get total and unread counts
       const [totalResult] = await Promise.all([
         db.select({ count: count() })
           .from(admin_notifications)
-          .where(eq(admin_notifications.village_key, currentUser.village_key))
+          .where(eq(admin_notifications.village_key, villageKey))
       ]);
 
       return {

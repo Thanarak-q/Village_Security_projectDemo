@@ -71,7 +71,10 @@ class NotificationService {
         body: notification.message,
         level: this.getNotificationLevel(data.type),
         createdAt: notification.created_at ? notification.created_at.getTime() : Date.now(),
-        villageKey: notification.village_key
+        villageKey: notification.village_key,
+        type: notification.type,
+        category: notification.category,
+        data: notification.data
       };
         
         await websocketClient.sendNotification(wsNotification);
@@ -162,7 +165,7 @@ class NotificationService {
   }
 
   /**
-   * Create notification for house status change (NO BROADCAST - Database only)
+   * Create notification for house status change and broadcast to admins.
    */
   async notifyHouseStatusChange(houseData: {
     house_id: string;
@@ -171,44 +174,20 @@ class NotificationService {
     new_status: string;
     village_key: string;
   }) {
-    // Only save to database, no WebSocket broadcast
-    try {
-      let serializedData = null;
-      if (houseData) {
-        try {
-          serializedData = JSON.stringify({
-            house_id: houseData.house_id,
-            house_address: houseData.address,
-            old_status: houseData.old_status,
-            new_status: houseData.new_status,
-            change_date: new Date().toISOString(),
-          });
-        } catch (error) {
-          console.error('❌ Invalid data field in house status notification:', error);
-          serializedData = null;
-        }
-      }
-
-      // Insert notification into database only (no WebSocket broadcast)
-      const [notification] = await db
-        .insert(admin_notifications)
-        .values({
-          village_key: houseData.village_key,
-          type: 'house_updated',
-          category: 'house_management',
-          title: 'สถานะบ้านเปลี่ยนแปลง',
-          message: `บ้านเลขที่ ${houseData.address} เปลี่ยนสถานะจาก '${houseData.old_status}' เป็น '${houseData.new_status}'`,
-          data: serializedData ? JSON.parse(serializedData) : null,
-          created_at: new Date(),
-        })
-        .returning();
-
-      console.log(`📢 House status notification saved to database only: ${notification.title}`);
-      return notification;
-    } catch (error) {
-      console.error('Error creating house status notification:', error);
-      throw error;
-    }
+    return this.createNotification({
+      village_key: houseData.village_key,
+      type: 'house_updated',
+      category: 'house_management',
+      title: 'สถานะบ้านเปลี่ยนแปลง',
+      message: `บ้านเลขที่ ${houseData.address} เปลี่ยนสถานะจาก '${houseData.old_status}' เป็น '${houseData.new_status}'`,
+      data: {
+        house_id: houseData.house_id,
+        house_address: houseData.address,
+        old_status: houseData.old_status,
+        new_status: houseData.new_status,
+        change_date: new Date().toISOString(),
+      },
+    });
   }
 
   /**
@@ -260,7 +239,7 @@ class NotificationService {
   }
 
   /**
-   * Create notification for house member added (NO BROADCAST - Database only)
+   * Create notification for house member added and broadcast to admins.
    */
   async notifyHouseMemberAdded(memberData: {
     house_member_id: string;
@@ -269,48 +248,24 @@ class NotificationService {
     house_address: string;
     village_key: string;
   }) {
-    // Only save to database, no WebSocket broadcast
-    try {
-      let serializedData = null;
-      if (memberData) {
-        try {
-          serializedData = JSON.stringify({
-            house_member_id: memberData.house_member_id,
-            resident_id: memberData.resident_id,
-            resident_name: memberData.resident_name,
-            house_address: memberData.house_address,
-            added_date: new Date().toISOString(),
-          });
-        } catch (error) {
-          console.error('❌ Invalid data field in member added notification:', error);
-          serializedData = null;
-        }
-      }
-
-      // Insert notification into database only (no WebSocket broadcast)
-      const [notification] = await db
-        .insert(admin_notifications)
-        .values({
-          village_key: memberData.village_key,
-          type: 'member_added',
-          category: 'house_management',
-          title: 'เพิ่มลูกบ้านใหม่',
-          message: `เพิ่มลูกบ้าน ${memberData.resident_name} เข้าบ้านเลขที่ ${memberData.house_address}`,
-          data: serializedData ? JSON.parse(serializedData) : null,
-          created_at: new Date(),
-        })
-        .returning();
-
-      console.log(`📢 Member added notification saved to database only: ${notification.title}`);
-      return notification;
-    } catch (error) {
-      console.error('Error creating member added notification:', error);
-      throw error;
-    }
+    return this.createNotification({
+      village_key: memberData.village_key,
+      type: 'member_added',
+      category: 'house_management',
+      title: 'เพิ่มลูกบ้านใหม่',
+      message: `เพิ่มลูกบ้าน ${memberData.resident_name} เข้าบ้านเลขที่ ${memberData.house_address}`,
+      data: {
+        house_member_id: memberData.house_member_id,
+        resident_id: memberData.resident_id,
+        resident_name: memberData.resident_name,
+        house_address: memberData.house_address,
+        added_date: new Date().toISOString(),
+      },
+    });
   }
 
   /**
-   * Create notification for house member removed (NO BROADCAST - Database only)
+   * Create notification for house member removed and broadcast to admins.
    */
   async notifyHouseMemberRemoved(memberData: {
     house_member_id: string;
@@ -319,48 +274,24 @@ class NotificationService {
     house_address: string;
     village_key: string;
   }) {
-    // Only save to database, no WebSocket broadcast
-    try {
-      let serializedData = null;
-      if (memberData) {
-        try {
-          serializedData = JSON.stringify({
-            house_member_id: memberData.house_member_id,
-            resident_id: memberData.resident_id,
-            resident_name: memberData.resident_name,
-            house_address: memberData.house_address,
-            removed_date: new Date().toISOString(),
-          });
-        } catch (error) {
-          console.error('❌ Invalid data field in member removed notification:', error);
-          serializedData = null;
-        }
-      }
-
-      // Insert notification into database only (no WebSocket broadcast)
-      const [notification] = await db
-        .insert(admin_notifications)
-        .values({
-          village_key: memberData.village_key,
-          type: 'member_removed',
-          category: 'house_management',
-          title: 'ลบลูกบ้าน',
-          message: `ลบลูกบ้าน ${memberData.resident_name} ออกจากบ้านเลขที่ ${memberData.house_address}`,
-          data: serializedData ? JSON.parse(serializedData) : null,
-          created_at: new Date(),
-        })
-        .returning();
-
-      console.log(`📢 Member removed notification saved to database only: ${notification.title}`);
-      return notification;
-    } catch (error) {
-      console.error('Error creating member removed notification:', error);
-      throw error;
-    }
+    return this.createNotification({
+      village_key: memberData.village_key,
+      type: 'member_removed',
+      category: 'house_management',
+      title: 'ลบลูกบ้าน',
+      message: `ลบลูกบ้าน ${memberData.resident_name} ออกจากบ้านเลขที่ ${memberData.house_address}`,
+      data: {
+        house_member_id: memberData.house_member_id,
+        resident_id: memberData.resident_id,
+        resident_name: memberData.resident_name,
+        house_address: memberData.house_address,
+        removed_date: new Date().toISOString(),
+      },
+    });
   }
 
   /**
-   * Create notification for resident status change (NO BROADCAST - Database only)
+   * Create notification for resident status change and broadcast to admins.
    */
   async notifyResidentStatusChange(residentData: {
     resident_id: string;
@@ -370,45 +301,21 @@ class NotificationService {
     new_status: string;
     village_key: string;
   }) {
-    // Only save to database, no WebSocket broadcast
-    try {
-      let serializedData = null;
-      if (residentData) {
-        try {
-          serializedData = JSON.stringify({
-            resident_id: residentData.resident_id,
-            resident_name: residentData.resident_name,
-            house_address: residentData.house_address,
-            old_status: residentData.old_status,
-            new_status: residentData.new_status,
-            change_date: new Date().toISOString(),
-          });
-        } catch (error) {
-          console.error('❌ Invalid data field in resident status notification:', error);
-          serializedData = null;
-        }
-      }
-
-      // Insert notification into database only (no WebSocket broadcast)
-      const [notification] = await db
-        .insert(admin_notifications)
-        .values({
-          village_key: residentData.village_key,
-          type: 'status_changed',
-          category: 'house_management',
-          title: 'เปลี่ยนสถานะลูกบ้าน',
-          message: `ลูกบ้าน ${residentData.resident_name} (บ้านเลขที่ ${residentData.house_address}) เปลี่ยนสถานะจาก '${residentData.old_status}' เป็น '${residentData.new_status}'`,
-          data: serializedData ? JSON.parse(serializedData) : null,
-          created_at: new Date(),
-        })
-        .returning();
-
-      console.log(`📢 Resident status notification saved to database only: ${notification.title}`);
-      return notification;
-    } catch (error) {
-      console.error('Error creating resident status notification:', error);
-      throw error;
-    }
+    return this.createNotification({
+      village_key: residentData.village_key,
+      type: 'status_changed',
+      category: 'house_management',
+      title: 'เปลี่ยนสถานะลูกบ้าน',
+      message: `ลูกบ้าน ${residentData.resident_name} (บ้านเลขที่ ${residentData.house_address}) เปลี่ยนสถานะจาก '${residentData.old_status}' เป็น '${residentData.new_status}'`,
+      data: {
+        resident_id: residentData.resident_id,
+        resident_name: residentData.resident_name,
+        house_address: residentData.house_address,
+        old_status: residentData.old_status,
+        new_status: residentData.new_status,
+        change_date: new Date().toISOString(),
+      },
+    });
   }
 
   /**

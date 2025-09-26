@@ -145,7 +145,8 @@ export default function NotificationComponent() {
     notifications,
     counts,
     loading,
-    error
+    error,
+    isWebSocketConnected
   } = useHybridNotifications();
 
   // Separate notifications into today and previous days
@@ -175,23 +176,6 @@ export default function NotificationComponent() {
       saveNotificationState(newState);
     }
   }, [notifications]);
-
-  // Update state when notifications change
-  useEffect(() => {
-    if (notifications.length > 0) {
-      const latestNotification = notifications[0];
-      const latestTime = new Date(latestNotification.created_at).getTime();
-      
-      // Only update if this is a newer notification
-      if (latestTime > notificationState.lastSeenTimestamp) {
-        // Don't auto-mark as seen, let user open to mark as seen
-      }
-    }
-  }, [notifications, notificationState.lastSeenTimestamp]);
-
-
-
-
 
   return (
     <Popover open={isOpen} onOpenChange={handleOpenChange}>

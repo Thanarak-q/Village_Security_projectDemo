@@ -51,8 +51,8 @@ export function useHybridNotifications() {
 
   const [notifications, setNotifications] = useState<HybridNotification[]>([]);
   const [counts, setCounts] = useState<{ total: number; unread: number } | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(httpLoading);
+  const [error, setError] = useState<string | null>(httpError);
 
   // Merge HTTP and WebSocket notifications
   useEffect(() => {
@@ -63,11 +63,15 @@ export function useHybridNotifications() {
         admin_id: 'system', // WebSocket notifications are system-wide
         title: wsNotif.title,
         message: wsNotif.body || '',
-        type: 'system' as const,
-        category: 'realtime' as const,
+        type: (wsNotif.type || 'system'),
+        category: (wsNotif.category || 'realtime'),
+        data: wsNotif.data,
         is_read: false,
         created_at: new Date(wsNotif.createdAt).toISOString(),
         read_at: undefined,
+        village_name: (typeof wsNotif.data === 'object' && wsNotif.data && 'village_name' in wsNotif.data)
+          ? String(wsNotif.data.village_name)
+          : undefined,
         isRealtime: true
       })),
       // Add HTTP notifications (filter out duplicates)
@@ -99,7 +103,7 @@ export function useHybridNotifications() {
 
   // Update loading and error states
   useEffect(() => {
-    setLoading(httpLoading);
+    setLoading(prev => httpLoading || prev);
     setError(httpError);
   }, [httpLoading, httpError]);
 

@@ -66,6 +66,8 @@ export interface WSNotification {
   level?: NotificationLevel;
   createdAt: number;
   data?: Record<string, unknown>;
+  type?: NotificationType | string;
+  category?: NotificationCategory | string;
 }
 
 // WebSocket Message interface

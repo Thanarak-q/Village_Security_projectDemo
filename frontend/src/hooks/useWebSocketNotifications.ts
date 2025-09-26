@@ -226,8 +226,18 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
     if (localDevMatch) {
       const port = localDevMatch[1];
       if (['3000', '5173', '4173'].includes(port)) {
-        const devPort = process.env.NEXT_PUBLIC_WS_DEV_PORT || '3002';
-        return `${wsProtocol}//${hostname}:${devPort}/ws`;
+        const proxyHost = process.env.NEXT_PUBLIC_WS_PROXY_HOST?.trim();
+        if (proxyHost) {
+          return `${wsProtocol}//${proxyHost}/ws`;
+        }
+
+        const devPort = process.env.NEXT_PUBLIC_WS_DEV_PORT?.trim();
+        if (devPort) {
+          return `${wsProtocol}//${hostname}:${devPort}/ws`;
+        }
+
+        // Default to Caddy (or any reverse proxy) on the same hostname.
+        return `${wsProtocol}//${hostname}/ws`;
       }
     }
 

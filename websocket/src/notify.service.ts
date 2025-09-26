@@ -32,6 +32,9 @@ export type AdminNotification = {
     level?: 'info' | 'warning' | 'critical'
     createdAt: number // epoch ms
     villageKey: string
+    type?: string
+    category?: string
+    data?: Record<string, unknown> | null
   }
   
 export type NotifyService = {

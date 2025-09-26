@@ -20,6 +20,9 @@ interface WebSocketNotification {
   level?: 'info' | 'warning' | 'critical';
   createdAt: number;
   villageKey: string;
+  type?: string;
+  category?: string;
+  data?: Record<string, unknown> | null;
 }
 
 class WebSocketClient {
