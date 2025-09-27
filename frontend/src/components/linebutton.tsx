@@ -1,6 +1,6 @@
 import React from 'react';
 
-const LINE_CHANNEL_ID = '2007847995';
+const LINE_CHANNEL_ID = process.env.NEXT_PUBLIC_LIFF_ID || '';
 const REDIRECT_URI = encodeURIComponent('http://167.71.218.163/api/callback');
 const STATE = Math.random().toString(36).substring(2);
 

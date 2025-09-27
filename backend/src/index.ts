@@ -17,6 +17,8 @@ import { authRoutes } from "./routes/auth";
 import { adminSettingsRoutes } from "./routes/adminSettings";
 import { adminActivityLogsRoutes } from "./routes/adminActivityLogs";
 import { liffAuthRoutes } from "./routes/(line)/liffAuth";
+import { flexMessageRoutes } from "./routes/(line)/flexMessage";
+import { visitorNotificationRoutes } from "./routes/visitorNotification";
 import { villagesRoutes } from "./routes/villages";
 import { notificationsRoutes } from "./routes/notifications";
 import { superAdminVillagesRoutes } from "./routes/superAdminVillages";
@@ -90,6 +92,8 @@ const app = new Elysia()
   .use(adminSettingsRoutes)
   .use(adminActivityLogsRoutes)
   .use(liffAuthRoutes)
+  .use(flexMessageRoutes)
+  .use(visitorNotificationRoutes)
   .use(villagesRoutes)
   .use(notificationsRoutes)
   .use(approvalForm)

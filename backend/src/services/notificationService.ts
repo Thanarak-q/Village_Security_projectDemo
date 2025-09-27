@@ -4,9 +4,10 @@
  */
 
 import db from '../db/drizzle';
-import { admin_notifications, villages } from '../db/schema';
+import { admin_notifications, villages, house_members } from '../db/schema';
 import { eq, and, count } from 'drizzle-orm';
 import { websocketClient } from './websocketClient';
+import { flexMessageService, type VisitorNotificationData, type ApprovalNotificationData, type SecurityAlertData } from '../routes/(line)/flexMessage';
 
 export interface CreateNotificationData {
   village_key: string;
@@ -316,6 +317,212 @@ class NotificationService {
         change_date: new Date().toISOString(),
       },
     });
+  }
+
+  /**
+   * Send visitor approval request via LINE flex message
+   */
+  async sendVisitorApprovalFlexMessage(userId: string, visitorData: VisitorNotificationData) {
+    try {
+      const success = await flexMessageService.sendFlexMessage(
+        userId,
+        flexMessageService.createVisitorApprovalMessage(visitorData)
+      );
+      
+      if (success) {
+        console.log(`📱 LINE flex message sent for visitor approval: ${visitorData.visitorName}`);
+      } else {
+        console.error(`❌ Failed to send LINE flex message for visitor approval: ${visitorData.visitorName}`);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('Error sending visitor approval flex message:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send approval result via LINE flex message
+   */
+  async sendApprovalResultFlexMessage(userId: string, approvalData: ApprovalNotificationData) {
+    try {
+      const success = await flexMessageService.sendFlexMessage(
+        userId,
+        flexMessageService.createApprovalResultMessage(approvalData)
+      );
+      
+      if (success) {
+        console.log(`📱 LINE flex message sent for approval result: ${approvalData.visitorName}`);
+      } else {
+        console.error(`❌ Failed to send LINE flex message for approval result: ${approvalData.visitorName}`);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('Error sending approval result flex message:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send security alert via LINE flex message
+   */
+  async sendSecurityAlertFlexMessage(userId: string, alertData: SecurityAlertData) {
+    try {
+      const success = await flexMessageService.sendFlexMessage(
+        userId,
+        flexMessageService.createSecurityAlertMessage(alertData)
+      );
+      
+      if (success) {
+        console.log(`📱 LINE flex message sent for security alert: ${alertData.alertType}`);
+      } else {
+        console.error(`❌ Failed to send LINE flex message for security alert: ${alertData.alertType}`);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('Error sending security alert flex message:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send welcome message via LINE flex message
+   */
+  async sendWelcomeFlexMessage(userId: string, residentName: string, villageName: string) {
+    try {
+      const success = await flexMessageService.sendFlexMessage(
+        userId,
+        flexMessageService.createWelcomeMessage(residentName, villageName)
+      );
+      
+      if (success) {
+        console.log(`📱 LINE welcome message sent to: ${residentName}`);
+      } else {
+        console.error(`❌ Failed to send LINE welcome message to: ${residentName}`);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('Error sending welcome flex message:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send visitor notification to all residents in a house
+   */
+  async sendVisitorNotificationToResidents(visitorData: VisitorNotificationData, houseNumber: string, villageKey: string) {
+    try {
+      // Get all residents in the house
+      const residents = await this.getResidentsInHouse(houseNumber, villageKey);
+      
+      if (residents.length === 0) {
+        console.log(`⚠️ No residents found in house ${houseNumber} for village ${villageKey}`);
+        return { success: false, message: 'No residents found in house' };
+      }
+
+      console.log(`📱 Sending visitor notification to ${residents.length} residents in house ${houseNumber}`);
+
+      // Send notification to all residents
+      const results = await Promise.allSettled(
+        residents.map(resident => 
+          this.sendVisitorNotificationFlexMessage(resident.lineUserId, visitorData)
+        )
+      );
+
+      const successful = results.filter(result => result.status === 'fulfilled' && result.value).length;
+      const failed = results.length - successful;
+
+      console.log(`📊 Notification results: ${successful} successful, ${failed} failed`);
+
+      return {
+        success: successful > 0,
+        message: `Sent to ${successful}/${residents.length} residents`,
+        successful,
+        failed,
+        total: residents.length
+      };
+    } catch (error) {
+      console.error('Error sending visitor notification to residents:', error);
+      return { success: false, message: 'Failed to send notifications', error: (error as Error).message };
+    }
+  }
+
+  /**
+   * Send visitor notification flex message to a single user
+   */
+  async sendVisitorNotificationFlexMessage(userId: string, visitorData: VisitorNotificationData) {
+    try {
+      const success = await flexMessageService.sendFlexMessage(
+        userId,
+        flexMessageService.createVisitorNotificationMessage(visitorData)
+      );
+      
+      if (success) {
+        console.log(`📱 Visitor notification sent to user: ${userId}`);
+      } else {
+        console.error(`❌ Failed to send visitor notification to user: ${userId}`);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('Error sending visitor notification flex message:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send visitor details flex message to a single user
+   */
+  async sendVisitorDetailsFlexMessage(userId: string, visitorData: VisitorNotificationData) {
+    try {
+      const success = await flexMessageService.sendFlexMessage(
+        userId,
+        flexMessageService.createVisitorDetailsMessage(visitorData)
+      );
+      
+      if (success) {
+        console.log(`📱 Visitor details sent to user: ${userId}`);
+      } else {
+        console.error(`❌ Failed to send visitor details to user: ${userId}`);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('Error sending visitor details flex message:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get all residents in a specific house
+   */
+  async getResidentsInHouse(houseNumber: string, villageKey: string) {
+    try {
+      // Mock data for now - replace with actual database query
+      // You'll need to implement this based on your actual database schema
+      const mockResidents = [
+        {
+          residentId: 'resident_001',
+          name: 'สมหญิง รักบ้าน',
+          lineUserId: 'U1234567890abcdef'
+        },
+        {
+          residentId: 'resident_002', 
+          name: 'สมชาย รักบ้าน',
+          lineUserId: 'U0987654321fedcba'
+        }
+      ];
+
+      console.log(`📋 Found ${mockResidents.length} residents in house ${houseNumber}`);
+      return mockResidents;
+    } catch (error) {
+      console.error('Error getting residents in house:', error);
+      return [];
+    }
   }
 
   /**
