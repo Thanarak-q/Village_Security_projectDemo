@@ -16,18 +16,43 @@ export const visitorRecordMonthlyRoutes = new Elysia({ prefix: "/api" })
    * @param {Object} context.query - The query parameters.
    * @returns {Promise<Object>} A promise that resolves to an object containing the monthly visitor records.
    */
-  .get("/visitor-record-monthly", async ({ currentUser, query }: any) => {
+  .get("/visitor-record-monthly", async ({ currentUser, query, request }: any) => {
     try {
+      // Extract village_key from query parameters
+      let village_key = query?.village_key;
+      
+      // Fallback: if query parsing fails, try to extract from URL
+      if (!village_key && request?.url) {
+        const url = new URL(request.url);
+        village_key = url.searchParams.get('village_key');
+      }
+      
       const { village_keys, role } = currentUser;
+
+      console.log("Monthly Records - Extracted village_key:", village_key);
+      console.log("Monthly Records - Available village_keys:", village_keys);
+
+      // Validate village_key parameter
+      if (!village_key || typeof village_key !== 'string') {
+        return {
+          success: false,
+          error: "Village key is required",
+        };
+      }
+
+      // Check if admin has access to the specified village
+      if (role !== "superadmin" && !village_keys.includes(village_key)) {
+        return {
+          success: false,
+          error: "You don't have access to this village",
+        };
+      }
       
-      // Get selected village from query parameter, fallback to all villages
-      const selectedVillageKey = query?.village_key;
-      const targetVillageKeys = selectedVillageKey ? [selectedVillageKey] : village_keys;
-      
-      const result = await getMonthlyVisitorRecords(targetVillageKeys, role);
+      const result = await getMonthlyVisitorRecords([village_key], role);
       return {
         success: true,
         data: result,
+        village_key: village_key,
       };
     } catch (error) {
       console.error("Error fetching monthly visitor records:", error);

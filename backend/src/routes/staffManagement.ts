@@ -13,10 +13,6 @@ interface AddStaffBody {
 }
 
 
-interface UserContext {
-  admin_id: string;
-  role: string;
-}
 
 /**
  * Legal Entity Management Routes
@@ -32,7 +28,7 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
    * @param {Object} context.body - The body of the request.
    * @returns {Promise<Object>} Success message with generated credentials
    */
-  .post("/add-staff", async ({ body, set, user }: { body: AddStaffBody; set: any; user: UserContext }) => {
+  .post("/add-staff", async ({ body, set, currentUser }: { body: AddStaffBody; set: any; currentUser: any }) => {
     try {
       const { username, village_key } = body;
 
@@ -135,11 +131,18 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
    * @param {Object} context.query - The query parameters.
    * @returns {Promise<Object>} List of staff members
    */
-  .get("/staff", async ({ query, set, user }: { query: { village_key: string }; set: any; user: UserContext }) => {
+  .get("/staff", async ({ query, set, currentUser, request }: { query: any; set: any; currentUser: any; request: any }) => {
     try {
-      const { village_key } = query;
+      // Extract village_key from query parameters
+      let village_key = query?.village_key;
+      
+      // Fallback: if query parsing fails, try to extract from URL
+      if (!village_key && request?.url) {
+        const url = new URL(request.url);
+        village_key = url.searchParams.get('village_key');
+      }
 
-      if (!village_key) {
+      if (!village_key || typeof village_key !== 'string') {
         set.status = 400;
         return { 
           success: false, 
@@ -204,7 +207,7 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
    * @param {Object} context.params - The route parameters.
    * @returns {Promise<Object>} Staff member details
    */
-  .get("/staff/:id", async ({ params, set, user }: { params: { id: string }; set: any; user: UserContext }) => {
+  .get("/staff/:id", async ({ params, set, currentUser }: { params: { id: string }; set: any; currentUser: any }) => {
     try {
       const { id } = params;
 
@@ -257,7 +260,7 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
    * @param {Object} context.params - The route parameters.
    * @returns {Promise<Object>} Success message
    */
-  .delete("/staff/:id", async ({ params, set, user }: { params: { id: string }; set: any; user: UserContext }) => {
+  .delete("/staff/:id", async ({ params, set, currentUser }: { params: { id: string }; set: any; currentUser: any }) => {
     try {
       const { id } = params;
 

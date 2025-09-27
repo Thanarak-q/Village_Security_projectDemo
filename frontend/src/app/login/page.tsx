@@ -23,6 +23,7 @@ import { ScrambleTextExample } from "@/components/animation";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ButtonProps } from "react-day-picker";
 import { ScrambleTextPlugin } from "gsap/all";
+import { Eye, EyeOff } from "lucide-react";
 
 gsap.registerPlugin(ScrambleTextPlugin);
 
@@ -97,6 +98,7 @@ Gsaploginbutton.displayName = "Gsaploginbutton";
 const Page: React.FC = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -286,6 +288,12 @@ const Page: React.FC = () => {
         if (redirectResponse.ok) {
           const redirectData = await redirectResponse.json();
           if (redirectData.success) {
+            // For staff users, automatically set their village key in sessionStorage
+            if (redirectData.user_info?.auto_village_key) {
+              sessionStorage.setItem("selectedVillage", redirectData.user_info.auto_village_key);
+              console.log("Auto-set village key for staff user:", redirectData.user_info.auto_village_key);
+            }
+            
             // Trigger success animation
             animateLoginSuccess(redirectData.redirect_url);
             return; // Exit early with proper redirect
@@ -526,17 +534,32 @@ const Page: React.FC = () => {
                         Password
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          id="password"
-                          type="password"
-                          placeholder="••••••"
-                          {...field}
-                          className={
-                            form.formState.errors.password
-                              ? "border-[1.5px] border-destructive"
-                              : ""
-                          }
-                        />
+                        <div className="relative">
+                          <Input
+                            id="password"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="••••••"
+                            {...field}
+                            className={
+                              form.formState.errors.password
+                                ? "border-[1.5px] border-destructive pr-10"
+                                : "pr-10"
+                            }
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? (
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <EyeOff className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </Button>
+                        </div>
                       </FormControl>
                       <FormMessage className="text-destructive text-[0.9rem]" />
                     </FormItem>
