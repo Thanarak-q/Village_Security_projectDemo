@@ -92,6 +92,7 @@ const validateStatus = (
  * @type {Elysia}
  */
 export const houseManageRoutes = new Elysia({ prefix: "/api" })
+  .onBeforeHandle(requireRole(["admin", "staff"]))
   // Test endpoint to check houses without authentication
   .get("/houses-test", async () => {
     try {
@@ -121,7 +122,7 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         }
       }
       
-      let currentUser = null;
+      let currentUser = null; 
 
       if (token) {
         try {
@@ -196,10 +197,10 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
   // Create new house - admin only
   .post("/house-manage", async ({ body, currentUser }: any) => {
     // Check if user has admin role
-    if (currentUser.role !== "admin") {
+    if (currentUser.role !== "admin" && currentUser.role !== "staff") {
       return {
         success: false,
-        error: "Access denied. Admin role required.",
+        error: "Access denied. Admin or staff role required.",
       };
     }
     try {
@@ -217,7 +218,7 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
       const { village_keys, role } = currentUser;
 
       // Check if admin has access to the specified village
-      if (role !== "superadmin" && !village_keys.includes(houseData.village_key)) {
+      if (!village_keys.includes(houseData.village_key)) {
         return {
           success: false,
           error: "You don't have access to this village",
@@ -378,12 +379,12 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
           try {
             await notificationService.notifyHouseStatusChange({
               house_id: house_id,
-              address: updatedHouse.address,
-              old_status: oldStatus,
-              new_status: updateData.status,
-              village_key: existingHouse[0].village_key,
+              address: updatedHouse.address ?? "",
+              old_status: oldStatus ?? "",
+              new_status: updateData.status ?? "",
+              village_key: existingHouse[0].village_key ?? "",
             });
-            console.log(`📢 House status change notification sent: ${updatedHouse.address}`);
+            console.log(`📢 House status change notification sent: ${updatedHouse.address ?? ""}`);
           } catch (notificationError) {
             console.error('❌ Error sending house status change notification:', notificationError);
             // Don't fail the request if notification fails
@@ -492,12 +493,12 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
           try {
             await notificationService.notifyHouseStatusChange({
               house_id: house_id,
-              address: updatedHouse.address,
-              old_status: oldStatus,
+              address: updatedHouse.address ?? "",
+              old_status: oldStatus ?? "",
               new_status: status,
-              village_key: existingHouse[0].village_key,
+              village_key: existingHouse[0].village_key ?? "",
             });
-            console.log(`📢 House status change notification sent: ${updatedHouse.address}`);
+            console.log(`📢 House status change notification sent: ${updatedHouse.address ?? ""}`);
           } catch (notificationError) {
             console.error('❌ Error sending house status change notification:', notificationError);
             // Don't fail the request if notification fails

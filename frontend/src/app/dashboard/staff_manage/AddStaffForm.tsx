@@ -149,7 +149,7 @@ export function AddStaffForm({ villageKey, villageName, onStaffAdded }: AddStaff
                     type={showPassword ? "text" : "password"}
                     value={generatedCredentials.password}
                     readOnly
-                    className="bg-white dark:bg-gray-800"
+                    className="bg-whi e dark:bg-gray-800"
                   />
                   <Button
                     size="sm"
