@@ -110,14 +110,15 @@ export class LiffService {
 
   // --- Init & SDK Loader ---
   async init(channelType: 'resident' | 'guard' | 'default' = 'default'): Promise<void> {
-    if (this.initPromise) return this.initPromise;
+    // Reuse init promise only when the requested channel type matches the current one
+    if (this.initPromise && this.currentChannelType === channelType) return this.initPromise;
     if (this.initialized && this.currentChannelType === channelType) return Promise.resolve();
 
     this.currentChannelType = channelType;
     this.initPromise = new Promise((resolve) => {
       if (typeof window === "undefined") { resolve(); return; }
 
-      const liffId = this.getLiffId();
+      const liffId = this.getLiffId(channelType);
       if (!liffId) { console.warn("LIFF ID not configured for channel type:", channelType); resolve(); return; }
 
       const w = window as Window & { liff?: LiffSDK };

@@ -1,9 +1,10 @@
 import { Elysia, t } from "elysia";
-import { residents, guards, admins } from "../../db/schema";
+import { residents, guards, admins, villages } from "../../db/schema";
 import db from "../../db/drizzle";
 import { eq } from "drizzle-orm";
 import { validateLiffRegistration, sanitizeString, isValidEmail, isValidPhone, isValidVillageKey } from "../../utils/zodValidation";
 import { notificationService } from "../../services/notificationService";
+import { rateLimit } from "../../middleware/rateLimiter";
 // JWT will be handled by Elysia's built-in JWT plugin
 
 /**
@@ -30,50 +31,32 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
   })
 
   // Verify LINE ID Token and authenticate user
-  .post("/verify", async ({ body, set, jwt, headers }: any) => {
+  .post("/verify", async ({ body, set, jwt, request }: any) => {
     try {
+      // Basic per-IP rate limit: 30 req/min per endpoint
+      const limiter = rateLimit({ windowMs: 60_000, max: 30 });
+      const limited = await limiter({ set, request });
+      if (limited) return limited;
+
       const { idToken, role: requestRole } = body as { idToken: string; role?: 'resident' | 'guard' };
 
       // Validate input
       if (!idToken || typeof idToken !== 'string') {
         set.status = 400;
-        return { error: "ID token is required and must be a string" };
+        return { success: false, error: "ID token is required and must be a string" };
       }
 
       if (requestRole && !['resident', 'guard'].includes(requestRole)) {
         set.status = 400;
-        return { error: "Invalid role. Must be 'resident' or 'guard'" };
+        return { success: false, error: "Invalid role. Must be 'resident' or 'guard'" };
       }
 
-      const origin = headers.origin || '';
-      const referer = headers.referer || '';
-      
-      // Debug logging
-      console.log('🔍 LIFF Verify Debug:', {
-        requestRole,
-        origin,
-        referer,
-        userAgent: headers['user-agent'] || 'unknown'
-      });
-      
-      // Determine the expected role based on request context
-      const isGuardRequest = requestRole === 'guard' || 
-                           origin.includes('/liff/guard') || origin.includes('guard') || 
-                           referer.includes('/liff/guard') || referer.includes('guard');
-      const isResidentRequest = requestRole === 'resident' || 
-                              origin.includes('/liff/resident') || origin.includes('resident') || 
-                              referer.includes('/liff/resident') || referer.includes('resident');
-      
-      console.log('🔍 Role Detection:', {
-        isGuardRequest,
-        isResidentRequest,
-        requestRole
-      });
-
-      // Both guard and resident use the same LINE channel ID
-      const clientId = process.env.LINE_CHANNEL_ID || '2008071362';
-      
-      console.log('🔍 Using Channel ID:', clientId, 'for', isGuardRequest ? 'guard' : isResidentRequest ? 'resident' : 'default');
+      // Require configured LINE Channel ID (no fallback)
+      const clientId = process.env.LINE_CHANNEL_ID;
+      if (!clientId) {
+        set.status = 500;
+        return { success: false, error: "LINE_CHANNEL_ID is not configured" };
+      }
 
       // Verify LINE ID token with LINE API
       
@@ -90,25 +73,21 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
 
       if (!verifyResponse.ok) {
         set.status = 401;
-        return { error: "Invalid ID token" };
+        return { success: false, error: "Invalid ID token" };
       }
 
       const lineUserInfo = await verifyResponse.json();
       const lineUserId = lineUserInfo.sub;
       const channelId = lineUserInfo.aud; // Audience contains the channel ID
 
-      // Determine user role based on request context since both LIFF apps use same channel ID
-      let expectedRole: 'resident' | 'guard';
-      if (isGuardRequest) {
-        expectedRole = 'guard';
-      } else if (isResidentRequest) {
-        expectedRole = 'resident';
-      } else {
-        // Fallback: if no clear context, use the role parameter from the request
-        expectedRole = requestRole || 'resident';
+      // Validate audience strictly
+      if (channelId !== clientId) {
+        set.status = 401;
+        return { success: false, error: "Token audience mismatch" };
       }
-      
-      console.log('🔍 Final Expected Role:', expectedRole);
+
+      // Determine role strictly from request param (fallback to resident)
+      const expectedRole: 'resident' | 'guard' = requestRole || 'resident';
 
       // Check only the relevant table based on expected role
       let user = null;
@@ -142,7 +121,15 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         role: userRole,
         village_key: user.village_key,
         iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + (60 * 60), // 1 hour expiration
       });
+
+      // Set HttpOnly cookie for session
+      const isProd = process.env.NODE_ENV === 'production';
+      const cookie = [`liff_session=${token}`, 'Path=/', 'HttpOnly', 'SameSite=Lax', isProd ? 'Secure' : '', 'Max-Age=3600']
+        .filter(Boolean)
+        .join('; ');
+      set.headers = { ...(set.headers || {}), 'Set-Cookie': cookie };
 
       return {
         success: true,
@@ -164,13 +151,17 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
     } catch (error) {
       console.error('LIFF verification error:', error);
       set.status = 500;
-      return { error: "Internal server error" };
+      return { success: false, error: "Internal server error" };
     }
   })
 
   // Register new user with LINE ID
-  .post("/register", async ({ body, set, jwt, headers }: any) => {
+  .post("/register", async ({ body, set, jwt, request }: any) => {
     try {
+      // Basic per-IP rate limit: 10 req/min per endpoint
+      const limiter = rateLimit({ windowMs: 60_000, max: 10 });
+      const limited = await limiter({ set, request });
+      if (limited) return limited;
       const {
         idToken,
         email,
@@ -222,25 +213,11 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         return { error: "ID token is required" };
       }
 
-      const origin = headers.origin || '';
-      const referer = headers.referer || '';
-      
-      // Determine the expected role based on request context or userType
-      // Prioritize userType parameter as it's more reliable than URL parsing
-      const isGuardRequest = userType === 'guard' || 
-                           (userType !== 'resident' && (
-                             origin.includes('/liff/guard') || origin.includes('guard') || 
-                             referer.includes('/liff/guard') || referer.includes('guard')
-                           ));
-      const isResidentRequest = userType === 'resident' || 
-                              (userType !== 'guard' && (
-                                origin.includes('/liff/resident') || origin.includes('resident') || 
-                                referer.includes('/liff/resident') || referer.includes('resident')
-                              ));
-
-      const clientId = process.env.LINE_CHANNEL_ID || '2008071362';
-      
-      console.log('🔍 Registration - Using Channel ID:', clientId, 'for', isGuardRequest ? 'guard' : isResidentRequest ? 'resident' : 'default');
+      const clientId = process.env.LINE_CHANNEL_ID;
+      if (!clientId) {
+        set.status = 500;
+        return { error: "LINE_CHANNEL_ID is not configured" };
+      }
 
       // Verify LINE ID token
       
@@ -257,22 +234,33 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
 
       if (!verifyResponse.ok) {
         set.status = 401;
-        return { error: "Invalid ID token" };
+        return { success: false, error: "Invalid ID token" };
       }
 
       const lineUserInfo = await verifyResponse.json();
       const lineUserId = lineUserInfo.sub;
       const channelId = lineUserInfo.aud; // Audience contains the channel ID
 
-      // Determine user role based on request context or userType
-      let expectedRole: 'resident' | 'guard';
-      if (isGuardRequest) {
-        expectedRole = 'guard';
-      } else if (isResidentRequest) {
-        expectedRole = 'resident';
+      if (channelId !== clientId) {
+        set.status = 401;
+        return { success: false, error: "Token audience mismatch" };
+      }
+
+      // Use userType as the declared role
+      const expectedRole: 'resident' | 'guard' = userType || 'resident';
+
+      // Validate village_key existence server-side
+      if (village_key) {
+        const village = await db.query.villages.findFirst({
+          where: eq(villages.village_key, sanitizeString(village_key)),
+        });
+        if (!village) {
+          set.status = 400;
+          return { success: false, error: "Invalid village key" };
+        }
       } else {
-        // Fallback: use the userType from the request
-        expectedRole = userType || 'resident';
+        set.status = 400;
+        return { success: false, error: "Village key is required" };
       }
 
       // Check if user already exists in the specific role they're trying to register for
@@ -318,9 +306,10 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
 
       // Validate that the userType matches the expected role from the channel
       // Only enforce this if we have a clear expected role and userType mismatch
-      if (expectedRole && userType !== expectedRole && (isGuardRequest || isResidentRequest)) {
+      if (expectedRole && userType !== expectedRole) {
         set.status = 400;
         return { 
+          success: false,
           error: `Invalid user type. This LINE bot is for ${expectedRole}s only.`,
           expectedUserType: expectedRole
         };
@@ -374,7 +363,14 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
           role: "resident",
           village_key: newResident.village_key,
           iat: Math.floor(Date.now() / 1000),
+          exp: Math.floor(Date.now() / 1000) + (60 * 60),
         });
+
+        const isProd = process.env.NODE_ENV === 'production';
+        const cookie = [`liff_session=${token}`, 'Path=/', 'HttpOnly', 'SameSite=Lax', isProd ? 'Secure' : '', 'Max-Age=3600']
+          .filter(Boolean)
+          .join('; ');
+        set.headers = { ...(set.headers || {}), 'Set-Cookie': cookie };
 
         return {
           success: true,
@@ -443,7 +439,14 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
           role: "guard",
           village_key: newGuard.village_key,
           iat: Math.floor(Date.now() / 1000),
+          exp: Math.floor(Date.now() / 1000) + (60 * 60),
         });
+
+        const isProd = process.env.NODE_ENV === 'production';
+        const cookie = [`liff_session=${token}`, 'Path=/', 'HttpOnly', 'SameSite=Lax', isProd ? 'Secure' : '', 'Max-Age=3600']
+          .filter(Boolean)
+          .join('; ');
+        set.headers = { ...(set.headers || {}), 'Set-Cookie': cookie };
 
         return {
           success: true,
@@ -468,12 +471,12 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         };
       } else {
         set.status = 400;
-        return { error: "Invalid user type" };
+        return { success: false, error: "Invalid user type" };
       }
     } catch (error) {
       console.error("LIFF registration error:", error);
       set.status = 500;
-      return { error: "Internal server error" };
+      return { success: false, error: "Internal server error" };
     }
   })
 

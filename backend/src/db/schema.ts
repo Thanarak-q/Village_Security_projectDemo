@@ -294,4 +294,5 @@ export const schema = {
   visitor_records,
   admin_activity_logs,
   admin_notifications,
+  villages,
 };
