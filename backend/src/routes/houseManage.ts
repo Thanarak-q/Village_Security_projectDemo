@@ -111,79 +111,53 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
     }
   })
   // Get all houses - accessible by admin and guard
-  .get("/houses", async ({ jwt, cookie, set, headers }: any) => {
+  .get("/houses", async ({ query, currentUser, request }: any) => {
+    console.log("currentUser", currentUser);
+    console.log("query", query);
+    console.log("request URL:", request?.url);
+    
     try {
-      // Check for token in cookie or Authorization header
-      let token = cookie.auth_token?.value;
-      if (!token && headers.authorization) {
-        const authHeader = headers.authorization;
-        if (authHeader.startsWith('Bearer ')) {
-          token = authHeader.substring(7);
-        }
+      // Extract village_key from query parameters
+      let village_key = query?.village_key;
+      
+      // Fallback: if query parsing fails, try to extract from URL
+      if (!village_key && request?.url) {
+        const url = new URL(request.url);
+        village_key = url.searchParams.get('village_key');
       }
       
-      let currentUser = null; 
+      const { village_keys, role } = currentUser;
 
-      if (token) {
-        try {
-          const payload = await jwt.verify(token);
-          
-          if (payload?.id && payload?.role) {
-            // Check if it's an admin
-            if (payload.role === "admin") {
-              const admin = await db.query.admins.findFirst({
-                where: eq(admins.admin_id, payload.id),
-              });
-              if (admin && admin.status === "verified") {
-                currentUser = admin;
-              }
-            }
-            // Check if it's a guard
-            else if (payload.role === "guard") {
-              const guard = await db.query.guards.findFirst({
-                where: eq(guards.guard_id, payload.id),
-              });
-              if (guard && guard.status === "verified") {
-                currentUser = guard;
-              }
-            }
-          }
-        } catch (jwtError) {
-          console.error("JWT verification error:", jwtError);
-        }
-      }
+      console.log("Extracted village_key:", village_key);
+      console.log("Available village_keys:", village_keys);
 
-      // If no authentication, return houses for pha-suk-village-001 as fallback
-      if (!currentUser) {
-        console.log("No authentication provided, returning houses for pha-suk-village-001");
-        const result = await db
-          .select()
-          .from(houses)
-          .where(eq(houses.village_key, "pha-suk-village-001"));
-        
+      // Validate village_key parameter
+      if (!village_key || typeof village_key !== 'string') {
         return {
-          success: true,
-          data: result,
-          total: result.length,
+          success: false,
+          error: "Village key is required",
         };
       }
 
-      const { village_key } = currentUser;
-
-      if (!village_key) {
-        set.status = 400;
-        return { error: "User village key not found." };
+      // Check if admin has access to the specified village
+      if (role !== "superadmin" && !village_keys.includes(village_key)) {
+        return {
+          success: false,
+          error: "You don't have access to this village",
+        };
       }
 
+      // Fetch houses for the specific village
       const result = await db
         .select()
         .from(houses)
         .where(eq(houses.village_key, village_key));
-      
+
       return {
         success: true,
         data: result,
         total: result.length,
+        village_key: village_key,
       };
     } catch (error) {
       console.error("Error fetching houses:", error);
