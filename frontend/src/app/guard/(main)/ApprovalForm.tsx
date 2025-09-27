@@ -21,7 +21,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Upload, Home, House, User, Search } from "lucide-react";
 import axios from "axios";
 import { ModeToggle } from "@/components/mode-toggle";
-// DISABLED: LIFF authentication
 import { getAuthData } from "@/lib/liffAuth";
 
 const visitorSchema = z.object({
@@ -77,7 +76,7 @@ function ApprovalForm() {
 
         const realHouses = housesResponse.data?.data || [];
         setHouses(realHouses);
-        console.log("🏠 Houses loaded (no auth):", {
+        console.log("🏠 Houses loaded:", {
           total: realHouses.length,
         });
       } catch (err) {
