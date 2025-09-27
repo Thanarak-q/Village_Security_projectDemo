@@ -143,36 +143,41 @@ export default function HistoryTable() {
         setSelectedVillageName("");
       }
       
-      // Dummy admin history data (keeping as dummy for now)
-      const dummyAdminHistory: AdminHistory[] = [
-        {
-          id: "1",
-          name: "สมชาย ใจดี",
-          action: "แก้ไขข้อมูลผู้ใช้",
-          note: "อัปเดตข้อมูลบ้านเลขที่",
-          timestamp: "2024-01-15T10:30:00Z",
-          user_role: "admin",
-          user_email: "somchai@example.com"
-        },
-        {
-          id: "2",
-          name: "สมหญิง รักดี",
-          action: "เพิ่มผู้ใช้ใหม่",
-          note: "เพิ่มยามใหม่เข้าสู่ระบบ",
-          timestamp: "2024-01-14T14:20:00Z",
-          user_role: "admin",
-          user_email: "somying@example.com"
-        },
-        {
-          id: "3",
-          name: "สมศักดิ์ มั่นคง",
-          action: "ลบผู้ใช้",
-          note: "ลบผู้ใช้ที่หมดอายุ",
-          timestamp: "2024-01-13T09:15:00Z",
-          user_role: "admin",
-          user_email: "somsak@example.com"
+      // Fetch admin activity logs from API
+      try {
+        const adminLogsResponse = await fetch("/api/admin/activity-logs", {
+          credentials: "include",
+        });
+        
+        if (adminLogsResponse.ok) {
+          const adminLogsData = await adminLogsResponse.json();
+          
+          if (adminLogsData.success) {
+            // Transform API data to match our interface
+            const transformedAdminHistory: AdminHistory[] = adminLogsData.data.map((log: any) => ({
+              id: log.log_id,
+              name: log.admin_username || "Unknown Admin",
+              action: log.action_type,
+              note: log.description,
+              timestamp: log.created_at,
+              user_role: "admin", // Default role since API doesn't provide this
+              user_email: "" // API doesn't provide email in this endpoint
+            }));
+            
+            setAdminHistoryData(transformedAdminHistory);
+            console.log(`📊 Fetched ${transformedAdminHistory.length} admin activity logs`);
+          } else {
+            console.error("Failed to fetch admin activity logs:", adminLogsData.error);
+            setAdminHistoryData([]);
+          }
+        } else {
+          console.error("Admin activity logs API error:", adminLogsResponse.status);
+          setAdminHistoryData([]);
         }
-      ];
+      } catch (adminLogsError) {
+        console.error("Error fetching admin activity logs:", adminLogsError);
+        setAdminHistoryData([]);
+      }
 
       // Fetch visitor records from API with village filtering
       let visitorUrl = "/api/visitor-records";
@@ -212,7 +217,7 @@ export default function HistoryTable() {
         throw new Error("Failed to fetch visitor records");
       }
 
-      setAdminHistoryData(dummyAdminHistory);
+      // Admin history data is now set above from API
       
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -485,7 +490,12 @@ export default function HistoryTable() {
                   
                   {/* Admin History table body */}
                   <TableBody>
-                    {getCurrentAdminHistory().map((item) => (
+                    {getCurrentAdminHistory().length === 0 ? (
+                      <TableRow>
+                        
+                      </TableRow>
+                    ) : (
+                      getCurrentAdminHistory().map((item) => (
                       <TableRow key={item.id} className="hover:bg-muted/30 transition-colors border-b border-border/50">
                         {/* User column - Avatar and name */}
                         <TableCell className="min-w-[200px] py-4 px-6">
@@ -543,7 +553,8 @@ export default function HistoryTable() {
                           </Badge>
                         </TableCell>
                       </TableRow>
-                    ))}
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>

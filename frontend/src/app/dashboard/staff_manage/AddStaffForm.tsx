@@ -83,7 +83,7 @@ export function AddStaffForm({ villageKey, villageName, onStaffAdded }: AddStaff
         toast.error(result.error || "เกิดข้อผิดพลาดในการเพิ่มนิติบุคคล");
       }
     } catch {
-      toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+      // toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     } finally {
       setIsSubmitting(false);
     }

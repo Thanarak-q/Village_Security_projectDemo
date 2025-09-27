@@ -41,14 +41,14 @@ const items = [
     icon: BookUser,
   },
   {
-    title: "จัดการบ้าน",
-    url: "/dashboard/house_manage",
-    icon: Building,
-  },
-  {
     title: "จัดการนิติบุคคล",
     url: "/dashboard/staff_manage",
     icon: Users,
+  },
+  {
+    title: "จัดการบ้าน",
+    url: "/dashboard/house_manage",
+    icon: Building,
   },
   {
     title: "ประวัติ",

@@ -288,6 +288,12 @@ const Page: React.FC = () => {
         if (redirectResponse.ok) {
           const redirectData = await redirectResponse.json();
           if (redirectData.success) {
+            // For staff users, automatically set their village key in sessionStorage
+            if (redirectData.user_info?.auto_village_key) {
+              sessionStorage.setItem("selectedVillage", redirectData.user_info.auto_village_key);
+              console.log("Auto-set village key for staff user:", redirectData.user_info.auto_village_key);
+            }
+            
             // Trigger success animation
             animateLoginSuccess(redirectData.redirect_url);
             return; // Exit early with proper redirect

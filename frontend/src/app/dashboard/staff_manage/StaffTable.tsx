@@ -34,6 +34,7 @@ import {
   Trash2,
   Users,
   Loader2,
+  Edit,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -61,6 +62,29 @@ export function StaffTable({ staffMembers, onStaffUpdated, onStaffDeleted, loadi
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [staffToDelete, setStaffToDelete] = useState<StaffMember | null>(null);
 
+  // Function to create avatar initials from username
+  const getAvatarInitials = (username: string) => {
+    return username.charAt(0).toUpperCase();
+  };
+
+  // Function to get avatar color based on staff ID
+  const getAvatarColor = (staffId: string) => {
+    const colors = [
+      "bg-primary",
+      "bg-green-500",
+      "bg-purple-500",
+      "bg-yellow-500",
+      "bg-red-500",
+      "bg-blue-500",
+      "bg-indigo-500",
+      "bg-pink-500",
+      "bg-teal-500",
+      "bg-orange-500",
+    ];
+    const index = staffId.charCodeAt(0) % colors.length;
+    return colors[index];
+  };
+
   const handleDelete = async () => {
     if (!staffToDelete) return;
 
@@ -82,7 +106,7 @@ export function StaffTable({ staffMembers, onStaffUpdated, onStaffDeleted, loadi
       }
     } catch (error) {
       console.error("Error deleting staff:", error);
-      toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+      // toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     }
   };
 
@@ -118,32 +142,93 @@ export function StaffTable({ staffMembers, onStaffUpdated, onStaffDeleted, loadi
 
   return (
     <>
-      <div className="rounded-md border">
+      <div className="overflow-x-auto rounded-lg border border-border bg-background shadow-sm hover:shadow-md transition-shadow duration-200">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>ชื่อผู้ใช้</TableHead>
-              <TableHead>วันที่สร้าง</TableHead>
-              <TableHead className="text-right">จัดการ</TableHead>
+            <TableRow className="bg-muted/50 border-b border-border">
+              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">นิติบุคคล</TableHead>
+              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden sm:table-cell">ข้อมูลติดต่อ</TableHead>
+              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden md:table-cell">หมู่บ้าน</TableHead>
+              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden lg:table-cell">วันที่เข้าร่วม</TableHead>
+              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">จัดการ</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {staffMembers.map((staff) => (
-              <TableRow key={staff.admin_id}>
-                <TableCell className="font-medium">
-                  {staff.username}
+              <TableRow key={staff.admin_id} className="hover:bg-muted/30 transition-colors border-b border-border/50">
+                {/* User column - Avatar and name */}
+                <TableCell className="py-4 px-6">
+                  <div className="flex items-center space-x-4">
+                    {/* Avatar circle with initials */}
+                    <div
+                      className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-sm ${getAvatarColor(
+                        staff.admin_id
+                      )}`}
+                    >
+                      {getAvatarInitials(staff.username)}
+                    </div>
+                    {/* Name and username */}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-foreground text-base">
+                        {staff.username}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        @{staff.username}
+                      </div>
+                      {/* Show contact info on mobile */}
+                      <div className="sm:hidden text-xs text-muted-foreground mt-1">
+                        <div>{staff.village_name}</div>
+                      </div>
+                      {/* Show village on mobile */}
+                      <div className="md:hidden text-xs text-muted-foreground mt-1">
+                        <div>{staff.village_name}</div>
+                      </div>
+                      {/* Show join date on mobile */}
+                      <div className="lg:hidden text-xs text-muted-foreground mt-1">
+                        <div>{staff.created_at ? (() => {
+                          try {
+                            return format(new Date(staff.created_at), "dd MMM yyyy", { locale: th });
+                          } catch (error) {
+                            console.error('Date formatting error:', error, 'created_at:', staff.created_at);
+                            return 'Invalid Date';
+                          }
+                        })() : 'N/A'}</div>
+                      </div>
+                    </div>
+                  </div>
                 </TableCell>
-                <TableCell>
-                  {staff.created_at ? (() => {
-                    try {
-                      return format(new Date(staff.created_at), "dd MMM yyyy", { locale: th });
-                    } catch (error) {
-                      console.error('Date formatting error:', error, 'created_at:', staff.created_at);
-                      return 'Invalid Date';
-                    }
-                  })() : 'N/A'}
+
+                {/* Contact info column - hidden on mobile */}
+                <TableCell className="py-4 px-6 hidden sm:table-cell">
+                  <div className="text-sm">
+                    <div className="text-foreground font-medium">-</div>
+                    <div className="text-muted-foreground">ไม่มีข้อมูล</div>
+                  </div>
                 </TableCell>
-                <TableCell className="text-right">
+
+                {/* Village column - hidden on mobile and small screens */}
+                <TableCell className="py-4 px-6 hidden md:table-cell">
+                  <div className="text-sm text-foreground font-medium">
+                    {staff.village_name}
+                  </div>
+                </TableCell>
+
+                {/* Join date column - hidden on mobile, small and medium screens */}
+                <TableCell className="py-4 px-6 hidden lg:table-cell">
+                  <div className="text-sm text-foreground">
+                    {staff.created_at ? (() => {
+                      try {
+                        return format(new Date(staff.created_at), "dd MMM yyyy", { locale: th });
+                      } catch (error) {
+                        console.error('Date formatting error:', error, 'created_at:', staff.created_at);
+                        return 'Invalid Date';
+                      }
+                    })() : 'N/A'}
+                  </div>
+                </TableCell>
+
+                {/* Actions column */}
+                <TableCell className="py-4 px-6">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="h-8 w-8 p-0">
