@@ -235,7 +235,8 @@ const Page: React.FC = () => {
     sessionStorage.clear();
     
     try {
-      const response = await fetch("/api/auth/login", {
+      const apiUrl = '';
+      const response = await fetch(`${apiUrl}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -281,7 +282,7 @@ const Page: React.FC = () => {
 
       // Get redirect URL based on user role
       try {
-        const redirectResponse = await fetch("/api/redirect/dashboard", {
+        const redirectResponse = await fetch(`${apiUrl}/api/redirect/dashboard`, {
           credentials: "include",
         });
         

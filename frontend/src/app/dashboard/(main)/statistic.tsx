@@ -211,6 +211,12 @@ export function useStatsData() {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
+      // Check if response is JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Response is not JSON");
+      }
+
       const result = await response.json()
 
       if (!result.success) {

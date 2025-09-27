@@ -49,6 +49,42 @@ export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
       return { error: "Failed to fetch villages" };
     }
   })
+  .get("/validate", async ({ query, set }) => {
+    try {
+      const { key } = query as { key: string };
+
+      if (!key) {
+        set.status = 400;
+        return { success: false, error: "Village key is required" };
+      }
+
+      const village = await db
+        .select({
+          village_key: villages.village_key,
+          village_name: villages.village_name,
+        })
+        .from(villages)
+        .where(eq(villages.village_key, key))
+        .then(results => results[0]);
+
+      if (village) {
+        return { 
+          success: true, 
+          village: {
+            village_key: village.village_key,
+            village_name: village.village_name 
+          }
+        };
+      } else {
+        return { success: false, error: "Invalid village key" };
+      }
+    } catch (error) {
+      console.error("Error validating village:", error);
+      set.status = 500;
+      return { success: false, error: "Failed to validate village" };
+    }
+  })
+  .onBeforeHandle(requireRole(["admin", "superadmin"]))
   .get("/admin", async ({ currentUser, set }: any) => {
     try {
       // Check if user has admin or superadmin role

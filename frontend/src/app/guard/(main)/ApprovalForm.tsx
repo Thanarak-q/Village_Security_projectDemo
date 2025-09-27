@@ -16,9 +16,11 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { useForm } from "react-hook-form";
 import { useMemo, useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { z } from "zod";
+// @ts-ignore
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Upload, Home, House, User, Search, Loader2 } from "lucide-react";
+import { Upload, Home, House, User, Search, Shield, Loader2} from "lucide-react";
 import axios from "axios";
 import { ModeToggle } from "@/components/mode-toggle";
 import { getAuthData } from "@/lib/liffAuth";
@@ -41,9 +43,11 @@ const visitorSchema = z.object({
 });
 
 function ApprovalForm() {
+  const router = useRouter();
   const [houses, setHouses] = useState<
     Array<{ house_id: string; address: string; village_key: string }>
   >([]);
+  const [userRoles, setUserRoles] = useState<Array<{role: string, village_key: string, village_name?: string}>>([]);
   const [currentUser, setCurrentUser] = useState<{
     id: string;
     fname: string;
@@ -83,6 +87,45 @@ function ApprovalForm() {
     };
     fetchData();
   }, []);
+
+  // Fetch user roles to check if they have resident role
+  useEffect(() => {
+    const fetchUserRoles = async () => {
+      if (currentUser?.id) {
+        try {
+          const apiUrl = '';
+          const response = await fetch(`${apiUrl}/api/users/roles?lineUserId=${currentUser.id}`, {
+            credentials: 'include'
+          });
+          
+          if (response.ok) {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+              const data = await response.json();
+              if (data.success && data.roles) {
+                setUserRoles(data.roles);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching user roles:', error);
+        }
+      }
+    };
+
+    fetchUserRoles();
+  }, [currentUser]);
+
+  const handleSwitchToResident = () => {
+    router.push('/Resident');
+  };
+
+  const handleNavigateToProfile = () => {
+    router.push('/guard/profile');
+  };
+
+  // Check if user has resident role
+  const hasResidentRole = userRoles.some(role => role.role === 'resident');
 
   const getLocalDateTimeForInput = () => {
     const now = new Date();
@@ -323,6 +366,21 @@ function ApprovalForm() {
               </h1>
               <span className="flex items-center gap-2">
                 <ModeToggle />
+                <button
+                  onClick={handleSwitchToResident}
+                  className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                  aria-label="Go to Resident page"
+                  title="ไปยังหน้าผู้อยู่อาศัย"
+                >
+                  <Home className="w-5 h-5 text-foreground" />
+                </button>
+                <button
+                  onClick={handleNavigateToProfile}
+                  className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                  aria-label="Go to profile"
+                >
+                  <User className="w-5 h-5 text-foreground" />
+                </button>
               </span>
             </div>
             <div className="text-sm text-muted-foreground">{progress}%</div>

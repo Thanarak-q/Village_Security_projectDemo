@@ -11,6 +11,7 @@ import { visitorRecordYearlyRoutes } from "./routes/visitorRecord-yearly";
 import { testConnection, closeConnection, getPoolStats } from "./db/drizzle";
 import { statsCardRoutes } from "./routes/statsCard";
 import { userTableRoutes } from "./routes/userTable";
+import { userRoleRegistrationRoutes } from "./routes/userRoleRegistration";
 import { pendingUsersRoutes } from "./routes/pendingUsers";
 import { authRoutes } from "./routes/auth";
 import { adminSettingsRoutes } from "./routes/adminSettings";
@@ -84,6 +85,7 @@ const app = new Elysia()
   .use(visitorRecordYearlyRoutes)
   .use(statsCardRoutes)
   .use(userTableRoutes)
+  .use(userRoleRegistrationRoutes)
   .use(pendingUsersRoutes)
   .use(authRoutes)
   .use(adminSettingsRoutes)

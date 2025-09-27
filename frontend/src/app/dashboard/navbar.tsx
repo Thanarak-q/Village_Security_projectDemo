@@ -65,14 +65,24 @@ function Navbar() {
     fetch("/api/auth/me", {
       credentials: "include",
     })
-      .then((res) => {
+      .then(async (res) => {
         if (res.status === 401) {
           return null;
         }
+        
+        // Check if response is JSON
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Response is not JSON");
+        }
+        
         return res.json();
       })
       .then((json) => {
         if (json) setUserData(json);
+      })
+      .catch((error) => {
+        console.error("Error fetching user data:", error);
       });
 
     const handleRealtimeNotification = () => {

@@ -28,15 +28,25 @@ export default function Page() {
     fetch("/api/auth/me", {
       credentials: "include",
     })
-      .then((res) => {
+      .then(async (res) => {
         if (res.status === 401) {
           window.location.href = "/login";
           return;
         }
+        
+        // Check if response is JSON
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Response is not JSON");
+        }
+        
         return res.json();
       })
       .then((json) => {
         if (json) setData(json);
+      })
+      .catch((error) => {
+        console.error("Error fetching auth data:", error);
       });
 
     // Get selected village name and key
@@ -46,9 +56,16 @@ export default function Page() {
       fetch(`/api/villages/check/${villageKey}`, {
         credentials: "include",
       })
-        .then((res) => res.json())
+        .then(async (res) => {
+          // Check if response is JSON
+          const contentType = res.headers.get("content-type");
+          if (!contentType || !contentType.includes("application/json")) {
+            throw new Error("Response is not JSON");
+          }
+          return res.json();
+        })
         .then((villageData) => {
-          if (villageData.exists) {
+          if (villageData && villageData.exists) {
             setSelectedVillageName(villageData.village_name);
           }
         })
@@ -66,6 +83,9 @@ export default function Page() {
     const chartElement = chartRef.current;
     const tableElement = tableRef.current;
 
+    // Only proceed if elements exist
+    if (!chartElement || !tableElement) return;
+
     // Set initial state for chart and table only
     gsap.set([chartElement, tableElement], {
       opacity: 0,
@@ -74,7 +94,7 @@ export default function Page() {
 
     // Individual cards initial state
     const cards = cardsRef.current?.children;
-    if (cards) {
+    if (cards && cards.length > 0) {
       gsap.set(Array.from(cards), {
         opacity: 0,
         y: 60
@@ -85,14 +105,16 @@ export default function Page() {
     const tl = gsap.timeline();
 
     // Animate individual cards first
-    if (cards) {
+    if (cards && cards.length > 0) {
       Array.from(cards).forEach((card, index) => {
-        tl.to(card, {
-          duration: 0.6,
-          opacity: 1,
-          y: 0,
-          ease: "power2.inOut"
-        }, index * 0.1);
+        if (card) {
+          tl.to(card, {
+            duration: 0.6,
+            opacity: 1,
+            y: 0,
+            ease: "power2.inOut"
+          }, index * 0.1);
+        }
       });
     }
 
@@ -113,7 +135,7 @@ export default function Page() {
 
     return () => {
       gsap.killTweensOf([chartElement, tableElement]);
-      if (cards) {
+      if (cards && cards.length > 0) {
         gsap.killTweensOf(Array.from(cards));
       }
     };

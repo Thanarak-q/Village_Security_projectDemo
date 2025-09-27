@@ -52,10 +52,6 @@ export function useLiff() {
     }
   };
 
-  useEffect(() => {
-    initializeLiff();
-  }, [initializeLiff]);
-
   const logout = () => {
     if (window.liff) {
       window.liff.logout();

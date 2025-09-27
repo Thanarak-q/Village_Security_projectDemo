@@ -309,7 +309,7 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         }
 
         // Get old status for notification
-        const oldStatus = existingHouse[0].status;
+        const oldStatus = existingHouse[0].status || 'unknown';
 
         // Prepare update data
         const dataToUpdate: any = {};
@@ -440,7 +440,7 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         }
 
         // Get old status for notification
-        const oldStatus = existingHouse[0].status;
+        const oldStatus = existingHouse[0].status || 'unknown';
 
         // Update house status
         const [updatedHouse] = await db

@@ -57,7 +57,7 @@ export default function StaffManagePage() {
       const headerElement = headerRef.current;
       const tabsElement = tabsRef.current;
 
-      // Only animate if elements exist
+      // Only animate if elements exist and are valid
       if (cardElement && headerElement && tabsElement) {
         // Set initial state for all elements
         gsap.set([cardElement, headerElement, tabsElement], {
@@ -87,14 +87,18 @@ export default function StaffManagePage() {
             ease: "power2.out"
           }, "-=0.2");
       }
-    }, 50);
+    }, 100); // Increased delay to ensure DOM is ready
 
     return () => {
       clearTimeout(timer);
-      // Kill any existing animations
-      if (cardRef.current) gsap.killTweensOf(cardRef.current);
-      if (headerRef.current) gsap.killTweensOf(headerRef.current);
-      if (tabsRef.current) gsap.killTweensOf(tabsRef.current);
+      // Kill any existing animations safely
+      try {
+        if (cardRef.current) gsap.killTweensOf(cardRef.current);
+        if (headerRef.current) gsap.killTweensOf(headerRef.current);
+        if (tabsRef.current) gsap.killTweensOf(tabsRef.current);
+      } catch (error) {
+        console.warn('GSAP cleanup error:', error);
+      }
     };
   }, []);
 

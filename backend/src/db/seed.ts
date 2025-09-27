@@ -1509,7 +1509,7 @@ async function createNotificationData() {
 
   const notificationDataWithReferences: Array<{
     village_key: string;
-    type: string;
+    type: "resident_pending" | "guard_pending" | "admin_pending" | "house_updated" | "member_added" | "member_removed" | "status_changed" | "visitor_pending_too_long" | "visitor_rejected_review";
     category: string;
     title: string;
     message: string;
@@ -1545,11 +1545,11 @@ async function createNotificationData() {
 
       notificationDataWithReferences.push({
         village_key: village.village_key,
-        type: randomNotification.type,
-        category: randomNotification.category,
+        type: randomNotification.type as "resident_pending" | "guard_pending" | "admin_pending" | "house_updated" | "member_added" | "member_removed" | "status_changed" | "visitor_pending_too_long" | "visitor_rejected_review",
+        category: randomNotification.category as "user_approval" | "house_management" | "visitor_management",
         title: randomNotification.title,
         message: randomNotification.message,
-        data: randomNotification.data,
+        data: JSON.stringify(randomNotification.data),
         created_at: createdTime,
       });
     }
@@ -1651,7 +1651,7 @@ async function seed() {
   console.log("Creating and inserting admin_notifications");
   const notificationDataWithReferences = await createNotificationData();
   if (notificationDataWithReferences.length > 0) {
-    await db.insert(admin_notifications).values(notificationDataWithReferences);
+    await db.insert(admin_notifications).values(notificationDataWithReferences as any);
     console.log("Completed inserting admin_notifications");
   } else {
     console.log("No notification data to insert");

@@ -53,9 +53,6 @@ services:
       - WATCHPACK_POLLING=true
       - CHOKIDAR_USEPOLLING=true
       - NEXT_PUBLIC_API_URL=http://localhost:3001
-      - NEXT_PUBLIC_RESIDENT_LIFF_ID=2008071362-Eqg9y1Qa
-      - NEXT_PUBLIC_GUARD_LIFF_ID=2008174551-g6Yj7R2l
-      - NEXT_PUBLIC_LIFF_ID=2008174551-g6Yj7R2l
     depends_on:
       - backend
     restart: unless-stopped

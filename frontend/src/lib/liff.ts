@@ -82,19 +82,12 @@ export class LiffService {
   }
   
   /**
-   * Gets the appropriate LIFF ID based on channel type
-   * @param channelType - The channel type ('resident', 'guard', or 'default')
-   * @returns The LIFF ID for the specified channel type
+   * Gets the unified LIFF ID for both guards and residents
+   * @param channelType - The channel type (now unified)
+   * @returns The unified LIFF ID
    */
-
   private getLiffId(channelType: 'resident' | 'guard' | 'default'): string | undefined {
-    // Use different LIFF IDs for guard and resident
-    if (channelType === 'guard') {
-      return process.env.NEXT_PUBLIC_GUARD_LIFF_ID || process.env.NEXT_PUBLIC_LIFF_ID;
-    } else if (channelType === 'resident') {
-      return process.env.NEXT_PUBLIC_RESIDENT_LIFF_ID || process.env.NEXT_PUBLIC_LIFF_ID;
-    }
-
+    // Use the same LIFF ID for both guard and resident
     return process.env.NEXT_PUBLIC_LIFF_ID;
   }
 
@@ -110,15 +103,16 @@ export class LiffService {
 
   // --- Init & SDK Loader ---
   async init(channelType: 'resident' | 'guard' | 'default' = 'default'): Promise<void> {
+    // For unified authentication, we don't need to track channel type separately
     if (this.initPromise) return this.initPromise;
-    if (this.initialized && this.currentChannelType === channelType) return Promise.resolve();
+    if (this.initialized) return Promise.resolve();
 
     this.currentChannelType = channelType;
     this.initPromise = new Promise((resolve) => {
       if (typeof window === "undefined") { resolve(); return; }
 
       const liffId = this.getLiffId(channelType);
-      if (!liffId) { console.warn("LIFF ID not configured for channel type:", channelType); resolve(); return; }
+      if (!liffId) { console.warn("LIFF ID not configured"); resolve(); return; }
 
       const w = window as Window & { liff?: LiffSDK };
 
@@ -211,6 +205,66 @@ export class LiffService {
   getIDToken(): string | null {
     try { return this.hasLiff() ? window.liff.getIDToken() : null; }
     catch { return null; }
+  }
+
+  /** ตรวจสอบและรีเฟรช token อัตโนมัติ */
+  async ensureValidToken(): Promise<string | null> {
+    if (!this.hasLiff()) return null;
+    
+    try {
+      // ตรวจสอบว่า token ยังใช้ได้อยู่หรือไม่
+      const idToken = this.getIDToken();
+      if (!idToken) {
+        console.log('🔄 No ID token found, attempting to refresh...');
+        return await this.refreshToken();
+      }
+
+      // ตรวจสอบว่า token หมดอายุหรือไม่โดยการ decode
+      const decodedToken = window.liff.getDecodedIDToken();
+      if (decodedToken && decodedToken.exp && typeof decodedToken.exp === 'number') {
+        const currentTime = Math.floor(Date.now() / 1000);
+        const tokenExpiry = decodedToken.exp;
+        
+        // ถ้า token จะหมดอายุใน 5 นาที ให้รีเฟรช
+        if (tokenExpiry - currentTime < 300) {
+          console.log('🔄 Token expires soon, refreshing...');
+          return await this.refreshToken();
+        }
+      }
+
+      return idToken;
+    } catch (error) {
+      console.error('Error checking token validity:', error);
+      return await this.refreshToken();
+    }
+  }
+
+  /** รีเฟรช token โดยการ login ใหม่ */
+  private async refreshToken(): Promise<string | null> {
+    try {
+      if (!this.hasLiff()) return null;
+      
+      console.log('🔄 Refreshing LIFF token...');
+      
+      // ถ้าไม่ได้ login อยู่ ให้ login ใหม่
+      if (!window.liff.isLoggedIn()) {
+        console.log('🔄 Not logged in, initiating login...');
+        window.liff.login();
+        return null; // จะต้องรอให้ login เสร็จ
+      }
+
+      // ถ้า login อยู่แล้ว ให้ดึง token ใหม่
+      const newToken = window.liff.getIDToken();
+      if (newToken) {
+        console.log('✅ Token refreshed successfully');
+        return newToken;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      return null;
+    }
   }
 
   // ใช้เมื่อเจอ ?error=access_denied
@@ -367,6 +421,10 @@ export const getAccessToken = (): string | null => {
 
 export const getIDToken = (): string | null => {
   return LiffService.getInstance().getIDToken();
+};
+
+export const getValidIDToken = async (): Promise<string | null> => {
+  return await LiffService.getInstance().ensureValidToken();
 };
 
 export const isInLineApp = (): boolean => {
