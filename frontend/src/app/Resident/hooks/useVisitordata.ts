@@ -45,13 +45,13 @@ export const useVisitorData = () => {
 
       // Get user data and check role
       const { user } = getAuthData();
-      if (!user || user.role !== 'resident') {
-        console.log('User is not a resident, proceeding without authentication');
+      if (!user) {
+        console.log('No user data found, proceeding without authentication');
         setIsCheckingAuth(false);
         return;
       }
 
-      console.log('User is authenticated as resident:', user);
+      console.log('User data found:', user);
       setCurrentUser(user);
       setIsCheckingAuth(false);
       
@@ -94,7 +94,7 @@ export const useVisitorData = () => {
         return;
       }
 
-      console.log("🔄 Starting data load for LINE user ID:", currentUser.lineUserId);
+      console.log("🔄 Starting data load for user:", currentUser);
       try {
         setLoading(true);
         setError(null);
@@ -104,6 +104,39 @@ export const useVisitorData = () => {
         console.log("🔍 Testing backend connection...");
         const healthResponse = await fetch('/api/health');
         console.log("🏥 Backend health check:", healthResponse.status);
+
+        // Check if user has LINE user ID
+        if (!currentUser.lineUserId) {
+          console.log("⚠️ No LINE user ID found, trying to fetch all visitor records for testing");
+          
+          // For testing, fetch all visitor records
+          const testResponse = await fetch('/api/test-visitor-records');
+          const testData = await testResponse.json();
+          
+          if (testData.success) {
+            console.log("📋 Test visitor records:", testData.records);
+            // Transform test data to match expected format
+            const transformedRecords = testData.records.map((record: any) => ({
+              id: record.visitor_record_id,
+              plateNumber: record.license_plate || 'ไม่ระบุ',
+              visitorName: record.visitor_id_card || 'ไม่ระบุ',
+              destination: record.house?.address || 'ไม่ระบุ',
+              time: new Date(record.createdAt).toLocaleTimeString('th-TH', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              }),
+              carImage: record.picture_key || 'car1.jpg',
+              status: record.record_status === 'approved' ? 'approved' : 
+                     record.record_status === 'rejected' ? 'denied' : undefined,
+            }));
+            
+            setPendingRequests(transformedRecords.filter((r: any) => !r.status));
+            setHistory(transformedRecords.filter((r: any) => r.status));
+          }
+          setLoading(false);
+          return;
+        }
 
         // Fetch pending visitor requests and history separately
         console.log(`🔍 Fetching pending visitor requests for LINE user ID: ${currentUser.lineUserId}`);

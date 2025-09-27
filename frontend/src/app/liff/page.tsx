@@ -37,6 +37,23 @@ export default function LiffPage() {
         
         await Promise.race([initPromise, timeoutPromise]);
 
+        // Check if user is in the correct LIFF channel before proceeding
+        if (typeof window !== 'undefined' && window.liff && window.liff.getContext) {
+          try {
+            const context = window.liff.getContext();
+            const expectedLiffId = process.env.NEXT_PUBLIC_LIFF_ID;
+            
+            if (context && expectedLiffId && context.liffId !== expectedLiffId) {
+              setStep("error");
+              setMsg("คุณกำลังเข้าถึงจาก LIFF แอปอื่น กรุณาใช้ LIFF แอปที่ถูกต้อง");
+              return;
+            }
+          } catch (error) {
+            console.warn("Could not verify LIFF channel:", error);
+            // Continue with normal flow if we can't verify
+          }
+        }
+
         const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
         if (!liffId) {
           setStep("error");
@@ -56,8 +73,19 @@ export default function LiffPage() {
         if (!svc.isLoggedIn()) {
           setStep("logging-in");
           setMsg("กำลังเข้าสู่ระบบด้วย LINE ...");
-          await svc.login(window.location.href);
-          return; // จะ redirect ออกไป
+          try {
+            // Use relative path to prevent cross-LIFF redirection
+            const redirectUri = window.location.pathname + window.location.search;
+            await svc.login(redirectUri);
+            return; // จะ redirect ออกไป
+          } catch (error) {
+            if (error instanceof Error && error.message === "Cross-LIFF redirection not allowed") {
+              setStep("error");
+              setMsg("คุณกำลังเข้าถึงจาก LIFF แอปอื่น กรุณาใช้ LIFF แอปที่ถูกต้อง");
+              return;
+            }
+            throw error; // Re-throw other errors
+          }
         }
 
         // 2) เคส session ค้าง: isLoggedIn() = true แต่ไม่มี access token → re-login
@@ -67,8 +95,19 @@ export default function LiffPage() {
           setStep("logging-in");
           setMsg("รีเฟรชสิทธิ์เข้าใช้งาน LINE ...");
           svc.logout();
-          await svc.login(window.location.href);
-          return;
+          try {
+            // Use relative path to prevent cross-LIFF redirection
+            const redirectUri = window.location.pathname + window.location.search;
+            await svc.login(redirectUri);
+            return;
+          } catch (error) {
+            if (error instanceof Error && error.message === "Cross-LIFF redirection not allowed") {
+              setStep("error");
+              setMsg("คุณกำลังเข้าถึงจาก LIFF แอปอื่น กรุณาใช้ LIFF แอปที่ถูกต้อง");
+              return;
+            }
+            throw error; // Re-throw other errors
+          }
         }
 
         // 2.5) ตรวจสอบและรีเฟรช token อัตโนมัติ
@@ -78,8 +117,19 @@ export default function LiffPage() {
           setStep("logging-in");
           setMsg("รีเฟรชสิทธิ์เข้าใช้งาน LINE ...");
           svc.logout();
-          await svc.login(window.location.href);
-          return;
+          try {
+            // Use relative path to prevent cross-LIFF redirection
+            const redirectUri = window.location.pathname + window.location.search;
+            await svc.login(redirectUri);
+            return;
+          } catch (error) {
+            if (error instanceof Error && error.message === "Cross-LIFF redirection not allowed") {
+              setStep("error");
+              setMsg("คุณกำลังเข้าถึงจาก LIFF แอปอื่น กรุณาใช้ LIFF แอปที่ถูกต้อง");
+              return;
+            }
+            throw error; // Re-throw other errors
+          }
         }
 
         // 3) พยายามดึงโปรไฟล์
@@ -91,8 +141,19 @@ export default function LiffPage() {
           setStep("logging-in");
           setMsg("รีเฟรชสิทธิ์เข้าใช้งาน LINE ...");
           svc.logout();
-          await svc.login(window.location.href);
-          return;
+          try {
+            // Use relative path to prevent cross-LIFF redirection
+            const redirectUri = window.location.pathname + window.location.search;
+            await svc.login(redirectUri);
+            return;
+          } catch (error) {
+            if (error instanceof Error && error.message === "Cross-LIFF redirection not allowed") {
+              setStep("error");
+              setMsg("คุณกำลังเข้าถึงจาก LIFF แอปอื่น กรุณาใช้ LIFF แอปที่ถูกต้อง");
+              return;
+            }
+            throw error; // Re-throw other errors
+          }
         }
 
         // 5) สำเร็จ → แสดงผล แล้วพาไปหน้าแรก

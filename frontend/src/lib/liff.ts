@@ -38,6 +38,9 @@ export interface LiffSDK {
   getAccessToken(): string | null;
   getIDToken(): string | null;
   getDecodedIDToken(): { sub?: string; name?: string; picture?: string; [key: string]: unknown } | null;
+  
+  /** Get LIFF context information */
+  getContext?(): { liffId: string; [key: string]: unknown } | null;
 }
 
 declare global {
@@ -172,9 +175,18 @@ export class LiffService {
       console.warn("LIFF not initialized");
       return;
     }
+    
+    // Check if we're in the correct LIFF channel
+    if (!this.isCorrectLiffChannel()) {
+      console.warn("User is in a different LIFF channel, preventing cross-LIFF redirection");
+      throw new Error("Cross-LIFF redirection not allowed");
+    }
+    
     if (!window.liff.isLoggedIn()) {
       try {
-        window.liff.login(redirectUri ? { redirectUri } : undefined);
+        // Use a relative redirect URI to prevent cross-LIFF redirection
+        const safeRedirectUri = redirectUri ? this.getSafeRedirectUri(redirectUri) : undefined;
+        window.liff.login(safeRedirectUri ? { redirectUri: safeRedirectUri } : undefined);
         // รอให้ OAuth redirect (promise ค้างไว้)
         return new Promise<never>(() => {});
       } catch (error) {
@@ -347,6 +359,56 @@ export class LiffService {
     this.currentChannelType = 'default';
     this.initialized = false;
     this.initPromise = null;
+  }
+
+  /** Check if user is in the correct LIFF channel */
+  private isCorrectLiffChannel(): boolean {
+    try {
+      if (!this.hasLiff()) return false;
+      
+      // Check if getContext method is available
+      if (!window.liff.getContext) {
+        console.warn("getContext method not available in LIFF SDK");
+        return true; // Allow if we can't verify
+      }
+      
+      // Get the current LIFF context
+      const context = window.liff.getContext();
+      if (!context) return false;
+      
+      // Check if the current LIFF ID matches our expected LIFF ID
+      const expectedLiffId = this.getLiffId('default');
+      if (!expectedLiffId) return false;
+      
+      // Compare LIFF IDs
+      return context.liffId === expectedLiffId;
+    } catch (error) {
+      console.warn("Error checking LIFF channel:", error);
+      return true; // Allow if we can't verify to avoid blocking legitimate users
+    }
+  }
+
+  /** Get a safe redirect URI that prevents cross-LIFF redirection */
+  private getSafeRedirectUri(redirectUri: string): string {
+    try {
+      // If it's already a relative path, use it as is
+      if (!redirectUri.startsWith('http')) {
+        return redirectUri;
+      }
+      
+      const url = new URL(redirectUri);
+      // Only allow redirects within the same origin
+      if (url.origin === window.location.origin) {
+        return redirectUri;
+      }
+      
+      // For external redirects, use a relative path
+      return url.pathname + url.search + url.hash;
+    } catch (error) {
+      console.warn("Error processing redirect URI:", error);
+      // Fallback to current page
+      return window.location.pathname + window.location.search;
+    }
   }
 
   /** Get default profile for fallback */

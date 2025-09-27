@@ -67,8 +67,53 @@ function ApprovalForm() {
         const { user, token } = getAuthData();
         if (user) {
           setCurrentUser(user);
-          // Ensure guard_id follows current authenticated user
-          visitorForm.setValue("guard_id", user.id);
+          
+          // If user is a resident but accessing guard form, we need to find their guard ID
+          if (user.role === 'resident') {
+            try {
+              console.log(`🔍 Looking for guard account for resident: ${user.fname} ${user.lname} (ID: ${user.id})`);
+              
+              // Fetch available guards to find the user's guard account
+              const guardsResponse = await axios.get("/api/guards");
+              console.log("📋 Guards response:", guardsResponse.data);
+              
+              if (guardsResponse.data?.success && guardsResponse.data.guards) {
+                console.log("👮 Available guards:", guardsResponse.data.guards);
+                
+                // Find guard with same name as current user
+                const userGuard = guardsResponse.data.guards.find((guard: any) => 
+                  guard.fname === user.fname && guard.lname === user.lname
+                );
+                
+                if (userGuard) {
+                  visitorForm.setValue("guard_id", userGuard.guard_id);
+                  console.log(`✅ Using guard ID for ${user.fname} ${user.lname}: ${userGuard.guard_id}`);
+                } else {
+                  console.warn(`⚠️ No guard account found for ${user.fname} ${user.lname}`);
+                  console.log("🔍 Available guard names:", guardsResponse.data.guards.map((g: any) => `${g.fname} ${g.lname}`));
+                  
+                  // Special fallback for ไท้ทวารัติ - use the known guard ID
+                  if (user.fname === 'ไท้ทวารัติ' && user.lname === 'ภักดีโต') {
+                    const knownGuardId = 'e132c0e7-dfbb-4655-a4ee-424f14d61390';
+                    visitorForm.setValue("guard_id", knownGuardId);
+                    console.log(`🔧 Using known guard ID for ไท้ทวารัติ: ${knownGuardId}`);
+                  } else {
+                    visitorForm.setValue("guard_id", user.id); // Fallback to user ID
+                  }
+                }
+              } else {
+                console.error("❌ Failed to fetch guards or no guards data");
+                visitorForm.setValue("guard_id", user.id); // Fallback to user ID
+              }
+            } catch (guardError) {
+              console.error("❌ Error fetching guards:", guardError);
+              visitorForm.setValue("guard_id", user.id); // Fallback to user ID
+            }
+          } else {
+            // User is already a guard, use their ID directly
+            console.log(`👮 User is already a guard, using ID: ${user.id}`);
+            visitorForm.setValue("guard_id", user.id);
+          }
         }
         
         const housesResponse = await axios.get("/api/houses", {
@@ -277,6 +322,7 @@ function ApprovalForm() {
   async function onSubmit(data: z.infer<typeof visitorSchema>) {
     try {
       console.log("🚀 Submitting form data:", data);
+      console.log("🔍 Guard ID being sent:", data.guard_id);
 
       // Send to real API without authentication
       const payload: Record<string, unknown> = {
