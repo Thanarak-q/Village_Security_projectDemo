@@ -82,6 +82,7 @@ export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
       return { success: false, error: "Failed to validate village" };
     }
   })
+  .onBeforeHandle(requireRole(["admin", "superadmin"]))
   .get("/admin", async ({ currentUser, set }: any) => {
     try {
       // Check if user has admin or superadmin role

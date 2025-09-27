@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LiffService } from "@/lib/liff";
 import { verifyLiffToken, storeAuthData } from "@/lib/liffAuth";
+import { useTokenRefresh } from "@/hooks/useTokenRefresh";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+
+// Use relative paths for API calls so Caddy can route them properly
+const API_BASE_URL = '';
 
 type Step = "init" | "logging-in" | "ready" | "denied" | "error";
 
@@ -17,6 +21,9 @@ export default function LiffPage() {
   const [user, setUser] = useState<{ name?: string; id?: string }>({});
   const [, setIdToken] = useState<string | null>(null);
   const [, setLineProfile] = useState<{ userId?: string; displayName?: string; pictureUrl?: string } | null>(null);
+  
+  // Initialize automatic token refresh
+  useTokenRefresh();
 
 
   useEffect(() => {
@@ -64,6 +71,17 @@ export default function LiffPage() {
           return;
         }
 
+        // 2.5) ตรวจสอบและรีเฟรช token อัตโนมัติ
+        const validToken = await svc.ensureValidToken();
+        if (!validToken) {
+          console.warn("⚠️ ไม่สามารถดึง token ที่ใช้ได้ → re-login");
+          setStep("logging-in");
+          setMsg("รีเฟรชสิทธิ์เข้าใช้งาน LINE ...");
+          svc.logout();
+          await svc.login(window.location.href);
+          return;
+        }
+
         // 3) พยายามดึงโปรไฟล์
         const profile = await svc.getProfile();
 
@@ -82,21 +100,74 @@ export default function LiffPage() {
         setLineProfile(profile);
         
         // Verify with backend and handle authentication
-        const idToken = svc.getIDToken();
+        const idToken = await svc.ensureValidToken();
         if (idToken) {
           setIdToken(idToken);
           try {
             const authResult = await verifyLiffToken(idToken);
             
             if (authResult.success && authResult.user && authResult.token) {
-              // User exists in database, store auth data and redirect based on role
+              // User exists in database, store auth data
               storeAuthData(authResult.user, authResult.token);
               setStep("ready");
-              setMsg("เข้าสู่ระบบสำเร็จ กำลังพาไปหน้าหลัก...");
+              setMsg("เข้าสู่ระบบสำเร็จ กำลังตรวจสอบบทบาท...");
               
-              // Redirect based on user role
-              const redirectPath = authResult.user.role === 'guard' ? '/guard' : '/Resident';
-              setTimeout(() => router.replace(redirectPath), 1000);
+              // Check user roles to determine redirect
+              try {
+                const rolesResponse = await fetch(`${API_BASE_URL}/api/users/roles?lineUserId=${authResult.user.lineUserId}`, {
+                  credentials: 'include'
+                });
+                
+                if (rolesResponse.ok) {
+                  const contentType = rolesResponse.headers.get("content-type");
+                  if (contentType && contentType.includes("application/json")) {
+                    const rolesData = await rolesResponse.json();
+                    
+                    if (rolesData.success && rolesData.roles) {
+                      const verifiedRoles = rolesData.roles.filter((role: any) => role.status === 'verified');
+                      const hasResidentRole = verifiedRoles.some((role: any) => role.role === 'resident');
+                      const hasGuardRole = verifiedRoles.some((role: any) => role.role === 'guard');
+                      
+                      console.log('🔍 User roles:', { verifiedRoles, hasResidentRole, hasGuardRole });
+                      
+                      if (hasResidentRole && hasGuardRole) {
+                        // User has both roles, redirect to role selection
+                        console.log('🔄 User has both roles, redirecting to role selection');
+                        setTimeout(() => router.replace('/liff/select-role'), 1000);
+                      } else if (hasResidentRole) {
+                        // User only has resident role
+                        console.log('🏠 User has resident role only, redirecting to Resident page');
+                        setTimeout(() => router.replace('/Resident'), 1000);
+                      } else if (hasGuardRole) {
+                        // User only has guard role
+                        console.log('🛡️ User has guard role only, redirecting to Guard page');
+                        setTimeout(() => router.replace('/guard'), 1000);
+                      } else {
+                        // User has no verified roles
+                        console.log('⏳ User has no verified roles, redirecting to pending page');
+                        setTimeout(() => router.replace('/liff/select-role'), 1000);
+                      }
+                    } else {
+                      // Fallback to original logic
+                      const redirectPath = authResult.user.role === 'guard' ? '/guard' : '/Resident';
+                      setTimeout(() => router.replace(redirectPath), 1000);
+                    }
+                  } else {
+                    // Fallback to original logic
+                    const redirectPath = authResult.user.role === 'guard' ? '/guard' : '/Resident';
+                    setTimeout(() => router.replace(redirectPath), 1000);
+                  }
+                } else {
+                  // Fallback to original logic
+                  const redirectPath = authResult.user.role === 'guard' ? '/guard' : '/Resident';
+                  setTimeout(() => router.replace(redirectPath), 1000);
+                }
+              } catch (error) {
+                console.error('Error fetching user roles:', error);
+                // Fallback to original logic
+                const redirectPath = authResult.user.role === 'guard' ? '/guard' : '/Resident';
+                setTimeout(() => router.replace(redirectPath), 1000);
+              }
             } else if (authResult.lineUserId) {
               // User not found, redirect to registration page
               console.log('📝 User not found in database, redirecting to registration');
