@@ -20,10 +20,9 @@ import { useRouter } from "next/navigation";
 import { z } from "zod";
 // @ts-ignore
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Upload, Home, House, User, Search, Shield } from "lucide-react";
+import { Upload, Home, House, User, Search, Shield, Loader2} from "lucide-react";
 import axios from "axios";
 import { ModeToggle } from "@/components/mode-toggle";
-// DISABLED: LIFF authentication
 import { getAuthData } from "@/lib/liffAuth";
 
 const visitorSchema = z.object({
@@ -67,8 +66,6 @@ function ApprovalForm() {
         const { user, token } = getAuthData();
         if (user) {
           setCurrentUser(user);
-          // Ensure guard_id follows current authenticated user
-          visitorForm.setValue("guard_id", user.id);
         }
         
         const housesResponse = await axios.get("/api/houses", {
@@ -79,10 +76,10 @@ function ApprovalForm() {
           },
         });
 
-        const realHouses = housesResponse.data?.data || [];
-        setHouses(realHouses);
-        console.log("🏠 Houses loaded (no auth):", {
-          total: realHouses.length,
+        const houses = housesResponse.data?.data || [];
+        setHouses(houses);
+        console.log("🏠 Houses loaded:", {
+          total: houses.length,
         });
       } catch (err) {
         console.log("Error fetching data:", err);
@@ -150,8 +147,15 @@ function ApprovalForm() {
     },
   });
 
+    useEffect(() => {
+      if (currentUser?.id) {
+        visitorForm.setValue("guard_id", currentUser.id);
+      }
+    }, [currentUser?.id, visitorForm]);
+
   const [step, setStep] = useState<number>(1);
   const progress = step === 1 ? 25 : step === 2 ? 60 : 100;
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [houseQuery, setHouseQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -275,6 +279,8 @@ function ApprovalForm() {
   };
 
   async function onSubmit(data: z.infer<typeof visitorSchema>) {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       console.log("🚀 Submitting form data:", data);
 
@@ -309,12 +315,28 @@ function ApprovalForm() {
 
       if (response.data?.success) {
         alert(`ส่งคำขอสำเร็จ! รหัสการเยี่ยม: ${response.data.visitorId}`);
-        // Reset form or redirect
-        visitorForm.reset();
+        // Reset form values and UI state for a new submission
+        visitorForm.reset({
+          license_image: "",
+          guard_id: currentUser?.id ?? "",
+          id_card_image: "",
+          license_plate: "",
+          visitor_id_card: "",
+          house_id: "",
+          entry_time: getLocalDateTimeForInput(),
+          visit_purpose: "",
+        });
         setStep(1);
         setCapturedImage(null);
-        setCurrentPage(1);
         setCapturedIdCardImage(null);
+        setHouseQuery("");
+        setCurrentPage(1);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+        if (idCardFileInputRef.current) {
+          idCardFileInputRef.current.value = "";
+        }
       } else if (response.data?.error) {
         const err = response.data.error;
         const message = Array.isArray(err) ? err.join("\n") : String(err);
@@ -328,6 +350,8 @@ function ApprovalForm() {
       } else {
         alert("เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ");
       }
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -552,7 +576,7 @@ function ApprovalForm() {
                               {currentUser.email}
                             </p>
                           </div>
-                          <div className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                          <div className="text-xs text-green-600 bg-green-100 px-2.5 py-2 rounded-full">
                             กำลังใช้งาน
                           </div>
                         </div>
@@ -767,6 +791,7 @@ function ApprovalForm() {
                     variant="outline"
                     onClick={goBack}
                     className="flex-1 h-12 text-base"
+                    disabled={isSubmitting}
                   >
                     กลับ
                   </Button>
@@ -779,13 +804,20 @@ function ApprovalForm() {
                           ? "bg-muted cursor-not-allowed text-muted-foreground"
                           : ""
                       }`}
-                      disabled={step === 2 && !isStep2Valid()}
+                      disabled={isSubmitting || (step === 2 && !isStep2Valid())}
                     >
                       ต่อไป
                     </Button>
                   ) : (
-                    <Button type="submit" className="flex-1 h-12 text-base">
-                      ยืนยัน
+                    <Button type="submit" className="flex-1 h-12 text-base" disabled={isSubmitting}>
+                      {isSubmitting ? (
+                        <span className="inline-flex items-center">
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          กำลังส่ง...
+                        </span>
+                      ) : (
+                        "ยืนยัน"
+                      )}
                     </Button>
                   )}
                 </div>

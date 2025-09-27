@@ -83,7 +83,7 @@ export function AddStaffForm({ villageKey, villageName, onStaffAdded }: AddStaff
         toast.error(result.error || "เกิดข้อผิดพลาดในการเพิ่มนิติบุคคล");
       }
     } catch {
-      toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+      // toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     } finally {
       setIsSubmitting(false);
     }
@@ -149,7 +149,7 @@ export function AddStaffForm({ villageKey, villageName, onStaffAdded }: AddStaff
                     type={showPassword ? "text" : "password"}
                     value={generatedCredentials.password}
                     readOnly
-                    className="bg-white dark:bg-gray-800"
+                    className="bg-whi e dark:bg-gray-800"
                   />
                   <Button
                     size="sm"
@@ -157,9 +157,9 @@ export function AddStaffForm({ villageKey, villageName, onStaffAdded }: AddStaff
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
                       <Eye className="h-4 w-4" />
+                    ) : (
+                      <EyeOff className="h-4 w-4" />
                     )}
                   </Button>
                   <Button

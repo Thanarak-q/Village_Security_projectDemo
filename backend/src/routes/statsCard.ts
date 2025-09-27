@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import db from "../db/drizzle";
 import { residents, visitor_records, guards } from "../db/schema";
-import { eq, count, and, gte, lt, inArray } from "drizzle-orm";
+import { eq, count, and, gte, lt } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 
 /**
@@ -57,19 +57,44 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
    * Get resident count and visitor record stats for today.
    * @returns {Promise<Object>} A promise that resolves to an object containing the statistics data.
    */
-  .get("/statsCard", async ({ currentUser, query }: any) => {
+  .get("/statsCard", async ({ currentUser, query, request }: any) => {
     try {
       const { startOfDay, endOfDay } = getTodayDateRange();
-      const { village_keys, role } = currentUser;
       
-      // Get selected village from query parameter, fallback to all villages
-      const selectedVillageKey = query?.village_key;
-      const targetVillageKeys = selectedVillageKey ? [selectedVillageKey] : village_keys;
+      // Extract village_key from query parameters
+      let village_key = query?.village_key;
+      
+      // Fallback: if query parsing fails, try to extract from URL
+      if (!village_key && request?.url) {
+        const url = new URL(request.url);
+        village_key = url.searchParams.get('village_key');
+      }
+      
+      const { village_keys, role } = currentUser;
+
+      console.log("StatsCard - Extracted village_key:", village_key);
+      console.log("StatsCard - Available village_keys:", village_keys);
+
+      // Validate village_key parameter
+      if (!village_key || typeof village_key !== 'string') {
+        return {
+          success: false,
+          error: "Village key is required",
+        };
+      }
+
+      // Check if admin has access to the specified village
+      if (role !== "superadmin" && !village_keys.includes(village_key)) {
+        return {
+          success: false,
+          error: "You don't have access to this village",
+        };
+      }
 
       // Count total residents (filtered by village if not superadmin)
       const countResidents = role === "superadmin"
         ? await db.select({ count: count() }).from(residents)
-        : await db.select({ count: count() }).from(residents).where(inArray(residents.village_key, targetVillageKeys));
+        : await db.select({ count: count() }).from(residents).where(eq(residents.village_key, village_key));
 
       // Count residents with pending status (filtered by village if not superadmin)
       const countResidentsPending = role === "superadmin"
@@ -80,7 +105,7 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
         : await db
             .select({ count: count() })
             .from(residents)
-            .where(and(eq(residents.status, "pending"), inArray(residents.village_key, targetVillageKeys)));
+            .where(and(eq(residents.status, "pending"), eq(residents.village_key, village_key)));
 
       // Count guards with pending status (filtered by village if not superadmin)
       const countGuardsPending = role === "superadmin"
@@ -91,7 +116,7 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
         : await db
             .select({ count: count() })
             .from(guards)
-            .where(and(eq(guards.status, "pending"), inArray(guards.village_key, targetVillageKeys)));
+            .where(and(eq(guards.status, "pending"), eq(guards.village_key, village_key)));
 
       // Count visitor records for today (filtered by village if not superadmin)
       const countVisitorRecordToday = role === "superadmin"
@@ -110,7 +135,7 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
             .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
             .where(
               and(
-                inArray(residents.village_key, targetVillageKeys),
+                eq(residents.village_key, village_key),
                 gte(visitor_records.createdAt, startOfDay),
                 lt(visitor_records.createdAt, endOfDay)
               )
@@ -134,7 +159,7 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
             .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
             .where(
               and(
-                inArray(residents.village_key, targetVillageKeys),
+                eq(residents.village_key, village_key),
                 eq(visitor_records.record_status, "approved"),
                 gte(visitor_records.createdAt, startOfDay),
                 lt(visitor_records.createdAt, endOfDay)
@@ -159,7 +184,7 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
             .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
             .where(
               and(
-                inArray(residents.village_key, targetVillageKeys),
+                eq(residents.village_key, village_key),
                 eq(visitor_records.record_status, "pending"),
                 gte(visitor_records.createdAt, startOfDay),
                 lt(visitor_records.createdAt, endOfDay)
@@ -184,7 +209,7 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
             .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
             .where(
               and(
-                inArray(residents.village_key, targetVillageKeys),
+                eq(residents.village_key, village_key),
                 eq(visitor_records.record_status, "rejected"),
                 gte(visitor_records.createdAt, startOfDay),
                 lt(visitor_records.createdAt, endOfDay)
@@ -205,6 +230,7 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
         success: true,
         data: statsData,
         message: "ข้อมูลสถิติประจำวัน",
+        village_key: village_key,
       };
     } catch (error) {
       console.error("Error fetching statistics:", error);
@@ -214,4 +240,4 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
         details: error instanceof Error ? error.message : "Unknown error",
       };
     }
-  }); 
+  });

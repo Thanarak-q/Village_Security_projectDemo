@@ -45,11 +45,11 @@ function Page() {
       });
 
       // Check user status - redirect pending users to pending page
-      // if (user.status === "pending") {
-      //   console.log("❌ Guard status is pending, redirecting to pending page");
-      //   router.push("/guard/pending");
-      //   return;
-      // }
+      if (user.status === "pending") {
+        console.log("❌ Guard status is pending, redirecting to pending page");
+        router.push("/guard/pending");
+        return;
+      }
 
       // Check if user is disabled
       if (user.status === "disable") {
@@ -59,11 +59,11 @@ function Page() {
       }
 
       // Only verified users can access the main page
-      // if (user.status !== "verified") {
-      //   console.log("❌ Guard status is not verified, redirecting to pending page");
-      //   router.push("/guard/pending");
-      //   return;
-      // }
+      if (user.status !== "verified") {
+        console.log("❌ Guard status is not verified, redirecting to pending page");
+        router.push("/guard/pending");
+        return;
+      }
 
       console.log("✅ Guard is verified, allowing access to main page");
       // User is verified - allow access
