@@ -188,7 +188,13 @@ export function useStatsData() {
     setError(null)
 
     try {
-      const response = await fetch('/api/statsCard', {
+      // Get selected village from sessionStorage (with SSR safety check)
+      const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem('selectedVillage') : null;
+      const url = selectedVillage 
+        ? `/api/statsCard?village_key=${encodeURIComponent(selectedVillage)}`
+        : '/api/statsCard';
+        
+      const response = await fetch(url, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -231,6 +237,23 @@ export function useStatsData() {
 
   useEffect(() => {
     fetchStats()
+  }, [])
+
+  // Refetch when selected village changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      fetchStats()
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Also listen for custom event when village changes in same tab
+    window.addEventListener('villageChanged', handleStorageChange)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('villageChanged', handleStorageChange)
+    }
   }, [])
 
   return { data, loading, error, refetch: fetchStats }

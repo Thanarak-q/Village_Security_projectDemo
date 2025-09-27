@@ -8,9 +8,10 @@ import {
   house_members,
   visitor_records,
 } from "../db/schema";
-import { eq, sql, and } from "drizzle-orm";
+import { eq, sql, and, inArray } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { userManagementActivityLogger } from "../utils/activityLogUtils";
+import { notificationService } from "../services/notificationService";
 
 /**
  * Interface for the update user request.
@@ -197,20 +198,25 @@ async function createHouseForResident(
 
 /**
  * The user table routes.
- * Accessible by: admin (เจ้าของโครงการ) only
+ * Accessible by: admin (เจ้าของโครงการ) and staff (นิติ)
  * @type {Elysia}
  */
 export const userTableRoutes = new Elysia({ prefix: "/api" })
-  .onBeforeHandle(requireRole(["admin"]))
+  .onBeforeHandle(requireRole(["staff","admin"]))
   /**
    * Get all users for the current user's village.
    * @param {Object} context - The context for the request.
    * @param {Object} context.currentUser - The current user.
+   * @param {Object} context.query - The query parameters.
    * @returns {Promise<Object>} A promise that resolves to an object containing the user data.
    */
-  .get("/userTable", async ({ currentUser }: any) => {
+  .get("/userTable", async ({ currentUser, query }: any) => {
     try {
-      const { village_key } = currentUser;
+      const { village_keys, role } = currentUser;
+      
+      // Get selected village from query parameter, fallback to all villages
+      const selectedVillageKey = query?.village_key;
+      const targetVillageKeys = selectedVillageKey ? [selectedVillageKey] : village_keys;
 
       const residentsData = await db
         .select({
@@ -230,7 +236,9 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
         .from(residents)
         .where(
           and(
-            eq(residents.village_key, village_key),
+            role === "superadmin" 
+              ? sql`1=1` // Super admin can see all residents
+              : inArray(residents.village_key, targetVillageKeys),
             sql`${residents.status} != 'pending'`
           )
         )
@@ -258,7 +266,9 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
         .from(guards)
         .where(
           and(
-            eq(guards.village_key, village_key),
+            role === "superadmin" 
+              ? sql`1=1` // Super admin can see all guards
+              : inArray(guards.village_key, targetVillageKeys),
             sql`${guards.status} != 'pending'`
           )
         );
@@ -316,6 +326,19 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           };
         }
 
+        // Get old status for notification
+        const oldResident = await db
+          .select({ status: residents.status, fname: residents.fname, lname: residents.lname, village_key: residents.village_key })
+          .from(residents)
+          .where(eq(residents.resident_id, userId));
+
+        if (oldResident.length === 0) {
+          return {
+            success: false,
+            error: "Resident not found",
+          };
+        }
+
         // Update resident
         const updateResult = await db
           .update(residents)
@@ -331,6 +354,32 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
             success: false,
             error: "Resident not found",
           };
+        }
+
+        // Create notification for resident status change if status actually changed
+        if (oldResident[0].status !== status) {
+          try {
+            // Get house address for notification
+            const houseMember = await db
+              .select({ address: houses.address })
+              .from(house_members)
+              .innerJoin(houses, eq(house_members.house_id, houses.house_id))
+              .where(eq(house_members.resident_id, userId));
+
+            if (houseMember.length > 0) {
+              await notificationService.notifyResidentStatusChange({
+                resident_id: userId,
+                resident_name: `${oldResident[0].fname} ${oldResident[0].lname}`,
+                house_address: houseMember[0].address,
+                old_status: oldResident[0].status || 'unknown',
+                new_status: status,
+                village_key: oldResident[0].village_key || '',
+              });
+              console.log(`📢 Resident status change notification sent: ${oldResident[0].fname} ${oldResident[0].lname}`);
+            }
+          } catch (notificationError) {
+            console.error('❌ Error sending resident status change notification:', notificationError);
+          }
         }
 
         // If houseNumber is provided, update house address
@@ -547,6 +596,30 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           // Remove house relationships first
           const houseMemberData = await removeHouseRelationships(userId);
 
+          // Create notification for house member removed if there was a house relationship
+          if (houseMemberData?.house_id) {
+            try {
+              // Get house address for notification
+              const houseInfo = await db
+                .select({ address: houses.address })
+                .from(houses)
+                .where(eq(houses.house_id, houseMemberData.house_id));
+
+              if (houseInfo.length > 0) {
+                await notificationService.notifyHouseMemberRemoved({
+                  house_member_id: houseMemberData.house_member_id,
+                  resident_id: userId,
+                  resident_name: `${resident.fname} ${resident.lname}`,
+                  house_address: houseInfo[0].address,
+                  village_key: resident.village_key || '',
+                });
+                console.log(`📢 House member removed notification sent: ${resident.fname} ${resident.lname}`);
+              }
+            } catch (notificationError) {
+              console.error('❌ Error sending house member removed notification:', notificationError);
+            }
+          }
+
           // Clean up visitor records for this resident
           await cleanupVisitorRecords(userId, "resident");
 
@@ -673,6 +746,20 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
               houseNumber,
               guard.village_key
             );
+
+            // Create notification for house member added
+            try {
+              await notificationService.notifyHouseMemberAdded({
+                house_member_id: '', // Will be generated by database
+                resident_id: newResident.resident_id,
+                resident_name: `${newResident.fname} ${newResident.lname}`,
+                house_address: houseNumber || '',
+                village_key: guard.village_key || '',
+              });
+              console.log(`📢 House member added notification sent: ${newResident.fname} ${newResident.lname}`);
+            } catch (notificationError) {
+              console.error('❌ Error sending house member added notification:', notificationError);
+            }
           }
 
           // Verify the conversion was successful

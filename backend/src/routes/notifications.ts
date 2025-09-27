@@ -10,7 +10,7 @@
 import { Elysia, t } from 'elysia';
 import { eq, and, desc, count } from 'drizzle-orm';
 import db from '../db/drizzle';
-import { admin_notifications, villages, admins } from '../db/schema';
+import { admin_notifications, villages, admins, admin_villages } from '../db/schema';
 import { requireRole } from '../hooks/requireRole';
 import { websocketClient } from '../services/websocketClient';
 
@@ -24,8 +24,22 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
       const { page = 1, limit = 20, type, category } = query;
       const offset = (Number(page) - 1) * Number(limit);
 
+      // Get the admin's village_key from admin_villages table
+      const adminVillage = await db.query.admin_villages.findFirst({
+        where: eq(admin_villages.admin_id, currentUser.admin_id)
+      });
+
+      const villageKey = adminVillage?.village_key || currentUser.village_key;
+      
+      if (!villageKey) {
+        return {
+          success: false,
+          error: 'Admin not associated with any village'
+        };
+      }
+
       // Build where conditions - get notifications for the admin's village
-      const whereConditions = [eq(admin_notifications.village_key, currentUser.village_key)];
+      const whereConditions = [eq(admin_notifications.village_key, villageKey)];
       
       if (type) {
         whereConditions.push(eq(admin_notifications.type, type as any));
@@ -101,18 +115,31 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
     try {
       const { currentUser } = context;
 
+      // Get the admin's village_key from admin_villages table
+      const adminVillage = await db.query.admin_villages.findFirst({
+        where: eq(admin_villages.admin_id, currentUser.admin_id)
+      });
+
+      const villageKey = adminVillage?.village_key || currentUser.village_key;
+      
+      if (!villageKey) {
+        return {
+          success: false,
+          error: 'Admin not associated with any village'
+        };
+      }
+
       // Get total and unread counts
       const [totalResult] = await Promise.all([
         db.select({ count: count() })
           .from(admin_notifications)
-          .where(eq(admin_notifications.village_key, currentUser.village_key))
+          .where(eq(admin_notifications.village_key, villageKey))
       ]);
 
       return {
         success: true,
         data: {
-          total: totalResult[0]?.count || 0,
-          unread: 0 // Notifications are broadcast, no individual read status
+          total: totalResult[0]?.count || 0
         }
       };
     } catch (error) {
@@ -125,107 +152,8 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
     }
   })
 
-  // PUT /api/notifications/:id/read - Mark notification as read
-  .put('/:id/read', async (context: any) => {
-    try {
-      const { currentUser, params } = context;
-      const { id } = params;
 
-      // Note: Mark as read is no longer supported as notifications are broadcast
-      // Return the notification without updating
-      const result = await db
-        .select()
-        .from(admin_notifications)
-        .where(and(
-          eq(admin_notifications.notification_id, id),
-          eq(admin_notifications.village_key, currentUser.village_key)
-        ))
-        .limit(1);
 
-      if (result.length === 0) {
-        return {
-          success: false,
-          error: 'Notification not found or access denied'
-        };
-      }
-
-      return {
-        success: true,
-        data: result[0],
-        message: 'Notification retrieved (read status not applicable for broadcast notifications)'
-      };
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-      return {
-        success: false,
-        error: 'Failed to mark notification as read'
-      };
-    }
-  })
-
-  // PUT /api/notifications/read-all - Mark all notifications as read
-  .put('/read-all', async (context: any) => {
-    try {
-      const { currentUser } = context;
-
-      // Note: Mark all as read is no longer supported as notifications are broadcast
-      // Return count of notifications for the village
-      const result = await db
-        .select({ count: count() })
-        .from(admin_notifications)
-        .where(eq(admin_notifications.village_key, currentUser.village_key));
-
-      return {
-        success: true,
-        data: {
-          total_notifications: result[0]?.count || 0
-        },
-        message: 'Notifications retrieved (read status not applicable for broadcast notifications)'
-      };
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-      return {
-        success: false,
-        error: 'Failed to mark all notifications as read'
-      };
-    }
-  })
-
-  // DELETE /api/notifications/:id - Delete a notification
-  .delete('/:id', async (context: any) => {
-    try {
-      const { currentUser, params } = context;
-      const { id } = params;
-
-      const result = await db
-        .delete(admin_notifications)
-        .where(and(
-          eq(admin_notifications.notification_id, id),
-          eq(admin_notifications.village_key, currentUser.village_key)
-        ))
-        .returning();
-
-      if (result.length === 0) {
-        return {
-          success: false,
-          error: 'Notification not found or access denied'
-        };
-      }
-
-      return {
-        success: true,
-        data: {
-          deleted_id: id
-        }
-      };
-    } catch (error) {
-      console.error('Error deleting notification:', error);
-      return {
-        success: false,
-        error: 'Failed to delete notification'
-      };
-    }
-  })
 
   // POST /api/notifications/test - Create test notification (development only)
   .post('/test', async (context: any) => {
@@ -360,15 +288,15 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
         };
       }
 
-      // Get the admin's village_key
-      const admin = await db.query.admins.findFirst({
-        where: eq(admins.admin_id, currentUser.admin_id)
+      // Get the admin's village_key from admin_villages table
+      const adminVillage = await db.query.admin_villages.findFirst({
+        where: eq(admin_villages.admin_id, currentUser.admin_id)
       });
 
-      console.log('🔍 Admin found:', admin);
+      console.log('🔍 Admin village found:', adminVillage);
 
-      // Use admin's village_key or default to 'default-village' for testing
-      const villageKey = admin?.village_key || 'default-village';
+      // Use admin's village_key or default to 'pha-suk-village-001' for testing
+      const villageKey = adminVillage?.village_key || 'pha-suk-village-001';
       console.log('🏘️ Using village_key:', villageKey);
 
       // Create notification in database
@@ -390,7 +318,8 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
         title: newNotification.title,
         body: newNotification.message,
         level: level || 'info',
-        createdAt: newNotification.created_at ? newNotification.created_at.getTime() : Date.now()
+        createdAt: newNotification.created_at ? newNotification.created_at.getTime() : Date.now(),
+        villageKey: villageKey
       };
 
       let wsSent = false;

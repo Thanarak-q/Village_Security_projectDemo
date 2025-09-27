@@ -1,9 +1,10 @@
 import { Elysia } from "elysia";
 import db from "../db/drizzle";
 import { houses, villages, guards, admins } from "../db/schema";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { houseActivityLogger } from "../utils/activityLogUtils";
+import { notificationService } from "../services/notificationService";
 
 /**
  * Interface for the create house request body.
@@ -11,7 +12,7 @@ import { houseActivityLogger } from "../utils/activityLogUtils";
  */
 interface CreateHouseBody {
   address: string;
-  // village_key will be automatically assigned from the admin's village.
+  village_key: string; // Admin must specify which village to create house in
 }
 
 /**
@@ -42,6 +43,10 @@ const validateHouseData = (data: CreateHouseBody) => {
 
   if (!data.address?.trim()) {
     errors.push("Address is required");
+  }
+
+  if (!data.village_key?.trim()) {
+    errors.push("Village is required");
   }
 
   return errors;
@@ -83,6 +88,7 @@ const validateStatus = (
 /**
  * The house management routes.
  * Accessible by: admin (เจ้าของโครงการ) and guard (ยามรักษาความปลอดภัย)
+ * Accessible by: admin (เจ้าของโครงการ) and staff (นิติ)
  * @type {Elysia}
  */
 export const houseManageRoutes = new Elysia({ prefix: "/api" })
@@ -208,19 +214,26 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
-      const adminVillageKey = currentUser.village_key;
+      const { village_keys, role } = currentUser;
 
-      // Check if admin's village exists
+      // Check if admin has access to the specified village
+      if (role !== "superadmin" && !village_keys.includes(houseData.village_key)) {
+        return {
+          success: false,
+          error: "You don't have access to this village",
+        };
+      }
+
+      // Check if village exists
       const existingVillage = await db
         .select()
         .from(villages)
-        .where(eq(villages.village_key, adminVillageKey));
+        .where(eq(villages.village_key, houseData.village_key));
 
       if (existingVillage.length === 0) {
         return {
           success: false,
-          error:
-            "Admin's village not found. Please contact system administrator.",
+          error: "Village not found",
         };
       }
 
@@ -229,7 +242,7 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         .insert(houses)
         .values({
           address: houseData.address.trim(),
-          village_key: adminVillageKey, // Use admin's village_key
+          village_key: houseData.village_key, // Use specified village_key
         })
         .returning();
 
@@ -238,7 +251,7 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         await houseActivityLogger.logHouseCreated(
           currentUser.admin_id,
           houseData.address.trim(),
-          adminVillageKey
+          houseData.village_key
         );
       } catch (logError) {
         console.error("Error logging house creation:", logError);
@@ -303,10 +316,11 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         }
 
         // Check if admin can update this house (same village)
-        if (existingHouse[0].village_key !== currentUser.village_key) {
+        const { village_keys, role } = currentUser;
+        if (role !== "superadmin" && !village_keys.includes(existingHouse[0].village_key)) {
           return {
             success: false,
-            error: "You can only update houses in your own village!",
+            error: "You can only update houses in your assigned villages!",
           };
         }
 
@@ -318,6 +332,9 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
             error: validationErrors.join(", "),
           };
         }
+
+        // Get old status for notification
+        const oldStatus = existingHouse[0].status;
 
         // Prepare update data
         const dataToUpdate: any = {};
@@ -354,6 +371,23 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         } catch (logError) {
           console.error("Error logging house update:", logError);
           // Don't fail the request if logging fails
+        }
+
+        // Send notification if status changed
+        if (updateData.status !== undefined && oldStatus !== updateData.status) {
+          try {
+            await notificationService.notifyHouseStatusChange({
+              house_id: house_id,
+              address: updatedHouse.address,
+              old_status: oldStatus,
+              new_status: updateData.status,
+              village_key: existingHouse[0].village_key,
+            });
+            console.log(`📢 House status change notification sent: ${updatedHouse.address}`);
+          } catch (notificationError) {
+            console.error('❌ Error sending house status change notification:', notificationError);
+            // Don't fail the request if notification fails
+          }
         }
 
         return {
@@ -422,12 +456,16 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         }
 
         // Check if admin can update this house (same village)
-        if (existingHouse[0].village_key !== currentUser.village_key) {
+        const { village_keys, role } = currentUser;
+        if (role !== "superadmin" && !village_keys.includes(existingHouse[0].village_key)) {
           return {
             success: false,
-            error: "You can only update houses in your own village!",
+            error: "You can only update houses in your assigned villages!",
           };
         }
+
+        // Get old status for notification
+        const oldStatus = existingHouse[0].status;
 
         // Update house status
         const [updatedHouse] = await db
@@ -447,6 +485,23 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         } catch (logError) {
           console.error("Error logging house status update:", logError);
           // Don't fail the request if logging fails
+        }
+
+        // Send notification if status actually changed
+        if (oldStatus !== status) {
+          try {
+            await notificationService.notifyHouseStatusChange({
+              house_id: house_id,
+              address: updatedHouse.address,
+              old_status: oldStatus,
+              new_status: status,
+              village_key: existingHouse[0].village_key,
+            });
+            console.log(`📢 House status change notification sent: ${updatedHouse.address}`);
+          } catch (notificationError) {
+            console.error('❌ Error sending house status change notification:', notificationError);
+            // Don't fail the request if notification fails
+          }
         }
 
         return {
@@ -501,17 +556,18 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
           success: false,
           error: "House not found!",
         };
-      }
+        }
 
-      // Check if admin can delete this house (same village)
-      if (existingHouse[0].village_key !== currentUser.village_key) {
-        return {
-          success: false,
-          error: "You can only delete houses in your own village!",
-        };
-      }
+        // Check if admin can delete this house (same village)
+        const { village_keys, role } = currentUser;
+        if (role !== "superadmin" && !village_keys.includes(existingHouse[0].village_key)) {
+          return {
+            success: false,
+            error: "You can only delete houses in your assigned villages!",
+          };
+        }
 
-      // Store house info for logging before deletion
+        // Store house info for logging before deletion
       const houseInfo = existingHouse[0];
 
       // Delete house

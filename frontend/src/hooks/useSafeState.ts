@@ -76,7 +76,7 @@ export function useSafeState<T>(
 }
 
 // Safe callback hook
-export function useSafeCallback<T extends (...args: any[]) => any>(
+export function useSafeCallback<T extends (...args: unknown[]) => unknown>(
   callback: T,
   deps: React.DependencyList = []
 ): T {

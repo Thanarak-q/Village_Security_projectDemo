@@ -1,15 +1,19 @@
 :80 {
   # API routes
-  reverse_proxy /api/* backend:3001
-  
-  # WebSocket service
-  reverse_proxy /ws websocket:3002 {
-    header_up Host {host}
-    header_up X-Real-IP {remote}
-    header_up X-Forwarded-For {remote}
-    header_up X-Forwarded-Proto {scheme}
+  reverse_proxy /api/* backend:3001 {
   }
   
-  # Frontend
-  reverse_proxy frontend:3000
+  # WebSocket service with proper WebSocket headers
+  reverse_proxy /ws websocket:3002 {
+    transport http {
+      versions 1.1
+    }
+  }
+  
+  # Frontend (catch-all for SPA routing)
+  reverse_proxy frontend:3000 {
+  }
+
+  # Enable compression
+  encode gzip
 }
