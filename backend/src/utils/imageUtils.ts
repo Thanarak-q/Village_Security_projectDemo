@@ -1,6 +1,7 @@
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { Client as MinioClient } from 'minio';
 
 /**
  * Save base64 image data to the db/images directory
@@ -11,15 +12,9 @@ import { v4 as uuidv4 } from 'uuid';
 export async function saveBase64Image(
   base64Data: string,
   filename?: string,
-  subfolder?: 'license' | 'id_card' | 'misc'
+  subfolder?: string
 ): Promise<string> {
   try {
-    // Ensure db/image/<subfolder> directory exists
-    const imagesRootDir = join(process.cwd(), 'src', 'db', 'image');
-    const targetSubfolder = subfolder || 'misc';
-    const targetDir = join(imagesRootDir, targetSubfolder);
-    await mkdir(targetDir, { recursive: true });
-
     // Remove data URL prefix if present (data:image/jpeg;base64,)
     const base64Content = base64Data.includes(',') 
       ? base64Data.split(',')[1] 
@@ -27,15 +22,54 @@ export async function saveBase64Image(
 
     // Generate filename if not provided
     const imageFilename = filename || `${uuidv4()}.jpg`;
-    const imagePath = join(targetDir, imageFilename);
+    const targetSubfolder = subfolder || 'misc';
+
+    // Detect content-type from data URL if present
+    let contentType = 'image/jpeg';
+    const ctMatch = base64Data.match(/^data:(image\/[a-zA-Z.+-]+);base64,/);
+    if (ctMatch && ctMatch[1]) {
+      contentType = ctMatch[1];
+    }
 
     // Convert base64 to buffer and save
     const imageBuffer = Buffer.from(base64Content, 'base64');
-    await writeFile(imagePath, imageBuffer);
 
-    console.log(`✅ Image saved: ${join(targetSubfolder, imageFilename)}`);
-    // Return relative path including subfolder
-    return join(targetSubfolder, imageFilename);
+    // If MINIO is configured, upload there; otherwise, save to local disk
+    const useMinio = Boolean(process.env.MINIO_ENDPOINT && process.env.MINIO_ACCESS_KEY && process.env.MINIO_SECRET_KEY);
+    if (useMinio) {
+      const minio = new MinioClient({
+        endPoint: process.env.MINIO_ENDPOINT as string,
+        port: process.env.MINIO_PORT ? Number(process.env.MINIO_PORT) : 9000,
+        useSSL: process.env.MINIO_USE_SSL === 'true',
+        accessKey: process.env.MINIO_ACCESS_KEY as string,
+        secretKey: process.env.MINIO_SECRET_KEY as string,
+      });
+
+      const bucket = process.env.MINIO_BUCKET || 'images';
+      const objectKey = `${targetSubfolder}/${imageFilename}`;
+
+      const exists = await minio.bucketExists(bucket).catch(() => false);
+      if (!exists) {
+        await minio.makeBucket(bucket, 'us-east-1');
+      }
+
+      await minio.putObject(bucket, objectKey, imageBuffer, imageBuffer.length, {
+        'Content-Type': contentType,
+      });
+
+      console.log(`✅ Image uploaded to MinIO: ${objectKey}`);
+      // Return object key; callers should treat this as key, not local path
+      return objectKey;
+    } else {
+      // Fallback to local disk in src/db/image/<subfolder>
+      const imagesRootDir = join(process.cwd(), 'src', 'db', 'image');
+      const targetDir = join(imagesRootDir, targetSubfolder);
+      await mkdir(targetDir, { recursive: true });
+      const imagePath = join(targetDir, imageFilename);
+      await writeFile(imagePath, imageBuffer);
+      console.log(`✅ Image saved locally: ${join(targetSubfolder, imageFilename)}`);
+      return join(targetSubfolder, imageFilename);
+    }
   } catch (error) {
     console.error('❌ Error saving image:', error);
     throw new Error('Failed to save image');

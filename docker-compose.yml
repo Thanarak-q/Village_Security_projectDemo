@@ -7,11 +7,23 @@ services:
       - ./backend:/app
     env_file:
       - ./backend/.env
-    environment:
-      - DOCKER_ENV=true
-      - WEBSOCKET_URL=ws://websocket:3002/ws
     depends_on:
       - websocket
+      - minio
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      # Must match MINIO_ACCESS_KEY / MINIO_SECRET_KEY in backend/.env
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
     restart: unless-stopped
 
   websocket:
@@ -42,8 +54,8 @@ services:
       - CHOKIDAR_USEPOLLING=true
       - NEXT_PUBLIC_API_URL=http://localhost:3001
       - NEXT_PUBLIC_RESIDENT_LIFF_ID=2008071362-Eqg9y1Qa
-      - NEXT_PUBLIC_GUARD_LIFF_ID=2008071362-kOm2J3jx
-      - NEXT_PUBLIC_LIFF_ID=2008071362-Eqg9y1Qa
+      - NEXT_PUBLIC_GUARD_LIFF_ID=2008174551-g6Yj7R2l
+      - NEXT_PUBLIC_LIFF_ID=2008174551-g6Yj7R2l
     depends_on:
       - backend
     restart: unless-stopped
@@ -99,4 +111,5 @@ services:
 
 volumes:
   dbdata:
+  minio_data:
 #   pgadmin-data:
