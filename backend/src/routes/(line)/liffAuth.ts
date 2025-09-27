@@ -74,9 +74,11 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
       });
 
       // Both guard and resident use the same LINE channel ID
-      const clientId = process.env.LINE_CHANNEL_ID || '';
+      // For LIFF token verification, we need the client ID (first part before the dash)
+      const fullChannelId = process.env.LINE_CHANNEL_ID || '';
+      const clientId = fullChannelId.split('-')[0]; // Extract client ID part
       
-      console.log('🔍 Using Channel ID:', clientId, 'for', isGuardRequest ? 'guard' : isResidentRequest ? 'resident' : 'default');
+      console.log('🔍 Using Channel ID:', fullChannelId, 'Client ID:', clientId, 'for', isGuardRequest ? 'guard' : isResidentRequest ? 'resident' : 'default');
 
       // Verify LINE ID token with LINE API
       
@@ -102,6 +104,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
 
       // Validate audience strictly
       if (channelId !== clientId) {
+        console.log('🔍 Token audience mismatch:', { expected: clientId, received: channelId });
         set.status = 401;
         return { success: false, error: "Token audience mismatch" };
       }
@@ -261,9 +264,10 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
       const isGuardRequest = userType === 'guard';
       const isResidentRequest = userType === 'resident';
 
-      const clientId = process.env.LINE_CHANNEL_ID || '';
+      const fullChannelId = process.env.LINE_CHANNEL_ID || '';
+      const clientId = fullChannelId.split('-')[0]; // Extract client ID part
       
-      console.log('🔍 Registration - Using Channel ID:', clientId, 'for', isGuardRequest ? 'guard' : isResidentRequest ? 'resident' : 'default');
+      console.log('🔍 Registration - Using Channel ID:', fullChannelId, 'Client ID:', clientId, 'for', isGuardRequest ? 'guard' : isResidentRequest ? 'resident' : 'default');
 
       // Verify LINE ID token
       
