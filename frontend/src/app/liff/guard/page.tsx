@@ -60,7 +60,9 @@ export default function GuardLiffPage() {
           try {
             // ใช้ setTimeout เพื่อให้ UI อัปเดตก่อน redirect
             setTimeout(() => {
-              svc.login(window.location.href);
+              const url = new URL(window.location.href);
+              const cleanUrl = `${url.origin}${url.pathname}`; // ล้าง query เก่า ๆ เช่น code/state/liffRedirectUri
+              svc.login(cleanUrl);
             }, 100);
           } catch (error) {
             console.error("Login failed:", error);
@@ -79,7 +81,9 @@ export default function GuardLiffPage() {
           svc.logout();
           try {
             setTimeout(() => {
-              svc.login(window.location.href);
+              const url = new URL(window.location.href);
+              const cleanUrl = `${url.origin}${url.pathname}`;
+              svc.login(cleanUrl);
             }, 100);
           } catch (error) {
             console.error("Re-login failed:", error);
@@ -100,7 +104,9 @@ export default function GuardLiffPage() {
           svc.logout();
           try {
             setTimeout(() => {
-              svc.login(window.location.href);
+              const url = new URL(window.location.href);
+              const cleanUrl = `${url.origin}${url.pathname}`;
+              svc.login(cleanUrl);
             }, 100);
           } catch (error) {
             console.error("Profile re-login failed:", error);
@@ -134,7 +140,11 @@ export default function GuardLiffPage() {
               setMsg("LINE token หมดอายุ กำลังเข้าสู่ระบบใหม่...");
               try {
                 svc.logout();
-                setTimeout(() => { svc.login(window.location.href); }, 100);
+                setTimeout(() => {
+                  const url = new URL(window.location.href);
+                  const cleanUrl = `${url.origin}${url.pathname}`;
+                  svc.login(cleanUrl);
+                }, 100);
               } catch (reloginErr) {
                 console.error('Re-login after token expired failed:', reloginErr);
                 setStep("error");

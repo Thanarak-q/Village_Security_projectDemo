@@ -62,8 +62,6 @@ function ApprovalForm() {
         const { user, token } = getAuthData();
         if (user) {
           setCurrentUser(user);
-          // Ensure guard_id follows current authenticated user
-          visitorForm.setValue("guard_id", user.id);
         }
         
         const housesResponse = await axios.get("/api/houses", {
@@ -74,10 +72,10 @@ function ApprovalForm() {
           },
         });
 
-        const realHouses = housesResponse.data?.data || [];
-        setHouses(realHouses);
+        const houses = housesResponse.data?.data || [];
+        setHouses(houses);
         console.log("🏠 Houses loaded:", {
-          total: realHouses.length,
+          total: houses.length,
         });
       } catch (err) {
         console.log("Error fetching data:", err);
@@ -105,6 +103,12 @@ function ApprovalForm() {
       visit_purpose: "",
     },
   });
+
+    useEffect(() => {
+      if (currentUser?.id) {
+        visitorForm.setValue("guard_id", currentUser.id);
+      }
+    }, [currentUser?.id, visitorForm]);
 
   const [step, setStep] = useState<number>(1);
   const progress = step === 1 ? 25 : step === 2 ? 60 : 100;

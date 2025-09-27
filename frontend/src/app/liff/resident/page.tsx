@@ -57,7 +57,11 @@ export default function ResidentLiffPage() {
         if (!svc.isLoggedIn()) {
           setStep("logging-in");
           setMsg("กำลังเข้าสู่ระบบด้วย LINE สำหรับผู้อยู่อาศัย...");
-          await svc.login(window.location.href);
+          {
+            const url = new URL(window.location.href);
+            const cleanUrl = `${url.origin}${url.pathname}`; // ล้าง query เก่า ๆ เช่น code/state/liffRedirectUri
+            await svc.login(cleanUrl);
+          }
           return; // จะ redirect ออกไป
         }
 
@@ -68,7 +72,11 @@ export default function ResidentLiffPage() {
           setStep("logging-in");
           setMsg("รีเฟรชสิทธิ์เข้าใช้งาน LINE...");
           svc.logout();
-          await svc.login(window.location.href);
+          {
+            const url = new URL(window.location.href);
+            const cleanUrl = `${url.origin}${url.pathname}`;
+            await svc.login(cleanUrl);
+          }
           return;
         }
 
@@ -81,7 +89,11 @@ export default function ResidentLiffPage() {
           setStep("logging-in");
           setMsg("รีเฟรชสิทธิ์เข้าใช้งาน LINE...");
           svc.logout();
-          await svc.login(window.location.href);
+          {
+            const url = new URL(window.location.href);
+            const cleanUrl = `${url.origin}${url.pathname}`;
+            await svc.login(cleanUrl);
+          }
           return;
         }
 
@@ -107,7 +119,11 @@ export default function ResidentLiffPage() {
               setStep("logging-in");
               setMsg("LINE token หมดอายุ กำลังเข้าสู่ระบบใหม่...");
               svc.logout();
-              await svc.login(window.location.href);
+              {
+                const url = new URL(window.location.href);
+                const cleanUrl = `${url.origin}${url.pathname}`;
+                await svc.login(cleanUrl);
+              }
               return;
             } else if (authResult.expectedRole) {
               // User is already registered but using wrong LIFF app

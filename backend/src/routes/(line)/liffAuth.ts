@@ -71,7 +71,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
       });
 
       // Select LINE Login Channel ID by role if provided, fallback to shared ID
-      const guardChannelId = process.env.LINE_CHANNEL_ID_GUARD || process.env.LINE_CHANNEL_ID;
+      const guardChannelId = process.env.LINE_CHANNEL_ID_GUARD ;
       const residentChannelId = process.env.LINE_CHANNEL_ID_RESIDENT || process.env.LINE_CHANNEL_ID;
       const clientId = (isGuardRequest ? guardChannelId : residentChannelId) || process.env.LINE_CHANNEL_ID;
 
