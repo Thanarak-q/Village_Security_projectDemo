@@ -141,7 +141,33 @@ const AppSidebar = memo(function AppSidebar() {
     };
 
     fetchUserData();
-  }, []);
+
+    // Listen for village changes to update the village name display
+    const handleVillageChange = async () => {
+      const selectedVillageKey = sessionStorage.getItem("selectedVillage");
+      if (selectedVillageKey && userData?.role === "admin" || userData?.role === "superadmin") {
+        try {
+          const villageRes = await fetch(`/api/villages/check/${selectedVillageKey}`, {
+            credentials: "include",
+          });
+          if (villageRes.ok) {
+            const villageData = await villageRes.json();
+            if (villageData.exists) {
+              setSelectedVillageName(villageData.village_name);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching village name on change:", error);
+        }
+      }
+    };
+
+    window.addEventListener('villageChanged', handleVillageChange);
+    
+    return () => {
+      window.removeEventListener('villageChanged', handleVillageChange);
+    };
+  }, [userData?.role]);
 
 
   return (

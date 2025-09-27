@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useRef, lazy, Suspense } from "react";
 import { gsap } from "gsap";
-;
+import { Eye, EyeOff } from "lucide-react";
 import {
   TotalUsersCard,
   DailyAccessCard,
@@ -16,6 +16,8 @@ const WeeklyAccessBarChart = lazy(() => import("./chart"));
 export default function Page() {
   const [data, setData] = useState<unknown>(null);
   const [selectedVillageName, setSelectedVillageName] = useState<string>("");
+  const [selectedVillageKey, setSelectedVillageKey] = useState<string>("");
+  const [showVillageKey, setShowVillageKey] = useState<boolean>(false);
   const { data: statsData, loading: statsLoading, error: statsError } = useStatsData();
   const cardsRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
@@ -37,10 +39,11 @@ export default function Page() {
         if (json) setData(json);
       });
 
-    // Get selected village name
-    const selectedVillageKey = sessionStorage.getItem("selectedVillage");
-    if (selectedVillageKey) {
-      fetch(`/api/villages/check/${selectedVillageKey}`, {
+    // Get selected village name and key
+    const villageKey = sessionStorage.getItem("selectedVillage");
+    if (villageKey) {
+      setSelectedVillageKey(villageKey);
+      fetch(`/api/villages/check/${villageKey}`, {
         credentials: "include",
       })
         .then((res) => res.json())
@@ -119,14 +122,19 @@ export default function Page() {
   // Refetch data when selected village changes
   useEffect(() => {
     const handleVillageChange = () => {
-      const selectedVillageKey = sessionStorage.getItem("selectedVillage");
-      if (selectedVillageKey) {
-        fetch(`/api/villages/check/${selectedVillageKey}`, {
+      console.log('🔄 Dashboard: Village changed event received');
+      const villageKey = sessionStorage.getItem("selectedVillage");
+      console.log('🏘️ Dashboard: Selected village key:', villageKey);
+      
+      if (villageKey) {
+        setSelectedVillageKey(villageKey);
+        fetch(`/api/villages/check/${villageKey}`, {
           credentials: "include",
         })
           .then((res) => res.json())
           .then((villageData) => {
             if (villageData.exists) {
+              console.log('✅ Dashboard: Village name updated:', villageData.village_name);
               setSelectedVillageName(villageData.village_name);
             }
           })
@@ -134,7 +142,9 @@ export default function Page() {
             console.error("Error fetching village name:", error);
           });
       } else {
+        console.log('❌ Dashboard: No village selected');
         setSelectedVillageName("");
+        setSelectedVillageKey("");
       }
     };
 
@@ -157,22 +167,31 @@ export default function Page() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 lg:mb-8">
           <div className="space-y-1">
-            <h1 className="scroll-m-20 text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-foreground">
-              {/* สวัสดี, คุณผู้จัดการ 👋 */}
-            </h1>
-            {selectedVillageName && (
-              <p className="text-xs sm:text-sm md:text-base text-muted-foreground">
-                {/* หมู่บ้าน: {selectedVillageName} */}
-              </p>
+           
+            {selectedVillageKey && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs sm:text-sm md:text-base text-muted-foreground">
+                  หมู่บ้าน:
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs sm:text-sm md:text-base font-medium text-primary bg-primary/10 px-2 py-1 rounded-md font-mono select-all">
+                    {showVillageKey ? selectedVillageKey : '••••••••'}
+                  </span>
+                  <button
+                    onClick={() => setShowVillageKey(!showVillageKey)}
+                    className="p-1.5 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                    title={showVillageKey ? "ซ่อนรหัสหมู่บ้าน" : "แสดงรหัสหมู่บ้าน"}
+                  >
+                    {showVillageKey ? (
+                      <EyeOff className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground hover:text-foreground" />
+                    ) : (
+                      <Eye className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground hover:text-foreground" />
+                    )}
+                  </button>
+                </div>
+              </div>
             )}
-            {/* <p className="text-xs sm:text-sm md:text-base text-gray-500">
-              วันนี้ {new Date().toLocaleDateString("th-TH", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </p> */}
+            
           </div>
           <div className="flex justify-start sm:justify-end">
             {/* <NotificationComponent /> */}
@@ -213,3 +232,4 @@ export default function Page() {
     </div>
   );
 }
+

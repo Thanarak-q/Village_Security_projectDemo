@@ -194,6 +194,8 @@ export function useStatsData() {
         ? `/api/statsCard?village_key=${encodeURIComponent(selectedVillage)}`
         : '/api/statsCard';
         
+      console.log('🔍 Fetching stats for village:', selectedVillage, 'URL:', url);
+        
       const response = await fetch(url, {
         method: 'GET',
         credentials: 'include',
@@ -215,6 +217,7 @@ export function useStatsData() {
         throw new Error(result.error || 'Failed to fetch stats')
       }
 
+      console.log('✅ Stats data received:', result.data);
       setData(result.data)
     } catch (err) {
       console.error('Error fetching stats:', err)
@@ -241,18 +244,19 @@ export function useStatsData() {
 
   // Refetch when selected village changes
   useEffect(() => {
-    const handleStorageChange = () => {
+    const handleVillageChange = () => {
+      console.log('🔄 Village changed, refetching stats...');
       fetchStats()
     }
     
-    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('storage', handleVillageChange)
     
     // Also listen for custom event when village changes in same tab
-    window.addEventListener('villageChanged', handleStorageChange)
+    window.addEventListener('villageChanged', handleVillageChange)
     
     return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('villageChanged', handleStorageChange)
+      window.removeEventListener('storage', handleVillageChange)
+      window.removeEventListener('villageChanged', handleVillageChange)
     }
   }, [])
 
