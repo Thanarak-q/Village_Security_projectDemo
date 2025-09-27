@@ -31,7 +31,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
   })
 
   // Verify LINE ID Token and authenticate user
-  .post("/verify", async ({ body, set, jwt, request }: any) => {
+  .post("/verify", async ({ body, set, jwt, request, headers }: any) => {
     try {
       // Basic per-IP rate limit: 30 req/min per endpoint
       const limiter = rateLimit({ windowMs: 60_000, max: 30 });
@@ -51,12 +51,32 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         return { success: false, error: "Invalid role. Must be 'resident' or 'guard'" };
       }
 
-      // Require configured LINE Channel ID (no fallback)
-      const clientId = process.env.LINE_CHANNEL_ID;
-      if (!clientId) {
-        set.status = 500;
-        return { success: false, error: "LINE_CHANNEL_ID is not configured" };
-      }
+      const origin = headers.origin || '';
+      const referer = headers.referer || '';
+      
+      // Debug logging
+      console.log('🔍 LIFF Verify Debug:', {
+        requestRole,
+        origin,
+        referer,
+        userAgent: headers['user-agent'] || 'unknown'
+      });
+      
+      // Determine the expected role based on request context
+      // Note: Using unified LIFF system, role is determined by user's actual roles in database
+      const isGuardRequest = requestRole === 'guard';
+      const isResidentRequest = requestRole === 'resident';
+      
+      console.log('🔍 Role Detection:', {
+        isGuardRequest,
+        isResidentRequest,
+        requestRole
+      });
+
+      // Both guard and resident use the same LINE channel ID
+      const clientId = process.env.LINE_CHANNEL_ID || '';
+      
+      console.log('🔍 Using Channel ID:', clientId, 'for', isGuardRequest ? 'guard' : isResidentRequest ? 'resident' : 'default');
 
       // Verify LINE ID token with LINE API
       
@@ -86,25 +106,22 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         return { success: false, error: "Token audience mismatch" };
       }
 
-      // Determine role strictly from request param (fallback to resident)
-      const expectedRole: 'resident' | 'guard' = requestRole || 'resident';
+      // Check both tables to find the user and determine their role
+      const resident = await db.query.residents.findFirst({
+        where: eq(residents.line_user_id, lineUserId),
+      });
 
-      // Check only the relevant table based on expected role
-      let user = null;
-      let userRole = expectedRole;
-      
-      if (expectedRole === 'guard') {
-        user = await db.query.guards.findFirst({
-          where: eq(guards.line_user_id, lineUserId),
-        });
-      } else if (expectedRole === 'resident') {
-        user = await db.query.residents.findFirst({
-          where: eq(residents.line_user_id, lineUserId),
-        });
-      }
+      const guard = await db.query.guards.findFirst({
+        where: eq(guards.line_user_id, lineUserId),
+      });
 
-      if (!user) {
-        // User not found in the expected table
+      // Determine user's actual role(s)
+      const existingRoles: string[] = [];
+      if (resident) existingRoles.push('resident');
+      if (guard) existingRoles.push('guard');
+
+      if (existingRoles.length === 0) {
+        // User not found in any table
         set.status = 404;
         return {
           success: false,
@@ -113,7 +130,29 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         };
       }
 
-      // User found in the expected table, create token and return user data
+      // If user has multiple roles, determine which one to use based on request context
+      let userRole: 'resident' | 'guard';
+      let user: any;
+
+      if (requestRole && existingRoles.includes(requestRole)) {
+        // Use the requested role if user has it
+        userRole = requestRole;
+        user = requestRole === 'guard' ? guard : resident;
+      } else if (isGuardRequest && existingRoles.includes('guard')) {
+        // Use guard role if request is from guard context
+        userRole = 'guard';
+        user = guard;
+      } else if (isResidentRequest && existingRoles.includes('resident')) {
+        // Use resident role if request is from resident context
+        userRole = 'resident';
+        user = resident;
+      } else {
+        // Default to the first available role
+        userRole = existingRoles[0] as 'resident' | 'guard';
+        user = userRole === 'guard' ? guard : resident;
+      }
+
+      // User found, create token and return user data
       const id = userRole === 'guard' ? (user as any).guard_id : (user as any).resident_id;
       const token = await jwt.sign({
         id,
@@ -146,7 +185,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
           role: userRole,
         },
         token,
-        availableRoles: [userRole], // Single role
+        availableRoles: existingRoles, // All available roles
       };
     } catch (error) {
       console.error('LIFF verification error:', error);
@@ -156,7 +195,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
   })
 
   // Register new user with LINE ID
-  .post("/register", async ({ body, set, jwt, request }: any) => {
+  .post("/register", async ({ body, set, jwt, request, headers }: any) => {
     try {
       // Basic per-IP rate limit: 10 req/min per endpoint
       const limiter = rateLimit({ windowMs: 60_000, max: 10 });
@@ -213,11 +252,18 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         return { error: "ID token is required" };
       }
 
-      const clientId = process.env.LINE_CHANNEL_ID;
-      if (!clientId) {
-        set.status = 500;
-        return { error: "LINE_CHANNEL_ID is not configured" };
-      }
+      const origin = headers.origin || '';
+      const referer = headers.referer || '';
+      
+      // Determine the expected role based on request context or userType
+      // Prioritize userType parameter as it's more reliable than URL parsing
+      // Note: Using unified LIFF system, role is determined by userType parameter
+      const isGuardRequest = userType === 'guard';
+      const isResidentRequest = userType === 'resident';
+
+      const clientId = process.env.LINE_CHANNEL_ID || '';
+      
+      console.log('🔍 Registration - Using Channel ID:', clientId, 'for', isGuardRequest ? 'guard' : isResidentRequest ? 'resident' : 'default');
 
       // Verify LINE ID token
       
@@ -278,7 +324,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         return { 
           error: "User already registered as resident",
           existingRoles: ['resident'],
-          canRegisterAs: ['guard']
+          canRegisterAs: existingGuard ? [] : ['guard']
         };
       }
 
@@ -287,7 +333,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         return { 
           error: "User already registered as guard",
           existingRoles: ['guard'],
-          canRegisterAs: ['resident']
+          canRegisterAs: existingResident ? [] : ['resident']
         };
       }
 
@@ -304,16 +350,8 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
       // Note: Email and username can be reused across different roles (different tables)
       // Same person can have different roles with same personal information
 
-      // Validate that the userType matches the expected role from the channel
-      // Only enforce this if we have a clear expected role and userType mismatch
-      if (expectedRole && userType !== expectedRole) {
-        set.status = 400;
-        return { 
-          success: false,
-          error: `Invalid user type. This LINE bot is for ${expectedRole}s only.`,
-          expectedUserType: expectedRole
-        };
-      }
+      // Allow registration for any role since we're using unified authentication
+      // No need to validate against expected role from channel
 
       // Create new user based on type
       if (userType === "resident") {

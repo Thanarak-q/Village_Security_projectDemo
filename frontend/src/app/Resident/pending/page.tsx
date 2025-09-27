@@ -16,7 +16,7 @@ export default function ResidentPendingPage() {
     const checkAuthAndStatus = () => {
       // Check if user is authenticated
       if (!isAuthenticated()) {
-        router.push("/liff/resident");
+        router.push("/liff");
         return;
       }
 
@@ -24,9 +24,9 @@ export default function ResidentPendingPage() {
       const { user } = getAuthData();
       if (!user || user.role !== "resident") {
         if (user?.role === "guard") {
-          router.push("/liff/guard");
+          router.push("/liff");
         } else {
-          router.push("/liff/resident");
+          router.push("/liff");
         }
         return;
       }
@@ -39,7 +39,7 @@ export default function ResidentPendingPage() {
 
       // If user is disabled
       if (user.status === "disable") {
-        router.push("/liff/resident");
+        router.push("/liff");
         return;
       }
 
@@ -68,7 +68,7 @@ export default function ResidentPendingPage() {
   const handleLogout = () => {
     // Clear auth data and redirect to login
     localStorage.clear();
-    router.push("/liff/resident");
+    router.push("/liff");
   };
 
   if (isCheckingAuth) {

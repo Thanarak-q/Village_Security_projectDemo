@@ -6,7 +6,7 @@
  */
 
 import { unique } from "drizzle-orm/gel-core";
-import { pgTable, text, timestamp, uuid, date, index, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, date, index, boolean, json } from "drizzle-orm/pg-core";
 // import { status } from "elysia"; // Not used in this file
 
 /**
@@ -136,10 +136,10 @@ export type GuardInsert = typeof guards.$inferInsert;
  */
 export const admins = pgTable("admins", {
   admin_id: uuid("admin_id").primaryKey().defaultRandom(),
-  email: text("email").notNull().unique(),
+  email: text("email"),
   username: text("username").notNull().unique(),
   password_hash: text("password_hash").notNull(),
-  phone: text("phone").notNull(),
+  phone: text("phone"),
   village_key: text("village_key").references(() => villages.village_key),
   status: text("status")
     .$type<"verified" | "pending" | "disable">()
@@ -153,7 +153,6 @@ export const admins = pgTable("admins", {
 }, (table) => [
   // Indexes for admins table
   index("idx_admins_username").on(table.username),
-  index("idx_admins_village_key").on(table.village_key),
 ]);
 
 /**
@@ -166,6 +165,33 @@ export type Admin = typeof admins.$inferSelect;
  * @type {typeof admins.$inferInsert}
  */
 export type AdminInsert = typeof admins.$inferInsert;
+
+/**
+ * Schema for the `admin_villages` table. A join table representing the many-to-many
+ * relationship between admins and villages.
+ */
+export const admin_villages = pgTable("admin_villages", {
+  admin_village_id: uuid("admin_village_id").primaryKey().defaultRandom(),
+  admin_id: uuid("admin_id").references(() => admins.admin_id).notNull(),
+  village_key: text("village_key").references(() => villages.village_key).notNull(),
+  created_at: timestamp("created_at").defaultNow(),
+}, (table) => [
+  // Indexes for admin_villages table
+  index("idx_admin_villages_admin_id").on(table.admin_id),
+  index("idx_admin_villages_village_key").on(table.village_key),
+  index("idx_admin_villages_admin_village").on(table.admin_id, table.village_key),
+]);
+
+/**
+ * Represents a selectable admin_village record.
+ * @type {typeof admin_villages.$inferSelect}
+ */
+export type AdminVillage = typeof admin_villages.$inferSelect;
+/**
+ * Represents a new admin_village for insertion.
+ * @type {typeof admin_villages.$inferInsert}
+ */
+export type AdminVillageInsert = typeof admin_villages.$inferInsert;
 
 /**
  * Schema for the `house_members` table. A join table representing the many-to-many
@@ -262,7 +288,7 @@ export const admin_notifications = pgTable("admin_notifications", {
     .notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
-  data: jsonb("data").$type<Record<string, any>>(), 
+  data: json("data").$type<Record<string, any>>(), 
   created_at: timestamp("created_at").defaultNow(),
 }, (table) => [
   // Indexes for admin_notifications table
@@ -287,12 +313,14 @@ export type AdminNotificationInsert = typeof admin_notifications.$inferInsert;
  * @type {Object}
  */
 export const schema = {
+  villages,
   admins,
+  admin_villages,
   residents,
   guards,
   houses,
+  house_members,
   visitor_records,
   admin_activity_logs,
   admin_notifications,
-  villages,
 };

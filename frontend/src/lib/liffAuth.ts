@@ -1,3 +1,4 @@
+
 // LIFF Authentication Service
 export interface LiffUser {
   id: string;
@@ -25,11 +26,8 @@ export interface LiffAuthResponse {
   message?: string; // Custom success/error message
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : '');
-
-if (!API_BASE_URL && typeof window !== 'undefined') {
-  console.warn('NEXT_PUBLIC_API_URL not set, using current origin as fallback');
-}
+// Use relative paths for API calls so Caddy can route them properly
+const API_BASE_URL = '';
 
 // Verify LINE ID token with backend
 export const verifyLiffToken = async (idToken: string, role?: 'resident' | 'guard'): Promise<LiffAuthResponse> => {
@@ -99,19 +97,28 @@ export const verifyLiffToken = async (idToken: string, role?: 'resident' | 'guar
     }
 
     // Try to parse JSON
-    const data = JSON.parse(text);
-    
-    // Ensure the response has the expected structure
-    if (data.success === undefined) {
-      // If no success field, it's an error response
+    try {
+      const data = JSON.parse(text);
+      
+      // Ensure the response has the expected structure
+      if (data.success === undefined) {
+        // If no success field, it's an error response
+        return {
+          success: false,
+          error: data.error || 'Unknown error',
+          lineUserId: data.lineUserId
+        };
+      }
+      
+      return data;
+    } catch (parseError) {
+      console.error('Failed to parse response as JSON:', parseError);
+      console.error('Response text:', text);
       return {
         success: false,
-        error: data.error || 'Unknown error',
-        lineUserId: data.lineUserId
+        error: 'Server returned invalid response format',
       };
     }
-    
-    return data;
   } catch (error) {
     console.error('LIFF verification error:', error);
     return {
@@ -136,17 +143,31 @@ export const registerLiffUser = async (
   }
 ): Promise<LiffAuthResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/liff/register`, {
+    const requestBody = {
+      idToken,
+      ...userData,
+      // Pass role parameter if provided
+      ...(userData.role && { role: userData.role }),
+    };
+    
+    console.log('Registration request:', {
+      url: '/api/liff/register',
+      method: 'POST',
+      body: requestBody
+    });
+    
+    const response = await fetch('/api/liff/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        idToken,
-        ...userData,
-        // Pass role parameter if provided
-        ...(userData.role && { role: userData.role }),
-      }),
+      body: JSON.stringify(requestBody),
+    });
+    
+    console.log('Registration response:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
     });
 
     // Check if response is ok
@@ -197,8 +218,17 @@ export const registerLiffUser = async (
     }
 
     // Try to parse JSON
-    const data = JSON.parse(text);
-    return data;
+    try {
+      const data = JSON.parse(text);
+      return data;
+    } catch (parseError) {
+      console.error('Failed to parse response as JSON:', parseError);
+      console.error('Response text:', text);
+      return {
+        success: false,
+        error: 'Server returned invalid response format',
+      };
+    }
   } catch (error) {
     console.error('LIFF registration error:', error);
     return {
@@ -211,12 +241,20 @@ export const registerLiffUser = async (
 // Get user profile by LINE user ID
 export const getLiffUserProfile = async (lineUserId: string): Promise<LiffAuthResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/liff/profile/${lineUserId}`, {
+    const response = await fetch(`/api/liff/profile/${lineUserId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
     });
+
+    if (!response.ok) {
+      console.error('HTTP Error:', response.status, response.statusText);
+      return {
+        success: false,
+        error: `Server error: ${response.status}`,
+      };
+    }
 
     const data = await response.json();
     return data;

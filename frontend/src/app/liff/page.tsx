@@ -95,11 +95,11 @@ export default function LiffPage() {
               setMsg("เข้าสู่ระบบสำเร็จ กำลังพาไปหน้าหลัก...");
               
               // Redirect based on user role
-              const redirectPath = authResult.user.role === 'guard' ? '/dashboard' : '/Resident';
+              const redirectPath = authResult.user.role === 'guard' ? '/guard' : '/Resident';
               setTimeout(() => router.replace(redirectPath), 1000);
             } else if (authResult.lineUserId) {
-              // User not found, redirect to register page
-              console.log('📝 User not found in database, redirecting to register page');
+              // User not found, redirect to registration page
+              console.log('📝 User not found in database, redirecting to registration');
               setStep("ready");
               setMsg("กำลังพาไปหน้าลงทะเบียน...");
               setTimeout(() => {
@@ -136,6 +136,7 @@ export default function LiffPage() {
     svc.clearCache();
     svc.retryConsent();
   };
+
 
 
 

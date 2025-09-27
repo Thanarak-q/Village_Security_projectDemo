@@ -41,8 +41,10 @@ export const WebSocketConnectionTest: React.FC<WebSocketConnectionTestProps> = (
       }
       addTestResult('✅ WebSocket is supported');
 
-      // Test URL format
-      const testUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost/ws';
+      // Test URL format - use simple relative URL
+      const testUrl = typeof window !== 'undefined' 
+        ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
+        : 'ws://localhost/ws';
       if (!testUrl.startsWith('ws://') && !testUrl.startsWith('wss://')) {
         addTestResult('❌ Invalid WebSocket URL format');
         return;
@@ -106,8 +108,9 @@ export const WebSocketConnectionTest: React.FC<WebSocketConnectionTestProps> = (
     
     try {
       // Test HTTP endpoint first
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      const response = await fetch(`${baseUrl}/api/health`);
+      const healthUrl = '/api/health';
+      addTestResult(`Checking HTTP endpoint via: ${healthUrl}`);
+      const response = await fetch(healthUrl);
       
       if (response.ok) {
         addTestResult('✅ HTTP server is responding');

@@ -5,6 +5,9 @@ import {
   BookUser,
   Building,
   History,
+  Bell,
+  Settings,
+  Users,
 } from "lucide-react";
 
 import {
@@ -43,11 +46,37 @@ const items = [
     icon: Building,
   },
   {
+    title: "จัดการนิติบุคคล",
+    url: "/dashboard/staff_manage",
+    icon: Users,
+  },
+  {
     title: "ประวัติ",
     url: "/dashboard/history",
     icon: History,
   },
 ];
+
+const getAdminItems = (userRole: string) => {
+  const baseItems = [...items];
+  
+  // Hide "จัดการนิติบุคคล" (Legal Entity Management) for staff users
+  if (userRole === "staff") {
+    const filteredItems = baseItems.filter(item => item.title !== "จัดการนิติบุคคล");
+    return filteredItems;
+  }
+  
+  // Add village selection for admin/superadmin users
+  if (userRole === "admin" || userRole === "superadmin") {
+    baseItems.push({
+      title: "เปลี่ยนหมู่บ้าน",
+      url: "/admin-village-selection",
+      icon: Settings,
+    });
+  }
+  
+  return baseItems;
+};
 
 const AppSidebar = memo(function AppSidebar() {
   const pathname = usePathname();
@@ -62,20 +91,56 @@ const AppSidebar = memo(function AppSidebar() {
     role: AdminRole;
     village_name?: string;
   } | null>(null);
+  const [selectedVillageName, setSelectedVillageName] = useState<string>("");
+
 
   useEffect(() => {
-    fetch("/api/auth/me", {
-      credentials: "include",
-    })
-      .then((res) => {
+    const fetchUserData = async () => {
+      try {
+        const res = await fetch("/api/auth/me", {
+          credentials: "include",
+        });
+        
         if (res.status === 401) {
           return null;
         }
-        return res.json();
-      })
-      .then((json) => {
-        if (json) setUserData(json);
-      });
+        
+        const json = await res.json();
+        if (json) {
+          setUserData(json);
+          
+          // Handle village name display for all user types
+          if (json.role === "admin" || json.role === "superadmin") {
+            // For admin/superadmin, get the selected village name
+            const selectedVillageKey = sessionStorage.getItem("selectedVillage");
+            if (selectedVillageKey) {
+              try {
+                const villageRes = await fetch(`/api/villages/check/${selectedVillageKey}`, {
+                  credentials: "include",
+                });
+                if (villageRes.ok) {
+                  const villageData = await villageRes.json();
+                  if (villageData.exists) {
+                    setSelectedVillageName(villageData.village_name);
+                  }
+                }
+              } catch (error) {
+                console.error("Error fetching village name:", error);
+              }
+            }
+          }
+          
+          // For all users (including staff), use their assigned village name if available
+          if (json.village_name) {
+            setSelectedVillageName(json.village_name);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+
+    fetchUserData();
   }, []);
 
 
@@ -98,7 +163,7 @@ const AppSidebar = memo(function AppSidebar() {
               </div>
               <div>
                 <p className="scroll-m-20 text-xl font-semibold tracking-tight">
-                  {userData?.village_name || "manager"}
+                  {selectedVillageName || userData?.village_name || "หมู่บ้าน"}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   ระบบจัดการหมู่บ้าน
@@ -109,7 +174,7 @@ const AppSidebar = memo(function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent className="border-t border-border">
             <SidebarMenu>
-              {items.map((item) => (
+              {getAdminItems(userData?.role || "").map((item) => (
                 <SidebarMenuItem key={item.title} className="group">
                   <SidebarMenuButton
                     asChild

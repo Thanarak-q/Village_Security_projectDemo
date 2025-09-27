@@ -8,11 +8,17 @@ import { v4 as uuidv4 } from 'uuid';
  * @param filename - Optional filename, if not provided will generate UUID
  * @returns Promise<string> - The filename of the saved image
  */
-export async function saveBase64Image(base64Data: string, filename?: string): Promise<string> {
+export async function saveBase64Image(
+  base64Data: string,
+  filename?: string,
+  subfolder?: 'license' | 'id_card' | 'misc'
+): Promise<string> {
   try {
-    // Ensure db/images directory exists
-    const imagesDir = join(process.cwd(), 'src', 'db', 'images');
-    await mkdir(imagesDir, { recursive: true });
+    // Ensure db/image/<subfolder> directory exists
+    const imagesRootDir = join(process.cwd(), 'src', 'db', 'image');
+    const targetSubfolder = subfolder || 'misc';
+    const targetDir = join(imagesRootDir, targetSubfolder);
+    await mkdir(targetDir, { recursive: true });
 
     // Remove data URL prefix if present (data:image/jpeg;base64,)
     const base64Content = base64Data.includes(',') 
@@ -21,14 +27,15 @@ export async function saveBase64Image(base64Data: string, filename?: string): Pr
 
     // Generate filename if not provided
     const imageFilename = filename || `${uuidv4()}.jpg`;
-    const imagePath = join(imagesDir, imageFilename);
+    const imagePath = join(targetDir, imageFilename);
 
     // Convert base64 to buffer and save
     const imageBuffer = Buffer.from(base64Content, 'base64');
     await writeFile(imagePath, imageBuffer);
 
-    console.log(`✅ Image saved: ${imageFilename}`);
-    return imageFilename;
+    console.log(`✅ Image saved: ${join(targetSubfolder, imageFilename)}`);
+    // Return relative path including subfolder
+    return join(targetSubfolder, imageFilename);
   } catch (error) {
     console.error('❌ Error saving image:', error);
     throw new Error('Failed to save image');

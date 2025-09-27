@@ -1,0 +1,64 @@
+# Production Caddyfile with HTTPS and proper WebSocket support
+# Replace 'your-domain.com' with your actual domain
+
+your-domain.com {
+  # Enable automatic HTTPS
+  tls {
+    # Use Let's Encrypt for automatic SSL certificates
+    # or specify custom certificates:
+    # tls /path/to/cert.pem /path/to/key.pem
+  }
+
+  # API routes
+  reverse_proxy /api/* backend:3001 {
+    header_up Host {host}
+    header_up X-Real-IP {remote}
+    header_up X-Forwarded-For {remote}
+    header_up X-Forwarded-Proto {scheme}
+  }
+  
+  # WebSocket service with proper headers for WSS
+  reverse_proxy /ws websocket:3002 {
+    transport http {
+      versions 1.1
+    }
+  }
+  
+  # Frontend (catch-all for SPA routing)
+  reverse_proxy frontend:3000 {
+    header_up Host {host}
+    header_up X-Real-IP {remote}
+    header_up X-Forwarded-For {remote}
+    header_up X-Forwarded-Proto {scheme}
+  }
+
+  # Security headers
+  header {
+    # Enable HSTS
+    Strict-Transport-Security max-age=31536000;
+    # Prevent clickjacking
+    X-Frame-Options DENY
+    # Prevent content-type sniffing
+    X-Content-Type-Options nosniff
+    # XSS protection
+    X-XSS-Protection "1; mode=block"
+    # Referrer policy
+    Referrer-Policy strict-origin-when-cross-origin
+  }
+
+  # Enable compression
+  encode gzip
+
+  # Logging
+  log {
+    output file /var/log/caddy/access.log {
+      roll_size 10mb
+      roll_keep 5
+    }
+  }
+}
+
+# HTTP redirect to HTTPS
+http://your-domain.com {
+  redir https://{host}{uri} permanent
+}

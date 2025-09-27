@@ -43,6 +43,8 @@ export default function HouseManagementTable() {
   const [houses, setHouses] = useState<HouseData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedVillageKey, setSelectedVillageKey] = useState<string | null>(null);
+  const [selectedVillageName, setSelectedVillageName] = useState<string>("");
 
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -58,21 +60,73 @@ export default function HouseManagementTable() {
   // State สำหรับการ refresh ข้อมูล
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch data from API
+  // Get selected village key and name from sessionStorage
+  useEffect(() => {
+    const villageKey = sessionStorage.getItem("selectedVillage");
+    if (villageKey) {
+      setSelectedVillageKey(villageKey);
+      // Fetch village name
+      fetch(`/api/villages/check/${villageKey}`, {
+        credentials: "include",
+      })
+        .then((res) => res.json())
+        .then((villageData) => {
+          if (villageData.exists) {
+            setSelectedVillageName(villageData.village_name);
+          }
+        })
+        .catch((err) => {
+          console.error("Error fetching village name:", err);
+        });
+    } else {
+      // If no village is selected, try to get user's first village as fallback
+      fetch("/api/auth/me", {
+        credentials: "include",
+      })
+        .then((res) => res.json())
+        .then((userData) => {
+          if (userData && userData.village_keys && userData.village_keys.length > 0) {
+            const firstVillage = userData.village_keys[0];
+            sessionStorage.setItem("selectedVillage", firstVillage);
+            setSelectedVillageKey(firstVillage);
+          } else {
+            setError("กรุณาเลือกหมู่บ้านก่อน - ไปที่เมนู 'เปลี่ยนหมู่บ้าน' เพื่อเลือกหมู่บ้าน");
+            setLoading(false);
+          }
+        })
+        .catch((err) => {
+          console.error("Error fetching user data:", err);
+          setError("กรุณาเลือกหมู่บ้านก่อน - ไปที่เมนู 'เปลี่ยนหมู่บ้าน' เพื่อเลือกหมู่บ้าน");
+          setLoading(false);
+        });
+    }
+  }, []);
+
+  // Fetch data from API with village_key parameter
   const fetchHouses = async (isRefresh = false) => {
+    if (!selectedVillageKey) {
+      setError("กรุณาเลือกหมู่บ้านก่อน");
+      setLoading(false);
+      return;
+    }
+
     try {
       if (isRefresh) {
         setRefreshing(true);
       } else {
         setLoading(true);
       }
-      const response = await fetch("/api/houses");
+      
+      const response = await fetch(`/api/houses?village_key=${encodeURIComponent(selectedVillageKey)}`, {
+        credentials: "include",
+      });
       const result = await response.json();
 
       if (result.success) {
         setHouses(result.data);
+        setError(null);
       } else {
-        setError("ไม่สามารถโหลดข้อมูลได้");
+        setError(result.error || "ไม่สามารถโหลดข้อมูลได้");
       }
     } catch (err) {
       setError("เกิดข้อผิดพลาดในการเชื่อมต่อ");
@@ -84,7 +138,36 @@ export default function HouseManagementTable() {
   };
 
   useEffect(() => {
-    fetchHouses();
+    if (selectedVillageKey) {
+      fetchHouses();
+    }
+  }, [selectedVillageKey]);
+
+  // Listen for village changes from village selection page
+  useEffect(() => {
+    const handleVillageChange = (event: CustomEvent) => {
+      const newVillageKey = event.detail.villageKey;
+      setSelectedVillageKey(newVillageKey);
+      // Fetch village name for the new village
+      fetch(`/api/villages/check/${newVillageKey}`, {
+        credentials: "include",
+      })
+        .then((res) => res.json())
+        .then((villageData) => {
+          if (villageData.exists) {
+            setSelectedVillageName(villageData.village_name);
+          }
+        })
+        .catch((err) => {
+          console.error("Error fetching village name:", err);
+        });
+    };
+
+    window.addEventListener('villageChanged', handleVillageChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('villageChanged', handleVillageChange as EventListener);
+    };
   }, []);
 
   // แปลงสถานะเป็นภาษาไทย
@@ -188,13 +271,22 @@ export default function HouseManagementTable() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="text-red-500 text-xl mb-2">⚠️</div>
-          <p className="text-red-600">เกิดข้อผิดพลาด: {error}</p>
-          <button 
-            onClick={() => fetchHouses()} 
-            className="mt-2 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
-          >
-            ลองใหม่
-          </button>
+          <p className="text-red-600 mb-4">{error}</p>
+          {error.includes("เลือกหมู่บ้าน") ? (
+            <button 
+              onClick={() => window.location.href = "/admin-village-selection"} 
+              className="mt-2 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
+            >
+              ไปเลือกหมู่บ้าน
+            </button>
+          ) : (
+            <button 
+              onClick={() => fetchHouses()} 
+              className="mt-2 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
+            >
+              ลองใหม่
+            </button>
+          )}
         </div>
       </div>
     );
@@ -206,6 +298,9 @@ export default function HouseManagementTable() {
       <div className="bg-background rounded-lg shadow-sm border border-border p-4 sm:p-6">
         {/* Header */}
         <div className="mb-6">
+          {/* Village Info */}
+          
+
           {/* Top Actions */}
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
             <AddHouseDialog onAdd={() => fetchHouses(true)} />

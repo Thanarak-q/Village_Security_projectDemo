@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useWebSocketNotifications } from "@/hooks/useWebSocketNotifications"
 import { useHybridNotifications } from "@/hooks/useHybridNotifications"
-import { NOTIFICATION_LEVELS, WS_MESSAGE_TYPES } from "@/types/notification.types"
+import { NOTIFICATION_LEVELS } from "@/types/notification.types"
 import { 
   Wifi, 
   WifiOff, 
@@ -22,7 +22,6 @@ import {
   Bell, 
   AlertTriangle, 
   Info, 
-  CheckCircle,
   XCircle,
   Clock
 } from "lucide-react"
@@ -39,18 +38,12 @@ export default function WebSocketTestPage() {
     notifications: wsNotifications,
     isConnected,
     connectionStatus,
-    reconnect,
-    getStats,
     clearNotifications
-  } = useWebSocketNotifications({
-    maxNotifications: 50
-  })
+  } = useWebSocketNotifications()
 
   // Hybrid notifications hook (includes both HTTP and WebSocket)
   const {
-    notifications: hybridNotifications,
-    counts,
-    retryConnection
+    counts
   } = useHybridNotifications()
 
   // Send test notification
@@ -85,7 +78,7 @@ export default function WebSocketTestPage() {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
-      const result = await response.json()
+      await response.json()
       setSendResult({ success: true, message: "Test notification sent successfully!" })
       
       // Clear form after successful send
@@ -137,7 +130,6 @@ export default function WebSocketTestPage() {
   }
 
   const connectionStatusInfo = getConnectionStatus()
-  const stats = getStats()
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -190,7 +182,7 @@ export default function WebSocketTestPage() {
 
             <div className="space-y-2">
               <Label htmlFor="level">Level</Label>
-              <Select value={testLevel} onValueChange={(value: any) => setTestLevel(value)}>
+              <Select value={testLevel} onValueChange={(value: "info" | "warning" | "critical") => setTestLevel(value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -236,7 +228,7 @@ export default function WebSocketTestPage() {
 
             {!isConnected && (
               <div className="p-3 rounded-md bg-yellow-50 text-yellow-700">
-                WebSocket is not connected. Click "Reconnect" to establish connection.
+                WebSocket is not connected. Click &quot;Reconnect&quot; to establish connection.
               </div>
             )}
           </CardContent>
@@ -267,22 +259,22 @@ export default function WebSocketTestPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Total Received</span>
-                <span className="text-sm text-muted-foreground">{stats.totalReceived}</span>
+                <span className="text-sm text-muted-foreground">{wsNotifications.length}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Reconnect Attempts</span>
-                <span className="text-sm text-muted-foreground">{stats.reconnectAttempts}</span>
+                <span className="text-sm font-medium">Connection Status</span>
+                <span className="text-sm text-muted-foreground">{connectionStatus}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Uptime</span>
+                <span className="text-sm font-medium">Notifications</span>
                 <span className="text-sm text-muted-foreground">
-                  {stats.uptime > 0 ? `${Math.floor(stats.uptime / 1000)}s` : 'N/A'}
+                  {wsNotifications.length > 0 ? `${wsNotifications.length} messages` : 'No messages'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Last Message</span>
                 <span className="text-sm text-muted-foreground">
-                  {stats.lastMessageTime ? `${Math.floor((Date.now() - stats.lastMessageTime) / 1000)}s ago` : 'Never'}
+                  {wsNotifications.length > 0 ? 'Recent' : 'Never'}
                 </span>
               </div>
             </div>
@@ -350,7 +342,7 @@ export default function WebSocketTestPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {wsNotifications.map((notification, index) => {
+                {wsNotifications.map((notification) => {
                   const levelInfo = getLevelInfo(notification.level || 'info')
                   return (
                     <div key={notification.id} className="p-4 border rounded-lg">

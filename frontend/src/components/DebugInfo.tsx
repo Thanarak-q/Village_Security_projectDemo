@@ -27,6 +27,36 @@ export function DebugInfo({
   const renderTimesRef = useRef<number[]>([]);
   const [isVisible, setIsVisible] = useState(false);
 
+  // Move useEffect before early return
+  useEffect(() => {
+    if (!enabled) return;
+    
+    renderCountRef.current++;
+    const now = Date.now();
+    const timeSinceLastRender = now - lastRenderTimeRef.current;
+    lastRenderTimeRef.current = now;
+
+    // Track render times
+    renderTimesRef.current.push(timeSinceLastRender);
+    if (renderTimesRef.current.length > 10) {
+      renderTimesRef.current.shift();
+    }
+
+    // Detect potential infinite loops
+    const avgRenderTime = renderTimesRef.current.reduce((a, b) => a + b, 0) / renderTimesRef.current.length;
+    const isRenderingTooFast = avgRenderTime < 100 && renderCountRef.current > 5;
+    const isRenderingTooOften = renderCountRef.current > 20;
+
+    if (isRenderingTooFast || isRenderingTooOften) {
+      console.warn(`⚠️ Potential infinite loop detected in ${componentName}:`, {
+        renderCount: renderCountRef.current,
+        avgRenderTime: avgRenderTime.toFixed(2) + 'ms',
+        isRenderingTooFast,
+        isRenderingTooOften
+      });
+    }
+  }, [componentName, enabled]);
+
   if (!enabled) return null;
 
   renderCountRef.current++;
@@ -44,18 +74,6 @@ export function DebugInfo({
   const avgRenderTime = renderTimesRef.current.reduce((a, b) => a + b, 0) / renderTimesRef.current.length;
   const isRenderingTooFast = avgRenderTime < 100 && renderCountRef.current > 5;
   const isRenderingTooOften = renderCountRef.current > 20;
-
-  // Move useEffect outside of conditional
-  useEffect(() => {
-    if (isRenderingTooFast || isRenderingTooOften) {
-      console.warn(`⚠️ Potential infinite loop detected in ${componentName}:`, {
-        renderCount: renderCountRef.current,
-        avgRenderTime: avgRenderTime.toFixed(2) + 'ms',
-        isRenderingTooFast,
-        isRenderingTooOften
-      });
-    }
-  }, [componentName, avgRenderTime, isRenderingTooFast, isRenderingTooOften]);
 
   if (!isVisible) {
     return (

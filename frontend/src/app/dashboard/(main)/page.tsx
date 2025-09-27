@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useRef, lazy, Suspense } from "react";
 import { gsap } from "gsap";
-import { Button } from "@/components/ui/button";
+;
 import {
   TotalUsersCard,
   DailyAccessCard,
@@ -15,6 +15,7 @@ const WeeklyAccessBarChart = lazy(() => import("./chart"));
 
 export default function Page() {
   const [data, setData] = useState<unknown>(null);
+  const [selectedVillageName, setSelectedVillageName] = useState<string>("");
   const { data: statsData, loading: statsLoading, error: statsError } = useStatsData();
   const cardsRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
@@ -25,16 +26,50 @@ export default function Page() {
     fetch("/api/auth/me", {
       credentials: "include",
     })
-      .then((res) => {
+      .then(async (res) => {
         if (res.status === 401) {
           window.location.href = "/login";
           return;
         }
+        
+        // Check if response is JSON
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Response is not JSON");
+        }
+        
         return res.json();
       })
       .then((json) => {
         if (json) setData(json);
+      })
+      .catch((error) => {
+        console.error("Error fetching auth data:", error);
       });
+
+    // Get selected village name
+    const selectedVillageKey = sessionStorage.getItem("selectedVillage");
+    if (selectedVillageKey) {
+      fetch(`/api/villages/check/${selectedVillageKey}`, {
+        credentials: "include",
+      })
+        .then(async (res) => {
+          // Check if response is JSON
+          const contentType = res.headers.get("content-type");
+          if (!contentType || !contentType.includes("application/json")) {
+            throw new Error("Response is not JSON");
+          }
+          return res.json();
+        })
+        .then((villageData) => {
+          if (villageData && villageData.exists) {
+            setSelectedVillageName(villageData.village_name);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching village name:", error);
+        });
+    }
   }, []);
 
   // GSAP smooth scroll-up animations
@@ -45,6 +80,9 @@ export default function Page() {
     const chartElement = chartRef.current;
     const tableElement = tableRef.current;
 
+    // Only proceed if elements exist
+    if (!chartElement || !tableElement) return;
+
     // Set initial state for chart and table only
     gsap.set([chartElement, tableElement], {
       opacity: 0,
@@ -53,7 +91,7 @@ export default function Page() {
 
     // Individual cards initial state
     const cards = cardsRef.current?.children;
-    if (cards) {
+    if (cards && cards.length > 0) {
       gsap.set(Array.from(cards), {
         opacity: 0,
         y: 60
@@ -64,14 +102,16 @@ export default function Page() {
     const tl = gsap.timeline();
 
     // Animate individual cards first
-    if (cards) {
+    if (cards && cards.length > 0) {
       Array.from(cards).forEach((card, index) => {
-        tl.to(card, {
-          duration: 0.6,
-          opacity: 1,
-          y: 0,
-          ease: "power2.inOut"
-        }, index * 0.1);
+        if (card) {
+          tl.to(card, {
+            duration: 0.6,
+            opacity: 1,
+            y: 0,
+            ease: "power2.inOut"
+          }, index * 0.1);
+        }
       });
     }
 
@@ -92,11 +132,40 @@ export default function Page() {
 
     return () => {
       gsap.killTweensOf([chartElement, tableElement]);
-      if (cards) {
+      if (cards && cards.length > 0) {
         gsap.killTweensOf(Array.from(cards));
       }
     };
   }, [data]);
+
+  // Refetch data when selected village changes
+  useEffect(() => {
+    const handleVillageChange = () => {
+      const selectedVillageKey = sessionStorage.getItem("selectedVillage");
+      if (selectedVillageKey) {
+        fetch(`/api/villages/check/${selectedVillageKey}`, {
+          credentials: "include",
+        })
+          .then((res) => res.json())
+          .then((villageData) => {
+            if (villageData.exists) {
+              setSelectedVillageName(villageData.village_name);
+            }
+          })
+          .catch((error) => {
+            console.error("Error fetching village name:", error);
+          });
+      } else {
+        setSelectedVillageName("");
+      }
+    };
+
+    window.addEventListener('villageChanged', handleVillageChange);
+    
+    return () => {
+      window.removeEventListener('villageChanged', handleVillageChange);
+    };
+  }, []);
 
   // if (!data) return <p>Loading...</p>;
   // if (data.role !== "admin") {
@@ -111,8 +180,13 @@ export default function Page() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 lg:mb-8">
           <div className="space-y-1">
             <h1 className="scroll-m-20 text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-foreground">
-              {/* สวัสดี, คุณผู้จัดการ {data.username} 👋 */}
+              {/* สวัสดี, คุณผู้จัดการ 👋 */}
             </h1>
+            {selectedVillageName && (
+              <p className="text-xs sm:text-sm md:text-base text-muted-foreground">
+                {/* หมู่บ้าน: {selectedVillageName} */}
+              </p>
+            )}
             {/* <p className="text-xs sm:text-sm md:text-base text-gray-500">
               วันนี้ {new Date().toLocaleDateString("th-TH", {
                 weekday: "long",

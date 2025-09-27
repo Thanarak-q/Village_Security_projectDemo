@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { websocketMessageManager } from '../utils/websocketMessageManager';
+import { useAuth } from './useAuth';
 
 export interface MessageDeduplicationOptions {
   enableDeduplication: boolean;
@@ -24,8 +25,15 @@ const defaultOptions: MessageDeduplicationOptions = {
   deduplicationWindow: 300000 // 5 minutes
 };
 
-export function useMessageDeduplication(options: Partial<MessageDeduplicationOptions> = {}) {
-  const config = useMemo(() => ({ ...defaultOptions, ...options }), [options]);
+export function useMessageDeduplication(options: Partial<MessageDeduplicationOptions> & { villageKey?: string } = {}) {
+  const { villageKey: overrideVillageKey, ...dedupOptions } = options;
+  const config = useMemo(() => ({ ...defaultOptions, ...dedupOptions }), [dedupOptions]);
+  const { user } = useAuth();
+  const resolvedVillageKey = useMemo(() => {
+    const fromOptions = typeof overrideVillageKey === 'string' ? overrideVillageKey.trim() : '';
+    const fromUser = typeof user?.village_key === 'string' ? user.village_key.trim() : '';
+    return fromOptions || fromUser || null;
+  }, [overrideVillageKey, user?.village_key]);
   const [queueStatus, setQueueStatus] = useState(websocketMessageManager.getQueueStatus());
   const statusUpdateInterval = useRef<NodeJS.Timeout>();
 
@@ -60,7 +68,27 @@ export function useMessageDeduplication(options: Partial<MessageDeduplicationOpt
     } = {}
   ) => {
     try {
-      const messageId = websocketMessageManager.sendMessage(type, data, {
+      let payload = data;
+
+      if (type === 'ADMIN_NOTIFICATION') {
+        if (!resolvedVillageKey) {
+          throw new Error('Village key is required to send admin notifications');
+        }
+
+        if (data && typeof data === 'object') {
+          payload = {
+            villageKey: resolvedVillageKey,
+            ...(data as Record<string, unknown>)
+          };
+        } else {
+          payload = {
+            villageKey: resolvedVillageKey,
+            value: data
+          };
+        }
+      }
+
+      const messageId = websocketMessageManager.sendMessage(type, payload, {
         priority: messageOptions.priority || 'normal',
         maxRetries: messageOptions.maxRetries || config.maxRetries,
         expiresAt: messageOptions.expiresAt,
@@ -73,7 +101,7 @@ export function useMessageDeduplication(options: Partial<MessageDeduplicationOpt
       console.error('❌ Failed to send message:', error);
       throw error;
     }
-  }, [config]);
+  }, [config, resolvedVillageKey]);
 
   // Send notification with deduplication
   const sendNotification = useCallback((
@@ -85,12 +113,17 @@ export function useMessageDeduplication(options: Partial<MessageDeduplicationOpt
       metadata?: Record<string, unknown>;
     } = {}
   ) => {
+    if (!resolvedVillageKey) {
+      throw new Error('Village key is required to send notifications');
+    }
+
     const notificationData = {
       id: `notification_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       title,
       body,
       level: options.level || 'info',
       createdAt: Date.now(),
+      villageKey: resolvedVillageKey,
       metadata: options.metadata
     };
 
@@ -99,10 +132,11 @@ export function useMessageDeduplication(options: Partial<MessageDeduplicationOpt
       metadata: {
         type: 'notification',
         level: options.level || 'info',
+        villageKey: resolvedVillageKey,
         ...options.metadata
       }
     });
-  }, [sendMessage]);
+  }, [sendMessage, resolvedVillageKey]);
 
   // Send ping message
   const sendPing = useCallback(() => {

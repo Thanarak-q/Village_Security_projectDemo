@@ -38,10 +38,7 @@ export function useHybridNotifications() {
     counts: httpCounts,
     loading: httpLoading,
     error: httpError,
-    refreshNotifications: refreshHttpNotifications,
-    markAsRead: markAsReadHttp,
-    markAllAsRead: markAllAsReadHttp,
-    deleteNotificationById: deleteNotificationHttp
+    refreshNotifications: refreshHttpNotifications
   } = useNotifications();
 
   // WebSocket-based notifications (real-time)
@@ -54,8 +51,8 @@ export function useHybridNotifications() {
 
   const [notifications, setNotifications] = useState<HybridNotification[]>([]);
   const [counts, setCounts] = useState<{ total: number; unread: number } | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(httpLoading);
+  const [error, setError] = useState<string | null>(httpError);
 
   // Merge HTTP and WebSocket notifications
   useEffect(() => {
@@ -66,11 +63,15 @@ export function useHybridNotifications() {
         admin_id: 'system', // WebSocket notifications are system-wide
         title: wsNotif.title,
         message: wsNotif.body || '',
-        type: 'system' as const,
-        category: 'realtime' as const,
+        type: (wsNotif.type || 'system'),
+        category: (wsNotif.category || 'realtime'),
+        data: wsNotif.data,
         is_read: false,
         created_at: new Date(wsNotif.createdAt).toISOString(),
-        read_at: null,
+        read_at: undefined,
+        village_name: (typeof wsNotif.data === 'object' && wsNotif.data && 'village_name' in wsNotif.data)
+          ? String(wsNotif.data.village_name)
+          : undefined,
         isRealtime: true
       })),
       // Add HTTP notifications (filter out duplicates)
@@ -95,14 +96,14 @@ export function useHybridNotifications() {
     if (httpCounts) {
       setCounts({
         total: httpCounts.total + wsNotifications.length,
-        unread: httpCounts.unread + wsNotifications.filter(n => !n.is_read).length
+        unread: httpCounts.unread + wsNotifications.length
       });
     }
   }, [httpCounts, wsNotifications]);
 
   // Update loading and error states
   useEffect(() => {
-    setLoading(httpLoading);
+    setLoading(prev => httpLoading || prev);
     setError(httpError);
   }, [httpLoading, httpError]);
 
@@ -110,80 +111,8 @@ export function useHybridNotifications() {
     await refreshHttpNotifications();
   }, [refreshHttpNotifications]);
 
-  const markAsRead = useCallback(async (notificationId: string) => {
-    // Find the notification to check if it's realtime
-    const notification = notifications.find(n => n.notification_id === notificationId);
-    
-    if (notification?.isRealtime) {
-      // For realtime notifications, just update local state
-      setNotifications(prev => 
-        prev.map(n => 
-          n.notification_id === notificationId 
-            ? { ...n, is_read: true, read_at: new Date().toISOString() }
-            : n
-        )
-      );
-      
-      // Update counts
-      setCounts(prev => prev ? { ...prev, unread: Math.max(0, prev.unread - 1) } : null);
-    } else {
-      // For HTTP notifications, use the existing API
-      await markAsReadHttp(notificationId);
-    }
-  }, [notifications, markAsReadHttp]);
 
-  const markAllAsRead = useCallback(async () => {
-    try {
-      // Mark all HTTP notifications as read
-      await markAllAsReadHttp();
-      
-      // Mark all WebSocket notifications as read locally
-      setNotifications(prev => 
-        prev.map(n => ({ 
-          ...n, 
-          is_read: true, 
-          read_at: n.is_read ? n.read_at : new Date().toISOString() 
-        }))
-      );
-      
-      // Update counts
-      setCounts(prev => prev ? { ...prev, unread: 0 } : null);
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-      // Still mark WebSocket notifications as read locally even if HTTP fails
-      setNotifications(prev => 
-        prev.map(n => ({ 
-          ...n, 
-          is_read: true, 
-          read_at: n.is_read ? n.read_at : new Date().toISOString() 
-        }))
-      );
-      
-      // Update counts
-      setCounts(prev => prev ? { ...prev, unread: 0 } : null);
-    }
-  }, [markAllAsReadHttp]);
 
-  const deleteNotificationById = useCallback(async (notificationId: string) => {
-    // Find the notification to check if it's realtime
-    const notification = notifications.find(n => n.notification_id === notificationId);
-    
-    if (notification?.isRealtime) {
-      // For realtime notifications, just remove from local state
-      setNotifications(prev => prev.filter(n => n.notification_id !== notificationId));
-      
-      // Update counts
-      setCounts(prev => {
-        if (!prev) return null;
-        const newCount = prev.total - 1;
-        const newUnread = notification.is_read ? prev.unread : Math.max(0, prev.unread - 1);
-        return { total: newCount, unread: newUnread };
-      });
-    } else {
-      // For HTTP notifications, use the existing API
-      await deleteNotificationHttp(notificationId);
-    }
-  }, [notifications, deleteNotificationHttp]);
 
   return {
     notifications,
@@ -192,9 +121,6 @@ export function useHybridNotifications() {
     error,
     isWebSocketConnected,
     refreshNotifications,
-    markAsRead,
-    markAllAsRead,
-    deleteNotificationById,
     errorStats: wsErrorStats,
     healthStatus: wsHealthStatus
   };

@@ -65,13 +65,17 @@ class NotificationService {
 
       // Send via WebSocket to admins
       try {
-        const wsNotification = {
-          id: notification.notification_id,
-          title: notification.title,
-          body: notification.message,
-          level: this.getNotificationLevel(data.type),
-          createdAt: notification.created_at ? notification.created_at.getTime() : Date.now()
-        };
+      const wsNotification = {
+        id: notification.notification_id,
+        title: notification.title,
+        body: notification.message,
+        level: this.getNotificationLevel(data.type),
+        createdAt: notification.created_at ? notification.created_at.getTime() : Date.now(),
+        villageKey: notification.village_key,
+        type: notification.type,
+        category: notification.category,
+        data: notification.data
+      };
         
         await websocketClient.sendNotification(wsNotification);
         console.log(`📤 WebSocket notification sent: ${notification.title}`);
@@ -161,7 +165,7 @@ class NotificationService {
   }
 
   /**
-   * Create notification for house status change
+   * Create notification for house status change and broadcast to admins.
    */
   async notifyHouseStatusChange(houseData: {
     house_id: string;
@@ -182,7 +186,7 @@ class NotificationService {
         old_status: houseData.old_status,
         new_status: houseData.new_status,
         change_date: new Date().toISOString(),
-      }
+      },
     });
   }
 
@@ -231,6 +235,86 @@ class NotificationService {
         rejection_reason: visitorData.reason,
         rejection_date: new Date().toISOString(),
       }
+    });
+  }
+
+  /**
+   * Create notification for house member added and broadcast to admins.
+   */
+  async notifyHouseMemberAdded(memberData: {
+    house_member_id: string;
+    resident_id: string;
+    resident_name: string;
+    house_address: string;
+    village_key: string;
+  }) {
+    return this.createNotification({
+      village_key: memberData.village_key,
+      type: 'member_added',
+      category: 'house_management',
+      title: 'เพิ่มลูกบ้านใหม่',
+      message: `เพิ่มลูกบ้าน ${memberData.resident_name} เข้าบ้านเลขที่ ${memberData.house_address}`,
+      data: {
+        house_member_id: memberData.house_member_id,
+        resident_id: memberData.resident_id,
+        resident_name: memberData.resident_name,
+        house_address: memberData.house_address,
+        added_date: new Date().toISOString(),
+      },
+    });
+  }
+
+  /**
+   * Create notification for house member removed and broadcast to admins.
+   */
+  async notifyHouseMemberRemoved(memberData: {
+    house_member_id: string;
+    resident_id: string;
+    resident_name: string;
+    house_address: string;
+    village_key: string;
+  }) {
+    return this.createNotification({
+      village_key: memberData.village_key,
+      type: 'member_removed',
+      category: 'house_management',
+      title: 'ลบลูกบ้าน',
+      message: `ลบลูกบ้าน ${memberData.resident_name} ออกจากบ้านเลขที่ ${memberData.house_address}`,
+      data: {
+        house_member_id: memberData.house_member_id,
+        resident_id: memberData.resident_id,
+        resident_name: memberData.resident_name,
+        house_address: memberData.house_address,
+        removed_date: new Date().toISOString(),
+      },
+    });
+  }
+
+  /**
+   * Create notification for resident status change and broadcast to admins.
+   */
+  async notifyResidentStatusChange(residentData: {
+    resident_id: string;
+    resident_name: string;
+    house_address: string;
+    old_status: string;
+    new_status: string;
+    village_key: string;
+  }) {
+    return this.createNotification({
+      village_key: residentData.village_key,
+      type: 'status_changed',
+      category: 'house_management',
+      title: 'เปลี่ยนสถานะลูกบ้าน',
+      message: `ลูกบ้าน ${residentData.resident_name} (บ้านเลขที่ ${residentData.house_address}) เปลี่ยนสถานะจาก '${residentData.old_status}' เป็น '${residentData.new_status}'`,
+      data: {
+        resident_id: residentData.resident_id,
+        resident_name: residentData.resident_name,
+        house_address: residentData.house_address,
+        old_status: residentData.old_status,
+        new_status: residentData.new_status,
+        change_date: new Date().toISOString(),
+      },
     });
   }
 

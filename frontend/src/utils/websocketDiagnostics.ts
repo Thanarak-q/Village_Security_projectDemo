@@ -42,12 +42,26 @@ export class WebSocketDiagnostics {
 
   private initialize(): void {
     this.diagnostics.isSupported = typeof WebSocket !== 'undefined';
-    this.diagnostics.userAgent = navigator.userAgent;
-    this.diagnostics.protocol = window.location.protocol;
+    
+    // Check if we're in a browser environment before accessing browser APIs
+    if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
+      this.diagnostics.userAgent = navigator.userAgent;
+      this.diagnostics.protocol = window.location.protocol;
+    } else {
+      // Fallback values for server-side rendering
+      this.diagnostics.userAgent = 'Server-side rendering';
+      this.diagnostics.protocol = 'unknown';
+    }
   }
 
   public updateConnection(url: string, ws: WebSocket | null): void {
     this.diagnostics.url = url;
+    
+    // Re-initialize browser-specific data if we're now in a browser environment
+    if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
+      this.diagnostics.userAgent = navigator.userAgent;
+      this.diagnostics.protocol = window.location.protocol;
+    }
     
     if (ws) {
       this.diagnostics.readyState = ws.readyState;
@@ -62,6 +76,14 @@ export class WebSocketDiagnostics {
   public updateReconnectAttempts(attempts: number, maxAttempts: number): void {
     this.diagnostics.reconnectAttempts = attempts;
     this.diagnostics.maxReconnectAttempts = maxAttempts;
+  }
+
+  public reinitializeForBrowser(): void {
+    // Call this method when you're sure we're in a browser environment
+    if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
+      this.diagnostics.userAgent = navigator.userAgent;
+      this.diagnostics.protocol = window.location.protocol;
+    }
   }
 
   public setLastError(error: string): void {

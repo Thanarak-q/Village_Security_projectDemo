@@ -82,19 +82,12 @@ export class LiffService {
   }
   
   /**
-   * Gets the appropriate LIFF ID based on channel type
-   * @param channelType - The channel type ('resident', 'guard', or 'default')
-   * @returns The LIFF ID for the specified channel type
+   * Gets the unified LIFF ID for both guards and residents
+   * @param channelType - The channel type (now unified)
+   * @returns The unified LIFF ID
    */
-
   private getLiffId(channelType: 'resident' | 'guard' | 'default'): string | undefined {
-    // Use different LIFF IDs for guard and resident
-    if (channelType === 'guard') {
-      return process.env.NEXT_PUBLIC_GUARD_LIFF_ID || process.env.NEXT_PUBLIC_LIFF_ID;
-    } else if (channelType === 'resident') {
-      return process.env.NEXT_PUBLIC_RESIDENT_LIFF_ID || process.env.NEXT_PUBLIC_LIFF_ID;
-    }
-
+    // Use the same LIFF ID for both guard and resident
     return process.env.NEXT_PUBLIC_LIFF_ID;
   }
 
@@ -110,16 +103,16 @@ export class LiffService {
 
   // --- Init & SDK Loader ---
   async init(channelType: 'resident' | 'guard' | 'default' = 'default'): Promise<void> {
-    // Reuse init promise only when the requested channel type matches the current one
-    if (this.initPromise && this.currentChannelType === channelType) return this.initPromise;
-    if (this.initialized && this.currentChannelType === channelType) return Promise.resolve();
+    // For unified authentication, we don't need to track channel type separately
+    if (this.initPromise) return this.initPromise;
+    if (this.initialized) return Promise.resolve();
 
     this.currentChannelType = channelType;
     this.initPromise = new Promise((resolve) => {
       if (typeof window === "undefined") { resolve(); return; }
 
       const liffId = this.getLiffId(channelType);
-      if (!liffId) { console.warn("LIFF ID not configured for channel type:", channelType); resolve(); return; }
+      if (!liffId) { console.warn("LIFF ID not configured"); resolve(); return; }
 
       const w = window as Window & { liff?: LiffSDK };
 

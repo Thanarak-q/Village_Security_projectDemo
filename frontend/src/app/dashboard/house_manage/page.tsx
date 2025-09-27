@@ -10,6 +10,9 @@ export default function Page() {
   useEffect(() => {
     const tableElement = tableRef.current;
     
+    // Only animate if element exists
+    if (!tableElement) return;
+    
     // Set initial state
     gsap.set(tableElement, {
       opacity: 0,
@@ -26,7 +29,11 @@ export default function Page() {
     });
 
     return () => {
-      gsap.killTweensOf(tableElement);
+      try {
+        gsap.killTweensOf(tableElement);
+      } catch (error) {
+        console.warn('GSAP cleanup error:', error);
+      }
     };
   }, []);
 

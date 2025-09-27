@@ -14,7 +14,7 @@
 import { Elysia, t } from "elysia";
 import { admins, villages } from "../db/schema";
 import db from "../db/drizzle";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { verifyPassword } from "../utils/passwordUtils";
 import { requireRole } from "../hooks/requireRole";
 // import { rateLimit } from "../middleware/rateLimiter"; // SECURITY: Rate limiting (temporarily disabled)
@@ -123,6 +123,14 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
     set.status = 200;
     return { success: true };
   })
+  .post("/logout", ({ set }: any) => {
+    set.headers = {
+      ...set.headers,
+      "Set-Cookie": `auth_token=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`,
+    };
+    set.status = 200;
+    return { success: true };
+  })
 
   // .decorate('currentUser', null) // ประกาศว่า context จะมี currentUser (เริ่มเป็น null)
   .onBeforeHandle(requireRole("*"))
@@ -133,20 +141,33 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
    * @returns {Object} An object containing the current user's information.
    */
   .get("/me", async ({ currentUser }: any) => {
-    const village_name = currentUser.village_key
-      ? await db
-          .select({ village_name: villages.village_name })
-          .from(villages)
-          .where(eq(villages.village_key, currentUser.village_key))
-          .then((res) => (res[0] ? res[0].village_name : null))
-      : null;
+    // Get village information for all assigned villages
+    let villages_info: Array<{ village_key: string; village_name: string }> = [];
+    let village_name: string | null = null;
+    
+    if (currentUser.village_keys && currentUser.village_keys.length > 0) {
+      villages_info = await db
+        .select({ 
+          village_key: villages.village_key,
+          village_name: villages.village_name 
+        })
+        .from(villages)
+        .where(inArray(villages.village_key, currentUser.village_keys));
+      
+      // For staff users, get their assigned village name
+      if (currentUser.role === "staff" && villages_info.length > 0) {
+        village_name = villages_info[0].village_name;
+      }
+    }
 
     return {
       id: currentUser.admin_id,
       username: currentUser.username,
+      email: currentUser.email,
       role: currentUser.role,
-      village_key: currentUser.village_key,
-      village_name,
+      village_keys: currentUser.village_keys || [],
+      villages: villages_info,
+      village_name: village_name, // Add village_name for staff users
     };
   })
 

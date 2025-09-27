@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Shield, Search, ChevronLeft, ChevronRight, Clock, Car } from "lucide-react";
+import { Shield, Search, ChevronLeft, ChevronRight, Clock, Car, RefreshCw } from "lucide-react";
 
 // API Response Interface
 
@@ -33,7 +33,7 @@ interface VisitorRecordAPI {
   resident_id: string;
   guard_id: string;
   house_id: string;
-  picture_key: string;
+  license_image: string;
   license_plate: string;
   entry_time: string;
   record_status: string;
@@ -71,7 +71,7 @@ interface VisitorHistory {
   guard_name: string;
   guard_email: string;
   house_address: string;
-  picture_key: string;
+  license_image: string;
   exit_time?: string;
 }
 
@@ -107,6 +107,9 @@ export default function HistoryTable() {
   
   // State สำหรับการ refresh ข้อมูล
   const [refreshing, setRefreshing] = useState(false);
+  
+  // State สำหรับเก็บชื่อหมู่บ้านที่เลือก
+  const [selectedVillageName, setSelectedVillageName] = useState<string>("");
 
   // Fetch data from API
   const fetchHistory = async (isRefresh = false) => {
@@ -117,6 +120,28 @@ export default function HistoryTable() {
         setLoading(true);
       }
       setError(null);
+      
+      // Get selected village key from sessionStorage
+      const selectedVillageKey = sessionStorage.getItem('selectedVillage');
+      
+      // Get village name if village key exists
+      if (selectedVillageKey) {
+        try {
+          const villageResponse = await fetch(`/api/villages/check/${selectedVillageKey}`, {
+            credentials: "include",
+          });
+          if (villageResponse.ok) {
+            const villageData = await villageResponse.json();
+            if (villageData.exists) {
+              setSelectedVillageName(villageData.village_name);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching village name:", error);
+        }
+      } else {
+        setSelectedVillageName("");
+      }
       
       // Dummy admin history data (keeping as dummy for now)
       const dummyAdminHistory: AdminHistory[] = [
@@ -149,8 +174,16 @@ export default function HistoryTable() {
         }
       ];
 
-      // Fetch real visitor records from API
-      const visitorResponse = await fetch("/api/visitor-records");
+      // Fetch visitor records from API with village filtering
+      let visitorUrl = "/api/visitor-records";
+      if (selectedVillageKey) {
+        visitorUrl = `/api/visitor-records/village/${selectedVillageKey}`;
+      }
+      
+      const visitorResponse = await fetch(visitorUrl, {
+        credentials: "include",
+      });
+      
       if (!visitorResponse.ok) {
         throw new Error(`HTTP error! status: ${visitorResponse.status}`);
       }
@@ -170,10 +203,11 @@ export default function HistoryTable() {
           guard_name: record.guard_name,
           guard_email: record.guard_email,
           house_address: record.house_address,
-          picture_key: record.picture_key,
+          license_image: record.license_image,
         }));
         
         setVisitorHistoryData(transformedVisitorHistory);
+        console.log(`📊 Fetched ${transformedVisitorHistory.length} visitor records for village: ${selectedVillageKey || 'all'}`);
       } else {
         throw new Error("Failed to fetch visitor records");
       }
@@ -191,6 +225,21 @@ export default function HistoryTable() {
 
   useEffect(() => {
     fetchHistory();
+  }, []);
+
+  // Listen for village changes and refresh data
+  useEffect(() => {
+    const handleVillageChange = () => {
+      console.log("🔄 Village changed, refreshing history data...");
+      fetchHistory(true);
+    };
+
+    // Listen for custom village change event
+    window.addEventListener('villageChanged', handleVillageChange);
+    
+    return () => {
+      window.removeEventListener('villageChanged', handleVillageChange);
+    };
   }, []);
 
   // Function to create avatar initials from name
@@ -361,6 +410,7 @@ export default function HistoryTable() {
                 >
                   <Car className="h-4 w-4 sm:h-5 sm:w-5" />
                   <span>ประวัติผู้เยี่ยม ({visitorHistoryData.length})</span>
+                  
                 </button>
               </div>
               
@@ -395,13 +445,26 @@ export default function HistoryTable() {
                   </Select>
                 )}
                 
-                {/* Refresh indicator */}
-                {refreshing && (
-                  <div className="flex items-center gap-1 text-blue-600 text-sm w-full sm:w-auto justify-center sm:justify-start">
-                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
-                    <span>กำลังอัปเดต...</span>
-                  </div>
-                )}
+                {/* Refresh button and indicator */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchHistory(true)}
+                    disabled={refreshing}
+                    className="flex items-center gap-1 text-sm"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${refreshing ? 'animate-spin' : ''}`} />
+                    <span className="hidden sm:inline">รีเฟรช</span>
+                  </Button>
+                  
+                  {refreshing && (
+                    <div className="flex items-center gap-1 text-blue-600 text-sm">
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                      <span className="hidden sm:inline">...</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

@@ -5,10 +5,13 @@ import {
   BookUser,
   Building,
   History,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import { type AdminRole } from "@/lib/roleUtils";
 
 const mobileNavItems = [
   {
@@ -27,6 +30,11 @@ const mobileNavItems = [
     icon: Building,
   },
   {
+    title: "นิติบุคคล",
+    url: "/dashboard/staff_manage",
+    icon: Users,
+  },
+  {
     title: "ประวัติ",
     url: "/dashboard/history",
     icon: History,
@@ -35,12 +43,42 @@ const mobileNavItems = [
 
 export function MobileNavigation() {
   const pathname = usePathname();
+  const [userRole, setUserRole] = useState<AdminRole | null>(null);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const res = await fetch("/api/auth/me", {
+          credentials: "include",
+        });
+        
+        if (res.ok) {
+          const json = await res.json();
+          setUserRole(json.role);
+        }
+      } catch (error) {
+        console.error("Error fetching user role:", error);
+      }
+    };
+
+    fetchUserRole();
+  }, []);
+
+  // Filter items based on user role
+  const getFilteredItems = () => {
+    if (userRole === "staff") {
+      return mobileNavItems.filter(item => item.title !== "นิติบุคคล");
+    }
+    return mobileNavItems;
+  };
+
+  const filteredItems = getFilteredItems();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
       <div className="bg-background/95 backdrop-blur-sm border-t border-border shadow-lg">
         <div className="flex items-center justify-around px-1 py-2">
-          {mobileNavItems.map((item) => {
+          {filteredItems.map((item) => {
             const isActive = pathname === item.url;
             return (
               <Link

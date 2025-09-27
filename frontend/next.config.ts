@@ -19,15 +19,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://backend:3001";
-    return [
-      {
-        source: "/api/:path*",
-        destination: `${backendUrl}/api/:path*`, // Proxy to Backend
-      },
-    ];
-  },
+  // Caddy handles API routing, no need for Next.js rewrites
 };
 
 export default nextConfig;

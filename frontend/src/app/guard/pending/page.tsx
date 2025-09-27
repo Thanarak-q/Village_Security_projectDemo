@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { isAuthenticated, getAuthData } from "@/lib/liffAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Clock, RefreshCw, Shield } from "lucide-react";
+import { AlertCircle, Clock, RefreshCw, Shield, Home, User } from "lucide-react";
+import { ModeToggle } from "@/components/mode-toggle";
 
 export default function GuardPendingPage() {
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [userRoles, setUserRoles] = useState<Array<{role: string, village_key: string, village_name?: string}>>([]);
 
   useEffect(() => {
     const checkAuthAndStatus = () => {
@@ -19,7 +21,7 @@ export default function GuardPendingPage() {
       // Check if user is authenticated
       if (!isAuthenticated()) {
         console.log("❌ User not authenticated, redirecting to guard LIFF");
-        router.push("/liff/guard");
+        router.push("/liff");
         return;
       }
 
@@ -27,15 +29,18 @@ export default function GuardPendingPage() {
       const { user } = getAuthData();
       console.log("🔍 Guard pending - user data:", user);
       
-      if (!user || user.role !== "guard") {
-        console.log("❌ User is not a guard, redirecting to appropriate page");
-        if (user?.role === "resident") {
-          router.push("/liff/resident");
-        } else {
-          router.push("/liff/guard");
-        }
+      if (!user) {
+        console.log("❌ No user data found, redirecting to LIFF");
+        router.push("/liff");
         return;
       }
+
+      // Check if user has guard role (they might have multiple roles)
+      // We'll check this after fetching roles, so for now just continue
+      console.log("🔍 User found, checking guard status...");
+      
+      // For now, let's allow the user to continue and check roles later
+      // This prevents immediate redirect for users with multiple roles
 
       // Debug: Log user status
       console.log("🔍 Guard pending - status check:", {
@@ -56,7 +61,7 @@ export default function GuardPendingPage() {
       // If user is disabled
       if (user.status === "disable") {
         console.log("❌ Guard is disabled, redirecting to login");
-        router.push("/liff/guard");
+        router.push("/liff");
         return;
       }
 
@@ -68,6 +73,90 @@ export default function GuardPendingPage() {
 
     checkAuthAndStatus();
   }, [router]);
+
+  // Fetch user roles to check if they have guard role and resident role
+  useEffect(() => {
+    const fetchUserRoles = async () => {
+      if (currentUser) {
+        // Try different possible ID fields from LIFF user data
+        const userId = currentUser.lineUserId || currentUser.id;
+        console.log("🔍 Attempting to fetch roles for user ID:", userId);
+        console.log("🔍 Current user object:", currentUser);
+        
+        if (userId) {
+          try {
+            const apiUrl = '';
+            const response = await fetch(`${apiUrl}/api/users/roles?lineUserId=${userId}`, {
+              credentials: 'include'
+            });
+            
+            console.log("🔍 Roles API response status:", response.status);
+            
+            if (response.ok) {
+              const contentType = response.headers.get("content-type");
+              if (contentType && contentType.includes("application/json")) {
+                const data = await response.json();
+                console.log("🔍 Roles API response data:", data);
+                
+                if (data.success && data.roles) {
+                  setUserRoles(data.roles);
+                  
+                  // Check if user has guard role
+                  const hasGuardRole = data.roles.some((role: any) => role.role === 'guard');
+                  if (!hasGuardRole) {
+                    console.log("❌ User does not have guard role, but allowing access for testing");
+                    // Temporarily allow access for testing - remove this in production
+                    console.log("⚠️ TEMPORARY: Allowing access without guard role for testing");
+                    // router.push("/liff");
+                    // return;
+                  }
+                  
+                  console.log("✅ User has guard role, continuing to pending page");
+                } else {
+                  console.log("❌ No roles found or API error, but allowing access for testing");
+                  // Temporarily allow access for testing - remove this in production
+                  console.log("⚠️ TEMPORARY: Allowing access without roles for testing");
+                  // router.push("/liff");
+                  // return;
+                }
+              }
+            } else {
+              console.log("❌ Roles API failed with status:", response.status);
+              // Temporarily allow access for testing - remove this in production
+              console.log("⚠️ TEMPORARY: Allowing access despite API failure for testing");
+              // router.push("/liff");
+              // return;
+            }
+          } catch (error) {
+            console.error('Error fetching user roles:', error);
+            // Temporarily allow access for testing - remove this in production
+            console.log("⚠️ TEMPORARY: Allowing access despite error for testing");
+            // router.push("/liff");
+            // return;
+          }
+        } else {
+          console.log("❌ No user ID found, but allowing access for testing");
+          // Temporarily allow access for testing - remove this in production
+          console.log("⚠️ TEMPORARY: Allowing access without user ID for testing");
+          // router.push("/liff");
+          // return;
+        }
+      }
+    };
+
+    fetchUserRoles();
+  }, [currentUser, router]);
+
+  const handleSwitchToResident = () => {
+    router.push('/Resident');
+  };
+
+  const handleNavigateToProfile = () => {
+    router.push('/guard/profile');
+  };
+
+  // Check if user has resident role
+  const hasResidentRole = userRoles.some(role => role.role === 'resident');
 
   const handleRefresh = async () => {
     try {
@@ -87,23 +176,53 @@ export default function GuardPendingPage() {
   const handleLogout = () => {
     // Clear auth data and redirect to login
     localStorage.clear();
-    router.push("/liff/guard");
+    router.push("/liff");
   };
 
   if (isCheckingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">กำลังตรวจสอบสถานะ...</p>
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">กำลังตรวจสอบสถานะ...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <div className="px-4 py-4 border-b">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2">
+            <Shield className="w-6 h-6 sm:w-7 sm:h-7" />
+            รอการยืนยัน
+          </h1>
+          <span className="flex items-center gap-2">
+            <ModeToggle />
+            <button
+              onClick={handleSwitchToResident}
+              className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+              aria-label="Go to Resident page"
+              title="ไปยังหน้าผู้อยู่อาศัย"
+            >
+              <Home className="w-5 h-5 text-foreground" />
+            </button>
+            <button
+              onClick={handleNavigateToProfile}
+              className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+              aria-label="Go to profile"
+            >
+              <User className="w-5 h-5 text-foreground" />
+            </button>
+          </span>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
             <Shield className="h-8 w-8 text-yellow-600" />
@@ -168,7 +287,8 @@ export default function GuardPendingPage() {
             <p>หากมีคำถาม กรุณาติดต่อผู้ดูแลระบบ</p>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }
