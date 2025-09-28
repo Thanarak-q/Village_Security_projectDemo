@@ -19,9 +19,6 @@ export default function Page() {
   const [selectedVillageKey, setSelectedVillageKey] = useState<string>("");
   const [showVillageKey, setShowVillageKey] = useState<boolean>(false);
   const { data: statsData, loading: statsLoading, error: statsError } = useStatsData();
-  const cardsRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<HTMLDivElement>(null);
-  const tableRef = useRef<HTMLDivElement>(null);
   const villageInfoRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
 
@@ -77,104 +74,33 @@ export default function Page() {
     }
   }, []);
 
-  // GSAP smooth scroll-up animations - similar to sidebar style
+  // GSAP smooth scroll-up animation - matching other sidebar pages
   useEffect(() => {
-    if (!data) return;
-
-    // Capture ref values to avoid stale closure issues
-    const headerElement = headerRef.current;
-    const villageInfoElement = villageInfoRef.current;
-    const chartElement = chartRef.current;
-    const tableElement = tableRef.current;
-
-    // Set initial state for all animated elements
-    const elementsToAnimate = [headerElement, villageInfoElement, chartElement, tableElement].filter(Boolean);
-
-    gsap.set(elementsToAnimate, {
+    const containerElement = headerRef.current?.parentElement;
+    
+    // Only animate if element exists
+    if (!containerElement) return;
+    
+    // Set initial state
+    gsap.set(containerElement, {
       opacity: 0,
-      y: 30,
-      scale: 0.98
+      y: 50
     });
 
-    // Individual cards initial state
-    const cards = cardsRef.current?.children;
-    if (cards && cards.length > 0) {
-      gsap.set(Array.from(cards), {
-        opacity: 0,
-        y: 40,
-        scale: 0.95
-      });
-    }
-
-    // Create smooth scroll-up timeline with sidebar-like transitions
-    const tl = gsap.timeline({
-      delay: 0.1,
-      ease: "power3.out"
+    // Animate entrance
+    gsap.to(containerElement, {
+      duration: 0.8,
+      opacity: 1,
+      y: 0,
+      ease: "power2.inOut",
+      delay: 0.2
     });
-
-    // Animate header first (if exists)
-    if (headerElement) {
-      tl.to(headerElement, {
-        duration: 0.6,
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        ease: "power3.out"
-      });
-    }
-
-    // Animate village info with smooth transition
-    if (villageInfoElement) {
-      tl.to(villageInfoElement, {
-        duration: 0.5,
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        ease: "power3.out"
-      }, "-=0.3");
-    }
-
-    // Animate cards with stagger effect - similar to sidebar menu items
-    if (cards && cards.length > 0) {
-      Array.from(cards).forEach((card, index) => {
-        if (card) {
-          tl.to(card, {
-            duration: 0.5,
-            opacity: 1,
-            y: 0,
-            scale: 1,
-            ease: "power3.out"
-          }, index * 0.08 - 0.2);
-        }
-      });
-    }
-
-    // Animate chart
-    if (chartElement) {
-      tl.to(chartElement, {
-        duration: 0.6,
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        ease: "power3.out"
-      }, "-=0.3");
-    }
-
-    // Finally animate table
-    if (tableElement) {
-      tl.to(tableElement, {
-        duration: 0.6,
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        ease: "power3.out"
-      }, "-=0.4");
-    }
 
     return () => {
-      gsap.killTweensOf(elementsToAnimate);
-      if (cards && cards.length > 0) {
-        gsap.killTweensOf(Array.from(cards));
+      try {
+        gsap.killTweensOf(containerElement);
+      } catch (error) {
+        console.warn('GSAP cleanup error:', error);
       }
     };
   }, [data]);
@@ -183,19 +109,17 @@ export default function Page() {
   useEffect(() => {
     if (!villageInfoRef.current || !selectedVillageKey) return;
 
-    // Smooth transition when village changes - similar to sidebar updates
+    // Smooth transition when village changes - matching other sidebar pages
     gsap.fromTo(villageInfoRef.current,
       {
         opacity: 0,
-        y: 15,
-        scale: 0.98
+        y: 20
       },
       {
         opacity: 1,
         y: 0,
-        scale: 1,
-        duration: 0.4,
-        ease: "power3.out"
+        duration: 0.8,
+        ease: "power2.inOut"
       }
     );
   }, [selectedVillageKey, selectedVillageName]);
@@ -286,10 +210,7 @@ export default function Page() {
         </div>
 
         {/* Statistics Cards */}
-        <div
-          ref={cardsRef}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6 lg:mb-8"
-        >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6 lg:mb-8">
           <TotalUsersCard data={statsData} loading={statsLoading} error={statsError} />
           <DailyAccessCard data={statsData} loading={statsLoading} error={statsError} />
           <PendingTasksCard data={statsData} loading={statsLoading} error={statsError} />
@@ -297,20 +218,14 @@ export default function Page() {
         </div>
 
         {/* Chart */}
-        <div
-          ref={chartRef}
-          className="mb-4 sm:mb-6 lg:mb-8"
-        >
+        <div className="mb-4 sm:mb-6 lg:mb-8">
           <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
             <WeeklyAccessBarChart />
           </Suspense>
         </div>
 
         {/* Pending Table */}
-        {/* <div
-          ref={tableRef}
-          className="mb-4 sm:mb-6"
-        >
+        {/* <div className="mb-4 sm:mb-6">
           <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
             <PendingTable />
           </Suspense>
