@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, UserPlus, Eye, EyeOff, Copy, Check } from "lucide-react";
-import { toast } from "sonner";
+// import { toast } from "sonner";
 
 const addStaffSchema = z.object({
   username: z.string().min(3, "ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร"),
@@ -27,8 +27,11 @@ interface AddStaffFormProps {
 interface StaffMember {
   admin_id: string;
   username: string;
+  email: string | null;
+  phone: string | null;
   status: "verified" | "pending" | "disable";
   role: string;
+  password_changed_at: string | null;
   created_at: string;
   updated_at: string;
   village_key: string;
@@ -78,12 +81,12 @@ export function AddStaffForm({ villageKey, villageName, onStaffAdded }: AddStaff
         });
         onStaffAdded(result.data);
         reset();
-        toast.success("เพิ่มนิติบุคคลสำเร็จ");
+        // toast.success("เพิ่มนิติบุคคลสำเร็จ");
       } else {
-        toast.error(result.error || "เกิดข้อผิดพลาดในการเพิ่มนิติบุคคล");
+        // toast.error(result.error || "เกิดข้อผิดพลาดในการเพิ่มนิติบุคคล");
       }
     } catch {
-      toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+      // toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     } finally {
       setIsSubmitting(false);
     }
@@ -93,10 +96,10 @@ export function AddStaffForm({ villageKey, villageName, onStaffAdded }: AddStaff
     try {
       await navigator.clipboard.writeText(text);
       setCopiedField(field);
-      toast.success("คัดลอกแล้ว");
+      // toast.success("คัดลอกแล้ว");
       setTimeout(() => setCopiedField(null), 2000);
     } catch {
-      toast.error("ไม่สามารถคัดลอกได้");
+      // toast.error("ไม่สามารถคัดลอกได้");
     }
   };
 
@@ -149,7 +152,7 @@ export function AddStaffForm({ villageKey, villageName, onStaffAdded }: AddStaff
                     type={showPassword ? "text" : "password"}
                     value={generatedCredentials.password}
                     readOnly
-                    className="bg-white dark:bg-gray-800"
+                    className="bg-whi e dark:bg-gray-800"
                   />
                   <Button
                     size="sm"
@@ -157,9 +160,9 @@ export function AddStaffForm({ villageKey, villageName, onStaffAdded }: AddStaff
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
                       <Eye className="h-4 w-4" />
+                    ) : (
+                      <EyeOff className="h-4 w-4" />
                     )}
                   </Button>
                   <Button

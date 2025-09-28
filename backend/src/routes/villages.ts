@@ -5,20 +5,7 @@ import { eq, or, inArray } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 
 export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
-  .get("/", async ({ set }) => {
-    try {
-      const allVillages = await db.select({
-        village_key: villages.village_key,
-        village_name: villages.village_name,
-      }).from(villages);
-      
-      return allVillages;
-    } catch (error) {
-      console.error("Error fetching villages:", error);
-      set.status = 500;
-      return { error: "Failed to fetch villages" };
-    }
-  })
+  // Public endpoint for village key validation used during registration
   .get("/check/:villageKey", async ({ params, set }) => {
     try {
       const { villageKey } = params as { villageKey: string };
@@ -47,39 +34,19 @@ export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
       return { error: "Failed to check village" };
     }
   })
-  .get("/validate", async ({ query, set }) => {
+  .onBeforeHandle(requireRole("*"))
+  .get("/", async ({ set }) => {
     try {
-      const { key } = query as { key: string };
-
-      if (!key) {
-        set.status = 400;
-        return { success: false, error: "Village key is required" };
-      }
-
-      const village = await db
-        .select({
-          village_key: villages.village_key,
-          village_name: villages.village_name,
-        })
-        .from(villages)
-        .where(eq(villages.village_key, key))
-        .then(results => results[0]);
-
-      if (village) {
-        return { 
-          success: true, 
-          village: {
-            village_key: village.village_key,
-            village_name: village.village_name 
-          }
-        };
-      } else {
-        return { success: false, error: "Invalid village key" };
-      }
+      const allVillages = await db.select({
+        village_key: villages.village_key,
+        village_name: villages.village_name,
+      }).from(villages);
+      
+      return allVillages;
     } catch (error) {
-      console.error("Error validating village:", error);
+      console.error("Error fetching villages:", error);
       set.status = 500;
-      return { success: false, error: "Failed to validate village" };
+      return { error: "Failed to fetch villages" };
     }
   })
   .onBeforeHandle(requireRole(["admin", "superadmin"]))

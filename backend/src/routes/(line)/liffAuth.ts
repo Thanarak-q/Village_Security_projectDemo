@@ -74,11 +74,9 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
       });
 
       // Both guard and resident use the same LINE channel ID
-      // For LIFF token verification, we need the client ID (first part before the dash)
-      const fullChannelId = process.env.LINE_CHANNEL_ID || '';
-      const clientId = fullChannelId.split('-')[0]; // Extract client ID part
+      const clientId = process.env.LINE_CHANNEL_ID;
       
-      console.log('🔍 Using Channel ID:', fullChannelId, 'Client ID:', clientId, 'for', isGuardRequest ? 'guard' : isResidentRequest ? 'resident' : 'default');
+      console.log('🔍 Using Channel ID:', clientId, 'for', isGuardRequest ? 'guard' : isResidentRequest ? 'resident' : 'default');
 
       // Verify LINE ID token with LINE API
       

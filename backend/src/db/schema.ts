@@ -148,6 +148,7 @@ export const admins = pgTable("admins", {
     .$type<"admin" | "staff" | "superadmin">()
     .default("staff")
     .notNull(),
+  password_changed_at: timestamp("password_changed_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
