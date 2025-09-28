@@ -186,26 +186,49 @@ export default function LiffPage() {
                     
                     if (rolesData.success && rolesData.roles) {
                       const verifiedRoles = rolesData.roles.filter((role: any) => role.status === 'verified');
+                      const pendingRoles = rolesData.roles.filter((role: any) => role.status === 'pending');
                       const hasResidentRole = verifiedRoles.some((role: any) => role.role === 'resident');
                       const hasGuardRole = verifiedRoles.some((role: any) => role.role === 'guard');
+                      const hasPendingResidentRole = pendingRoles.some((role: any) => role.role === 'resident');
+                      const hasPendingGuardRole = pendingRoles.some((role: any) => role.role === 'guard');
                       
-                      console.log('🔍 User roles:', { verifiedRoles, hasResidentRole, hasGuardRole });
+                      console.log('🔍 User roles:', { 
+                        verifiedRoles, 
+                        pendingRoles, 
+                        hasResidentRole, 
+                        hasGuardRole,
+                        hasPendingResidentRole,
+                        hasPendingGuardRole
+                      });
                       
-                      if (hasResidentRole && hasGuardRole) {
-                        // User has both roles, redirect to role selection
-                        console.log('🔄 User has both roles, redirecting to role selection');
+                      // Check for pending roles first
+                      if (hasPendingResidentRole && hasPendingGuardRole) {
+                        // User has both roles pending, redirect to role selection
+                        console.log('⏳ User has both roles pending, redirecting to role selection');
+                        setTimeout(() => router.replace('/liff/select-role'), 1000);
+                      } else if (hasPendingResidentRole) {
+                        // User has pending resident role
+                        console.log('⏳ User has pending resident role, redirecting to Resident pending page');
+                        setTimeout(() => router.replace('/Resident/pending'), 1000);
+                      } else if (hasPendingGuardRole) {
+                        // User has pending guard role
+                        console.log('⏳ User has pending guard role, redirecting to Guard pending page');
+                        setTimeout(() => router.replace('/guard/pending'), 1000);
+                      } else if (hasResidentRole && hasGuardRole) {
+                        // User has both verified roles, redirect to role selection
+                        console.log('🔄 User has both verified roles, redirecting to role selection');
                         setTimeout(() => router.replace('/liff/select-role'), 1000);
                       } else if (hasResidentRole) {
-                        // User only has resident role
-                        console.log('🏠 User has resident role only, redirecting to Resident page');
+                        // User only has verified resident role
+                        console.log('🏠 User has verified resident role only, redirecting to Resident page');
                         setTimeout(() => router.replace('/Resident'), 1000);
                       } else if (hasGuardRole) {
-                        // User only has guard role
-                        console.log('🛡️ User has guard role only, redirecting to Guard page');
+                        // User only has verified guard role
+                        console.log('🛡️ User has verified guard role only, redirecting to Guard page');
                         setTimeout(() => router.replace('/guard'), 1000);
                       } else {
-                        // User has no verified roles
-                        console.log('⏳ User has no verified roles, redirecting to pending page');
+                        // User has no verified or pending roles, redirect to role selection
+                        console.log('⏳ User has no roles, redirecting to role selection');
                         setTimeout(() => router.replace('/liff/select-role'), 1000);
                       }
                     } else {

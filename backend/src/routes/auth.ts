@@ -12,13 +12,74 @@
 
 // apps/api/src/routes/auth.ts
 import { Elysia, t } from "elysia";
-import { admins, villages } from "../db/schema";
+import { admins, villages, guards, residents } from "../db/schema";
 import db from "../db/drizzle";
 import { eq, inArray } from "drizzle-orm";
 import { verifyPassword } from "../utils/passwordUtils";
 import { requireRole } from "../hooks/requireRole";
 // import { rateLimit } from "../middleware/rateLimiter"; // SECURITY: Rate limiting (temporarily disabled)
 import { validateLoginInput, sanitizeString } from "../utils/validation"; // SECURITY: Input validation
+
+// LIFF Authentication middleware for cookie-based sessions
+const requireLiffAuth = async (context: any) => {
+  const { jwt, cookie, set } = context;
+  const token = cookie.liff_session?.value;
+
+  if (!token) {
+    set.status = 401;
+    return { error: "Unauthorized: No LIFF session token provided." };
+  }
+
+  let payload;
+  try {
+    payload = await jwt.verify(token);
+  } catch {
+    set.status = 401;
+    return { error: "Unauthorized: The provided LIFF token is invalid." };
+  }
+
+  if (!payload?.id || !payload?.iat) {
+    set.status = 401;
+    return { error: "Unauthorized: The LIFF token payload is malformed." };
+  }
+
+  const tokenAgeInSeconds = Date.now() / 1000 - payload.iat;
+  if (tokenAgeInSeconds > 60 * 60) { // 1 hour expiry for LIFF sessions
+    set.status = 401;
+    return { error: "Unauthorized: The provided LIFF token has expired." };
+  }
+
+  // Determine user type from JWT payload
+  const userRole = payload.role;
+  let user = null;
+
+  // Find user in the appropriate table based on their role
+  if (userRole === 'guard') {
+    user = await db.query.guards.findFirst({
+      where: eq(guards.guard_id, payload.id),
+    });
+  } else if (userRole === 'resident') {
+    user = await db.query.residents.findFirst({
+      where: eq(residents.resident_id, payload.id),
+    });
+  }
+
+  if (!user) {
+    set.status = 401;
+    return { error: "Unauthorized: User associated with the LIFF token not found." };
+  }
+
+  if (user.status !== "verified") {
+    set.status = 403;
+    return { error: "Forbidden: The user account is not active." };
+  }
+
+  // Add user to context
+  context.currentUser = {
+    ...user,
+    village_keys: user.village_key ? [user.village_key] : [],
+  };
+};
 
 /**
  * The authentication routes.
@@ -160,15 +221,95 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       }
     }
 
-    return {
-      id: currentUser.admin_id,
+    // Base user data
+    const baseUserData = {
+      id: currentUser.admin_id || currentUser.guard_id || currentUser.resident_id,
       username: currentUser.username,
       email: currentUser.email,
+      fname: currentUser.fname,
+      lname: currentUser.lname,
       role: currentUser.role,
       village_keys: currentUser.village_keys || [],
       villages: villages_info,
-      village_name: village_name, // Add village_name for staff users
+      village_name: village_name,
     };
+
+    // Add role-specific IDs
+    if (currentUser.role === "admin" || currentUser.role === "staff" || currentUser.role === "superadmin") {
+      return {
+        ...baseUserData,
+        admin_id: currentUser.admin_id,
+      };
+    } else if (currentUser.role === "guard") {
+      return {
+        ...baseUserData,
+        guard_id: currentUser.guard_id,
+      };
+    } else if (currentUser.role === "resident") {
+      return {
+        ...baseUserData,
+        resident_id: currentUser.resident_id,
+      };
+    }
+
+    return baseUserData;
+  })
+
+  // LIFF user authentication endpoint for guards and residents
+  .get("/liff/me", async (context: any) => {
+    // Apply LIFF authentication middleware
+    const authResult = await requireLiffAuth(context);
+    if (authResult) {
+      return authResult;
+    }
+    
+    const { currentUser } = context;
+    
+    // Get village information for all assigned villages
+    let villages_info: Array<{ village_key: string; village_name: string }> = [];
+    let village_name: string | null = null;
+    
+    if (currentUser.village_keys && currentUser.village_keys.length > 0) {
+      villages_info = await db
+        .select({ 
+          village_key: villages.village_key,
+          village_name: villages.village_name 
+        })
+        .from(villages)
+        .where(inArray(villages.village_key, currentUser.village_keys));
+      
+      if (villages_info.length > 0) {
+        village_name = villages_info[0].village_name;
+      }
+    }
+
+    // Base user data
+    const baseUserData = {
+      id: currentUser.guard_id || currentUser.resident_id,
+      username: currentUser.fname + ' ' + currentUser.lname, // Use name as username for LIFF users
+      email: currentUser.email,
+      fname: currentUser.fname,
+      lname: currentUser.lname,
+      role: currentUser.role,
+      village_keys: currentUser.village_keys || [],
+      villages: villages_info,
+      village_name: village_name,
+    };
+
+    // Add role-specific IDs
+    if (currentUser.role === "guard") {
+      return {
+        ...baseUserData,
+        guard_id: currentUser.guard_id,
+      };
+    } else if (currentUser.role === "resident") {
+      return {
+        ...baseUserData,
+        resident_id: currentUser.resident_id,
+      };
+    }
+
+    return baseUserData;
   })
 
 

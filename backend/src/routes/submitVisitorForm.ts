@@ -1,67 +1,16 @@
 import { Elysia } from "elysia";
 import db from "../db/drizzle";
-import { visitor_records, houses, villages } from "../db/schema";
+import { visitor_records, guards, houses, house_members, villages } from "../db/schema";
 import { eq } from "drizzle-orm";
-import { visitor_records, guards, houses, house_members } from "../db/schema";
-import { eq, desc } from "drizzle-orm";
 import { saveBase64Image, getImageExtension } from "../utils/imageUtils";
 
 // Note: This route is intentionally left unauthenticated to support the
 // current mock frontend flow. Add role checks later if required.
 const approvalForm = new Elysia({ prefix: "/api" })
-  .get("/guards", async () => {
-    try {
-      const guardsList = await db.query.guards.findMany({
-        where: eq(guards.status, "verified"),
-        columns: {
-          guard_id: true,
-          fname: true,
-          lname: true,
-          email: true,
-        }
-      });
-      
-      return {
-        success: true,
-        guards: guardsList,
-      };
-    } catch (error) {
-      console.error("Error fetching guards:", error);
-      return {
-        success: false,
-        error: "Failed to fetch guards",
-      };
-    }
-  })
-  .get("/test-visitor-records", async () => {
-    try {
-      const records = await db.query.visitor_records.findMany({
-        with: {
-          guard: true,
-          house: true,
-        },
-        limit: 10,
-        orderBy: (visitor_records, { desc }) => [desc(visitor_records.createdAt)]
-      });
-      
-      return {
-        success: true,
-        records: records,
-        total: records.length,
-      };
-    } catch (error) {
-      console.error("Error fetching visitor records:", error);
-      return {
-        success: false,
-        error: "Failed to fetch visitor records",
-      };
-    }
-  })
   .post(
   "/approvalForms",
   async ({ body }) => {
     type ApprovalFormBody = {
-      residentId?: string;
       visitorIDCard: string;
       guardId: string;
       houseId: string;

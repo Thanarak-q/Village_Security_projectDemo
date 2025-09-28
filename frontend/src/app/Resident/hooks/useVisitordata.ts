@@ -70,19 +70,28 @@ export const useVisitorData = () => {
       const apiUrl = '';
       const response = await fetch(`${apiUrl}/api/villages/validate?key=${encodeURIComponent(villageKey)}`);
       
+      console.log('🔍 Village validation response status:', response.status);
+      console.log('🔍 Village validation response headers:', Object.fromEntries(response.headers.entries()));
+      
       // Check if response is JSON
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Response is not JSON");
+        const responseText = await response.text();
+        console.error('❌ Non-JSON response received:', responseText);
+        throw new Error(`Response is not JSON. Status: ${response.status}, Content-Type: ${contentType}`);
       }
       
       const data = await response.json();
+      console.log('🔍 Village validation data:', data);
       
       if (data.success && data.village) {
         setVillageName(data.village.village_name);
+        console.log('✅ Village name set:', data.village.village_name);
+      } else {
+        console.error('❌ Village validation failed:', data);
       }
     } catch (error) {
-      console.error('Error fetching village name:', error);
+      console.error('❌ Error fetching village name:', error);
     }
   };
 

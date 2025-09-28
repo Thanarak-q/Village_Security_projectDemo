@@ -118,8 +118,8 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
 
       // Determine user's actual role(s)
       const existingRoles: string[] = [];
-      if (resident) existingRoles.push('resident');
       if (guard) existingRoles.push('guard');
+      if (resident) existingRoles.push('resident');
 
       if (existingRoles.length === 0) {
         // User not found in any table
@@ -148,9 +148,15 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         userRole = 'resident';
         user = resident;
       } else {
-        // Default to the first available role
-        userRole = existingRoles[0] as 'resident' | 'guard';
-        user = userRole === 'guard' ? guard : resident;
+        // Default to guard role if user has both roles (guard has higher priority)
+        // This ensures guards can access their functionality even when they have both roles
+        if (existingRoles.includes('guard')) {
+          userRole = 'guard';
+          user = guard;
+        } else {
+          userRole = existingRoles[0] as 'resident' | 'guard';
+          user = userRole === 'guard' ? guard : resident;
+        }
       }
 
       // User found, create token and return user data
