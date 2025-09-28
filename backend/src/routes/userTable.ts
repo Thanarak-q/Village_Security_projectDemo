@@ -8,7 +8,7 @@ import {
   house_members,
   visitor_records,
 } from "../db/schema";
-import { eq, sql, and } from "drizzle-orm";
+import { eq, sql, and, isNull } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { userManagementActivityLogger } from "../utils/activityLogUtils";
 import { notificationService } from "../services/notificationService";
@@ -263,7 +263,8 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
             role === "superadmin" 
               ? sql`1=1` // Super admin can see all residents
               : eq(residents.village_key, village_key),
-            sql`${residents.status} != 'pending'`
+            sql`${residents.status} != 'pending'`,
+            isNull(residents.disable_at)
           )
         )
         .leftJoin(
@@ -293,7 +294,8 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
             role === "superadmin" 
               ? sql`1=1` // Super admin can see all guards
               : eq(guards.village_key, village_key),
-            sql`${guards.status} != 'pending'`
+            sql`${guards.status} != 'pending'`,
+            isNull(guards.disable_at)
           )
         );
 
@@ -654,9 +656,13 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
             throw new Error("Failed to create guard");
           }
 
-          // Delete old resident
+          // Soft delete old resident
           const deleteResult = await db
-            .delete(residents)
+            .update(residents)
+            .set({ 
+              disable_at: new Date(),
+              status: "disable"
+            })
             .where(eq(residents.resident_id, userId))
             .returning();
 
@@ -754,9 +760,13 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
             throw new Error("Failed to create resident");
           }
 
-          // Delete old guard
+          // Soft delete old guard
           const deleteResult = await db
-            .delete(guards)
+            .update(guards)
+            .set({ 
+              disable_at: new Date(),
+              status: "disable"
+            })
             .where(eq(guards.guard_id, userId))
             .returning();
 

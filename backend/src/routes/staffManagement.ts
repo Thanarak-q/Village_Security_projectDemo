@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
 import db from "../db/drizzle";
 import { admins, villages, admin_villages } from "../db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, isNull } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { hashPassword } from "../utils/passwordUtils";
 import { randomBytes } from "crypto";
@@ -181,7 +181,8 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
         .where(
           and(
             eq(admins.village_key, village_key),
-            eq(admins.role, "staff")
+            eq(admins.role, "staff"),
+            isNull(admins.disable_at)
           )
         )
         .orderBy(desc(admins.createdAt));
@@ -289,9 +290,13 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
         .delete(admin_villages)
         .where(eq(admin_villages.admin_id, id));
 
-      // Delete staff member
+      // Soft delete staff member
       await db
-        .delete(admins)
+        .update(admins)
+        .set({ 
+          disable_at: new Date(),
+          status: "disable"
+        })
         .where(eq(admins.admin_id, id));
 
       return {

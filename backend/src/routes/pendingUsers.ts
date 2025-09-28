@@ -7,7 +7,7 @@ import {
   houses,
   house_members,
 } from "../db/schema";
-import { eq, sql, and } from "drizzle-orm";
+import { eq, sql, and, isNull } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { notificationService } from "../services/notificationService";
 import { userManagementActivityLogger } from "../utils/activityLogUtils";
@@ -101,7 +101,8 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             eq(residents.status, "pending"),
             role === "superadmin" 
               ? sql`1=1` // Super admin can see all pending residents
-              : eq(residents.village_key, village_key)
+              : eq(residents.village_key, village_key),
+            isNull(residents.disable_at)
           )
         )
         // .where(sql`${residents.status} = 'pending'`)
@@ -132,7 +133,8 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             eq(guards.status, "pending"),
             role === "superadmin" 
               ? sql`1=1` // Super admin can see all pending guards
-              : eq(guards.village_key, village_key)
+              : eq(guards.village_key, village_key),
+            isNull(guards.disable_at)
           )
         );
 
@@ -424,8 +426,13 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
           }
         }
 
-        // Delete old resident
-        await db.delete(residents).where(eq(residents.resident_id, userId));
+        // Soft delete old resident
+        await db.update(residents)
+          .set({ 
+            disable_at: new Date(),
+            status: "disable"
+          })
+          .where(eq(residents.resident_id, userId));
 
         // Log the user approval and role change activity
         try {
@@ -527,8 +534,13 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
           }
         }
 
-        // Delete old guard
-        await db.delete(guards).where(eq(guards.guard_id, userId));
+        // Soft delete old guard
+        await db.update(guards)
+          .set({ 
+            disable_at: new Date(),
+            status: "disable"
+          })
+          .where(eq(guards.guard_id, userId));
 
         // Log the user approval and role change activity
         try {

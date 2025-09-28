@@ -16,6 +16,10 @@ export const villages = pgTable("villages", {
   village_id: uuid("village_id").primaryKey().defaultRandom(),
   village_name: text("village_name").notNull(),
   village_key: text("village_key").notNull().unique(),
+  status: text("status")
+    .$type<"active" | "disable">()
+    .default("active"),
+  disable_at: timestamp("disable_at"),
 });
 /**
  * Represents a selectable village record from the database.
@@ -38,6 +42,7 @@ export const houses = pgTable("houses", {
     .$type<"available" | "occupied" | "disable">()
     .default("available"),
   village_key: text("village_key").references(() => villages.village_key),
+  disable_at: timestamp("disable_at"),
 }, (table) => [
   // Indexes for houses table
   index("idx_houses_village_key").on(table.village_key),
@@ -72,6 +77,7 @@ export const residents = pgTable("residents", {
   move_in_date: date("move_in_date"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  disable_at: timestamp("disable_at"),
 }, (table) => [
   // Indexes for residents table
   index("idx_residents_status").on(table.status),
@@ -109,6 +115,7 @@ export const guards = pgTable("guards", {
   hired_date: date("hired_date"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  disable_at: timestamp("disable_at"),
 }, (table) => [
   // Indexes for guards table
   index("idx_guards_status").on(table.status),
@@ -150,6 +157,7 @@ export const admins = pgTable("admins", {
     .notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  disable_at: timestamp("disable_at"),
 }, (table) => [
   // Indexes for admins table
   index("idx_admins_username").on(table.username),

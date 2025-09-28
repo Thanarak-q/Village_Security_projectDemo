@@ -30,6 +30,7 @@ import { redirectRoutes } from "./routes/redirect";
 import { villageSelectionRoutes } from "./routes/villageSelection";
 import approvalForm from "./routes/submitVisitorForm";
 import { imageStorageRoutes } from "./routes/imageStorage";
+import { restoreRoutes } from "./routes/restore";
 /**
  * SECURITY ENHANCEMENT: Secure Health Check Endpoint
  *
@@ -108,6 +109,7 @@ const app = new Elysia()
   .use(redirectRoutes)
   .use(villageSelectionRoutes)
   .use(imageStorageRoutes)
+  .use(restoreRoutes)
   .get("/", () => "Hello Village Security API!");
 
 // Initialize database connection and start server

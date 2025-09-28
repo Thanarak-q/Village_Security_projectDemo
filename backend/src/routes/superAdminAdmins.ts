@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
 import db from "../db/drizzle";
 import { admins, villages, admin_villages } from "../db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { hashPassword } from "../utils/passwordUtils";
 
@@ -19,7 +19,7 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
    */
   .get("/admins", async ({ set }) => {
     try {
-      // Get all admins first
+      // Get all admins first (only active admins)
       const allAdmins = await db
         .select({
           admin_id: admins.admin_id,
@@ -32,6 +32,7 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
           updatedAt: admins.updatedAt,
         })
         .from(admins)
+        .where(isNull(admins.disable_at))
         .orderBy(admins.createdAt);
 
       // Get villages for each admin
@@ -397,9 +398,13 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
         .delete(admin_villages)
         .where(eq(admin_villages.admin_id, id));
 
-      // Delete admin
+      // Soft delete admin
       await db
-        .delete(admins)
+        .update(admins)
+        .set({ 
+          disable_at: new Date(),
+          status: "disable"
+        })
         .where(eq(admins.admin_id, id));
 
       return { success: true, message: "Admin deleted successfully" };

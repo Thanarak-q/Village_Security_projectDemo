@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
 import db from "../db/drizzle";
 import { villages, admins, admin_villages } from "../db/schema";
-import { eq, count } from "drizzle-orm";
+import { eq, count, and, isNull } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { hashPassword } from "../utils/passwordUtils";
 
@@ -24,11 +24,14 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
           village_id: villages.village_id,
           village_name: villages.village_name,
           village_key: villages.village_key,
+          status: villages.status,
+          disable_at: villages.disable_at,
           admin_count: count(admin_villages.admin_id),
         })
         .from(villages)
         .leftJoin(admin_villages, eq(villages.village_key, admin_villages.village_key))
-        .groupBy(villages.village_id, villages.village_name, villages.village_key);
+        .where(isNull(villages.disable_at))
+        .groupBy(villages.village_id, villages.village_name, villages.village_key, villages.status, villages.disable_at);
 
       return { success: true, data: villagesWithAdminCount };
     } catch (error) {
@@ -178,15 +181,18 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
     try {
       const { id } = params as { id: string };
 
-      // Check if village exists
+      // Check if village exists and is not already disabled
       const existingVillage = await db
         .select()
         .from(villages)
-        .where(eq(villages.village_id, id));
+        .where(and(
+          eq(villages.village_id, id),
+          isNull(villages.disable_at)
+        ));
 
       if (existingVillage.length === 0) {
         set.status = 404;
-        return { success: false, error: "Village not found" };
+        return { success: false, error: "Village not found or already disabled" };
       }
 
       // Check if village has admins
@@ -203,12 +209,16 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
         };
       }
 
-      // Delete village
+      // Soft delete village
       await db
-        .delete(villages)
+        .update(villages)
+        .set({ 
+          disable_at: new Date(),
+          status: "disable"
+        })
         .where(eq(villages.village_id, id));
 
-      return { success: true, message: "Village deleted successfully" };
+      return { success: true, message: "Village disabled successfully" };
     } catch (error) {
       console.error("Error deleting village:", error);
       set.status = 500;

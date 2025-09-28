@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import db from "../db/drizzle";
 import { villages, admins } from "../db/schema";
-import { eq, or, inArray } from "drizzle-orm";
+import { eq, or, inArray, and, isNull } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 
 export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
@@ -16,7 +16,11 @@ export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
           village_name: villages.village_name,
         })
         .from(villages)
-        .where(eq(villages.village_key, villageKey))
+        .where(and(
+          eq(villages.village_key, villageKey),
+          isNull(villages.disable_at),
+          eq(villages.status, "active")
+        ))
         .then(results => results[0]);
 
       if (village) {
@@ -40,7 +44,12 @@ export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
       const allVillages = await db.select({
         village_key: villages.village_key,
         village_name: villages.village_name,
-      }).from(villages);
+      })
+      .from(villages)
+      .where(and(
+        isNull(villages.disable_at),
+        eq(villages.status, "active")
+      ));
       
       return allVillages;
     } catch (error) {

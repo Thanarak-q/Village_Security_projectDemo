@@ -39,6 +39,8 @@ interface Village {
   village_id: string;
   village_name: string;
   village_key: string;
+  status: string;
+  disable_at: string | null;
   admin_count: number;
 }
 
@@ -316,6 +318,7 @@ export default function VillagesPage() {
                 <TableRow>
                   <TableHead>ชื่อหมู่บ้าน</TableHead>
                   <TableHead>รหัสหมู่บ้าน</TableHead>
+                  <TableHead>สถานะ</TableHead>
                   <TableHead>จำนวน Admin</TableHead>
                   <TableHead className="text-right">การดำเนินการ</TableHead>
                 </TableRow>
@@ -330,6 +333,14 @@ export default function VillagesPage() {
                       <code className="bg-muted px-2 py-1 rounded text-sm">
                         {village.village_key}
                       </code>
+                    </TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant={village.status === "active" ? "default" : "destructive"}
+                        className="text-xs"
+                      >
+                        {village.status === "active" ? "ใช้งาน" : "ไม่ใช้งาน"}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

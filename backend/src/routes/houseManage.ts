@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import db from "../db/drizzle";
 import { houses, villages, guards, admins } from "../db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, and, isNull } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { houseActivityLogger } from "../utils/activityLogUtils";
 import { notificationService } from "../services/notificationService";
@@ -147,11 +147,14 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
-      // Fetch houses for the specific village
+      // Fetch houses for the specific village (only active houses)
       const result = await db
         .select()
         .from(houses)
-        .where(eq(houses.village_key, village_key));
+        .where(and(
+          eq(houses.village_key, village_key),
+          isNull(houses.disable_at)
+        ));
 
       return {
         success: true,
@@ -520,16 +523,19 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
-      // Check if house exists
+      // Check if house exists and is not already disabled
       const existingHouse = await db
         .select()
         .from(houses)
-        .where(eq(houses.house_id, house_id));
+        .where(and(
+          eq(houses.house_id, house_id),
+          isNull(houses.disable_at)
+        ));
 
       if (existingHouse.length === 0) {
         return {
           success: false,
-          error: "House not found!",
+          error: "House not found or already disabled!",
         };
         }
 
@@ -545,8 +551,13 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         // Store house info for logging before deletion
       const houseInfo = existingHouse[0];
 
-      // Delete house
-      await db.delete(houses).where(eq(houses.house_id, house_id));
+      // Soft delete house
+      await db.update(houses)
+        .set({ 
+          disable_at: new Date(),
+          status: "disable"
+        })
+        .where(eq(houses.house_id, house_id));
 
       // Log the house deletion activity
       try {
