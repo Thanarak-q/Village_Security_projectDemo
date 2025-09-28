@@ -22,6 +22,8 @@ export default function Page() {
   const cardsRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
+  const villageInfoRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
 
 
   useEffect(() => {
@@ -33,13 +35,13 @@ export default function Page() {
           window.location.href = "/login";
           return;
         }
-        
+
         // Check if response is JSON
         const contentType = res.headers.get("content-type");
         if (!contentType || !contentType.includes("application/json")) {
           throw new Error("Response is not JSON");
         }
-        
+
         return res.json();
       })
       .then((json) => {
@@ -75,21 +77,23 @@ export default function Page() {
     }
   }, []);
 
-  // GSAP smooth scroll-up animations
+  // GSAP smooth scroll-up animations - similar to sidebar style
   useEffect(() => {
     if (!data) return;
 
     // Capture ref values to avoid stale closure issues
+    const headerElement = headerRef.current;
+    const villageInfoElement = villageInfoRef.current;
     const chartElement = chartRef.current;
     const tableElement = tableRef.current;
 
-    // Only proceed if elements exist
-    if (!chartElement || !tableElement) return;
+    // Set initial state for all animated elements
+    const elementsToAnimate = [headerElement, villageInfoElement, chartElement, tableElement].filter(Boolean);
 
-    // Set initial state for chart and table only
-    gsap.set([chartElement, tableElement], {
+    gsap.set(elementsToAnimate, {
       opacity: 0,
-      y: 50
+      y: 30,
+      scale: 0.98
     });
 
     // Individual cards initial state
@@ -97,49 +101,104 @@ export default function Page() {
     if (cards && cards.length > 0) {
       gsap.set(Array.from(cards), {
         opacity: 0,
-        y: 60
+        y: 40,
+        scale: 0.95
       });
     }
 
-    // Create smooth scroll-up timeline
-    const tl = gsap.timeline();
+    // Create smooth scroll-up timeline with sidebar-like transitions
+    const tl = gsap.timeline({
+      delay: 0.1,
+      ease: "power3.out"
+    });
 
-    // Animate individual cards first
+    // Animate header first (if exists)
+    if (headerElement) {
+      tl.to(headerElement, {
+        duration: 0.6,
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        ease: "power3.out"
+      });
+    }
+
+    // Animate village info with smooth transition
+    if (villageInfoElement) {
+      tl.to(villageInfoElement, {
+        duration: 0.5,
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        ease: "power3.out"
+      }, "-=0.3");
+    }
+
+    // Animate cards with stagger effect - similar to sidebar menu items
     if (cards && cards.length > 0) {
       Array.from(cards).forEach((card, index) => {
         if (card) {
           tl.to(card, {
-            duration: 0.6,
+            duration: 0.5,
             opacity: 1,
             y: 0,
-            ease: "power2.inOut"
-          }, index * 0.1);
+            scale: 1,
+            ease: "power3.out"
+          }, index * 0.08 - 0.2);
         }
       });
     }
 
-    // Then animate chart
-    tl.to(chartElement, {
-      duration: 0.8,
-      opacity: 1,
-      y: 0,
-      ease: "power2.inOut"
-    }, "-=0.2")
-      // Finally animate table
-      .to(tableElement, {
-        duration: 0.8,
+    // Animate chart
+    if (chartElement) {
+      tl.to(chartElement, {
+        duration: 0.6,
         opacity: 1,
         y: 0,
-        ease: "power2.inOut"
+        scale: 1,
+        ease: "power3.out"
+      }, "-=0.3");
+    }
+
+    // Finally animate table
+    if (tableElement) {
+      tl.to(tableElement, {
+        duration: 0.6,
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        ease: "power3.out"
       }, "-=0.4");
+    }
 
     return () => {
-      gsap.killTweensOf([chartElement, tableElement]);
+      gsap.killTweensOf(elementsToAnimate);
       if (cards && cards.length > 0) {
         gsap.killTweensOf(Array.from(cards));
       }
     };
   }, [data]);
+
+  // Animate village info changes when village selection changes
+  useEffect(() => {
+    if (!villageInfoRef.current || !selectedVillageKey) return;
+
+    // Smooth transition when village changes - similar to sidebar updates
+    gsap.fromTo(villageInfoRef.current,
+      {
+        opacity: 0,
+        y: 15,
+        scale: 0.98
+      },
+      {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        duration: 0.4,
+        ease: "power3.out"
+      }
+    );
+  }, [selectedVillageKey, selectedVillageName]);
 
   // Refetch data when selected village changes
   useEffect(() => {
@@ -147,7 +206,7 @@ export default function Page() {
       console.log('🔄 Dashboard: Village changed event received');
       const villageKey = sessionStorage.getItem("selectedVillage");
       console.log('🏘️ Dashboard: Selected village key:', villageKey);
-      
+
       if (villageKey) {
         setSelectedVillageKey(villageKey);
         fetch(`/api/villages/check/${villageKey}`, {
@@ -171,7 +230,7 @@ export default function Page() {
     };
 
     window.addEventListener('villageChanged', handleVillageChange);
-    
+
     return () => {
       window.removeEventListener('villageChanged', handleVillageChange);
     };
@@ -187,11 +246,17 @@ export default function Page() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-2 sm:px-4 lg:px-6 py-3 sm:py-6 max-w-full xl:max-w-7xl">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 lg:mb-8">
+        <div
+          ref={headerRef}
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 lg:mb-8"
+        >
           <div className="space-y-1">
-           
+
             {selectedVillageKey && (
-              <div className="flex items-center gap-2">
+              <div
+                ref={villageInfoRef}
+                className="flex items-center gap-2"
+              >
                 <span className="text-xs sm:text-sm md:text-base text-muted-foreground">
                   หมู่บ้าน:
                 </span>
@@ -201,19 +266,19 @@ export default function Page() {
                   </span>
                   <button
                     onClick={() => setShowVillageKey(!showVillageKey)}
-                    className="p-1.5 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="p-1.5 hover:bg-muted rounded-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-ring hover:scale-105"
                     title={showVillageKey ? "ซ่อนรหัสหมู่บ้าน" : "แสดงรหัสหมู่บ้าน"}
                   >
                     {showVillageKey ? (
-                      <EyeOff className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground hover:text-foreground" />
+                      <EyeOff className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground hover:text-foreground transition-all duration-300" />
                     ) : (
-                      <Eye className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground hover:text-foreground" />
+                      <Eye className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground hover:text-foreground transition-all duration-300" />
                     )}
                   </button>
                 </div>
               </div>
             )}
-            
+
           </div>
           <div className="flex justify-start sm:justify-end">
             {/* <NotificationComponent /> */}

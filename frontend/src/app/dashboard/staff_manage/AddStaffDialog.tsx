@@ -10,24 +10,37 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { Plus, Users } from "lucide-react";
 import { AddStaffForm } from "./AddStaffForm";
+
+interface StaffMember {
+  admin_id: string;
+  username: string;
+  email: string | null;
+  phone: string | null;
+  status: "verified" | "pending" | "disable";
+  role: string;
+  password_changed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  village_key: string;
+  village_name: string;
+}
 
 interface AddStaffDialogProps {
   villageKey: string;
   villageName: string;
-  onStaffAdded: (staff: any) => void;
+  onStaffAdded: (staff: StaffMember) => void;
   onRefresh: () => void;
 }
 
 export function AddStaffDialog({ villageKey, villageName, onStaffAdded, onRefresh }: AddStaffDialogProps) {
   const [open, setOpen] = useState(false);
 
-  const handleStaffAdded = (staff: any) => {
+  const handleStaffAdded = (staff: StaffMember) => {
     onStaffAdded(staff);
-    setOpen(false);
     onRefresh();
+    // Dialog will stay open until user manually closes it
   };
 
   return (
