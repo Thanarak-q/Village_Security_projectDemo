@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { StaffTable } from "./StaffTable";
 import { AddStaffDialog } from "./AddStaffDialog";
-import { toast } from "sonner";
+// import { toast } from "sonner";
 import { gsap } from "gsap";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -66,14 +66,14 @@ export default function StaffManagePage() {
           setStaffMembers(data.data);
           setVillageName(data.village_name);
         } else {
-          toast.error(data.error || "เกิดข้อผิดพลาดในการดึงข้อมูล");
+          // toast.error(data.error || "เกิดข้อผิดพลาดในการดึงข้อมูล");
         }
       } else {
-        toast.error(data.error || "เกิดข้อผิดพลาดในการเชื่อมต่อ");
+        // toast.error(data.error || "เกิดข้อผิดพลาดในการเชื่อมต่อ");
       }
     } catch (error) {
       console.error("Error fetching staff members:", error);
-      toast.error("เกิดข้อผิดพลาดในการดึงข้อมูล");
+      // toast.error("เกิดข้อผิดพลาดในการดึงข้อมูล");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -128,7 +128,7 @@ export default function StaffManagePage() {
 
           // Redirect staff users away from this page
           if (json.role === "staff") {
-            toast.error("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
+            // toast.error("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
             window.location.href = "/dashboard";
             return;
           }
@@ -139,13 +139,13 @@ export default function StaffManagePage() {
             setSelectedVillageKey(villageKey);
             fetchStaffMembers(villageKey);
           } else {
-            toast.error("กรุณาเลือกหมู่บ้านก่อน");
+            // toast.error("กรุณาเลือกหมู่บ้านก่อน");
             setLoading(false);
           }
         }
       } catch (error) {
         console.error("Error checking user role:", error);
-        toast.error("เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์");
+        // toast.error("เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์");
         setLoading(false);
       }
     };
@@ -155,7 +155,7 @@ export default function StaffManagePage() {
 
   const handleStaffAdded = (newStaff: StaffMember) => {
     setStaffMembers(prev => [newStaff, ...prev]);
-    toast.success("เพิ่มนิติบุคคลสำเร็จ");
+    // toast.success("เพิ่มนิติบุคคลสำเร็จ");
   };
 
   // Filter staff members based on search term
@@ -215,12 +215,12 @@ export default function StaffManagePage() {
         staff.admin_id === updatedStaff.admin_id ? updatedStaff : staff
       )
     );
-    toast.success("อัปเดตข้อมูลนิติบุคคลสำเร็จ");
+    // toast.success("อัปเดตข้อมูลนิติบุคคลสำเร็จ");
   };
 
   const handleStaffDeleted = (adminId: string) => {
     setStaffMembers(prev => prev.filter(staff => staff.admin_id !== adminId));
-    toast.success("ลบนิติบุคคลสำเร็จ");
+    // toast.success("ลบนิติบุคคลสำเร็จ");
   };
 
   if (loading || !userRole) {
