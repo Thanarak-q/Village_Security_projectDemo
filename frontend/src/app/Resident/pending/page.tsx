@@ -101,42 +101,32 @@ export default function ResidentPendingPage() {
                   // Check if user has resident role
                   const hasResidentRole = data.roles.some((role: any) => role.role === 'resident');
                   if (!hasResidentRole) {
-                    console.log("❌ User does not have resident role, but allowing access for testing");
-                    // Temporarily allow access for testing - remove this in production
-                    console.log("⚠️ TEMPORARY: Allowing access without resident role for testing");
-                    // router.push("/liff");
-                    // return;
+                    console.log("❌ User does not have resident role, redirecting to LIFF");
+                    router.push("/liff");
+                    return;
                   }
                   
                   console.log("✅ User has resident role, continuing to pending page");
                 } else {
-                  console.log("❌ No roles found or API error, but allowing access for testing");
-                  // Temporarily allow access for testing - remove this in production
-                  console.log("⚠️ TEMPORARY: Allowing access without roles for testing");
-                  // router.push("/liff");
-                  // return;
+                  console.log("❌ No roles found or API error, redirecting to LIFF");
+                  router.push("/liff");
+                  return;
                 }
               }
             } else {
               console.log("❌ Roles API failed with status:", response.status);
-              // Temporarily allow access for testing - remove this in production
-              console.log("⚠️ TEMPORARY: Allowing access despite API failure for testing");
-              // router.push("/liff");
-              // return;
+              router.push("/liff");
+              return;
             }
           } catch (error) {
             console.error('Error fetching user roles:', error);
-            // Temporarily allow access for testing - remove this in production
-            console.log("⚠️ TEMPORARY: Allowing access despite error for testing");
-            // router.push("/liff");
-            // return;
+            router.push("/liff");
+            return;
           }
         } else {
-          console.log("❌ No user ID found, but allowing access for testing");
-          // Temporarily allow access for testing - remove this in production
-          console.log("⚠️ TEMPORARY: Allowing access without user ID for testing");
-          // router.push("/liff");
-          // return;
+          console.log("❌ No user ID found, redirecting to LIFF");
+          router.push("/liff");
+          return;
         }
       }
     };

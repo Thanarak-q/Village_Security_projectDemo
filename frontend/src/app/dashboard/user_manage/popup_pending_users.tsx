@@ -222,7 +222,7 @@ export default function PendingUsersDialog({
             userId: selectedUser.id,
             currentRole: selectedUser.role,
             approvedRole: formData.approvedRole === 'ลูกบ้าน' ? 'resident' : 'guard',
-            houseId: formData.approvedRole === 'ลูกบ้าน' ? formData.houseId : undefined,
+            houseAddress: formData.approvedRole === 'ลูกบ้าน' ? formData.houseNumber : undefined,
             notes: formData.notes
           }),
         });

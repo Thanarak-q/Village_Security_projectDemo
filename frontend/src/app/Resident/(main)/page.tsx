@@ -75,6 +75,17 @@ const ResidentPage = () => {
               const data = await response.json();
               if (data.success && data.roles) {
                 setUserRoles(data.roles);
+                
+                // Check if user has resident role
+                const hasResidentRole = data.roles.some((role: any) => role.role === 'resident');
+                
+                if (!hasResidentRole) {
+                  console.log("❌ User does not have resident role, redirecting to LIFF");
+                  router.push("/liff");
+                  return;
+                }
+                
+                console.log("✅ User has resident role, allowing access to resident main page");
               }
             }
           }
