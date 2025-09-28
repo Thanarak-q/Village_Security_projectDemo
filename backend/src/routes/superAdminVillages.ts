@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
 import db from "../db/drizzle";
 import { villages, admins, admin_villages } from "../db/schema";
-import { eq, count, and, isNull } from "drizzle-orm";
+import { eq, count, and, isNull, isNotNull } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { hashPassword } from "../utils/passwordUtils";
 
@@ -38,6 +38,34 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
       console.error("Error fetching villages:", error);
       set.status = 500;
       return { success: false, error: "Failed to fetch villages" };
+    }
+  })
+
+  /**
+   * Get disabled villages with admin count
+   * @returns {Promise<Object>} List of disabled villages with admin count
+   */
+  .get("/villages/disabled", async ({ set }) => {
+    try {
+      const disabledVillagesWithAdminCount = await db
+        .select({
+          village_id: villages.village_id,
+          village_name: villages.village_name,
+          village_key: villages.village_key,
+          status: villages.status,
+          disable_at: villages.disable_at,
+          admin_count: count(admin_villages.admin_id),
+        })
+        .from(villages)
+        .leftJoin(admin_villages, eq(villages.village_key, admin_villages.village_key))
+        .where(isNotNull(villages.disable_at))
+        .groupBy(villages.village_id, villages.village_name, villages.village_key, villages.status, villages.disable_at);
+
+      return { success: true, data: disabledVillagesWithAdminCount };
+    } catch (error) {
+      console.error("Error fetching disabled villages:", error);
+      set.status = 500;
+      return { success: false, error: "Failed to fetch disabled villages" };
     }
   })
 
@@ -223,5 +251,46 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
       console.error("Error deleting village:", error);
       set.status = 500;
       return { success: false, error: "Failed to delete village" };
+    }
+  })
+
+  /**
+   * Restore a disabled village
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.params - The route parameters.
+   * @returns {Promise<Object>} Success message
+   */
+  .patch("/villages/:id/restore", async ({ params, set }) => {
+    try {
+      const { id } = params as { id: string };
+
+      // Check if village exists and is disabled
+      const existingVillage = await db
+        .select()
+        .from(villages)
+        .where(and(
+          eq(villages.village_id, id),
+          isNotNull(villages.disable_at)
+        ));
+
+      if (existingVillage.length === 0) {
+        set.status = 404;
+        return { success: false, error: "Disabled village not found" };
+      }
+
+      // Restore village
+      await db
+        .update(villages)
+        .set({ 
+          disable_at: null,
+          status: "active"
+        })
+        .where(eq(villages.village_id, id));
+
+      return { success: true, message: "Village restored successfully" };
+    } catch (error) {
+      console.error("Error restoring village:", error);
+      set.status = 500;
+      return { success: false, error: "Failed to restore village" };
     }
   });

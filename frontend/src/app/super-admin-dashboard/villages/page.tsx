@@ -29,7 +29,8 @@ import {
   Edit, 
   Trash2, 
   AlertTriangle,
-  Users
+  Users,
+  Archive
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -242,13 +243,20 @@ export default function VillagesPage() {
             สร้าง แก้ไข และลบหมู่บ้านในระบบ
           </p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              สร้างหมู่บ้านใหม่
+        <div className="flex items-center gap-3">
+          <Link href="/super-admin-dashboard/villages/disabled">
+            <Button variant="outline">
+              <Archive className="mr-2 h-4 w-4" />
+              หมู่บ้านที่ไม่ใช้งาน
             </Button>
-          </DialogTrigger>
+          </Link>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                สร้างหมู่บ้านใหม่
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>สร้างหมู่บ้านใหม่</DialogTitle>
@@ -286,6 +294,7 @@ export default function VillagesPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Villages Table */}
