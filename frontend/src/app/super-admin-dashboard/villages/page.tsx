@@ -247,7 +247,7 @@ export default function VillagesPage() {
           <Link href="/super-admin-dashboard/villages/disabled">
             <Button variant="outline">
               <Archive className="mr-2 h-4 w-4" />
-              หมู่บ้านที่ไม่ใช้งาน
+              หมู่บ้านที่ถูกระงับ
             </Button>
           </Link>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>

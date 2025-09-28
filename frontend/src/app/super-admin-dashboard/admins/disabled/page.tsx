@@ -26,37 +26,47 @@ import {
   AlertTriangle,
   Users,
   Calendar,
-  RotateCcw
+  RotateCcw,
+  Shield,
+  Building
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 
-interface Village {
-  village_id: string;
-  village_name: string;
-  village_key: string;
-  status: string;
+interface Admin {
+  admin_id: string;
+  username: string;
+  email: string;
+  phone: string;
+  role: "admin" | "staff";
+  status: "verified" | "pending" | "disable";
   disable_at: string | null;
-  admin_count: number;
+  village_keys: string[];
+  villages: Array<{
+    village_key: string;
+    village_name: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export default function DisabledVillagesPage() {
-  const [villages, setVillages] = useState<Village[]>([]);
+export default function DisabledAdminsPage() {
+  const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false);
-  const [selectedVillage, setSelectedVillage] = useState<Village | null>(null);
+  const [selectedAdmin, setSelectedAdmin] = useState<Admin | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    fetchDisabledVillages();
+    fetchDisabledAdmins();
   }, []);
 
-  const fetchDisabledVillages = async () => {
+  const fetchDisabledAdmins = async () => {
     try {
-      const response = await fetch("/api/superadmin/villages/disabled", {
+      const response = await fetch("/api/superadmin/admins/disabled", {
         credentials: "include",
       });
 
@@ -71,18 +81,18 @@ export default function DisabledVillagesPage() {
       }
 
       if (!response.ok) {
-        throw new Error("Failed to fetch disabled villages");
+        throw new Error("Failed to fetch disabled admins");
       }
 
       const data = await response.json();
       if (data.success) {
-        setVillages(data.data);
+        setAdmins(data.data);
       } else {
-        setError(data.error || "Failed to load disabled villages");
+        setError(data.error || "Failed to load disabled admins");
       }
     } catch (err) {
-      setError("Failed to load disabled villages");
-      console.error("Error fetching disabled villages:", err);
+      setError("Failed to load disabled admins");
+      console.error("Error fetching disabled admins:", err);
     } finally {
       setLoading(false);
     }
@@ -99,35 +109,35 @@ export default function DisabledVillagesPage() {
     });
   };
 
-  const handleRestoreVillage = async () => {
-    if (!selectedVillage) return;
+  const handleRestoreAdmin = async () => {
+    if (!selectedAdmin) return;
 
     setSubmitting(true);
     try {
-      const response = await fetch(`/api/superadmin/villages/${selectedVillage.village_id}/restore`, {
+      const response = await fetch(`/api/superadmin/admins/${selectedAdmin.admin_id}/restore`, {
         method: "PATCH",
         credentials: "include",
       });
 
       const data = await response.json();
       if (data.success) {
-        toast.success("คืนสถานะหมู่บ้านสำเร็จ");
+        toast.success("คืนสถานะแอดมินสำเร็จ");
         setIsRestoreDialogOpen(false);
-        setSelectedVillage(null);
-        fetchDisabledVillages();
+        setSelectedAdmin(null);
+        fetchDisabledAdmins();
       } else {
-        toast.error(data.error || "Failed to restore village");
+        toast.error(data.error || "Failed to restore admin");
       }
     } catch (err) {
-      toast.error("Failed to restore village");
-      console.error("Error restoring village:", err);
+      toast.error("Failed to restore admin");
+      console.error("Error restoring admin:", err);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const openRestoreDialog = (village: Village) => {
-    setSelectedVillage(village);
+  const openRestoreDialog = (admin: Admin) => {
+    setSelectedAdmin(admin);
     setIsRestoreDialogOpen(true);
   };
 
@@ -136,7 +146,7 @@ export default function DisabledVillagesPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading disabled villages...</p>
+          <p className="mt-2 text-muted-foreground">Loading disabled admins...</p>
         </div>
       </div>
     );
@@ -148,7 +158,7 @@ export default function DisabledVillagesPage() {
         <div className="text-center">
           <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-2" />
           <p className="text-destructive">{error}</p>
-          <Button onClick={fetchDisabledVillages} className="mt-2">
+          <Button onClick={fetchDisabledAdmins} className="mt-2">
             Try Again
           </Button>
         </div>
@@ -162,40 +172,40 @@ export default function DisabledVillagesPage() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <Link href="/super-admin-dashboard/villages">
+            <Link href="/super-admin-dashboard/admins">
               <Button variant="outline" size="sm">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 กลับ
               </Button>
             </Link>
-            <h1 className="text-3xl font-bold tracking-tight">หมู่บ้านที่ถูกระงับ</h1>
+            <h1 className="text-3xl font-bold tracking-tight">แอดมินที่ถูกระงับ</h1>
           </div>
           <p className="text-muted-foreground">
-            รายการหมู่บ้านที่ถูกระงับในระบบ
+            รายการแอดมินที่ถูกระงับในระบบ
           </p>
         </div>
       </div>
 
-      {/* Disabled Villages Table */}
+      {/* Disabled Admins Table */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Archive className="h-5 w-5" />
-            รายการหมู่บ้านที่ถูกระงับ ({villages.length})
+            รายการแอดมินที่ถูกระงับ ({admins.length})
           </CardTitle>
           <CardDescription>
-            หมู่บ้านที่ถูกระงับและวันที่ระงับ
+            แอดมินที่ถูกระงับและวันที่ระงับ
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {villages.length === 0 ? (
+          {admins.length === 0 ? (
             <div className="text-center py-8">
               <Archive className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">ไม่มีหมู่บ้านที่ถูกระงับในระบบ</p>
-              <Link href="/super-admin-dashboard/villages">
+              <p className="text-muted-foreground">ไม่มีแอดมินที่ถูกระงับในระบบ</p>
+              <Link href="/super-admin-dashboard/admins">
                 <Button className="mt-2">
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  กลับไปหน้าจัดการหมู่บ้าน
+                  กลับไปหน้าจัดการแอดมิน
                 </Button>
               </Link>
             </div>
@@ -203,46 +213,55 @@ export default function DisabledVillagesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ชื่อหมู่บ้าน</TableHead>
-                  <TableHead>รหัสหมู่บ้าน</TableHead>
-                  <TableHead>สถานะ</TableHead>
-                  <TableHead>จำนวน Admin</TableHead>
+                  <TableHead>ชื่อผู้ใช้</TableHead>
+                  <TableHead>อีเมล</TableHead>
+                  <TableHead>บทบาท</TableHead>
+                  <TableHead>หมู่บ้าน</TableHead>
                   <TableHead>วันที่ระงับ</TableHead>
                   <TableHead className="text-right">การดำเนินการ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {villages.map((village) => (
-                  <TableRow key={village.village_id}>
+                {admins.map((admin) => (
+                  <TableRow key={admin.admin_id}>
                     <TableCell className="font-medium">
-                      {village.village_name}
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-muted-foreground" />
+                        {admin.username}
+                      </div>
                     </TableCell>
                     <TableCell>
-                      <code className="bg-muted px-2 py-1 rounded text-sm">
-                        {village.village_key}
-                      </code>
+                      <span className="text-sm text-muted-foreground">
+                        {admin.email || "ไม่ระบุ"}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <Badge 
-                        variant="destructive"
+                        variant={admin.role === "admin" ? "default" : "secondary"}
                         className="text-xs"
                       >
-                        ไม่ใช้งาน
+                        {admin.role === "admin" ? "เจ้าของโครงการ" : "นิติ"}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4" />
-                        <Badge variant={village.admin_count > 0 ? "default" : "destructive"}>
-                          {village.admin_count}
-                        </Badge>
+                      <div className="flex flex-wrap gap-1">
+                        {admin.villages.length > 0 ? (
+                          admin.villages.map((village) => (
+                            <Badge key={village.village_key} variant="outline" className="text-xs">
+                              <Building className="h-3 w-3 mr-1" />
+                              {village.village_name}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-sm text-muted-foreground">ไม่มีหมู่บ้าน</span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">
-                          {formatDate(village.disable_at)}
+                          {formatDate(admin.disable_at)}
                         </span>
                       </div>
                     </TableCell>
@@ -250,7 +269,7 @@ export default function DisabledVillagesPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => openRestoreDialog(village)}
+                        onClick={() => openRestoreDialog(admin)}
                       >
                         <RotateCcw className="h-4 w-4 mr-2" />
                         คืนสถานะ
@@ -268,9 +287,9 @@ export default function DisabledVillagesPage() {
       <Dialog open={isRestoreDialogOpen} onOpenChange={setIsRestoreDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>ยืนยันการคืนสถานะหมู่บ้าน</DialogTitle>
+            <DialogTitle>ยืนยันการคืนสถานะแอดมิน</DialogTitle>
             <DialogDescription>
-              คุณแน่ใจหรือไม่ที่จะคืนสถานะหมู่บ้าน "{selectedVillage?.village_name}" ให้สามารถใช้งานได้อีกครั้ง?
+              คุณแน่ใจหรือไม่ที่จะคืนสถานะแอดมิน "{selectedAdmin?.username}" ให้สามารถใช้งานได้อีกครั้ง?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -278,7 +297,7 @@ export default function DisabledVillagesPage() {
               ยกเลิก
             </Button>
             <Button 
-              onClick={handleRestoreVillage} 
+              onClick={handleRestoreAdmin} 
               disabled={submitting}
             >
               {submitting ? "กำลังคืนสถานะ..." : "คืนสถานะ"}

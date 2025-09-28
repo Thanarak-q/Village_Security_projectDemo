@@ -39,9 +39,11 @@ import {
   Building,
   Shield,
   UserCheck,
-  Eye
+  Eye,
+  Archive
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import VillageMultiSelect from "./components/VillageMultiSelect";
 import AdminDetailDialog from "./components/AdminDetailDialog";
@@ -376,13 +378,20 @@ export default function AdminsPage() {
             สร้าง แก้ไข และลบ Admin ในระบบ
           </p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              สร้าง Admin ใหม่
+        <div className="flex items-center gap-3">
+          <Link href="/super-admin-dashboard/admins/disabled">
+            <Button variant="outline">
+              <Archive className="mr-2 h-4 w-4" />
+              แอดมินที่ถูกระงับ
             </Button>
-          </DialogTrigger>
+          </Link>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                สร้าง Admin ใหม่
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>สร้าง Admin ใหม่</DialogTitle>
@@ -465,6 +474,7 @@ export default function AdminsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Admins Table */}

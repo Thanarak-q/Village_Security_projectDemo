@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
 import db from "../db/drizzle";
 import { admins, villages, admin_villages } from "../db/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, isNotNull } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { hashPassword } from "../utils/passwordUtils";
 
@@ -60,6 +60,74 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
       console.error("Error fetching admins:", error);
       set.status = 500;
       return { success: false, error: "Failed to fetch admins" };
+    }
+  })
+
+  /**
+   * Get disabled admins with village information
+   * @returns {Promise<Object>} List of disabled admins with village data
+   */
+  .get("/admins/disabled", async ({ set }) => {
+    try {
+      const disabledAdminsWithVillages = await db
+        .select({
+          admin_id: admins.admin_id,
+          username: admins.username,
+          email: admins.email,
+          phone: admins.phone,
+          role: admins.role,
+          status: admins.status,
+          disable_at: admins.disable_at,
+          createdAt: admins.createdAt,
+          updatedAt: admins.updatedAt,
+          village_key: admin_villages.village_key,
+          village_name: villages.village_name,
+        })
+        .from(admins)
+        .leftJoin(admin_villages, eq(admins.admin_id, admin_villages.admin_id))
+        .leftJoin(villages, eq(admin_villages.village_key, villages.village_key))
+        .where(isNotNull(admins.disable_at))
+        .orderBy(admins.createdAt);
+
+      // Group admins by admin_id and collect their villages
+      const adminMap = new Map();
+      
+      disabledAdminsWithVillages.forEach((row) => {
+        if (!adminMap.has(row.admin_id)) {
+          adminMap.set(row.admin_id, {
+            admin_id: row.admin_id,
+            username: row.username,
+            email: row.email,
+            phone: row.phone,
+            role: row.role,
+            status: row.status,
+            disable_at: row.disable_at,
+            createdAt: row.createdAt,
+            updatedAt: row.updatedAt,
+            village_keys: [],
+            villages: []
+          });
+        }
+        
+        if (row.village_key && row.village_name) {
+          const admin = adminMap.get(row.admin_id);
+          if (!admin.village_keys.includes(row.village_key)) {
+            admin.village_keys.push(row.village_key);
+            admin.villages.push({
+              village_key: row.village_key,
+              village_name: row.village_name
+            });
+          }
+        }
+      });
+
+      const disabledAdmins = Array.from(adminMap.values());
+
+      return { success: true, data: disabledAdmins };
+    } catch (error) {
+      console.error("Error fetching disabled admins:", error);
+      set.status = 500;
+      return { success: false, error: "Failed to fetch disabled admins" };
     }
   })
 
@@ -613,5 +681,46 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
       console.error("Error updating admin villages:", error);
       set.status = 500;
       return { success: false, error: "Failed to update admin villages" };
+    }
+  })
+
+  /**
+   * Restore a disabled admin
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.params - The route parameters.
+   * @returns {Promise<Object>} Success message
+   */
+  .patch("/admins/:id/restore", async ({ params, set }) => {
+    try {
+      const { id } = params as { id: string };
+
+      // Check if admin exists and is disabled
+      const existingAdmin = await db
+        .select()
+        .from(admins)
+        .where(and(
+          eq(admins.admin_id, id),
+          isNotNull(admins.disable_at)
+        ));
+
+      if (existingAdmin.length === 0) {
+        set.status = 404;
+        return { success: false, error: "Disabled admin not found" };
+      }
+
+      // Restore admin
+      await db
+        .update(admins)
+        .set({ 
+          disable_at: null,
+          status: "verified"
+        })
+        .where(eq(admins.admin_id, id));
+
+      return { success: true, message: "Admin restored successfully" };
+    } catch (error) {
+      console.error("Error restoring admin:", error);
+      set.status = 500;
+      return { success: false, error: "Failed to restore admin" };
     }
   });
