@@ -182,7 +182,7 @@ export default function Page() {
                 className="flex items-center gap-2"
               >
                 <span className="text-xs sm:text-sm md:text-base text-muted-foreground">
-                  หมู่บ้าน:
+                  รหัสหมู่บ้าน:
                 </span>
                 <div className="flex items-center gap-2">
                   <span className="text-xs sm:text-sm md:text-base font-medium text-primary bg-primary/10 px-2 py-1 rounded-md font-mono select-all">
