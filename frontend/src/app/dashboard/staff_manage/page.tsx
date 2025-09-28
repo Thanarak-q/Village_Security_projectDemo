@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { StaffTable } from "./StaffTable";
 import { AddStaffDialog } from "./AddStaffDialog";
-import { toast } from "sonner";
+// import { toast } from "sonner";
 import { gsap } from "gsap";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -15,10 +15,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface StaffMember {
   admin_id: string;
   username: string;
-  email?: string;
-  phone?: string;
+  email: string | null;
+  phone: string | null;
   status: "verified" | "pending" | "disable";
   role: string;
+  password_changed_at: string | null;
   created_at: string;
   updated_at: string;
   village_key: string;
@@ -46,104 +47,8 @@ export default function StaffManagePage() {
   const [refreshing, setRefreshing] = useState(false);
   
   const cardRef = useRef<HTMLDivElement>(null);
-  const headerRef = useRef<HTMLDivElement>(null);
-  const tabsRef = useRef<HTMLDivElement>(null);
 
-  // Enhanced GSAP smooth scroll-up animations
-  useEffect(() => {
-    // Small delay to ensure DOM elements are rendered
-    const timer = setTimeout(() => {
-      const cardElement = cardRef.current;
-      const headerElement = headerRef.current;
-      const tabsElement = tabsRef.current;
-
-      // Only animate if elements exist and are valid
-      if (cardElement && headerElement && tabsElement) {
-        // Set initial state for all elements
-        gsap.set([cardElement, headerElement, tabsElement], {
-          opacity: 0,
-          y: 30
-        });
-
-        // Create timeline for staggered animation
-        const tl = gsap.timeline();
-
-        tl.to(cardElement, {
-          duration: 0.6,
-          opacity: 1,
-          y: 0,
-          ease: "power2.out"
-        })
-          .to(headerElement, {
-            duration: 0.5,
-            opacity: 1,
-            y: 0,
-            ease: "power2.out"
-          }, "-=0.3")
-          .to(tabsElement, {
-            duration: 0.5,
-            opacity: 1,
-            y: 0,
-            ease: "power2.out"
-          }, "-=0.2");
-      }
-    }, 100); // Increased delay to ensure DOM is ready
-
-    return () => {
-      clearTimeout(timer);
-      // Kill any existing animations safely
-      try {
-        if (cardRef.current) gsap.killTweensOf(cardRef.current);
-        if (headerRef.current) gsap.killTweensOf(headerRef.current);
-        if (tabsRef.current) gsap.killTweensOf(tabsRef.current);
-      } catch (error) {
-        console.warn('GSAP cleanup error:', error);
-      }
-    };
-  }, []);
-
-  // 
-
-  useEffect(() => {
-    // Check user role first
-    const checkUserRole = async () => {
-      try {
-        const res = await fetch("/api/auth/me", {
-          credentials: "include",
-        });
-
-        if (res.ok) {
-          const json = await res.json();
-          setUserRole(json.role);
-
-          // Redirect staff users away from this page
-          if (json.role === "staff") {
-            toast.error("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
-            window.location.href = "/dashboard";
-            return;
-          }
-
-          // Get selected village from session storage for admin/superadmin
-          const villageKey = sessionStorage.getItem("selectedVillage");
-          if (villageKey) {
-            setSelectedVillageKey(villageKey);
-            fetchStaffMembers(villageKey);
-          } else {
-            toast.error("กรุณาเลือกหมู่บ้านก่อน");
-            setLoading(false);
-          }
-        }
-      } catch (error) {
-        console.error("Error checking user role:", error);
-        toast.error("เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์");
-        setLoading(false);
-      }
-    };
-
-    checkUserRole();
-  }, []);
-
-  const fetchStaffMembers = async (villageKey: string, isRefresh = false) => {
+  const fetchStaffMembers = useCallback(async (villageKey: string, isRefresh = false) => {
     try {
       if (isRefresh) {
         setRefreshing(true);
@@ -161,23 +66,96 @@ export default function StaffManagePage() {
           setStaffMembers(data.data);
           setVillageName(data.village_name);
         } else {
-          toast.error(data.error || "เกิดข้อผิดพลาดในการดึงข้อมูล");
+          // toast.error(data.error || "เกิดข้อผิดพลาดในการดึงข้อมูล");
         }
       } else {
-        toast.error(data.error || "เกิดข้อผิดพลาดในการเชื่อมต่อ");
+        // toast.error(data.error || "เกิดข้อผิดพลาดในการเชื่อมต่อ");
       }
     } catch (error) {
       console.error("Error fetching staff members:", error);
-      toast.error("เกิดข้อผิดพลาดในการดึงข้อมูล");
+      // toast.error("เกิดข้อผิดพลาดในการดึงข้อมูล");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
+
+  // GSAP smooth scroll-up animation - matching other sidebar pages
+  useEffect(() => {
+    // Only animate when loading is complete and we have user role
+    if (loading || !userRole || userRole === "staff" || !selectedVillageKey) return;
+
+    const cardElement = cardRef.current;
+    
+    // Only animate if element exists
+    if (!cardElement) return;
+    
+    // Set initial state
+    gsap.set(cardElement, {
+      opacity: 0,
+      y: 50
+    });
+
+    // Animate entrance
+    gsap.to(cardElement, {
+      duration: 0.8,
+      opacity: 1,
+      y: 0,
+      ease: "power2.inOut",
+      delay: 0.2
+    });
+
+    return () => {
+      try {
+        gsap.killTweensOf(cardElement);
+      } catch (error) {
+        console.warn('GSAP cleanup error:', error);
+      }
+    };
+  }, [loading, userRole, selectedVillageKey]); // Dependencies are stable now
+
+  useEffect(() => {
+    // Check user role first
+    const checkUserRole = async () => {
+      try {
+        const res = await fetch("/api/auth/me", {
+          credentials: "include",
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          setUserRole(json.role);
+
+          // Redirect staff users away from this page
+          if (json.role === "staff") {
+            // toast.error("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
+            window.location.href = "/dashboard";
+            return;
+          }
+
+          // Get selected village from session storage for admin/superadmin
+          const villageKey = sessionStorage.getItem("selectedVillage");
+          if (villageKey) {
+            setSelectedVillageKey(villageKey);
+            fetchStaffMembers(villageKey);
+          } else {
+            // toast.error("กรุณาเลือกหมู่บ้านก่อน");
+            setLoading(false);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking user role:", error);
+        // toast.error("เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์");
+        setLoading(false);
+      }
+    };
+
+    checkUserRole();
+  }, [fetchStaffMembers]);
 
   const handleStaffAdded = (newStaff: StaffMember) => {
     setStaffMembers(prev => [newStaff, ...prev]);
-    toast.success("เพิ่มนิติบุคคลสำเร็จ");
+    // toast.success("เพิ่มนิติบุคคลสำเร็จ");
   };
 
   // Filter staff members based on search term
@@ -237,12 +215,12 @@ export default function StaffManagePage() {
         staff.admin_id === updatedStaff.admin_id ? updatedStaff : staff
       )
     );
-    toast.success("อัปเดตข้อมูลนิติบุคคลสำเร็จ");
+    // toast.success("อัปเดตข้อมูลนิติบุคคลสำเร็จ");
   };
 
   const handleStaffDeleted = (adminId: string) => {
     setStaffMembers(prev => prev.filter(staff => staff.admin_id !== adminId));
-    toast.success("ลบนิติบุคคลสำเร็จ");
+    // toast.success("ลบนิติบุคคลสำเร็จ");
   };
 
   if (loading || !userRole) {
@@ -308,10 +286,10 @@ export default function StaffManagePage() {
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-6 max-w-7xl">
           <Card>
-            <CardHeader ref={headerRef}>
+            <CardHeader>
               
             </CardHeader>
-            <CardContent className="space-y-6" ref={tabsRef}>
+            <CardContent className="space-y-6">
                   {/* Add Staff Button and Search Controls */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     {/* Add Staff Button */}

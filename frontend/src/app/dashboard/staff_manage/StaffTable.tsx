@@ -34,7 +34,6 @@ import {
   Trash2,
   Users,
   Loader2,
-  Edit,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -43,8 +42,11 @@ import { th } from "date-fns/locale";
 interface StaffMember {
   admin_id: string;
   username: string;
+  email: string | null;
+  phone: string | null;
   status: "verified" | "pending" | "disable";
   role: string;
+  password_changed_at: string | null;
   created_at: string;
   updated_at: string;
   village_key: string;
@@ -58,32 +60,22 @@ interface StaffTableProps {
   loading: boolean;
 }
 
-export function StaffTable({ staffMembers, onStaffUpdated, onStaffDeleted, loading }: StaffTableProps) {
+export function StaffTable({ staffMembers, onStaffDeleted, loading }: StaffTableProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [staffToDelete, setStaffToDelete] = useState<StaffMember | null>(null);
 
-  // Function to create avatar initials from username
-  const getAvatarInitials = (username: string) => {
-    return username.charAt(0).toUpperCase();
+  // Function to get password change status
+  const getPasswordStatus = (passwordChangedAt: string | null) => {
+    return passwordChangedAt ? "เปลี่ยนรหัสผ่านแล้ว" : "ยังไม่เปลี่ยนรหัสผ่าน";
   };
 
-  // Function to get avatar color based on staff ID
-  const getAvatarColor = (staffId: string) => {
-    const colors = [
-      "bg-primary",
-      "bg-green-500",
-      "bg-purple-500",
-      "bg-yellow-500",
-      "bg-red-500",
-      "bg-blue-500",
-      "bg-indigo-500",
-      "bg-pink-500",
-      "bg-teal-500",
-      "bg-orange-500",
-    ];
-    const index = staffId.charCodeAt(0) % colors.length;
-    return colors[index];
+  // Function to get password status badge color
+  const getPasswordStatusColor = (passwordChangedAt: string | null) => {
+    return passwordChangedAt 
+      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" 
+      : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
   };
+
 
   const handleDelete = async () => {
     if (!staffToDelete) return;
@@ -148,7 +140,6 @@ export function StaffTable({ staffMembers, onStaffUpdated, onStaffDeleted, loadi
             <TableRow className="bg-muted/50 border-b border-border">
               <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">นิติบุคคล</TableHead>
               <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden sm:table-cell">ข้อมูลติดต่อ</TableHead>
-              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden md:table-cell">หมู่บ้าน</TableHead>
               <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden lg:table-cell">วันที่เข้าร่วม</TableHead>
               <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">จัดการ</TableHead>
             </TableRow>
@@ -156,33 +147,15 @@ export function StaffTable({ staffMembers, onStaffUpdated, onStaffDeleted, loadi
           <TableBody>
             {staffMembers.map((staff) => (
               <TableRow key={staff.admin_id} className="hover:bg-muted/30 transition-colors border-b border-border/50">
-                {/* User column - Avatar and name */}
+                {/* User column - Name only */}
                 <TableCell className="py-4 px-6">
-                  <div className="flex items-center space-x-4">
-                    {/* Avatar circle with initials */}
-                    <div
-                      className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-sm ${getAvatarColor(
-                        staff.admin_id
-                      )}`}
-                    >
-                      {getAvatarInitials(staff.username)}
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-foreground text-base">
+                      {staff.username}
                     </div>
-                    {/* Name and username */}
-                    <div className="min-w-0 flex-1">
-                      <div className="font-semibold text-foreground text-base">
-                        {staff.username}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        @{staff.username}
-                      </div>
-                      {/* Show contact info on mobile */}
-                      <div className="sm:hidden text-xs text-muted-foreground mt-1">
-                        <div>{staff.village_name}</div>
-                      </div>
-                      {/* Show village on mobile */}
-                      <div className="md:hidden text-xs text-muted-foreground mt-1">
-                        <div>{staff.village_name}</div>
-                      </div>
+                    <div className="text-sm text-muted-foreground">
+                      @{staff.username}
+                    </div>
                       {/* Show join date on mobile */}
                       <div className="lg:hidden text-xs text-muted-foreground mt-1">
                         <div>{staff.created_at ? (() => {
@@ -195,23 +168,20 @@ export function StaffTable({ staffMembers, onStaffUpdated, onStaffDeleted, loadi
                         })() : 'N/A'}</div>
                       </div>
                     </div>
-                  </div>
                 </TableCell>
 
                 {/* Contact info column - hidden on mobile */}
                 <TableCell className="py-4 px-6 hidden sm:table-cell">
                   <div className="text-sm">
-                    <div className="text-foreground font-medium">-</div>
-                    <div className="text-muted-foreground">ไม่มีข้อมูล</div>
+                    <div className="text-foreground font-medium">
+                      {staff.email || "-"}
+                    </div>
+                    <div className="text-muted-foreground">
+                      {staff.phone || "ไม่มีข้อมูล"}
+                    </div>
                   </div>
                 </TableCell>
 
-                {/* Village column - hidden on mobile and small screens */}
-                <TableCell className="py-4 px-6 hidden md:table-cell">
-                  <div className="text-sm text-foreground font-medium">
-                    {staff.village_name}
-                  </div>
-                </TableCell>
 
                 {/* Join date column - hidden on mobile, small and medium screens */}
                 <TableCell className="py-4 px-6 hidden lg:table-cell">
@@ -227,6 +197,7 @@ export function StaffTable({ staffMembers, onStaffUpdated, onStaffDeleted, loadi
                   </div>
                 </TableCell>
 
+
                 {/* Actions column */}
                 <TableCell className="py-4 px-6">
                   <DropdownMenu>
@@ -238,6 +209,14 @@ export function StaffTable({ staffMembers, onStaffUpdated, onStaffDeleted, loadi
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>จัดการ</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {/* Password status in dropdown */}
+                      <div className="px-2 py-1.5">
+                        <div className="text-xs text-muted-foreground mb-1">สถานะรหัสผ่าน</div>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPasswordStatusColor(staff.password_changed_at)}`}>
+                          {getPasswordStatus(staff.password_changed_at)}
+                        </span>
+                      </div>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => openDeleteDialog(staff)}
