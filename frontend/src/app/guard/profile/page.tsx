@@ -177,7 +177,7 @@ const GuardProfilePage = () => {
                 ลงทะเบียนบทบาทเพิ่มเติม
               </button>
               
-              <button className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+              <button className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors">
                 <Edit className="w-4 h-4" />
                 แก้ไขข้อมูล
               </button>

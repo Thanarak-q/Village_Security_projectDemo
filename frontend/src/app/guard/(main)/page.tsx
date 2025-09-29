@@ -101,9 +101,12 @@ function Page() {
                 if (data.success && data.roles) {
                   setUserRoles(data.roles);
                   
-                  // Check if user has guard role
+                  // Check if user has guard role and other roles
                   const hasGuardRole = data.roles.some((role: any) => role.role === 'guard');
+                  const hasResidentRole = data.roles.some((role: any) => role.role === 'resident');
+                  
                   console.log("🔍 Guard role check - hasGuardRole:", hasGuardRole);
+                  console.log("🔍 Guard role check - hasResidentRole:", hasResidentRole);
                   console.log("🔍 Guard role check - all roles:", data.roles);
                   
                   if (!hasGuardRole) {
@@ -113,6 +116,11 @@ function Page() {
                   }
                   
                   console.log("✅ User has guard role, continuing to main page");
+                  
+                  // Store role information for potential role switching
+                  if (hasResidentRole) {
+                    console.log("🔄 User has both roles - role switching available");
+                  }
                 } else {
                   console.log("❌ No roles found or API error, redirecting to LIFF");
                   router.push("/liff");

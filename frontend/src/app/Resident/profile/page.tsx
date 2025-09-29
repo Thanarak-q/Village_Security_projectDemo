@@ -13,16 +13,48 @@ const ResidentProfilePage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadUserData = () => {
+    const loadUserData = async () => {
       if (!isAuthenticated()) {
         router.push('/liff');
         return;
       }
 
       const { user } = getAuthData();
-      if (!user || user.role !== 'resident') {
+      if (!user) {
         router.push('/liff');
         return;
+      }
+
+      // Check if user has resident role (they might have multiple roles)
+      try {
+        const userId = user.lineUserId || user.id;
+        if (userId) {
+          const apiUrl = '';
+          const response = await fetch(`${apiUrl}/api/users/roles?lineUserId=${userId}`, {
+            credentials: 'include'
+          });
+          
+          if (response.ok) {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+              const data = await response.json();
+              if (data.success && data.roles) {
+                const hasResidentRole = data.roles.some((role: any) => role.role === 'resident');
+                
+                if (!hasResidentRole) {
+                  console.log("❌ User does not have resident role, redirecting to LIFF");
+                  router.push('/liff');
+                  return;
+                }
+                
+                console.log("✅ User has resident role, allowing access to resident profile");
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error checking user roles:', error);
+        // Allow access if role check fails (fallback)
       }
 
       setCurrentUser(user);

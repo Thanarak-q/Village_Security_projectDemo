@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Home, User, Shield, RotateCcw } from "lucide-react";
+import { Home, User, Shield, RotateCcw, Loader2 } from "lucide-react";
 // import NotificationComponent from "@/app/dashboard/(main)/notification";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
@@ -12,11 +12,13 @@ import { LoadingState, AuthLoadingState } from "../components/Loadingstate";
 import { ErrorState } from "../components/Errorstate";
 import { useVisitorData } from "../hooks/useVisitordata";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { switchUserRole } from "@/lib/liffAuth";
 
 // Main Resident Page Component
 const ResidentPage = () => {
   const router = useRouter();
   const [userRoles, setUserRoles] = useState<Array<{role: string, village_key: string, village_name?: string}>>([]);
+  const [isSwitchingRole, setIsSwitchingRole] = useState(false);
   
   const {
     pendingRequests,
@@ -37,6 +39,26 @@ const ResidentPage = () => {
     router.push('/Resident/profile');
   };
 
+  // Check user status and redirect to pending if not verified
+  useEffect(() => {
+    const checkUserStatus = () => {
+      if (currentUser) {
+        console.log("🔍 Resident main page - checking user status:", currentUser);
+        
+        // Check if user is verified
+        if (currentUser.status !== "verified") {
+          console.log("❌ Resident status is not verified, redirecting to pending page");
+          router.push("/Resident/pending");
+          return;
+        }
+        
+        console.log("✅ Resident is verified, allowing access to main page");
+      }
+    };
+
+    checkUserStatus();
+  }, [currentUser, router]);
+
   // Fetch user roles to check if they have guard role
   useEffect(() => {
     const fetchUserRoles = async () => {
@@ -53,6 +75,17 @@ const ResidentPage = () => {
               const data = await response.json();
               if (data.success && data.roles) {
                 setUserRoles(data.roles);
+                
+                // Check if user has resident role
+                const hasResidentRole = data.roles.some((role: any) => role.role === 'resident');
+                
+                if (!hasResidentRole) {
+                  console.log("❌ User does not have resident role, redirecting to LIFF");
+                  router.push("/liff");
+                  return;
+                }
+                
+                console.log("✅ User has resident role, allowing access to resident main page");
               }
             }
           }
@@ -65,8 +98,27 @@ const ResidentPage = () => {
     fetchUserRoles();
   }, [currentUser]);
 
-  const handleSwitchToGuard = () => {
-    router.push('/guard');
+  const handleSwitchToGuard = async () => {
+    if (isSwitchingRole) return; // Prevent multiple clicks
+    
+    try {
+      setIsSwitchingRole(true);
+      console.log("🔄 Switching to guard role...");
+      const result = await switchUserRole('guard');
+      
+      if (result.success) {
+        console.log("✅ Successfully switched to guard role");
+        router.push('/guard');
+      } else {
+        console.error("❌ Failed to switch to guard role:", result.error);
+        alert(`ไม่สามารถสลับบทบาทได้: ${result.error}`);
+      }
+    } catch (error) {
+      console.error("❌ Error switching to guard role:", error);
+      alert("เกิดข้อผิดพลาดในการสลับบทบาท");
+    } finally {
+      setIsSwitchingRole(false);
+    }
   };
 
   // Check if user has guard role
@@ -96,11 +148,16 @@ const ResidentPage = () => {
                 {hasGuardRole && (
                   <button
                     onClick={handleSwitchToGuard}
-                    className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                    disabled={isSwitchingRole}
+                    className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
                     aria-label="Switch to Guard role"
                     title="สลับไปยังหน้ายามรักษาความปลอดภัย"
                   >
-                    <Shield className="w-5 h-5 text-foreground" />
+                    {isSwitchingRole ? (
+                      <Loader2 className="w-5 h-5 text-foreground animate-spin" />
+                    ) : (
+                      <Shield className="w-5 h-5 text-foreground" />
+                    )}
                   </button>
                 )}
                 <button

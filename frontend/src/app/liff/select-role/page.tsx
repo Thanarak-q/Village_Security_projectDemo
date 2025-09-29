@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { User, Shield, ArrowLeft, Home } from "lucide-react";
-import { getAuthData } from "@/lib/liffAuth";
+import { User, Shield, ArrowLeft, Home, Loader2, Clock } from "lucide-react";
+import { getAuthData, switchUserRole } from "@/lib/liffAuth";
 import { LiffService } from "@/lib/liff";
 import { ModeToggle } from "@/components/mode-toggle";
 
@@ -19,6 +19,7 @@ export default function SelectRolePage() {
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [switchingRole, setSwitchingRole] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUserRoles = async () => {
@@ -76,11 +77,53 @@ export default function SelectRolePage() {
     fetchUserRoles();
   }, []);
 
-  const handleRoleSelection = (role: string) => {
-    if (role === 'resident') {
-      router.push('/Resident');
-    } else if (role === 'guard') {
-      router.push('/guard');
+  const handleRoleSelection = async (role: string) => {
+    if (switchingRole) return; // Prevent multiple clicks
+    
+    try {
+      setSwitchingRole(role);
+      console.log(`🔄 Switching to ${role} role...`);
+      
+      // Check if the selected role is pending
+      const selectedRoleData = userRoles.find(r => r.role === role);
+      const isPending = selectedRoleData?.status === 'pending';
+      
+      console.log(`🔍 Selected role data:`, selectedRoleData, `isPending:`, isPending);
+      
+      const result = await switchUserRole(role as 'resident' | 'guard');
+      
+      if (result.success) {
+        console.log(`✅ Successfully switched to ${role} role`);
+        
+        // Redirect based on role status
+        if (isPending) {
+          // User has pending status for this role, redirect to pending page
+          if (role === 'resident') {
+            console.log('⏳ Redirecting to Resident pending page');
+            router.push('/Resident/pending');
+          } else if (role === 'guard') {
+            console.log('⏳ Redirecting to Guard pending page');
+            router.push('/guard/pending');
+          }
+        } else {
+          // User has verified status for this role, redirect to main page
+          if (role === 'resident') {
+            console.log('✅ Redirecting to Resident main page');
+            router.push('/Resident');
+          } else if (role === 'guard') {
+            console.log('✅ Redirecting to Guard main page');
+            router.push('/guard');
+          }
+        }
+      } else {
+        console.error(`❌ Failed to switch to ${role} role:`, result.error);
+        alert(`ไม่สามารถสลับบทบาทได้: ${result.error}`);
+      }
+    } catch (error) {
+      console.error(`❌ Error switching to ${role} role:`, error);
+      alert("เกิดข้อผิดพลาดในการสลับบทบาท");
+    } finally {
+      setSwitchingRole(null);
     }
   };
 
@@ -123,9 +166,9 @@ export default function SelectRolePage() {
     );
   }
 
-  const verifiedRoles = userRoles.filter(role => role.status === 'verified');
-  const hasResidentRole = verifiedRoles.some(role => role.role === 'resident');
-  const hasGuardRole = verifiedRoles.some(role => role.role === 'guard');
+  // Show all roles regardless of status - let the main pages handle status checking
+  const hasResidentRole = userRoles.some(role => role.role === 'resident');
+  const hasGuardRole = userRoles.some(role => role.role === 'guard');
 
   if (!hasResidentRole && !hasGuardRole) {
     return (
@@ -133,12 +176,12 @@ export default function SelectRolePage() {
         <div className="w-full max-w-[420px]">
           <div className="bg-card rounded-2xl border shadow-lg">
             <div className="px-4 py-6 text-center">
-              <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-yellow-600 dark:text-yellow-400 text-2xl">⏳</span>
+              <div className="w-16 h-16 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-red-600 dark:text-red-400 text-2xl">❌</span>
               </div>
-              <h2 className="text-xl font-semibold text-foreground mb-2">รอการยืนยัน</h2>
+              <h2 className="text-xl font-semibold text-foreground mb-2">ไม่พบบทบาท</h2>
               <p className="text-muted-foreground mb-4">
-                บทบาทของคุณยังไม่ได้รับการยืนยัน กรุณารอการอนุมัติจากผู้ดูแลระบบ
+                ไม่พบบทบาทที่สามารถใช้งานได้ กรุณาลงทะเบียนบทบาทก่อน
               </p>
               <button
                 onClick={handleGoBack}
@@ -183,13 +226,26 @@ export default function SelectRolePage() {
             {hasResidentRole && (
               <button
                 onClick={() => handleRoleSelection('resident')}
-                className="w-full flex items-center gap-4 p-4 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/5 transition-colors"
+                disabled={switchingRole !== null}
+                className="w-full flex items-center gap-4 p-4 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <User className="w-6 h-6 text-primary" />
+                  {switchingRole === 'resident' ? (
+                    <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                  ) : (
+                    <User className="w-6 h-6 text-primary" />
+                  )}
                 </div>
-                <div className="text-left">
-                  <h3 className="text-lg font-semibold text-foreground">ผู้อยู่อาศัย</h3>
+                <div className="text-left flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-foreground">ผู้อยู่อาศัย</h3>
+                    {userRoles.find(r => r.role === 'resident')?.status === 'pending' && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                        <Clock className="w-3 h-3 mr-1" />
+                        รอการยืนยัน
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground">สำหรับผู้ที่อาศัยในหมู่บ้าน</p>
                 </div>
               </button>
@@ -198,13 +254,26 @@ export default function SelectRolePage() {
             {hasGuardRole && (
               <button
                 onClick={() => handleRoleSelection('guard')}
-                className="w-full flex items-center gap-4 p-4 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/5 transition-colors"
+                disabled={switchingRole !== null}
+                className="w-full flex items-center gap-4 p-4 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Shield className="w-6 h-6 text-primary" />
+                  {switchingRole === 'guard' ? (
+                    <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                  ) : (
+                    <Shield className="w-6 h-6 text-primary" />
+                  )}
                 </div>
-                <div className="text-left">
-                  <h3 className="text-lg font-semibold text-foreground">ยามรักษาความปลอดภัย</h3>
+                <div className="text-left flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-foreground">ยามรักษาความปลอดภัย</h3>
+                    {userRoles.find(r => r.role === 'guard')?.status === 'pending' && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                        <Clock className="w-3 h-3 mr-1" />
+                        รอการยืนยัน
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground">สำหรับเจ้าหน้าที่รักษาความปลอดภัย</p>
                 </div>
               </button>
