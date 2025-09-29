@@ -15,6 +15,7 @@ import {
   admins,
   admin_villages,
   house_members,
+  visitors,
   visitor_records,
   admin_activity_logs,
   admin_notifications,
@@ -896,6 +897,14 @@ export async function clearDb() {
     console.log("visitor_records table doesn't exist yet, skipping...");
   }
 
+  console.log("Clearing visitors");
+  try {
+    await db.delete(visitors);
+    console.log("Cleared visitors");
+  } catch (error) {
+    console.log("visitors table doesn't exist yet, skipping...");
+  }
+
   console.log("Clearing house_members");
   try {
     await db.delete(house_members);
@@ -1034,6 +1043,107 @@ async function createHouseMembersData() {
 }
 
 /**
+ * Generates mock visitor data for the visitors table.
+ * Creates realistic visitor profiles with various risk statuses and visit patterns.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of visitor data objects.
+ */
+async function createVisitorsData() {
+  console.log("Creating visitors data...");
+
+  // Fetch all villages to assign visitors to
+  const allVillages = await db.select().from(villages);
+  
+  const visitorsData: Array<{
+    fname: string;
+    lname: string;
+    id_doc_type: "thai_id" | "passport" | "other";
+    id_number_hash: string;
+    phone?: string;
+    village_key: string;
+    risk_status: "clear" | "watchlist" | "banned";
+    visit_count: number;
+    last_visit_at?: Date;
+  }> = [];
+
+  // Sample Thai names for visitors
+  const thaiFirstNames = [
+    "สมชาย", "สมหญิง", "วิชัย", "มาลี", "ประเสริฐ", "สุดา", "ชัยวัฒน์", "นิตยา",
+    "สมศักดิ์", "วิไล", "สุรชัย", "รัตนา", "ธนาคาร", "อรุณี", "สมบูรณ์", "กัลยา",
+    "วีระ", "มาลัย", "สมพร", "สุดา", "ชัยสิทธิ์", "นงเยาว์", "สมคิด", "วิไลวรรณ"
+  ];
+
+  const thaiLastNames = [
+    "ใจดี", "รักบ้าน", "สุขใส", "ใจงาม", "รักธรรม", "สุขใจ", "ใจใส", "รักบ้าน",
+    "สุขใส", "ใจงาม", "รักธรรม", "สุขใจ", "ใจใส", "รักบ้าน", "สุขใส", "ใจงาม"
+  ];
+
+  // Sample phone numbers
+  const phoneNumbers = [
+    "081-234-5678", "082-345-6789", "083-456-7890", "084-567-8901",
+    "085-678-9012", "086-789-0123", "087-890-1234", "088-901-2345",
+    "089-012-3456", "090-123-4567", null, null, null // Some visitors without phone
+  ];
+
+  // Risk status distribution (most visitors are clear)
+  const riskStatuses: Array<"clear" | "watchlist" | "banned"> = [
+    "clear", "clear", "clear", "clear", "clear", "clear", "clear", "clear", "clear", "clear", // 10 clear
+    "watchlist", "watchlist", // 2 watchlist
+    "banned" // 1 banned
+  ];
+
+  // ID document types
+  const idDocTypes: Array<"thai_id" | "passport" | "other"> = [
+    "thai_id", "thai_id", "thai_id", "thai_id", "thai_id", "thai_id", "thai_id", "thai_id", // 8 thai_id
+    "passport", "passport", // 2 passport
+    "other" // 1 other
+  ];
+
+  // Create visitors for each village
+  for (const village of allVillages) {
+    // Create 20-50 visitors per village
+    const numVisitors = Math.floor(Math.random() * 31) + 20;
+    
+    for (let i = 0; i < numVisitors; i++) {
+      const fname = thaiFirstNames[Math.floor(Math.random() * thaiFirstNames.length)];
+      const lname = thaiLastNames[Math.floor(Math.random() * thaiLastNames.length)];
+      const phone = phoneNumbers[Math.floor(Math.random() * phoneNumbers.length)];
+      const riskStatus = riskStatuses[Math.floor(Math.random() * riskStatuses.length)];
+      const idDocType = idDocTypes[Math.floor(Math.random() * idDocTypes.length)];
+      
+      // Generate realistic ID number hash (simulating hashed ID numbers)
+      const idNumber = `${Math.floor(Math.random() * 9) + 1}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}`;
+      const idNumberHash = `hash_${idNumber}`;
+      
+      // Generate visit count (0-20 visits)
+      const visitCount = Math.floor(Math.random() * 21);
+      
+      // Generate last visit date (within last 6 months, or null if never visited)
+      let lastVisitAt: Date | undefined;
+      if (visitCount > 0) {
+        const daysAgo = Math.floor(Math.random() * 180); // 0-180 days ago
+        lastVisitAt = new Date();
+        lastVisitAt.setDate(lastVisitAt.getDate() - daysAgo);
+      }
+
+      visitorsData.push({
+        fname,
+        lname,
+        id_doc_type: idDocType,
+        id_number_hash: idNumberHash,
+        phone: phone || undefined,
+        village_key: village.village_key,
+        risk_status: riskStatus,
+        visit_count: visitCount,
+        last_visit_at: lastVisitAt,
+      });
+    }
+  }
+
+  console.log(`Created ${visitorsData.length} visitors`);
+  return visitorsData;
+}
+
+/**
  * Generates a large and varied set of mock visitor records. This function creates
  * realistic data by randomly assigning visitors to residents, guards, and houses
  * within the same village, and by generating plausible timestamps and other details.
@@ -1048,8 +1158,10 @@ async function createVisitorRecordsData() {
   const allResidents = await db.select().from(residents);
   const allGuards = await db.select().from(guards);
   const allHouses = await db.select().from(houses);
+  const allVisitors = await db.select().from(visitors);
 
   const visitorRecordsData: Array<{
+    visitor_id?: string;
     resident_id: string;
     guard_id: string;
     house_id: string;
@@ -1118,6 +1230,16 @@ async function createVisitorRecordsData() {
     "pending",
     "rejected",
   ];
+
+  // Helper function to get random visitor from same village
+  const getRandomVisitorFromVillage = (villageKey: string) => {
+    const visitorsInSameVillage = allVisitors.filter(
+      (visitor) => visitor.village_key === villageKey
+    );
+    return visitorsInSameVillage.length > 0 
+      ? visitorsInSameVillage[Math.floor(Math.random() * visitorsInSameVillage.length)]
+      : null;
+  };
 
   // Generate realistic timestamps distributed across different time periods
   function generateRandomTimestamp(): Date {
@@ -1212,7 +1334,10 @@ async function createVisitorRecordsData() {
         // For rejected records, no exit time
         // For pending records, no exit time
 
+        const randomVisitor = getRandomVisitorFromVillage(resident.village_key!);
+
         visitorRecordsData.push({
+          visitor_id: randomVisitor?.visitor_id,
           resident_id: resident.resident_id,
           guard_id: randomGuard.guard_id,
           house_id: randomHouse.house_id,
@@ -1222,7 +1347,6 @@ async function createVisitorRecordsData() {
           record_status: randomStatus,
           visit_purpose: randomVisitPurpose,
           entry_time: entryTime,
-
         });
       }
     }
@@ -1296,7 +1420,10 @@ async function createVisitorRecordsData() {
           );
         }
 
+        const randomVisitor = getRandomVisitorFromVillage(randomResident.village_key!);
+
         visitorRecordsData.push({
+          visitor_id: randomVisitor?.visitor_id,
           resident_id: randomResident.resident_id,
           guard_id: randomGuard.guard_id,
           house_id: randomHouse.house_id,
@@ -1375,7 +1502,10 @@ async function createVisitorRecordsData() {
         // Generate realistic timestamps
         const entryTime = generateRandomTimestamp();
 
+        const randomVisitor = getRandomVisitorFromVillage(randomResident.village_key!);
+
         visitorRecordsData.push({
+          visitor_id: randomVisitor?.visitor_id,
           resident_id: randomResident.resident_id,
           guard_id: randomGuard.guard_id,
           house_id: randomHouse.house_id,
@@ -1637,6 +1767,15 @@ async function seed() {
     console.log("Completed inserting house_members");
   } else {
     console.log("No house_members data to insert");
+  }
+
+  console.log("Creating and inserting visitors");
+  const visitorsData = await createVisitorsData();
+  if (visitorsData.length > 0) {
+    await db.insert(visitors).values(visitorsData);
+    console.log("Completed inserting visitors");
+  } else {
+    console.log("No visitors data to insert");
   }
 
   console.log("Creating and inserting visitor_records");

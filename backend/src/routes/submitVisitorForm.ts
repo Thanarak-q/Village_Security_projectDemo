@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import db from "../db/drizzle";
-import { visitor_records, guards, houses, house_members, villages } from "../db/schema";
-import { eq } from "drizzle-orm";
+import { visitor_records, guards, houses, house_members, villages, visitors } from "../db/schema";
+import { eq, and } from "drizzle-orm";
 import { saveBase64Image, getImageExtension } from "../utils/imageUtils";
 
 // Note: This route is intentionally left unauthenticated to support the
@@ -204,11 +204,60 @@ const approvalForm = new Elysia({ prefix: "/api" })
         // Use the first resident found as the primary resident for this visitor record
         const primaryResidentId = residents.length > 0 ? residents[0].resident_id : null;
 
+        // Find or create visitor record
+        let visitorId: string | null = null;
+        try {
+          // Get village_key from house
+          const houseWithVillage = await tx
+            .select({ village_key: houses.village_key })
+            .from(houses)
+            .where(eq(houses.house_id, houseId))
+            .limit(1);
+
+          if (houseWithVillage.length > 0 && houseWithVillage[0].village_key) {
+            const villageKey = houseWithVillage[0].village_key;
+            
+            // Try to find existing visitor by ID card hash
+            const existingVisitor = await tx.query.visitors.findFirst({
+              where: and(
+                eq(visitors.id_number_hash, visitorIDCard), // Assuming visitorIDCard is already hashed
+                eq(visitors.village_key, villageKey)
+              )
+            });
+
+            if (existingVisitor) {
+              visitorId = existingVisitor.visitor_id;
+              console.log(`✅ Found existing visitor: ${existingVisitor.fname} ${existingVisitor.lname}`);
+            } else {
+              // Create new visitor record
+              const [newVisitor] = await tx
+                .insert(visitors)
+                .values({
+                  fname: "ไม่ระบุ", // We don't have visitor name in the form
+                  lname: "ไม่ระบุ",
+                  id_number_hash: visitorIDCard,
+                  village_key: villageKey,
+                  risk_status: "clear",
+                  visit_count: 0,
+                  created_at: new Date(),
+                  updated_at: new Date(),
+                })
+                .returning();
+              
+              visitorId = newVisitor.visitor_id;
+              console.log(`✅ Created new visitor: ${newVisitor.visitor_id}`);
+            }
+          }
+        } catch (visitorError) {
+          console.error("Error handling visitor:", visitorError);
+          // Continue without visitor_id if there's an error
+        }
+
         console.log("🚀 Inserting visitor record:", {
+          visitor_id: visitorId,
           resident_id: primaryResidentId,
           guard_id: guardId,
           house_id: houseId,
-          visitor_id_card: visitorIDCard,
           picture_key: savedImageFilename,
           license_plate: licensePlate,
           visit_purpose: visitPurpose,
@@ -217,10 +266,10 @@ const approvalForm = new Elysia({ prefix: "/api" })
         const [inserted] = await tx
           .insert(visitor_records)
           .values({
+            visitor_id: visitorId,
             resident_id: primaryResidentId,
             guard_id: guardId,
             house_id: houseId,
-            visitor_id_card: visitorIDCard,
             picture_key: savedImageFilename,
             license_plate: licensePlate,
             visit_purpose: visitPurpose,

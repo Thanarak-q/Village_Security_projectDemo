@@ -231,12 +231,11 @@ export type House_memberInsert = typeof house_members.$inferInsert;
  */
 export const visitor_records = pgTable("visitor_records", {
   visitor_record_id: uuid("visitor_record_id").primaryKey().defaultRandom(),
+  visitor_id: uuid("visitor_id").references(() => visitors.visitor_id),
   resident_id: uuid("resident_id").references(() => residents.resident_id),
   guard_id: uuid("guard_id").references(() => guards.guard_id),
   house_id: uuid("house_id").references(() => houses.house_id),
   picture_key: text("picture_key"),
-  visitor_name: text("visitor_name"),
-  visitor_id_card: text("visitor_id_card"),
   license_plate: text("license_plate"),
   entry_time: timestamp("entry_time").defaultNow(),
   record_status: text("record_status")
@@ -251,6 +250,7 @@ export const visitor_records = pgTable("visitor_records", {
   index("idx_visitor_records_entry_time").on(table.entry_time),
   index("idx_visitor_records_created_at").on(table.createdAt),
   index("idx_visitor_records_status_created_at").on(table.record_status, table.createdAt),
+  index("idx_visitor_records_visitor_id").on(table.visitor_id),
   index("idx_visitor_records_resident_id").on(table.resident_id),
   index("idx_visitor_records_guard_id").on(table.guard_id),
   index("idx_visitor_records_house_id").on(table.house_id),

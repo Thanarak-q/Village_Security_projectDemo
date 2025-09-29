@@ -427,7 +427,7 @@ class NotificationService {
   }) {
     try {
       const visitorData: VisitorNotificationData = {
-        visitorName: data.visitorIdCard, // Using ID card as visitor name for now
+        visitorName: data.visitorIdCard, // Using ID card as visitor name for now - this should be updated to use visitor name from visitors table
         visitorPhone: 'ไม่ระบุ',
         houseNumber: data.houseAddress,
         residentName: data.residentName,

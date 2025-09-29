@@ -17,6 +17,7 @@ import {
  * @interface
  */
 interface CreateVisitorRecordBody {
+  visitor_id?: string;
   resident_id?: string;
   guard_id: string;
   house_id: string;
