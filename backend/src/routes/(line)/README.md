@@ -286,20 +286,7 @@ The flex messages use LINE's design guidelines. You can customize:
 
 ## Testing
 
-Use the provided examples in `/src/examples/flexMessageUsage.ts` to test different scenarios:
-
-```typescript
-import { flexMessageExamples } from '../examples/flexMessageUsage';
-
-// Test visitor approval
-await flexMessageExamples.sendVisitorApprovalExample();
-
-// Test batch sending
-await flexMessageExamples.batchSendExample();
-
-// Test with retry logic
-await flexMessageExamples.sendWithRetry('USER_ID', visitorData, 3);
-```
+Test the flex message functionality by submitting a visitor approval form through the guard interface. The system will automatically send flex messages to residents with LINE IDs in the specified house.
 
 ## Troubleshooting
 
@@ -342,7 +329,7 @@ DEBUG=flex-message:*
 ## Support
 
 For issues or questions:
-1. Check the examples in `/src/examples/flexMessageUsage.ts`
+1. Check the flex message implementation in `/src/routes/(line)/flexMessage.ts`
 2. Review LINE Flex Message documentation
 3. Test with LINE's webhook simulator
 4. Check server logs for detailed error messages
