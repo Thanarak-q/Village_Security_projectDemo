@@ -110,6 +110,8 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
       };
     }
   })
+  .onBeforeHandle(requireRole(["admin", "staff", "guard"]))
+
   // Get all houses - accessible by admin and guard
   .get("/houses", async ({ query, currentUser, request }: any) => {
     console.log("currentUser", currentUser);

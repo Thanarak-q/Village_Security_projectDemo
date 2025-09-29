@@ -165,7 +165,25 @@ export default function LiffPage() {
         if (idToken) {
           setIdToken(idToken);
           try {
-            const authResult = await verifyLiffToken(idToken);
+            // Determine role based on URL context, referrer, or query parameter
+            let role: 'resident' | 'guard' | undefined = undefined;
+            const currentPath = window.location.pathname;
+            const referrer = document.referrer;
+            const urlParams = new URLSearchParams(window.location.search);
+            const roleParam = urlParams.get('role');
+            
+            // Priority: URL parameter > path context > referrer context
+            if (roleParam === 'guard' || roleParam === 'resident') {
+              role = roleParam;
+            } else if (currentPath.includes('/guard') || referrer.includes('/guard')) {
+              role = 'guard';
+            } else if (currentPath.includes('/Resident') || referrer.includes('/Resident')) {
+              role = 'resident';
+            }
+            
+            console.log('🔍 LIFF role detection:', { currentPath, referrer, roleParam, role });
+            
+            const authResult = await verifyLiffToken(idToken, role);
             
             if (authResult.success && authResult.user && authResult.token) {
               // User exists in database, store auth data
@@ -232,24 +250,33 @@ export default function LiffPage() {
                         setTimeout(() => router.replace('/liff/select-role'), 1000);
                       }
                     } else {
-                      // Fallback to original logic
+                      // Fallback to original logic - redirect to main page which will check role status
+                      console.log('⚠️ Using fallback logic - authResult.user.role:', authResult.user.role);
+                      console.log('⚠️ Fallback: Redirecting to main page, it will check role status and redirect to pending if needed');
                       const redirectPath = authResult.user.role === 'guard' ? '/guard' : '/Resident';
+                      console.log('⚠️ Fallback redirecting to:', redirectPath);
                       setTimeout(() => router.replace(redirectPath), 1000);
                     }
                   } else {
                     // Fallback to original logic
+                    console.log('⚠️ API response not ok - using fallback logic - authResult.user.role:', authResult.user.role);
                     const redirectPath = authResult.user.role === 'guard' ? '/guard' : '/Resident';
+                    console.log('⚠️ Fallback redirecting to:', redirectPath);
                     setTimeout(() => router.replace(redirectPath), 1000);
                   }
                 } else {
                   // Fallback to original logic
+                  console.log('⚠️ Roles API failed - using fallback logic - authResult.user.role:', authResult.user.role);
                   const redirectPath = authResult.user.role === 'guard' ? '/guard' : '/Resident';
+                  console.log('⚠️ Fallback redirecting to:', redirectPath);
                   setTimeout(() => router.replace(redirectPath), 1000);
                 }
               } catch (error) {
                 console.error('Error fetching user roles:', error);
                 // Fallback to original logic
+                console.log('⚠️ Error in roles fetch - using fallback logic - authResult.user.role:', authResult.user.role);
                 const redirectPath = authResult.user.role === 'guard' ? '/guard' : '/Resident';
+                console.log('⚠️ Fallback redirecting to:', redirectPath);
                 setTimeout(() => router.replace(redirectPath), 1000);
               }
             } else if (authResult.lineUserId) {
