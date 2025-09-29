@@ -92,6 +92,7 @@ const validateStatus = (
  * @type {Elysia}
  */
 export const houseManageRoutes = new Elysia({ prefix: "/api" })
+  .onBeforeHandle(requireRole(["admin", "staff"]))
   // Test endpoint to check houses without authentication
   .get("/houses-test", async () => {
     try {
@@ -110,79 +111,53 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
     }
   })
   // Get all houses - accessible by admin and guard
-  .get("/houses", async ({ jwt, cookie, set, headers }: any) => {
+  .get("/houses", async ({ query, currentUser, request }: any) => {
+    console.log("currentUser", currentUser);
+    console.log("query", query);
+    console.log("request URL:", request?.url);
+    
     try {
-      // Check for token in cookie or Authorization header
-      let token = cookie.auth_token?.value;
-      if (!token && headers.authorization) {
-        const authHeader = headers.authorization;
-        if (authHeader.startsWith('Bearer ')) {
-          token = authHeader.substring(7);
-        }
+      // Extract village_key from query parameters
+      let village_key = query?.village_key;
+      
+      // Fallback: if query parsing fails, try to extract from URL
+      if (!village_key && request?.url) {
+        const url = new URL(request.url);
+        village_key = url.searchParams.get('village_key');
       }
       
-      let currentUser = null;
+      const { village_keys, role } = currentUser;
 
-      if (token) {
-        try {
-          const payload = await jwt.verify(token);
-          
-          if (payload?.id && payload?.role) {
-            // Check if it's an admin
-            if (payload.role === "admin") {
-              const admin = await db.query.admins.findFirst({
-                where: eq(admins.admin_id, payload.id),
-              });
-              if (admin && admin.status === "verified") {
-                currentUser = admin;
-              }
-            }
-            // Check if it's a guard
-            else if (payload.role === "guard") {
-              const guard = await db.query.guards.findFirst({
-                where: eq(guards.guard_id, payload.id),
-              });
-              if (guard && guard.status === "verified") {
-                currentUser = guard;
-              }
-            }
-          }
-        } catch (jwtError) {
-          console.error("JWT verification error:", jwtError);
-        }
-      }
+      console.log("Extracted village_key:", village_key);
+      console.log("Available village_keys:", village_keys);
 
-      // If no authentication, return houses for pha-suk-village-001 as fallback
-      if (!currentUser) {
-        console.log("No authentication provided, returning houses for pha-suk-village-001");
-        const result = await db
-          .select()
-          .from(houses)
-          .where(eq(houses.village_key, "pha-suk-village-001"));
-        
+      // Validate village_key parameter
+      if (!village_key || typeof village_key !== 'string') {
         return {
-          success: true,
-          data: result,
-          total: result.length,
+          success: false,
+          error: "Village key is required",
         };
       }
 
-      const { village_key } = currentUser;
-
-      if (!village_key) {
-        set.status = 400;
-        return { error: "User village key not found." };
+      // Check if admin has access to the specified village
+      if (role !== "superadmin" && !village_keys.includes(village_key)) {
+        return {
+          success: false,
+          error: "You don't have access to this village",
+        };
       }
 
+      // Fetch houses for the specific village
       const result = await db
         .select()
         .from(houses)
         .where(eq(houses.village_key, village_key));
-      
+
       return {
         success: true,
         data: result,
         total: result.length,
+        village_key: village_key,
       };
     } catch (error) {
       console.error("Error fetching houses:", error);
@@ -196,10 +171,10 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
   // Create new house - admin only
   .post("/house-manage", async ({ body, currentUser }: any) => {
     // Check if user has admin role
-    if (currentUser.role !== "admin") {
+    if (currentUser.role !== "admin" && currentUser.role !== "staff") {
       return {
         success: false,
-        error: "Access denied. Admin role required.",
+        error: "Access denied. Admin or staff role required.",
       };
     }
     try {
@@ -217,7 +192,7 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
       const { village_keys, role } = currentUser;
 
       // Check if admin has access to the specified village
-      if (role !== "superadmin" && !village_keys.includes(houseData.village_key)) {
+      if (!village_keys.includes(houseData.village_key)) {
         return {
           success: false,
           error: "You don't have access to this village",
@@ -334,7 +309,7 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         }
 
         // Get old status for notification
-        const oldStatus = existingHouse[0].status;
+        const oldStatus = existingHouse[0].status || 'unknown';
 
         // Prepare update data
         const dataToUpdate: any = {};
@@ -378,12 +353,12 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
           try {
             await notificationService.notifyHouseStatusChange({
               house_id: house_id,
-              address: updatedHouse.address,
-              old_status: oldStatus,
-              new_status: updateData.status,
-              village_key: existingHouse[0].village_key,
+              address: updatedHouse.address ?? "",
+              old_status: oldStatus ?? "",
+              new_status: updateData.status ?? "",
+              village_key: existingHouse[0].village_key ?? "",
             });
-            console.log(`📢 House status change notification sent: ${updatedHouse.address}`);
+            console.log(`📢 House status change notification sent: ${updatedHouse.address ?? ""}`);
           } catch (notificationError) {
             console.error('❌ Error sending house status change notification:', notificationError);
             // Don't fail the request if notification fails
@@ -465,7 +440,7 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         }
 
         // Get old status for notification
-        const oldStatus = existingHouse[0].status;
+        const oldStatus = existingHouse[0].status || 'unknown';
 
         // Update house status
         const [updatedHouse] = await db
@@ -492,12 +467,12 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
           try {
             await notificationService.notifyHouseStatusChange({
               house_id: house_id,
-              address: updatedHouse.address,
-              old_status: oldStatus,
+              address: updatedHouse.address ?? "",
+              old_status: oldStatus ?? "",
               new_status: status,
-              village_key: existingHouse[0].village_key,
+              village_key: existingHouse[0].village_key ?? "",
             });
-            console.log(`📢 House status change notification sent: ${updatedHouse.address}`);
+            console.log(`📢 House status change notification sent: ${updatedHouse.address ?? ""}`);
           } catch (notificationError) {
             console.error('❌ Error sending house status change notification:', notificationError);
             // Don't fail the request if notification fails

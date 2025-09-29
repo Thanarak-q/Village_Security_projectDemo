@@ -42,8 +42,11 @@ import { th } from "date-fns/locale";
 interface StaffMember {
   admin_id: string;
   username: string;
+  email: string | null;
+  phone: string | null;
   status: "verified" | "pending" | "disable";
   role: string;
+  password_changed_at: string | null;
   created_at: string;
   updated_at: string;
   village_key: string;
@@ -57,9 +60,22 @@ interface StaffTableProps {
   loading: boolean;
 }
 
-export function StaffTable({ staffMembers, onStaffUpdated, onStaffDeleted, loading }: StaffTableProps) {
+export function StaffTable({ staffMembers, onStaffDeleted, loading }: StaffTableProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [staffToDelete, setStaffToDelete] = useState<StaffMember | null>(null);
+
+  // Function to get password change status
+  const getPasswordStatus = (passwordChangedAt: string | null) => {
+    return passwordChangedAt ? "เปลี่ยนรหัสผ่านแล้ว" : "ยังไม่เปลี่ยนรหัสผ่าน";
+  };
+
+  // Function to get password status badge color
+  const getPasswordStatusColor = (passwordChangedAt: string | null) => {
+    return passwordChangedAt 
+      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" 
+      : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+  };
+
 
   const handleDelete = async () => {
     if (!staffToDelete) return;
@@ -82,7 +98,7 @@ export function StaffTable({ staffMembers, onStaffUpdated, onStaffDeleted, loadi
       }
     } catch (error) {
       console.error("Error deleting staff:", error);
-      toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+      // toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     }
   };
 
@@ -118,32 +134,72 @@ export function StaffTable({ staffMembers, onStaffUpdated, onStaffDeleted, loadi
 
   return (
     <>
-      <div className="rounded-md border">
+      <div className="overflow-x-auto rounded-lg border border-border bg-background shadow-sm hover:shadow-md transition-shadow duration-200">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>ชื่อผู้ใช้</TableHead>
-              <TableHead>วันที่สร้าง</TableHead>
-              <TableHead className="text-right">จัดการ</TableHead>
+            <TableRow className="bg-muted/50 border-b border-border">
+              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">นิติบุคคล</TableHead>
+              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden sm:table-cell">ข้อมูลติดต่อ</TableHead>
+              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden lg:table-cell">วันที่เข้าร่วม</TableHead>
+              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">จัดการ</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {staffMembers.map((staff) => (
-              <TableRow key={staff.admin_id}>
-                <TableCell className="font-medium">
-                  {staff.username}
+              <TableRow key={staff.admin_id} className="hover:bg-muted/30 transition-colors border-b border-border/50">
+                {/* User column - Name only */}
+                <TableCell className="py-4 px-6">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-foreground text-base">
+                      {staff.username}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      @{staff.username}
+                    </div>
+                      {/* Show join date on mobile */}
+                      <div className="lg:hidden text-xs text-muted-foreground mt-1">
+                        <div>{staff.created_at ? (() => {
+                          try {
+                            return format(new Date(staff.created_at), "dd MMM yyyy", { locale: th });
+                          } catch (error) {
+                            console.error('Date formatting error:', error, 'created_at:', staff.created_at);
+                            return 'Invalid Date';
+                          }
+                        })() : 'N/A'}</div>
+                      </div>
+                    </div>
                 </TableCell>
-                <TableCell>
-                  {staff.created_at ? (() => {
-                    try {
-                      return format(new Date(staff.created_at), "dd MMM yyyy", { locale: th });
-                    } catch (error) {
-                      console.error('Date formatting error:', error, 'created_at:', staff.created_at);
-                      return 'Invalid Date';
-                    }
-                  })() : 'N/A'}
+
+                {/* Contact info column - hidden on mobile */}
+                <TableCell className="py-4 px-6 hidden sm:table-cell">
+                  <div className="text-sm">
+                    <div className="text-foreground font-medium">
+                      {staff.email || "-"}
+                    </div>
+                    <div className="text-muted-foreground">
+                      {staff.phone || "ไม่มีข้อมูล"}
+                    </div>
+                  </div>
                 </TableCell>
-                <TableCell className="text-right">
+
+
+                {/* Join date column - hidden on mobile, small and medium screens */}
+                <TableCell className="py-4 px-6 hidden lg:table-cell">
+                  <div className="text-sm text-foreground">
+                    {staff.created_at ? (() => {
+                      try {
+                        return format(new Date(staff.created_at), "dd MMM yyyy", { locale: th });
+                      } catch (error) {
+                        console.error('Date formatting error:', error, 'created_at:', staff.created_at);
+                        return 'Invalid Date';
+                      }
+                    })() : 'N/A'}
+                  </div>
+                </TableCell>
+
+
+                {/* Actions column */}
+                <TableCell className="py-4 px-6">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="h-8 w-8 p-0">
@@ -153,6 +209,14 @@ export function StaffTable({ staffMembers, onStaffUpdated, onStaffDeleted, loadi
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>จัดการ</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {/* Password status in dropdown */}
+                      <div className="px-2 py-1.5">
+                        <div className="text-xs text-muted-foreground mb-1">สถานะรหัสผ่าน</div>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPasswordStatusColor(staff.password_changed_at)}`}>
+                          {getPasswordStatus(staff.password_changed_at)}
+                        </span>
+                      </div>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => openDeleteDialog(staff)}

@@ -5,21 +5,7 @@ import { eq, or, inArray } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 
 export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
-  .onBeforeHandle(requireRole("*"))
-  .get("/", async ({ set }) => {
-    try {
-      const allVillages = await db.select({
-        village_key: villages.village_key,
-        village_name: villages.village_name,
-      }).from(villages);
-      
-      return allVillages;
-    } catch (error) {
-      console.error("Error fetching villages:", error);
-      set.status = 500;
-      return { error: "Failed to fetch villages" };
-    }
-  })
+  // Public endpoint for village key validation used during registration
   .get("/check/:villageKey", async ({ params, set }) => {
     try {
       const { villageKey } = params as { villageKey: string };
@@ -48,6 +34,22 @@ export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
       return { error: "Failed to check village" };
     }
   })
+  .onBeforeHandle(requireRole("*"))
+  .get("/", async ({ set }) => {
+    try {
+      const allVillages = await db.select({
+        village_key: villages.village_key,
+        village_name: villages.village_name,
+      }).from(villages);
+      
+      return allVillages;
+    } catch (error) {
+      console.error("Error fetching villages:", error);
+      set.status = 500;
+      return { error: "Failed to fetch villages" };
+    }
+  })
+  .onBeforeHandle(requireRole(["admin", "superadmin"]))
   .get("/admin", async ({ currentUser, set }: any) => {
     try {
       // Check if user has admin or superadmin role

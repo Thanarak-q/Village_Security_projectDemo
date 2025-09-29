@@ -44,6 +44,9 @@ export const redirectRoutes = new Elysia({ prefix: "/api/redirect" })
 
     // Staff: Redirect to regular dashboard (limited access)
     if (role === "staff") {
+      // Staff users should have exactly one village assigned
+      const staffVillageKey = village_keys && village_keys.length > 0 ? village_keys[0] : null;
+      
       return {
         success: true,
         redirect_url: "/dashboard",
@@ -51,6 +54,8 @@ export const redirectRoutes = new Elysia({ prefix: "/api/redirect" })
           role,
           village_keys,
           limited_access: true,
+          // Provide the village key for automatic setting in frontend
+          auto_village_key: staffVillageKey,
         },
       };
     }

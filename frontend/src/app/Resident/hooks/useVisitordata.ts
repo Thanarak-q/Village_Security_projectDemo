@@ -15,9 +15,6 @@ import {
   ConfirmationDialogState 
 } from "../types/visitor";
 
-// Target LINE user ID for สมชาย ผาสุก
-const TARGET_LINE_USER_ID = "Ue529194c37fd43a24cf96d8648299d90";
-
 export const useVisitorData = () => {
   const router = useRouter();
   const [pendingRequests, setPendingRequests] = useState<VisitorRequest[]>([]);
@@ -25,6 +22,8 @@ export const useVisitorData = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [villageName, setVillageName] = useState<string>('');
   
   // Confirmation dialog state
   const [confirmationDialog, setConfirmationDialog] = useState<ConfirmationDialogState>({
@@ -52,17 +51,50 @@ export const useVisitorData = () => {
         return;
       }
 
-      console.log('User is authenticated as resident:', user.username);
+      console.log('User is authenticated as resident:', user);
+      setCurrentUser(user);
       setIsCheckingAuth(false);
+      
+      // Fetch village name
+      if (user.village_key) {
+        fetchVillageName(user.village_key);
+      }
     };
 
     checkAuthAndRole();
   }, [router]);
 
+  // Function to fetch village name
+  const fetchVillageName = async (villageKey: string) => {
+    try {
+      const apiUrl = '';
+      const response = await fetch(`${apiUrl}/api/villages/validate?key=${encodeURIComponent(villageKey)}`);
+      
+      // Check if response is JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Response is not JSON");
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.village) {
+        setVillageName(data.village.village_name);
+      }
+    } catch (error) {
+      console.error('Error fetching village name:', error);
+    }
+  };
+
   // Fetch data on component mount
   useEffect(() => {
     const loadData = async () => {
-      console.log("🔄 Starting data load for LINE user ID:", TARGET_LINE_USER_ID);
+      if (!currentUser) {
+        console.log("No current user, skipping data load");
+        return;
+      }
+
+      console.log("🔄 Starting data load for LINE user ID:", currentUser.lineUserId);
       try {
         setLoading(true);
         setError(null);
@@ -74,11 +106,11 @@ export const useVisitorData = () => {
         console.log("🏥 Backend health check:", healthResponse.status);
 
         // Fetch pending visitor requests and history separately
-        console.log(`🔍 Fetching pending visitor requests for LINE user ID: ${TARGET_LINE_USER_ID}`);
-        const pendingData = await fetchPendingVisitorRequests(TARGET_LINE_USER_ID);
+        console.log(`🔍 Fetching pending visitor requests for LINE user ID: ${currentUser.lineUserId}`);
+        const pendingData = await fetchPendingVisitorRequests(currentUser.lineUserId);
         
-        console.log(`🔍 Fetching visitor history for LINE user ID: ${TARGET_LINE_USER_ID}`);
-        const historyData = await fetchVisitorHistory(TARGET_LINE_USER_ID);
+        console.log(`🔍 Fetching visitor history for LINE user ID: ${currentUser.lineUserId}`);
+        const historyData = await fetchVisitorHistory(currentUser.lineUserId);
 
         // Debug: Log raw data before transformation
         console.log("Raw API data:", {
@@ -130,10 +162,10 @@ export const useVisitorData = () => {
       }
     };
 
-    if (!isCheckingAuth) {
+    if (!isCheckingAuth && currentUser) {
       loadData();
     }
-  }, [TARGET_LINE_USER_ID, isCheckingAuth]);
+  }, [currentUser, isCheckingAuth]);
 
   const handleApprove = (id: string) => {
     const request = pendingRequests.find((req) => req.id === id);
@@ -223,6 +255,8 @@ export const useVisitorData = () => {
     loading,
     error,
     isCheckingAuth,
+    currentUser,
+    villageName,
     confirmationDialog,
     handleApprove,
     handleDeny,

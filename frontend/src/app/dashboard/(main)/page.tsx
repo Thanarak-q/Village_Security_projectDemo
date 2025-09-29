@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useRef, lazy, Suspense } from "react";
 import { gsap } from "gsap";
-;
+import { Eye, EyeOff } from "lucide-react";
 import {
   TotalUsersCard,
   DailyAccessCard,
@@ -16,36 +16,55 @@ const WeeklyAccessBarChart = lazy(() => import("./chart"));
 export default function Page() {
   const [data, setData] = useState<unknown>(null);
   const [selectedVillageName, setSelectedVillageName] = useState<string>("");
+  const [selectedVillageKey, setSelectedVillageKey] = useState<string>("");
+  const [showVillageKey, setShowVillageKey] = useState<boolean>(false);
   const { data: statsData, loading: statsLoading, error: statsError } = useStatsData();
-  const cardsRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<HTMLDivElement>(null);
-  const tableRef = useRef<HTMLDivElement>(null);
+  const villageInfoRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
 
 
   useEffect(() => {
     fetch("/api/auth/me", {
       credentials: "include",
     })
-      .then((res) => {
+      .then(async (res) => {
         if (res.status === 401) {
           window.location.href = "/login";
           return;
         }
+
+        // Check if response is JSON
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Response is not JSON");
+        }
+
         return res.json();
       })
       .then((json) => {
         if (json) setData(json);
+      })
+      .catch((error) => {
+        console.error("Error fetching auth data:", error);
       });
 
-    // Get selected village name
-    const selectedVillageKey = sessionStorage.getItem("selectedVillage");
-    if (selectedVillageKey) {
-      fetch(`/api/villages/check/${selectedVillageKey}`, {
+    // Get selected village name and key
+    const villageKey = sessionStorage.getItem("selectedVillage");
+    if (villageKey) {
+      setSelectedVillageKey(villageKey);
+      fetch(`/api/villages/check/${villageKey}`, {
         credentials: "include",
       })
-        .then((res) => res.json())
+        .then(async (res) => {
+          // Check if response is JSON
+          const contentType = res.headers.get("content-type");
+          if (!contentType || !contentType.includes("application/json")) {
+            throw new Error("Response is not JSON");
+          }
+          return res.json();
+        })
         .then((villageData) => {
-          if (villageData.exists) {
+          if (villageData && villageData.exists) {
             setSelectedVillageName(villageData.village_name);
           }
         })
@@ -55,78 +74,72 @@ export default function Page() {
     }
   }, []);
 
-  // GSAP smooth scroll-up animations
+  // GSAP smooth scroll-up animation - matching other sidebar pages
   useEffect(() => {
-    if (!data) return;
-
-    // Capture ref values to avoid stale closure issues
-    const chartElement = chartRef.current;
-    const tableElement = tableRef.current;
-
-    // Set initial state for chart and table only
-    gsap.set([chartElement, tableElement], {
+    const containerElement = headerRef.current?.parentElement;
+    
+    // Only animate if element exists
+    if (!containerElement) return;
+    
+    // Set initial state
+    gsap.set(containerElement, {
       opacity: 0,
       y: 50
     });
 
-    // Individual cards initial state
-    const cards = cardsRef.current?.children;
-    if (cards) {
-      gsap.set(Array.from(cards), {
-        opacity: 0,
-        y: 60
-      });
-    }
-
-    // Create smooth scroll-up timeline
-    const tl = gsap.timeline();
-
-    // Animate individual cards first
-    if (cards) {
-      Array.from(cards).forEach((card, index) => {
-        tl.to(card, {
-          duration: 0.6,
-          opacity: 1,
-          y: 0,
-          ease: "power2.inOut"
-        }, index * 0.1);
-      });
-    }
-
-    // Then animate chart
-    tl.to(chartElement, {
+    // Animate entrance
+    gsap.to(containerElement, {
       duration: 0.8,
       opacity: 1,
       y: 0,
-      ease: "power2.inOut"
-    }, "-=0.2")
-      // Finally animate table
-      .to(tableElement, {
-        duration: 0.8,
-        opacity: 1,
-        y: 0,
-        ease: "power2.inOut"
-      }, "-=0.4");
+      ease: "power2.inOut",
+      delay: 0.2
+    });
 
     return () => {
-      gsap.killTweensOf([chartElement, tableElement]);
-      if (cards) {
-        gsap.killTweensOf(Array.from(cards));
+      try {
+        gsap.killTweensOf(containerElement);
+      } catch (error) {
+        console.warn('GSAP cleanup error:', error);
       }
     };
   }, [data]);
 
+  // Animate village info changes when village selection changes
+  useEffect(() => {
+    if (!villageInfoRef.current || !selectedVillageKey) return;
+
+    // Smooth transition when village changes - matching other sidebar pages
+    gsap.fromTo(villageInfoRef.current,
+      {
+        opacity: 0,
+        y: 20
+      },
+      {
+        opacity: 1,
+        y: 0,
+        duration: 0.8,
+        ease: "power2.inOut"
+      }
+    );
+  }, [selectedVillageKey, selectedVillageName]);
+
   // Refetch data when selected village changes
   useEffect(() => {
     const handleVillageChange = () => {
-      const selectedVillageKey = sessionStorage.getItem("selectedVillage");
-      if (selectedVillageKey) {
-        fetch(`/api/villages/check/${selectedVillageKey}`, {
+      console.log('🔄 Dashboard: Village changed event received');
+      const villageKey = sessionStorage.getItem("selectedVillage");
+      console.log('🏘️ Dashboard: Selected village key:', villageKey);
+
+      if (villageKey) {
+        setSelectedVillageKey(villageKey);
+        fetch(`/api/villages/check/${villageKey}`, {
           credentials: "include",
         })
           .then((res) => res.json())
           .then((villageData) => {
             if (villageData.exists) {
+              console.log('✅ Dashboard: Village name updated:', villageData.village_name);
               setSelectedVillageName(villageData.village_name);
             }
           })
@@ -134,12 +147,14 @@ export default function Page() {
             console.error("Error fetching village name:", error);
           });
       } else {
+        console.log('❌ Dashboard: No village selected');
         setSelectedVillageName("");
+        setSelectedVillageKey("");
       }
     };
 
     window.addEventListener('villageChanged', handleVillageChange);
-    
+
     return () => {
       window.removeEventListener('villageChanged', handleVillageChange);
     };
@@ -155,24 +170,39 @@ export default function Page() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-2 sm:px-4 lg:px-6 py-3 sm:py-6 max-w-full xl:max-w-7xl">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 lg:mb-8">
+        <div
+          ref={headerRef}
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 lg:mb-8"
+        >
           <div className="space-y-1">
-            <h1 className="scroll-m-20 text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-foreground">
-              {/* สวัสดี, คุณผู้จัดการ 👋 */}
-            </h1>
-            {selectedVillageName && (
-              <p className="text-xs sm:text-sm md:text-base text-muted-foreground">
-                {/* หมู่บ้าน: {selectedVillageName} */}
-              </p>
+
+            {selectedVillageKey && (
+              <div
+                ref={villageInfoRef}
+                className="flex items-center gap-2"
+              >
+                <span className="text-xs sm:text-sm md:text-base text-muted-foreground">
+                  รหัสหมู่บ้าน:
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs sm:text-sm md:text-base font-medium text-primary bg-primary/10 px-2 py-1 rounded-md font-mono select-all">
+                    {showVillageKey ? selectedVillageKey : '••••••••'}
+                  </span>
+                  <button
+                    onClick={() => setShowVillageKey(!showVillageKey)}
+                    className="p-1.5 hover:bg-muted rounded-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-ring hover:scale-105"
+                    title={showVillageKey ? "ซ่อนรหัสหมู่บ้าน" : "แสดงรหัสหมู่บ้าน"}
+                  >
+                    {showVillageKey ? (
+                      <EyeOff className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground hover:text-foreground transition-all duration-300" />
+                    ) : (
+                      <Eye className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground hover:text-foreground transition-all duration-300" />
+                    )}
+                  </button>
+                </div>
+              </div>
             )}
-            {/* <p className="text-xs sm:text-sm md:text-base text-gray-500">
-              วันนี้ {new Date().toLocaleDateString("th-TH", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </p> */}
+
           </div>
           <div className="flex justify-start sm:justify-end">
             {/* <NotificationComponent /> */}
@@ -180,10 +210,7 @@ export default function Page() {
         </div>
 
         {/* Statistics Cards */}
-        <div
-          ref={cardsRef}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6 lg:mb-8"
-        >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6 lg:mb-8">
           <TotalUsersCard data={statsData} loading={statsLoading} error={statsError} />
           <DailyAccessCard data={statsData} loading={statsLoading} error={statsError} />
           <PendingTasksCard data={statsData} loading={statsLoading} error={statsError} />
@@ -191,20 +218,14 @@ export default function Page() {
         </div>
 
         {/* Chart */}
-        <div
-          ref={chartRef}
-          className="mb-4 sm:mb-6 lg:mb-8"
-        >
+        <div className="mb-4 sm:mb-6 lg:mb-8">
           <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
             <WeeklyAccessBarChart />
           </Suspense>
         </div>
 
         {/* Pending Table */}
-        {/* <div
-          ref={tableRef}
-          className="mb-4 sm:mb-6"
-        >
+        {/* <div className="mb-4 sm:mb-6">
           <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
             <PendingTable />
           </Suspense>
@@ -213,3 +234,4 @@ export default function Page() {
     </div>
   );
 }
+

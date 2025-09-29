@@ -7,7 +7,7 @@ import {
   houses,
   house_members,
 } from "../db/schema";
-import { eq, sql, and, inArray } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { notificationService } from "../services/notificationService";
 import { userManagementActivityLogger } from "../utils/activityLogUtils";
@@ -49,13 +49,37 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
    * @param {Object} context.query - The query parameters.
    * @returns {Promise<Object>} A promise that resolves to an object containing the pending users.
    */
-  .get("/pendingUsers", async ({ currentUser, query }: any) => {
+  .get("/pendingUsers", async ({ currentUser, query, request }: any) => {
     try {
-      const { village_keys, role } = currentUser;
+      // Extract village_key from query parameters
+      let village_key = query?.village_key;
       
-      // Get selected village from query parameter, fallback to all villages
-      const selectedVillageKey = query?.village_key;
-      const targetVillageKeys = selectedVillageKey ? [selectedVillageKey] : village_keys;
+      // Fallback: if query parsing fails, try to extract from URL
+      if (!village_key && request?.url) {
+        const url = new URL(request.url);
+        village_key = url.searchParams.get('village_key');
+      }
+      
+      const { village_keys, role } = currentUser;
+
+      console.log("PendingUsers - Extracted village_key:", village_key);
+      console.log("PendingUsers - Available village_keys:", village_keys);
+
+      // Validate village_key parameter
+      if (!village_key || typeof village_key !== 'string') {
+        return {
+          success: false,
+          error: "Village key is required",
+        };
+      }
+
+      // Check if admin has access to the specified village
+      if (role !== "superadmin" && !village_keys.includes(village_key)) {
+        return {
+          success: false,
+          error: "You don't have access to this village",
+        };
+      }
       // Get pending residents data with house address
       const pendingResidentsData = await db
         .select({
@@ -77,7 +101,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             eq(residents.status, "pending"),
             role === "superadmin" 
               ? sql`1=1` // Super admin can see all pending residents
-              : inArray(residents.village_key, targetVillageKeys)
+              : eq(residents.village_key, village_key)
           )
         )
         // .where(sql`${residents.status} = 'pending'`)
@@ -108,7 +132,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             eq(guards.status, "pending"),
             role === "superadmin" 
               ? sql`1=1` // Super admin can see all pending guards
-              : inArray(guards.village_key, targetVillageKeys)
+              : eq(guards.village_key, village_key)
           )
         );
 
@@ -123,6 +147,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
           guards: pendingGuardsData.length,
           total: pendingResidentsData.length + pendingGuardsData.length,
         },
+        village_key: village_key,
       };
     } catch (error) {
       return {
@@ -139,7 +164,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
    * @param {Object} context.currentUser - The current user.
    * @returns {Promise<Object>} A promise that resolves to an object containing a success message.
    */
-  .put("/approveUser", async ({ body, currentUser }) => {
+  .put("/approveUser", async ({ body, currentUser }: any) => {
     try {
       const {
         userId,

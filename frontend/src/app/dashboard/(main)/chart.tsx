@@ -122,6 +122,8 @@ const WeeklyAccessBarChart = memo(function WeeklyAccessBarChart() {
         ? `${endpoint}?village_key=${encodeURIComponent(selectedVillage)}`
         : endpoint;
 
+      console.log('🔍 Fetching chart data for village:', selectedVillage, 'Period:', period, 'URL:', url);
+
       const response = await fetch(url, {
         method: 'GET',
         credentials: 'include', // Include cookies for authentication
@@ -142,6 +144,8 @@ const WeeklyAccessBarChart = memo(function WeeklyAccessBarChart() {
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch data')
       }
+
+      console.log('✅ Chart data received:', result.data);
 
       // Transform data based on period
       let transformedData: ChartDataPoint[] = []
@@ -166,10 +170,11 @@ const WeeklyAccessBarChart = memo(function WeeklyAccessBarChart() {
         }))
       }
 
+      console.log('📊 Transformed chart data:', transformedData);
       setChartData(transformedData)
       setUsingFallbackData(false)
     } catch (err) {
-      console.error('Error fetching data:', err)
+      console.error('Error fetching chart data:', err)
       setError(err instanceof Error ? err.message : 'Unknown error occurred')
 
       // Set fallback data for demo purposes
@@ -229,18 +234,19 @@ const WeeklyAccessBarChart = memo(function WeeklyAccessBarChart() {
 
   // Refetch when selected village changes
   useEffect(() => {
-    const handleStorageChange = () => {
+    const handleVillageChange = () => {
+      console.log('🔄 Village changed, refetching chart data...');
       fetchData(selectedPeriod)
     }
     
-    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('storage', handleVillageChange)
     
     // Also listen for custom event when village changes in same tab
-    window.addEventListener('villageChanged', handleStorageChange)
+    window.addEventListener('villageChanged', handleVillageChange)
     
     return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('villageChanged', handleStorageChange)
+      window.removeEventListener('storage', handleVillageChange)
+      window.removeEventListener('villageChanged', handleVillageChange)
     }
   }, [selectedPeriod, fetchData])
 

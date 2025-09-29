@@ -1,6 +1,8 @@
 "use client";
 
-import { Home } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { Home, User, Shield, RotateCcw } from "lucide-react";
 // import NotificationComponent from "@/app/dashboard/(main)/notification";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
@@ -9,25 +11,66 @@ import { VisitorHistory } from "../components/Visitorhistory";
 import { LoadingState, AuthLoadingState } from "../components/Loadingstate";
 import { ErrorState } from "../components/Errorstate";
 import { useVisitorData } from "../hooks/useVisitordata";
-
-// Target LINE user ID for สมชาย ผาสุก
-const TARGET_LINE_USER_ID = "Ue529194c37fd43a24cf96d8648299d90";
-const TARGET_RESIDENT_NAME = "สมชาย ผาสุก";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 // Main Resident Page Component
 const ResidentPage = () => {
+  const router = useRouter();
+  const [userRoles, setUserRoles] = useState<Array<{role: string, village_key: string, village_name?: string}>>([]);
+  
   const {
     pendingRequests,
     history,
     loading,
     error,
     isCheckingAuth,
+    currentUser,
+    villageName,
     confirmationDialog,
     handleApprove,
     handleDeny,
     handleConfirmAction,
     handleCloseDialog,
   } = useVisitorData();
+
+  const handleNavigateToProfile = () => {
+    router.push('/Resident/profile');
+  };
+
+  // Fetch user roles to check if they have guard role
+  useEffect(() => {
+    const fetchUserRoles = async () => {
+      if (currentUser?.lineUserId) {
+        try {
+          const apiUrl = '';
+          const response = await fetch(`${apiUrl}/api/users/roles?lineUserId=${currentUser.lineUserId}`, {
+            credentials: 'include'
+          });
+          
+          if (response.ok) {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+              const data = await response.json();
+              if (data.success && data.roles) {
+                setUserRoles(data.roles);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching user roles:', error);
+        }
+      }
+    };
+
+    fetchUserRoles();
+  }, [currentUser]);
+
+  const handleSwitchToGuard = () => {
+    router.push('/guard');
+  };
+
+  // Check if user has guard role
+  const hasGuardRole = userRoles.some(role => role.role === 'guard');
 
   // Show loading state while checking authentication
   if (isCheckingAuth) {
@@ -36,25 +79,54 @@ const ResidentPage = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-2 sm:p-4">
-      <div className="w-full max-w-[420px]">
+      <div className="w-full max-w-[420px] relative">
         {/* Main Card */}
-        <div className="bg-card rounded-2xl border shadow-lg">
+        <div className="bg-card rounded-2xl border shadow-lg relative">
           {/* Header */}
           <div className="px-4 py-4">
             <div className="flex items-center justify-between mb-2">
-              <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2">
-                <Home className="w-6 h-6 sm:w-7 sm:h-7" /> หมู่บ้านร่มรื่น
-              </h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2">
+                  <Home className="w-6 h-6 sm:w-7 sm:h-7" /> 
+                  {villageName || (currentUser?.village_key ? `หมู่บ้าน${currentUser.village_key.split('-')[0]}` : 'หมู่บ้าน')}
+                </h1>
+              </div>
               <span className="flex items-center gap-2">
                 <ModeToggle />
+                {hasGuardRole && (
+                  <button
+                    onClick={handleSwitchToGuard}
+                    className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                    aria-label="Switch to Guard role"
+                    title="สลับไปยังหน้ายามรักษาความปลอดภัย"
+                  >
+                    <Shield className="w-5 h-5 text-foreground" />
+                  </button>
+                )}
+                <button
+                  onClick={handleNavigateToProfile}
+                  className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                  aria-label="Go to profile"
+                >
+                  <User className="w-5 h-5 text-foreground" />
+                </button>
                 {/* <NotificationComponent /> */}
               </span>
             </div>
-            <p className="text-sm text-muted-foreground">สวัสดี {TARGET_RESIDENT_NAME} 👋</p>
-            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-              📋 แสดงข้อมูลสำหรับ: {TARGET_RESIDENT_NAME} (LINE ID: {TARGET_LINE_USER_ID})
-            </p>
+            {currentUser ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  สวัสดี {currentUser.fname} {currentUser.lname} 👋
+                </p>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  📋 แสดงข้อมูลสำหรับ: {currentUser.fname} {currentUser.lname}
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">กำลังโหลดข้อมูลผู้ใช้...</p>
+            )}
           </div>
+
 
           {/* Approval Cards Section */}
           <div className="px-4 py-4">
@@ -73,6 +145,7 @@ const ResidentPage = () => {
 
           {/* History Section */}
           <VisitorHistory history={history} />
+
         </div>
       </div>
 

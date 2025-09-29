@@ -148,6 +148,7 @@ export const admins = pgTable("admins", {
     .$type<"admin" | "staff" | "superadmin">()
     .default("staff")
     .notNull(),
+  password_changed_at: timestamp("password_changed_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
@@ -225,8 +226,7 @@ export const visitor_records = pgTable("visitor_records", {
   resident_id: uuid("resident_id").references(() => residents.resident_id),
   guard_id: uuid("guard_id").references(() => guards.guard_id),
   house_id: uuid("house_id").references(() => houses.house_id),
-  id_card_image: text("id_card_image"),
-  license_image: text("license_image"),
+  picture_key: text("picture_key"),
   visitor_name: text("visitor_name"),
   visitor_id_card: text("visitor_id_card"),
   license_plate: text("license_plate"),

@@ -11,11 +11,14 @@ import { visitorRecordYearlyRoutes } from "./routes/visitorRecord-yearly";
 import { testConnection, closeConnection, getPoolStats } from "./db/drizzle";
 import { statsCardRoutes } from "./routes/statsCard";
 import { userTableRoutes } from "./routes/userTable";
+import { userRoleRegistrationRoutes } from "./routes/userRoleRegistration";
 import { pendingUsersRoutes } from "./routes/pendingUsers";
 import { authRoutes } from "./routes/auth";
 import { adminSettingsRoutes } from "./routes/adminSettings";
 import { adminActivityLogsRoutes } from "./routes/adminActivityLogs";
 import { liffAuthRoutes } from "./routes/(line)/liffAuth";
+import { flexMessageRoutes } from "./routes/(line)/flexMessage";
+import { visitorNotificationRoutes } from "./routes/visitorNotification";
 import { villagesRoutes } from "./routes/villages";
 import { notificationsRoutes } from "./routes/notifications";
 import { superAdminVillagesRoutes } from "./routes/superAdminVillages";
@@ -26,6 +29,7 @@ import { staffManagementRoutes } from "./routes/staffManagement";
 import { redirectRoutes } from "./routes/redirect";
 import { villageSelectionRoutes } from "./routes/villageSelection";
 import approvalForm from "./routes/submitVisitorForm";
+import { imageStorageRoutes } from "./routes/imageStorage";
 /**
  * SECURITY ENHANCEMENT: Secure Health Check Endpoint
  *
@@ -83,11 +87,14 @@ const app = new Elysia()
   .use(visitorRecordYearlyRoutes)
   .use(statsCardRoutes)
   .use(userTableRoutes)
+  .use(userRoleRegistrationRoutes)
   .use(pendingUsersRoutes)
   .use(authRoutes)
   .use(adminSettingsRoutes)
   .use(adminActivityLogsRoutes)
   .use(liffAuthRoutes)
+  .use(flexMessageRoutes)
+  .use(visitorNotificationRoutes)
   .use(villagesRoutes)
   .use(notificationsRoutes)
   .use(approvalForm)
@@ -100,6 +107,7 @@ const app = new Elysia()
   .use(staffManagementRoutes)
   .use(redirectRoutes)
   .use(villageSelectionRoutes)
+  .use(imageStorageRoutes)
   .get("/", () => "Hello Village Security API!");
 
 // Initialize database connection and start server
@@ -107,6 +115,26 @@ async function startServer() {
   try {
     // Test database connection before starting server
     await testConnection();
+
+    // Optionally ensure MinIO bucket exists at startup for faster first-upload
+    if (process.env.MINIO_ENDPOINT && process.env.MINIO_ACCESS_KEY && process.env.MINIO_SECRET_KEY) {
+      const { Client: MinioClient } = await import('minio');
+      const minio = new MinioClient({
+        endPoint: process.env.MINIO_ENDPOINT as string,
+        port: process.env.MINIO_PORT ? Number(process.env.MINIO_PORT) : 9000,
+        useSSL: process.env.MINIO_USE_SSL === 'true',
+        accessKey: process.env.MINIO_ACCESS_KEY as string,
+        secretKey: process.env.MINIO_SECRET_KEY as string,
+      });
+      const bucket = process.env.MINIO_BUCKET || 'images';
+      const exists = await minio.bucketExists(bucket).catch(() => false);
+      if (!exists) {
+        await minio.makeBucket(bucket, 'us-east-1');
+        console.log(`🪣 MinIO bucket created: ${bucket}`);
+      } else {
+        console.log(`🪣 MinIO bucket exists: ${bucket}`);
+      }
+    }
 
     const port = parseInt(process.env.PORT || "3001");
     

@@ -8,7 +8,7 @@ import {
   house_members,
   visitor_records,
 } from "../db/schema";
-import { eq, sql, and, inArray } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { userManagementActivityLogger } from "../utils/activityLogUtils";
 import { notificationService } from "../services/notificationService";
@@ -210,13 +210,37 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
    * @param {Object} context.query - The query parameters.
    * @returns {Promise<Object>} A promise that resolves to an object containing the user data.
    */
-  .get("/userTable", async ({ currentUser, query }: any) => {
+  .get("/userTable", async ({ currentUser, query, request }: any) => {
     try {
-      const { village_keys, role } = currentUser;
+      // Extract village_key from query parameters
+      let village_key = query?.village_key;
       
-      // Get selected village from query parameter, fallback to all villages
-      const selectedVillageKey = query?.village_key;
-      const targetVillageKeys = selectedVillageKey ? [selectedVillageKey] : village_keys;
+      // Fallback: if query parsing fails, try to extract from URL
+      if (!village_key && request?.url) {
+        const url = new URL(request.url);
+        village_key = url.searchParams.get('village_key');
+      }
+      
+      const { village_keys, role } = currentUser;
+
+      console.log("UserTable - Extracted village_key:", village_key);
+      console.log("UserTable - Available village_keys:", village_keys);
+
+      // Validate village_key parameter
+      if (!village_key || typeof village_key !== 'string') {
+        return {
+          success: false,
+          error: "Village key is required",
+        };
+      }
+
+      // Check if admin has access to the specified village
+      if (role !== "superadmin" && !village_keys.includes(village_key)) {
+        return {
+          success: false,
+          error: "You don't have access to this village",
+        };
+      }
 
       const residentsData = await db
         .select({
@@ -238,7 +262,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           and(
             role === "superadmin" 
               ? sql`1=1` // Super admin can see all residents
-              : inArray(residents.village_key, targetVillageKeys),
+              : eq(residents.village_key, village_key),
             sql`${residents.status} != 'pending'`
           )
         )
@@ -268,7 +292,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           and(
             role === "superadmin" 
               ? sql`1=1` // Super admin can see all guards
-              : inArray(guards.village_key, targetVillageKeys),
+              : eq(guards.village_key, village_key),
             sql`${guards.status} != 'pending'`
           )
         );
@@ -285,6 +309,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           guards: guardsData.length,
           total: residentsData.length + guardsData.length,
         },
+        village_key: village_key,
       };
     } catch (error) {
       return {

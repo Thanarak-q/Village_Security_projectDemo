@@ -6,7 +6,7 @@ import { requireRole } from "../hooks/requireRole";
 const LINE_CHANNEL_ACCESS_TOKEN =
   "LO2jgxe/E7j3yqymxnKheGNvuG503tjnUR9Twkq+DUcEls/UrFgRexkq/79b/1U9wurDdiZvPvAm2fFmpnJ8gKxVvexldXqIfCMXQYp62nJggytqlSzot30oVix5mJSuA3v5ITo9VwAlEo3nzNj6iwdB04t89/1O/w1cDnyilFU=";
 
-const CLIENT_ID = "2007847995";
+const CLIENT_ID = process.env.LINE_CHANNEL_ID || "2008071362-Eqg9y1Qa";
 const CLIENT_SECRET = "76c589c0a53b923bef9b8a35bc25cea6";
 const REDIRECT_URI = "http://localhost/api/callback"; // URL registered with the provider, e.g., http://localhost:3000/callback
 
