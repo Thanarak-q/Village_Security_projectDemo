@@ -170,7 +170,10 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
         .select({
           admin_id: admins.admin_id,
           username: admins.username,
+          email: admins.email,
+          phone: admins.phone,
           role: admins.role,
+          password_changed_at: admins.password_changed_at,
           created_at: admins.createdAt,
           updated_at: admins.updatedAt,
           village_key: admins.village_key,

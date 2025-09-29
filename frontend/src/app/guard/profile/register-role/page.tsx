@@ -75,32 +75,20 @@ export default function GuardRegisterRolePage() {
     setVillageValidation({ isValid: false, isLoading: true });
 
     try {
-      const apiUrl = '';
-      const response = await fetch(`${apiUrl}/api/villages/${villageKey}`, {
-        credentials: 'include'
-      });
+      const response = await fetch(`/api/villages/check/${encodeURIComponent(villageKey)}`);
+      const data = await response.json();
 
-      if (response.ok) {
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          const data = await response.json();
-          if (data.success && data.village) {
-            setVillageValidation({
-              isValid: true,
-              isLoading: false,
-              villageName: data.village.village_name
-            });
-          } else {
-            setVillageValidation({ isValid: false, isLoading: false });
-          }
-        } else {
-          setVillageValidation({ isValid: false, isLoading: false });
-        }
+      if (data.exists && data.village_name) {
+        setVillageValidation({
+          isValid: true,
+          isLoading: false,
+          villageName: data.village_name
+        });
       } else {
         setVillageValidation({ isValid: false, isLoading: false });
       }
     } catch (error) {
-      console.error('Error validating village:', error);
+      console.error('Village validation error:', error);
       setVillageValidation({ isValid: false, isLoading: false });
     }
   };

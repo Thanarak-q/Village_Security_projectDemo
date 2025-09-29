@@ -82,29 +82,15 @@ const RoleRegistrationPage = () => {
     setVillageValidation({ isValid: false, isLoading: true });
 
     try {
-      const apiUrl = '';
-      const response = await fetch(`${apiUrl}/api/villages/validate?key=${encodeURIComponent(villageKey)}`, {
-        credentials: 'include'
-      });
-      
-      if (response.ok) {
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          console.error("Response is not JSON");
-          setVillageValidation({ isValid: false, isLoading: false });
-          return;
-        }
-        const data = await response.json();
-        
-        if (data.success && data.village) {
-          setVillageValidation({ 
-            isValid: true, 
-            isLoading: false, 
-            villageName: data.village.village_name 
-          });
-        } else {
-          setVillageValidation({ isValid: false, isLoading: false });
-        }
+      const response = await fetch(`/api/villages/check/${encodeURIComponent(villageKey)}`);
+      const data = await response.json();
+
+      if (data.exists && data.village_name) {
+        setVillageValidation({
+          isValid: true,
+          isLoading: false,
+          villageName: data.village_name
+        });
       } else {
         setVillageValidation({ isValid: false, isLoading: false });
       }

@@ -55,14 +55,14 @@ function RegisterPageContent() {
     setVillageValidation({ isValid: false, isLoading: true });
 
     try {
-      const response = await fetch(`/api/villages/validate?key=${encodeURIComponent(villageKey)}`);
+      const response = await fetch(`/api/villages/check/${encodeURIComponent(villageKey)}`);
       const data = await response.json();
-      
-      if (data.success && data.village) {
-        setVillageValidation({ 
-          isValid: true, 
-          isLoading: false, 
-          villageName: data.village.village_name 
+
+      if (data.exists && data.village_name) {
+        setVillageValidation({
+          isValid: true,
+          isLoading: false,
+          villageName: data.village_name
         });
       } else {
         setVillageValidation({ isValid: false, isLoading: false });
