@@ -95,11 +95,8 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
           }
         })()
       : '';
-    const fromEnv = typeof process.env.NEXT_PUBLIC_DEFAULT_VILLAGE_KEY === 'string'
-      ? process.env.NEXT_PUBLIC_DEFAULT_VILLAGE_KEY.trim()
-      : '';
 
-    const resolved = fromOptions || fromUser || fromSession || fromEnv || null;
+    const resolved = fromOptions || fromUser || fromSession || null;
 
     if (!resolved) {
       console.warn('⚠️ No village key available for WebSocket subscription');
@@ -210,38 +207,21 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
 
   const getWebSocketUrl = useSafeCallback(() => {
     if (!isBrowser) {
-      return process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:3002/ws';
+      return 'ws://localhost:3002/ws';
     }
 
-    const overrideUrl = process.env.NEXT_PUBLIC_WS_URL?.trim();
-    if (overrideUrl) {
-      return overrideUrl;
+    const { host, hostname, protocol, port } = window.location;
+    const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:';
+    const devPorts = new Set(['3000', '5173', '4173']);
+    const loopbackHosts = new Set(['localhost', '127.0.0.1', '::1']);
+    const inferredHost = host || hostname || 'localhost';
+
+    if ((port && devPorts.has(port)) || loopbackHosts.has(hostname)) {
+      const targetHostname = hostname || 'localhost';
+      return `${wsProtocol}//${targetHostname}:3002/ws`;
     }
 
-    const currentHost = window.location.host;
-    const hostname = window.location.hostname;
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-
-    const localDevMatch = currentHost.match(/:(\d+)$/);
-    if (localDevMatch) {
-      const port = localDevMatch[1];
-      if (['3000', '5173', '4173'].includes(port)) {
-        const proxyHost = process.env.NEXT_PUBLIC_WS_PROXY_HOST?.trim();
-        if (proxyHost) {
-          return `${wsProtocol}//${proxyHost}/ws`;
-        }
-
-        const devPort = process.env.NEXT_PUBLIC_WS_DEV_PORT?.trim();
-        if (devPort) {
-          return `${wsProtocol}//${hostname}:${devPort}/ws`;
-        }
-
-        // Default to Caddy (or any reverse proxy) on the same hostname.
-        return `${wsProtocol}//${hostname}/ws`;
-      }
-    }
-
-    return `${wsProtocol}//${currentHost}/ws`;
+    return `${wsProtocol}//${inferredHost}/ws`;
   }, []);
 
   const connect = useSafeCallback(() => {

@@ -31,6 +31,8 @@ class WebSocketClient {
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
   private isConnecting = false;
+  private readonly wsEndpoints: string[] = ['ws://websocket:3002/ws'];
+  private endpointIndex = 0;
 
   constructor() {
     this.connect();
@@ -44,19 +46,18 @@ class WebSocketClient {
 
     try {
       this.isConnecting = true;
-      // Use environment variable if set, otherwise auto-detect
-      const wsUrl = process.env.WEBSOCKET_URL || 
-        (process.env.NODE_ENV === 'production' || process.env.DOCKER_ENV === 'true' || process.env.NODE_ENV === 'development'
-          ? 'ws://websocket:3002/ws' 
-          : 'ws://localhost:3002/ws');
+      const wsUrl = this.getCurrentWebSocketUrl();
       console.log('🔗 Attempting to connect to:', wsUrl);
-      
       this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = () => {
         console.log('✅ Connected to WebSocket service');
         this.reconnectAttempts = 0;
         this.isConnecting = false;
+        const successfulIndex = this.wsEndpoints.indexOf(wsUrl);
+        if (successfulIndex > -1) {
+          this.endpointIndex = successfulIndex;
+        }
         
         // Record successful connection
         errorMonitor.recordError(new AppError(
@@ -84,6 +85,7 @@ class WebSocketClient {
         
         // Only attempt reconnect if it wasn't a clean close
         if (!event.wasClean) {
+          this.advanceEndpoint();
           this.attemptReconnect();
         }
       };
@@ -116,7 +118,19 @@ class WebSocketClient {
       errorHandler.handleError(connectionError);
       errorMonitor.recordError(connectionError);
       this.isConnecting = false;
+      this.advanceEndpoint();
       this.attemptReconnect();
+    }
+  }
+
+  private getCurrentWebSocketUrl(): string {
+    return this.wsEndpoints[this.endpointIndex] ?? this.wsEndpoints[0];
+  }
+
+  private advanceEndpoint() {
+    if (this.wsEndpoints.length > 1) {
+      this.endpointIndex = (this.endpointIndex + 1) % this.wsEndpoints.length;
+      console.log('🔁 Switching WebSocket endpoint to:', this.wsEndpoints[this.endpointIndex]);
     }
   }
 
