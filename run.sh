@@ -17,7 +17,7 @@ else
 fi
 
 docker system prune -a --force
-docker volume prune --force
+docker volume prune -a --force
 
 # FRONTEND SETUP
 cd frontend || exit 1
