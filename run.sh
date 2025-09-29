@@ -17,65 +17,19 @@ else
 fi
 
 docker system prune -a --force
-docker volume prune --force
+docker volume prune -a --force
 
 # FRONTEND SETUP
 cd frontend || exit 1
-
-if [ -f package.json ]; then
-    if [ "$(uname)" != "Darwin" ]; then
-        if [ -d node_modules ]; then
-            echo "📦 Cleaning frontend dependencies..."
-            sudo chown -R "$USER":"$USER" node_modules || exit 1
-            rm -rf node_modules || exit 1
-        fi
-    fi
-
-    if [ "$(uname)" == "Darwin" ]; then
-        if [ -d node_modules ]; then
-            echo "📦 Cleaning frontend dependencies..."
-            sudo chown -R "$USER":"$(id -gn)" node_modules || exit 1
-            rm -rf node_modules || exit 1
-        fi
-    fi
-    
-    [ -f package-lock.json ] && rm -f package-lock.json || true
-    
-    echo "📥 Installing frontend dependencies..."
-    npm install --silent || exit 1
-else
-    echo "⚠️ No package.json in frontend directory. Skipping npm install."
-fi
+echo "📥 Installing frontend dependencies..."
+bun install --frozen-lockfile || exit 1
 
 cd ..
-
 # BACKEND SETUP
 cd backend || exit 1
-
-if [ -f package.json ]; then
-    if [ "$(uname)" != "Darwin" ]; then
-        if [ -d node_modules ]; then
-            echo "📦 Cleaning backend dependencies..."
-            sudo chown -R "$USER":"$USER" node_modules || exit 1
-            rm -rf node_modules || exit 1
-        fi
-    fi
-
-    if [ "$(uname)" == "Darwin" ]; then
-        if [ -d node_modules ]; then
-            echo "📦 Cleaning backend dependencies..."
-            sudo chown -R "$USER":"$(id -gn)" node_modules || exit 1
-            rm -rf node_modules || exit 1
-        fi
-    fi
-    
-    [ -f package-lock.json ] && rm -f package-lock.json || true
-    
-    echo "📥 Installing backend dependencies..."
-    bun install || exit 1
-else
-    echo "⚠️ No package.json in backend directory. Skipping bun install."
-fi
+echo "📥 Installing backend dependencies..."
+rm -rf node_modules
+bun install --frozen-lockfile || exit 1
 
 cd ..
 

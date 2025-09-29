@@ -1,14 +1,19 @@
-FROM node:20-alpine
-
+FROM oven/bun:latest
 
 WORKDIR /app
 
-COPY package*.json ./
+# 1. Copy only files needed to install dependencies
+COPY package.json ./
 
-RUN npm install
+# 2. Install dependencies exactly as in lockfile
+RUN bun install --frozen-lockfile
 
+# 3. Copy the rest of the app source code
 COPY . .
 
-EXPOSE 3000
+# 4. Make entrypoint executable (ถ้า script อยู่ใน repo)
+RUN chmod +x entrypoint.sh
 
-CMD ["npm", "run", "dev"]
+EXPOSE 3001
+
+ENTRYPOINT ["./entrypoint.sh"]
