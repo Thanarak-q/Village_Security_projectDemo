@@ -1,8 +1,18 @@
 import { ApiVisitorRequest, VisitorRequest } from '../types/visitor';
+import { getAuthData } from '@/lib/liffAuth';
 
 // API functions for fetching visitor records by LINE user ID
 export const fetchPendingVisitorRequests = async (lineUserId: string): Promise<ApiVisitorRequest[]> => {
-  const response = await fetch(`/api/visitor-requests/pending/line/${encodeURIComponent(lineUserId)}`);
+  const { token } = getAuthData();
+  
+  const response = await fetch(`/api/visitor-requests/pending/line/${encodeURIComponent(lineUserId)}`, {
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  
   if (!response.ok) {
     throw new Error(`Failed to fetch pending visitor requests: ${response.statusText}`);
   }
@@ -11,7 +21,16 @@ export const fetchPendingVisitorRequests = async (lineUserId: string): Promise<A
 };
 
 export const fetchVisitorHistory = async (lineUserId: string): Promise<ApiVisitorRequest[]> => {
-  const response = await fetch(`/api/visitor-requests/history/line/${encodeURIComponent(lineUserId)}`);
+  const { token } = getAuthData();
+  
+  const response = await fetch(`/api/visitor-requests/history/line/${encodeURIComponent(lineUserId)}`, {
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  
   if (!response.ok) {
     throw new Error(`Failed to fetch visitor history: ${response.statusText}`);
   }
@@ -20,18 +39,34 @@ export const fetchVisitorHistory = async (lineUserId: string): Promise<ApiVisito
 };
 
 export const approveVisitorRequest = async (id: string): Promise<void> => {
+  const { token } = getAuthData();
+  
   const response = await fetch(`/api/visitor-requests/${id}/approve`, {
     method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
+  
   if (!response.ok) {
     throw new Error(`Failed to approve request: ${response.statusText}`);
   }
 };
 
 export const denyVisitorRequest = async (id: string): Promise<void> => {
+  const { token } = getAuthData();
+  
   const response = await fetch(`/api/visitor-requests/${id}/deny`, {
     method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
+  
   if (!response.ok) {
     throw new Error(`Failed to deny request: ${response.statusText}`);
   }

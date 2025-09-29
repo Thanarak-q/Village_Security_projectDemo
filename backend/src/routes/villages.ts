@@ -3,6 +3,7 @@ import db from "../db/drizzle";
 import { villages, admins } from "../db/schema";
 import { eq, or, inArray } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
+import { requireLiffAuth } from "../hooks/requireLiffAuth";
 
 export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
   // Public endpoint for village key validation used during registration
@@ -52,15 +53,8 @@ export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
   .onBeforeHandle(requireRole(["admin", "superadmin"]))
   .get("/admin", async ({ currentUser, set }: any) => {
     try {
-      // Check if user has admin or superadmin role
-      if (!currentUser || (currentUser.role !== "admin" && currentUser.role !== "superadmin")) {
-        set.status = 403;
-        return { 
-          success: false, 
-          error: "Access denied. Admin role required." 
-        };
-      }
-
+      // Role checking is already handled by requireRole middleware
+      console.log("currentUser in /api/villages/admin:", currentUser);
       const { role, village_keys } = currentUser;
       
       let adminVillages;
@@ -101,6 +95,66 @@ export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
       return { 
         success: false, 
         error: "Failed to fetch admin villages" 
+      };
+    }
+  })
+
+  // LIFF endpoint for village validation (used by guards and residents)
+  .onBeforeHandle(requireLiffAuth(["guard", "resident"]))
+  .get("/validate", async ({ query, currentUser, set }: any) => {
+    try {
+      const { key: villageKey } = query as { key: string };
+
+      if (!villageKey) {
+        set.status = 400;
+        return {
+          success: false,
+          error: "Village key is required"
+        };
+      }
+
+      // Check if the user has access to this village
+      const { village_keys } = currentUser;
+      if (!village_keys.includes(villageKey)) {
+        set.status = 403;
+        return {
+          success: false,
+          error: "You don't have access to this village"
+        };
+      }
+
+      // Get village information
+      const village = await db
+        .select({
+          village_key: villages.village_key,
+          village_name: villages.village_name,
+        })
+        .from(villages)
+        .where(eq(villages.village_key, villageKey))
+        .then(results => results[0]);
+
+      if (!village) {
+        set.status = 404;
+        return {
+          success: false,
+          error: "Village not found"
+        };
+      }
+
+      return {
+        success: true,
+        data: {
+          village_key: village.village_key,
+          village_name: village.village_name,
+          exists: true
+        }
+      };
+    } catch (error) {
+      console.error("Error validating village for LIFF user:", error);
+      set.status = 500;
+      return {
+        success: false,
+        error: "Failed to validate village"
       };
     }
   })

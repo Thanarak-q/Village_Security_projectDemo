@@ -3,16 +3,16 @@ import db from "../db/drizzle";
 import { visitor_records, guards, houses, house_members, villages } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { saveBase64Image, getImageExtension } from "../utils/imageUtils";
+import { requireLiffAuth } from "../hooks/requireLiffAuth";
 
-// Note: This route is intentionally left unauthenticated to support the
-// current mock frontend flow. Add role checks later if required.
+// Approval form routes for guards to submit visitor forms
 const approvalForm = new Elysia({ prefix: "/api" })
+  .onBeforeHandle(requireLiffAuth(["guard"]))
   .post(
   "/approvalForms",
-  async ({ body }) => {
+  async ({ body, currentUser }: any) => {
     type ApprovalFormBody = {
       visitorIDCard: string;
-      guardId: string;
       houseId: string;
       licenseImage?: string;
       idCardImage?: string;
@@ -23,12 +23,14 @@ const approvalForm = new Elysia({ prefix: "/api" })
     const {
       visitorIDCard,
       houseId,
-      guardId,
       licenseImage,
       idCardImage,
       licensePlate,
       visitPurpose,
     } = (body || {}) as ApprovalFormBody;
+
+    // Get guard ID from authenticated user
+    const guardId = currentUser.guard_id;
 
     const errors: string[] = [];
 
@@ -41,31 +43,13 @@ const approvalForm = new Elysia({ prefix: "/api" })
     if (licensePlate !== undefined && (typeof licensePlate !== "string" || !licensePlate.trim())) {
       errors.push("License Plate, if provided, must be a non-empty string.");
     }
-    if (!guardId || typeof guardId !== "string" || !guardId.trim()) {
-      errors.push("Guard ID is required and must be a non-empty string.");
-    }
     if (errors.length > 0) {
       return { error: errors };
     }
 
-    // Validate that guard exists
-    let guard;
-    try {
-      guard = await db.query.guards.findFirst({
-        where: eq(guards.guard_id, guardId),
-      });
-      
-      if (!guard) {
-        return { 
-          error: `Guard with ID ${guardId} not found. Please use a valid guard ID from the /api/guards endpoint.` 
-        };
-      }
-      
-      console.log(`✅ Guard found: ${guard.fname} ${guard.lname} (${guard.guard_id})`);
-    } catch (guardError) {
-      console.error("Error validating guard:", guardError);
-      return { error: "Failed to validate guard ID" };
-    }
+    // Guard is already validated through authentication
+    const guard = currentUser;
+    console.log(`✅ Authenticated guard: ${guard.fname} ${guard.lname} (${guard.guard_id})`);
 
     // Validate that house exists
     let house;

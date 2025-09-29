@@ -86,6 +86,7 @@ export const requireRole = (required: string | string[] = "*") => {
     }
 
     if (required !== "*" && !allowedRoles.includes(userRole)) {
+      console.log("Role check failed:", { userRole, allowedRoles, required });
       set.status = 403;
       return { error: "Forbidden: You do not have the required role to access this resource." };
     }
@@ -107,6 +108,7 @@ export const requireRole = (required: string | string[] = "*") => {
     // Add village_keys to currentUser
     context.currentUser = {
       ...user,
+      role: userRole, // Ensure role is properly set for endpoint access
       village_keys,
     };
   };

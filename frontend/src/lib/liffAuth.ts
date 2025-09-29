@@ -24,6 +24,8 @@ export interface LiffAuthResponse {
   existingRoles?: string[]; // Roles user already has
   canRegisterAs?: string[]; // Roles user can still register for
   message?: string; // Custom success/error message
+  needsRedirect?: boolean; // Indicates if redirect is needed
+  redirectTo?: string; // Where to redirect
 }
 
 // Use relative paths for API calls so Caddy can route them properly
@@ -42,6 +44,7 @@ export const verifyLiffToken = async (idToken: string, role?: 'resident' | 'guar
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include', // This is crucial for cookies to be sent and received
       body: JSON.stringify({ idToken, role }),
     });
 
@@ -136,7 +139,24 @@ export const switchUserRole = async (targetRole: 'resident' | 'guard'): Promise<
   try {
     const svc = LiffService.getInstance();
     
-    // Check if user is logged in
+    // Check if user has stored authentication data first
+    const { user: storedUser, token: storedToken } = getAuthData();
+    
+    // If user has stored auth data but LIFF session is not active, 
+    // redirect them to the appropriate page first
+    if (storedUser && storedToken && !svc.isLoggedIn()) {
+      console.log(`🔄 User has stored auth data but LIFF session inactive. Redirecting to ${targetRole} page first...`);
+      
+      // Return a special response that indicates redirect is needed
+      return {
+        success: false,
+        error: `Please go to ${targetRole} page first, then you will be redirected to LIFF for authentication.`,
+        needsRedirect: true,
+        redirectTo: targetRole === 'resident' ? '/Resident' : '/guard'
+      };
+    }
+    
+    // Check if user is logged in to LIFF
     if (!svc.isLoggedIn()) {
       return {
         success: false,
@@ -160,8 +180,8 @@ export const switchUserRole = async (targetRole: 'resident' | 'guard'): Promise<
     
     if (authResult.success && authResult.user && authResult.token) {
       // Store the new authentication data
-      localStorage.setItem('liff_user', JSON.stringify(authResult.user));
-      localStorage.setItem('liff_token', authResult.token);
+      localStorage.setItem('liffUser', JSON.stringify(authResult.user));
+      localStorage.setItem('liffToken', authResult.token);
       
       console.log(`✅ Successfully switched to ${targetRole} role:`, authResult.user);
       
