@@ -1,14 +1,19 @@
-FROM node:24-alpine
+FROM oven/bun:latest
 
 WORKDIR /app
 
-# ใช้ lockfile เพื่อ cache ที่แม่นยำ
-COPY package.json package-lock.json ./
-RUN npm ci --verbose 
+# 1. Copy only files needed to install dependencies
+COPY package.json ./
 
-# ค่อย copy โค้ด เพื่อไม่ให้ invalid cache ง่าย ๆ
+# 2. Install dependencies exactly as in lockfile
+RUN bun install --frozen-lockfile
+
+# 3. Copy the rest of the app source code
 COPY . .
 
-EXPOSE 3000
-# dev server เท่านั้น (อย่าใช้ใน prod)
-CMD ["npm", "run", "dev"]
+# 4. Make entrypoint executable (ถ้า script อยู่ใน repo)
+RUN chmod +x entrypoint.sh
+
+EXPOSE 3001
+
+ENTRYPOINT ["./entrypoint.sh"]
