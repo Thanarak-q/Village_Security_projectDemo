@@ -42,7 +42,7 @@ if [ -f package.json ]; then
     [ -f package-lock.json ] && rm -f package-lock.json || true
     
     echo "📥 Installing frontend dependencies..."
-    npm install --silent || exit 1
+    npm install --verbose || exit 1
 else
     echo "⚠️ No package.json in frontend directory. Skipping npm install."
 fi
