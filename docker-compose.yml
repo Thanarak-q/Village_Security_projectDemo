@@ -71,7 +71,7 @@ services:
     ports:
       - "80:80"
     volumes:
-      ./Caddyfile:/etc/caddy/Caddyfile
+      - ./Caddyfile:/etc/caddy/Caddyfile
     depends_on:
       - frontend
       - backend

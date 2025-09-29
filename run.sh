@@ -22,14 +22,14 @@ docker volume prune -a --force
 # FRONTEND SETUP
 cd frontend || exit 1
 echo "📥 Installing frontend dependencies..."
-npm ci --verbose || exit 1
+bun install --frozen-lockfile || exit 1
 
 cd ..
 # BACKEND SETUP
 cd backend || exit 1
 echo "📥 Installing backend dependencies..."
 rm -rf node_modules
-bun install --frozen-lockfile
+bun install --frozen-lockfile || exit 1
 
 cd ..
 
