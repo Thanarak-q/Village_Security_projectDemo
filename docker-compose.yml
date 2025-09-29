@@ -70,7 +70,7 @@ services:
     restart: unless-stopped
 
   db:
-    image: postgres:17
+    image: postgres:18-alpine
     ports:
       - "5432:5432"
     environment:
@@ -82,9 +82,8 @@ services:
     restart: unless-stopped
 
   ngrok:
-    build:
-      context: .
-      dockerfile: Dockerfile.ngrok
+    image: ngrok/ngrok:latest
+    command: ["http", "caddy:80", "--log=stdout"]
     environment:
       NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
     ports:
