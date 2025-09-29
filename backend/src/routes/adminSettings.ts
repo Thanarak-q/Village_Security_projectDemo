@@ -221,6 +221,7 @@ export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
         .update(admins)
         .set({
           password_hash: hashedNewPassword,
+          password_changed_at: new Date(),
           updatedAt: new Date(),
         })
         .where(eq(admins.admin_id, admin_id))
@@ -343,6 +344,7 @@ export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
         // Hash new password
         const hashedNewPassword = await hashPassword(newPassword);
         updateData.password_hash = hashedNewPassword;
+        updateData.password_changed_at = new Date();
         passwordChanged = true;
       }
 
