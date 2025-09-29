@@ -20,7 +20,7 @@ interface ApproveUserRequest {
   userId: string;
   currentRole: "resident" | "guard";
   approvedRole: "resident" | "guard";
-  houseNumber?: string;
+  houseAddress?: string;
   notes?: string;
 }
 
@@ -170,7 +170,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
         userId,
         currentRole,
         approvedRole,
-        houseNumber,
+        houseAddress,
         notes,
       }: ApproveUserRequest = body as ApproveUserRequest;
 
@@ -181,6 +181,11 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
           error: "Missing required fields: userId, currentRole, approvedRole",
         };
       }
+      console.log("🔍 ApproveUser - userId:", userId);
+      console.log("🔍 ApproveUser - currentRole:", currentRole);
+      console.log("🔍 ApproveUser - approvedRole:", approvedRole);
+      console.log("🔍 ApproveUser - houseAddress:", houseAddress);
+      console.log("🔍 ApproveUser - notes:", notes);
 
       // Validate roles
       if (
@@ -193,14 +198,14 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
-      // Validate house number for residents
+      // Validate house address for residents
       if (
         approvedRole === "resident" &&
-        (!houseNumber || houseNumber.trim() === "")
+        (!houseAddress || houseAddress.trim() === "")
       ) {
         return {
           success: false,
-          error: "House number is required when approving as resident",
+          error: "House address is required when approving as resident",
         };
       }
 
@@ -235,36 +240,70 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
           };
         }
 
-        // Update house address if provided
-        if (houseNumber) {
-          // Check if resident already has a house
+        // Assign house if provided
+        if (houseAddress) {
+          const villageKey = updateResult[0].village_key;
+          
+          if (!villageKey) {
+            return {
+              success: false,
+              error: "Village key is required for house assignment",
+            };
+          }
+          
+          // Check if house with this address already exists in the village
           const existingHouse = await db
+            .select()
+            .from(houses)
+            .where(
+              and(
+                eq(houses.address, houseAddress.trim()),
+                eq(houses.village_key, villageKey)
+              )
+            );
+
+          let houseId: string;
+
+          if (existingHouse.length > 0) {
+            // Use existing house
+            houseId = existingHouse[0].house_id;
+            console.log(`🏠 Using existing house: ${houseAddress} (ID: ${houseId})`);
+          } else {
+            // Create new house
+            const newHouse = await db
+              .insert(houses)
+              .values({
+                address: houseAddress.trim(),
+                village_key: villageKey,
+              })
+              .returning();
+            
+            houseId = newHouse[0].house_id;
+            console.log(`🏠 Created new house: ${houseAddress} (ID: ${houseId})`);
+          }
+
+          // Check if resident already has a house assignment
+          const existingHouseMember = await db
             .select()
             .from(house_members)
             .where(eq(house_members.resident_id, userId));
 
-          if (existingHouse.length > 0) {
-            // Update existing house address
+          if (existingHouseMember.length > 0) {
+            // Update existing house assignment
             await db
-              .update(houses)
-              .set({ address: houseNumber })
-              .where(eq(houses.house_id, existingHouse[0].house_id!));
+              .update(house_members)
+              .set({ house_id: houseId })
+              .where(eq(house_members.resident_id, userId));
+            console.log(`🔄 Updated house assignment for resident ${userId}`);
           } else {
-            // Create new house and house_member record
-            const villageKey = updateResult[0].village_key;
-
-            const newHouse = await db
-              .insert(houses)
+            // Create new house_member record
+            await db
+              .insert(house_members)
               .values({
-                address: houseNumber,
-                village_key: villageKey,
-              })
-              .returning();
-
-            await db.insert(house_members).values({
-              house_id: newHouse[0].house_id,
-              resident_id: userId,
-            });
+                resident_id: userId,
+                house_id: houseId,
+              });
+            console.log(`➕ Created new house assignment for resident ${userId}`);
 
             // Create notification for house member added
             try {
@@ -272,8 +311,8 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
                 house_member_id: '', // Will be generated by database
                 resident_id: userId,
                 resident_name: `${updateResult[0].fname} ${updateResult[0].lname}`,
-                house_address: houseNumber || '',
-                village_key: updateResult[0].village_key || '',
+                house_address: houseAddress.trim(),
+                village_key: villageKey || '',
               });
               console.log(`📢 House member added notification sent: ${updateResult[0].fname} ${updateResult[0].lname}`);
             } catch (notificationError) {
@@ -497,18 +536,50 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
           })
           .returning();
 
-        // Create house for resident
-        if (houseNumber) {
-          const newHouse = await db
-            .insert(houses)
-            .values({
-              address: houseNumber,
-              village_key: guard[0].village_key,
-            })
-            .returning();
+        // Assign house for resident
+        if (houseAddress) {
+          const villageKey = newResident[0].village_key;
+          
+          if (!villageKey) {
+            return {
+              success: false,
+              error: "Village key is required for house assignment",
+            };
+          }
+          
+          // Check if house with this address already exists in the village
+          const existingHouse = await db
+            .select()
+            .from(houses)
+            .where(
+              and(
+                eq(houses.address, houseAddress.trim()),
+                eq(houses.village_key, villageKey)
+              )
+            );
+
+          let houseId: string;
+
+          if (existingHouse.length > 0) {
+            // Use existing house
+            houseId = existingHouse[0].house_id;
+            console.log(`🏠 Using existing house: ${houseAddress} (ID: ${houseId})`);
+          } else {
+            // Create new house
+            const newHouse = await db
+              .insert(houses)
+              .values({
+                address: houseAddress.trim(),
+                village_key: villageKey,
+              })
+              .returning();
+            
+            houseId = newHouse[0].house_id;
+            console.log(`🏠 Created new house: ${houseAddress} (ID: ${houseId})`);
+          }
 
           await db.insert(house_members).values({
-            house_id: newHouse[0].house_id,
+            house_id: houseId,
             resident_id: newResident[0].resident_id,
           });
 
@@ -518,8 +589,8 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
                 house_member_id: '', // Will be generated by database
                 resident_id: newResident[0].resident_id,
                 resident_name: `${newResident[0].fname} ${newResident[0].lname}`,
-                house_address: houseNumber || '',
-                village_key: newResident[0].village_key || '',
+                house_address: houseAddress.trim(),
+                village_key: villageKey,
               });
             console.log(`📢 House member added notification sent: ${newResident[0].fname} ${newResident[0].lname}`);
           } catch (notificationError) {
@@ -538,7 +609,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             currentUser.username,
             "resident",
             userName,
-            houseNumber
+            houseAddress || undefined
           );
           await userManagementActivityLogger.logUserRoleChanged(
             currentUser.admin_id,

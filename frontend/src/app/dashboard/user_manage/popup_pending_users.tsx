@@ -222,7 +222,7 @@ export default function PendingUsersDialog({
             userId: selectedUser.id,
             currentRole: selectedUser.role,
             approvedRole: formData.approvedRole === 'ลูกบ้าน' ? 'resident' : 'guard',
-            houseNumber: formData.approvedRole === 'ลูกบ้าน' ? formData.houseNumber : undefined,
+            houseAddress: formData.approvedRole === 'ลูกบ้าน' ? formData.houseNumber : undefined,
             notes: formData.notes
           }),
         });
@@ -307,7 +307,8 @@ export default function PendingUsersDialog({
       houseNumber: data.house_address || "-",
       requestDate: data.createdAt,
       status: data.status,
-      profile_image_url: data.profile_image_url
+      profile_image_url: data.profile_image_url,
+      village_key: data.village_key
     };
   };
 

@@ -23,7 +23,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Upload, Home, House, User, Search, Shield, Loader2} from "lucide-react";
 import axios from "axios";
 import { ModeToggle } from "@/components/mode-toggle";
-import { getAuthData } from "@/lib/liffAuth";
+import { getAuthData, switchUserRole } from "@/lib/liffAuth";
 
 const visitorSchema = z.object({
   license_image: z.string().optional(),
@@ -68,7 +68,22 @@ function ApprovalForm() {
           setCurrentUser(user);
         }
         
-        const housesResponse = await axios.get("/api/houses", {
+        // Get village_key from user data or sessionStorage
+        let villageKey = user?.village_key;
+        if (!villageKey) {
+          villageKey = sessionStorage.getItem("selectedVillage") || undefined;
+        }
+        
+        if (!villageKey) {
+          console.error("No village_key found for guard", {
+            user: user,
+            sessionStorage: sessionStorage.getItem("selectedVillage")
+          });
+          alert("ไม่พบข้อมูลหมู่บ้าน กรุณาติดต่อผู้ดูแลระบบ");
+          return;
+        }
+        
+        const housesResponse = await axios.get(`/api/houses?village_key=${encodeURIComponent(villageKey)}`, {
           withCredentials: true,
           headers: {
             "Content-Type": "application/json",
@@ -80,9 +95,19 @@ function ApprovalForm() {
         setHouses(houses);
         console.log("🏠 Houses loaded:", {
           total: houses.length,
+          village_key: villageKey,
+          houses: houses,
+          response: housesResponse.data
         });
+        
+        if (houses.length === 0) {
+          console.warn("No houses found for village:", villageKey);
+        }
       } catch (err) {
-        console.log("Error fetching data:", err);
+        console.error("Error fetching houses data:", err);
+        if (axios.isAxiosError(err) && err.response?.data?.error) {
+          console.error("API Error:", err.response.data.error);
+        }
       }
     };
     fetchData();
@@ -116,8 +141,27 @@ function ApprovalForm() {
     fetchUserRoles();
   }, [currentUser]);
 
-  const handleSwitchToResident = () => {
-    router.push('/Resident');
+  const handleSwitchToResident = async () => {
+    if (isSwitchingRole) return; // Prevent multiple clicks
+    
+    try {
+      setIsSwitchingRole(true);
+      console.log("🔄 Switching to resident role...");
+      const result = await switchUserRole('resident');
+      
+      if (result.success) {
+        console.log("✅ Successfully switched to resident role");
+        router.push('/Resident');
+      } else {
+        console.error("❌ Failed to switch to resident role:", result.error);
+        alert(`ไม่สามารถสลับบทบาทได้: ${result.error}`);
+      }
+    } catch (error) {
+      console.error("❌ Error switching to resident role:", error);
+      alert("เกิดข้อผิดพลาดในการสลับบทบาท");
+    } finally {
+      setIsSwitchingRole(false);
+    }
   };
 
   const handleNavigateToProfile = () => {
@@ -156,6 +200,7 @@ function ApprovalForm() {
   const [step, setStep] = useState<number>(1);
   const progress = step === 1 ? 25 : step === 2 ? 60 : 100;
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSwitchingRole, setIsSwitchingRole] = useState(false);
 
   const [houseQuery, setHouseQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -283,6 +328,7 @@ function ApprovalForm() {
     setIsSubmitting(true);
     try {
       console.log("🚀 Submitting form data:", data);
+      console.log("🔍 Guard ID being sent:", data.guard_id);
 
       // Send to real API without authentication
       const payload: Record<string, unknown> = {

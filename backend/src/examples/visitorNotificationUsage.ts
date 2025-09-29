@@ -83,7 +83,7 @@ export async function getResidentsExample() {
 
 // Example 4: Using API endpoints
 export async function apiEndpointExample() {
-  const baseUrl = process.env.API_BASE_URL || 'http://localhost:3001';
+  const baseUrl = process.env.API_BASE_URL;
   
   // Example: Send visitor notification to residents
   const notificationPayload = {

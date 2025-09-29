@@ -100,3 +100,5 @@ echo "  - Check your LINE app for received messages"
 echo "  - Update USER_ID in manualFlexMessageTest.ts for real testing"
 echo "  - Set LINE_CHANNEL_ACCESS_TOKEN in .env for manual tests"
 echo "  - Run 'npm run test:watch' for continuous testing"
+
+

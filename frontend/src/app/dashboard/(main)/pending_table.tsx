@@ -202,7 +202,7 @@ export default function PendingTable() {
             userId: selectedUser.id,
             currentRole: selectedUser.role,
             approvedRole: formData.approvedRole === 'ลูกบ้าน' ? 'resident' : 'guard',
-            houseNumber: formData.approvedRole === 'ลูกบ้าน' ? formData.houseNumber : undefined,
+            houseAddress: formData.approvedRole === 'ลูกบ้าน' ? formData.houseNumber : undefined,
             notes: formData.notes
           }),
         });

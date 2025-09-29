@@ -102,6 +102,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
 
       // Validate audience strictly
       if (channelId !== clientId) {
+        console.log('🔍 Token audience mismatch:', { expected: clientId, received: channelId });
         set.status = 401;
         return { success: false, error: "Token audience mismatch" };
       }
@@ -117,8 +118,8 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
 
       // Determine user's actual role(s)
       const existingRoles: string[] = [];
-      if (resident) existingRoles.push('resident');
       if (guard) existingRoles.push('guard');
+      if (resident) existingRoles.push('resident');
 
       if (existingRoles.length === 0) {
         // User not found in any table
@@ -147,9 +148,15 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         userRole = 'resident';
         user = resident;
       } else {
-        // Default to the first available role
-        userRole = existingRoles[0] as 'resident' | 'guard';
-        user = userRole === 'guard' ? guard : resident;
+        // Default to guard role if user has both roles (guard has higher priority)
+        // This ensures guards can access their functionality even when they have both roles
+        if (existingRoles.includes('guard')) {
+          userRole = 'guard';
+          user = guard;
+        } else {
+          userRole = existingRoles[0] as 'resident' | 'guard';
+          user = userRole === 'guard' ? guard : resident;
+        }
       }
 
       // User found, create token and return user data
@@ -261,9 +268,10 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
       const isGuardRequest = userType === 'guard';
       const isResidentRequest = userType === 'resident';
 
-      const clientId = process.env.LINE_CHANNEL_ID || '';
+      const fullChannelId = process.env.LINE_CHANNEL_ID || '';
+      const clientId = fullChannelId.split('-')[0]; // Extract client ID part
       
-      console.log('🔍 Registration - Using Channel ID:', clientId, 'for', isGuardRequest ? 'guard' : isResidentRequest ? 'resident' : 'default');
+      console.log('🔍 Registration - Using Channel ID:', fullChannelId, 'Client ID:', clientId, 'for', isGuardRequest ? 'guard' : isResidentRequest ? 'resident' : 'default');
 
       // Verify LINE ID token
       
