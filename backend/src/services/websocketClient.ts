@@ -46,7 +46,7 @@ class WebSocketClient {
       this.isConnecting = true;
       // Use environment variable if set, otherwise auto-detect
       const wsUrl = process.env.WEBSOCKET_URL || 
-        (process.env.NODE_ENV === 'production' || process.env.DOCKER_ENV === 'true' 
+        (process.env.NODE_ENV === 'production' || process.env.DOCKER_ENV === 'true' || process.env.NODE_ENV === 'development'
           ? 'ws://websocket:3002/ws' 
           : 'ws://localhost:3002/ws');
       console.log('🔗 Attempting to connect to:', wsUrl);
