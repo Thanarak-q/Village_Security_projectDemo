@@ -34,10 +34,10 @@ services:
       - ./websocket:/app
       - /app/node_modules
     environment:
-      - WS_PORT=3002
-      - WS_PATH=/ws
-      - WS_IDLE_TIMEOUT=120
-      - NODE_ENV=development
+      - WS_PORT=${WS_PORT}
+      - WS_PATH=${WS_PATH}
+      - WS_IDLE_TIMEOUT=${WS_IDLE_TIMEOUT}
+      - NODE_ENV=${NODE_ENV}
     command: bun run dev
     restart: unless-stopped
 
@@ -50,8 +50,8 @@ services:
       - /app/node_modules
       - /app/.next
     environment:
-      - WATCHPACK_POLLING=true
-      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=${CHOKIDAR_USEPOLLING}
+      - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING}
       - NEXT_PUBLIC_API_URL=http://localhost:3001
     depends_on:
       - backend
@@ -74,9 +74,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: 1234
-      POSTGRES_DB: SOFEWARE_EN
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - dbdata:/var/lib/postgresql/data
     restart: unless-stopped
@@ -93,20 +93,6 @@ services:
       - caddy
     restart: unless-stopped
 
-  # pgadmin:
-  #   image: dpage/pgadmin4
-  #   environment:
-  #     PGADMIN_DEFAULT_EMAIL: admin@cmu.ac.th
-  #     PGADMIN_DEFAULT_PASSWORD: cmupassword
-  #   ports:
-  #     - "5050:80"
-  #   depends_on:
-  #     - db
-  #   volumes:
-  #     - pgadmin-data:/var/lib/pgadmin
-  #   restart: unless-stopped
-
 volumes:
   dbdata:
   minio_data:
-#   pgadmin-data:
