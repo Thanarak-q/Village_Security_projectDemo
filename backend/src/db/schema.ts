@@ -6,7 +6,7 @@
  */
 
 import { unique } from "drizzle-orm/gel-core";
-import { pgTable, text, timestamp, uuid, date, index, boolean, json } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, date, index, boolean, json, integer } from "drizzle-orm/pg-core";
 // import { status } from "elysia"; // Not used in this file
 
 /**
@@ -318,6 +318,44 @@ export type AdminNotification = typeof admin_notifications.$inferSelect;
 export type AdminNotificationInsert = typeof admin_notifications.$inferInsert;
 
 /**
+ * Schema for the `visitors` table. Represents visitors who have visited the village.
+ * Tracks visitor information, risk status, and visit statistics.
+ */
+export const visitors = pgTable("visitors", {
+  visitor_id: uuid("visitor_id").primaryKey().defaultRandom(),
+  fname: text("fname").notNull(),
+  lname: text("lname").notNull(),
+  id_doc_type: text("id_doc_type").$type<"thai_id" | "passport" | "other">(),
+  id_number_hash: text("id_number_hash").unique(),
+  phone: text("phone"),
+  village_key: text("village_key").references(() => villages.village_key).notNull(),
+  risk_status: text("risk_status")
+    .$type<"clear" | "watchlist" | "banned">()
+    .default("clear")
+    .notNull(),
+  visit_count: integer("visit_count").default(0).notNull(),
+  last_visit_at: timestamp("last_visit_at"),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  // Indexes for visitors table
+  index("idx_visitor_id_number_hash").on(table.id_number_hash),
+  index("idx_visitor_last_visit_at").on(table.last_visit_at),
+  index("idx_visitor_village_key").on(table.village_key),
+]);
+
+/**
+ * Represents a selectable visitor record.
+ * @type {typeof visitors.$inferSelect}
+ */
+export type Visitor = typeof visitors.$inferSelect;
+/**
+ * Represents a new visitor for insertion.
+ * @type {typeof visitors.$inferInsert}
+ */
+export type VisitorInsert = typeof visitors.$inferInsert;
+
+/**
  * An object containing all table schemas, used to initialize Drizzle ORM.
  * @type {Object}
  */
@@ -329,6 +367,7 @@ export const schema = {
   guards,
   houses,
   house_members,
+  visitors,
   visitor_records,
   admin_activity_logs,
   admin_notifications,
