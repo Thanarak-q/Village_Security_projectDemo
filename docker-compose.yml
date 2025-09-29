@@ -10,6 +10,7 @@ services:
     depends_on:
       - websocket
       - minio
+      - db
     restart: unless-stopped
     networks:
       - default
