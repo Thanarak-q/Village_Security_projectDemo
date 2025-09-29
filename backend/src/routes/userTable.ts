@@ -13,6 +13,67 @@ import { requireRole } from "../hooks/requireRole";
 import { userManagementActivityLogger } from "../utils/activityLogUtils";
 import { notificationService } from "../services/notificationService";
 
+// LIFF Authentication middleware for cookie-based sessions
+const requireLiffAuth = async (context: any) => {
+  const { jwt, cookie, set } = context;
+  const token = cookie.liff_session?.value;
+
+  if (!token) {
+    set.status = 401;
+    return { error: "Unauthorized: No LIFF session token provided." };
+  }
+
+  let payload;
+  try {
+    payload = await jwt.verify(token);
+  } catch {
+    set.status = 401;
+    return { error: "Unauthorized: The provided LIFF token is invalid." };
+  }
+
+  if (!payload?.id || !payload?.iat) {
+    set.status = 401;
+    return { error: "Unauthorized: The LIFF token payload is malformed." };
+  }
+
+  const tokenAgeInSeconds = Date.now() / 1000 - payload.iat;
+  if (tokenAgeInSeconds > 60 * 60) { // 1 hour expiry for LIFF sessions
+    set.status = 401;
+    return { error: "Unauthorized: The provided LIFF token has expired." };
+  }
+
+  // Determine user type from JWT payload
+  const userRole = payload.role;
+  let user = null;
+
+  // Find user in the appropriate table based on their role
+  if (userRole === 'guard') {
+    user = await db.query.guards.findFirst({
+      where: eq(guards.guard_id, payload.id),
+    });
+  } else if (userRole === 'resident') {
+    user = await db.query.residents.findFirst({
+      where: eq(residents.resident_id, payload.id),
+    });
+  }
+
+  if (!user) {
+    set.status = 401;
+    return { error: "Unauthorized: User associated with the LIFF token not found." };
+  }
+
+  if (user.status !== "verified") {
+    set.status = 403;
+    return { error: "Forbidden: The user account is not active." };
+  }
+
+  // Add user to context
+  context.currentUser = {
+    ...user,
+    village_keys: user.village_key ? [user.village_key] : [],
+  };
+};
+
 /**
  * Interface for the update user request.
  * @interface
@@ -202,6 +263,136 @@ async function createHouseForResident(
  * @type {Elysia}
  */
 export const userTableRoutes = new Elysia({ prefix: "/api" })
+  // Get guard by LINE user ID - accessible by guards themselves
+  .get("/guards/by-line-user", async (context: any) => {
+    // Apply LIFF authentication middleware
+    const authResult = await requireLiffAuth(context);
+    if (authResult) {
+      return authResult;
+    }
+    
+    const { query, set, currentUser } = context;
+    try {
+      const { lineUserId } = query as { lineUserId: string };
+
+      if (!lineUserId) {
+        set.status = 400;
+        return {
+          success: false,
+          error: "Line User ID is required",
+        };
+      }
+
+      const guard = await db.query.guards.findFirst({
+        where: eq(guards.line_user_id, lineUserId),
+        columns: {
+          guard_id: true,
+          fname: true,
+          lname: true,
+          email: true,
+          phone: true,
+          village_key: true,
+          status: true,
+          line_user_id: true,
+        }
+      });
+
+      if (!guard) {
+        set.status = 404;
+        return {
+          success: false,
+          error: "Guard not found",
+        };
+      }
+
+      // If currentUser is provided (authenticated request), verify it's the same person
+      if (currentUser) {
+        // Check if the found guard matches the current user's village
+        if (currentUser.village_key && guard.village_key !== currentUser.village_key) {
+          set.status = 403;
+          return {
+            success: false,
+            error: "Access denied: Guard not in your village",
+          };
+        }
+      }
+
+      return {
+        success: true,
+        guard: guard,
+      };
+    } catch (error) {
+      console.error("Error fetching guard by LINE user ID:", error);
+      set.status = 500;
+      return {
+        success: false,
+        error: "Failed to fetch guard",
+      };
+    }
+  })
+  // Get guard by name - accessible by guards themselves
+  .get("/guards/by-name", async ({ query, set, currentUser }: any) => {
+    try {
+      const { fname, lname } = query as { fname: string; lname: string };
+
+      if (!fname || !lname) {
+        set.status = 400;
+        return {
+          success: false,
+          error: "First name and last name are required",
+        };
+      }
+
+      const guard = await db.query.guards.findFirst({
+        where: and(
+          eq(guards.fname, fname),
+          eq(guards.lname, lname)
+        ),
+        columns: {
+          guard_id: true,
+          fname: true,
+          lname: true,
+          email: true,
+          phone: true,
+          village_key: true,
+          status: true,
+          line_user_id: true,
+        }
+      });
+
+      if (!guard) {
+        set.status = 404;
+        return {
+          success: false,
+          error: "Guard not found",
+        };
+      }
+
+      // If currentUser is provided (authenticated request), verify it's the same person
+      if (currentUser) {
+        // Check if the found guard matches the current user's village
+        if (currentUser.village_key && guard.village_key !== currentUser.village_key) {
+          set.status = 403;
+          return {
+            success: false,
+            error: "Access denied: Guard not in your village",
+          };
+        }
+      }
+
+      return {
+        success: true,
+        guard: guard,
+      };
+    } catch (error) {
+      console.error("Error fetching guard by name:", error);
+      set.status = 500;
+      return {
+        success: false,
+        error: "Failed to fetch guard",
+      };
+    }
+  })
   .onBeforeHandle(requireRole(["staff","admin"]))
   /**
    * Get all users for the current user's village.

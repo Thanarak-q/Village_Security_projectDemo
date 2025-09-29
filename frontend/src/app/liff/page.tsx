@@ -37,6 +37,23 @@ export default function LiffPage() {
         
         await Promise.race([initPromise, timeoutPromise]);
 
+        // Check if user is in the correct LIFF channel before proceeding
+        if (typeof window !== 'undefined' && window.liff && window.liff.getContext) {
+          try {
+            const context = window.liff.getContext();
+            const expectedLiffId = process.env.NEXT_PUBLIC_LIFF_ID;
+            
+            if (context && expectedLiffId && context.liffId !== expectedLiffId) {
+              setStep("error");
+              setMsg("คุณกำลังเข้าถึงจาก LIFF แอปอื่น กรุณาใช้ LIFF แอปที่ถูกต้อง");
+              return;
+            }
+          } catch (error) {
+            console.warn("Could not verify LIFF channel:", error);
+            // Continue with normal flow if we can't verify
+          }
+        }
+
         const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
         if (!liffId) {
           setStep("error");
@@ -56,8 +73,19 @@ export default function LiffPage() {
         if (!svc.isLoggedIn()) {
           setStep("logging-in");
           setMsg("กำลังเข้าสู่ระบบด้วย LINE ...");
-          await svc.login(window.location.href);
-          return; // จะ redirect ออกไป
+          try {
+            // Use relative path to prevent cross-LIFF redirection
+            const redirectUri = window.location.pathname + window.location.search;
+            await svc.login(redirectUri);
+            return; // จะ redirect ออกไป
+          } catch (error) {
+            if (error instanceof Error && error.message === "Cross-LIFF redirection not allowed") {
+              setStep("error");
+              setMsg("คุณกำลังเข้าถึงจาก LIFF แอปอื่น กรุณาใช้ LIFF แอปที่ถูกต้อง");
+              return;
+            }
+            throw error; // Re-throw other errors
+          }
         }
 
         // 2) เคส session ค้าง: isLoggedIn() = true แต่ไม่มี access token → re-login
@@ -67,8 +95,19 @@ export default function LiffPage() {
           setStep("logging-in");
           setMsg("รีเฟรชสิทธิ์เข้าใช้งาน LINE ...");
           svc.logout();
-          await svc.login(window.location.href);
-          return;
+          try {
+            // Use relative path to prevent cross-LIFF redirection
+            const redirectUri = window.location.pathname + window.location.search;
+            await svc.login(redirectUri);
+            return;
+          } catch (error) {
+            if (error instanceof Error && error.message === "Cross-LIFF redirection not allowed") {
+              setStep("error");
+              setMsg("คุณกำลังเข้าถึงจาก LIFF แอปอื่น กรุณาใช้ LIFF แอปที่ถูกต้อง");
+              return;
+            }
+            throw error; // Re-throw other errors
+          }
         }
 
         // 2.5) ตรวจสอบและรีเฟรช token อัตโนมัติ
@@ -78,8 +117,19 @@ export default function LiffPage() {
           setStep("logging-in");
           setMsg("รีเฟรชสิทธิ์เข้าใช้งาน LINE ...");
           svc.logout();
-          await svc.login(window.location.href);
-          return;
+          try {
+            // Use relative path to prevent cross-LIFF redirection
+            const redirectUri = window.location.pathname + window.location.search;
+            await svc.login(redirectUri);
+            return;
+          } catch (error) {
+            if (error instanceof Error && error.message === "Cross-LIFF redirection not allowed") {
+              setStep("error");
+              setMsg("คุณกำลังเข้าถึงจาก LIFF แอปอื่น กรุณาใช้ LIFF แอปที่ถูกต้อง");
+              return;
+            }
+            throw error; // Re-throw other errors
+          }
         }
 
         // 3) พยายามดึงโปรไฟล์
@@ -91,8 +141,19 @@ export default function LiffPage() {
           setStep("logging-in");
           setMsg("รีเฟรชสิทธิ์เข้าใช้งาน LINE ...");
           svc.logout();
-          await svc.login(window.location.href);
-          return;
+          try {
+            // Use relative path to prevent cross-LIFF redirection
+            const redirectUri = window.location.pathname + window.location.search;
+            await svc.login(redirectUri);
+            return;
+          } catch (error) {
+            if (error instanceof Error && error.message === "Cross-LIFF redirection not allowed") {
+              setStep("error");
+              setMsg("คุณกำลังเข้าถึงจาก LIFF แอปอื่น กรุณาใช้ LIFF แอปที่ถูกต้อง");
+              return;
+            }
+            throw error; // Re-throw other errors
+          }
         }
 
         // 5) สำเร็จ → แสดงผล แล้วพาไปหน้าแรก
@@ -125,26 +186,49 @@ export default function LiffPage() {
                     
                     if (rolesData.success && rolesData.roles) {
                       const verifiedRoles = rolesData.roles.filter((role: any) => role.status === 'verified');
+                      const pendingRoles = rolesData.roles.filter((role: any) => role.status === 'pending');
                       const hasResidentRole = verifiedRoles.some((role: any) => role.role === 'resident');
                       const hasGuardRole = verifiedRoles.some((role: any) => role.role === 'guard');
+                      const hasPendingResidentRole = pendingRoles.some((role: any) => role.role === 'resident');
+                      const hasPendingGuardRole = pendingRoles.some((role: any) => role.role === 'guard');
                       
-                      console.log('🔍 User roles:', { verifiedRoles, hasResidentRole, hasGuardRole });
+                      console.log('🔍 User roles:', { 
+                        verifiedRoles, 
+                        pendingRoles, 
+                        hasResidentRole, 
+                        hasGuardRole,
+                        hasPendingResidentRole,
+                        hasPendingGuardRole
+                      });
                       
-                      if (hasResidentRole && hasGuardRole) {
-                        // User has both roles, redirect to role selection
-                        console.log('🔄 User has both roles, redirecting to role selection');
+                      // Check for pending roles first
+                      if (hasPendingResidentRole && hasPendingGuardRole) {
+                        // User has both roles pending, redirect to role selection
+                        console.log('⏳ User has both roles pending, redirecting to role selection');
+                        setTimeout(() => router.replace('/liff/select-role'), 1000);
+                      } else if (hasPendingResidentRole) {
+                        // User has pending resident role
+                        console.log('⏳ User has pending resident role, redirecting to Resident pending page');
+                        setTimeout(() => router.replace('/Resident/pending'), 1000);
+                      } else if (hasPendingGuardRole) {
+                        // User has pending guard role
+                        console.log('⏳ User has pending guard role, redirecting to Guard pending page');
+                        setTimeout(() => router.replace('/guard/pending'), 1000);
+                      } else if (hasResidentRole && hasGuardRole) {
+                        // User has both verified roles, redirect to role selection
+                        console.log('🔄 User has both verified roles, redirecting to role selection');
                         setTimeout(() => router.replace('/liff/select-role'), 1000);
                       } else if (hasResidentRole) {
-                        // User only has resident role
-                        console.log('🏠 User has resident role only, redirecting to Resident page');
+                        // User only has verified resident role
+                        console.log('🏠 User has verified resident role only, redirecting to Resident page');
                         setTimeout(() => router.replace('/Resident'), 1000);
                       } else if (hasGuardRole) {
-                        // User only has guard role
-                        console.log('🛡️ User has guard role only, redirecting to Guard page');
+                        // User only has verified guard role
+                        console.log('🛡️ User has verified guard role only, redirecting to Guard page');
                         setTimeout(() => router.replace('/guard'), 1000);
                       } else {
-                        // User has no verified roles
-                        console.log('⏳ User has no verified roles, redirecting to pending page');
+                        // User has no verified or pending roles, redirect to role selection
+                        console.log('⏳ User has no roles, redirecting to role selection');
                         setTimeout(() => router.replace('/liff/select-role'), 1000);
                       }
                     } else {

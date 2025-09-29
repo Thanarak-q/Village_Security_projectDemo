@@ -29,6 +29,9 @@ export interface LiffAuthResponse {
 // Use relative paths for API calls so Caddy can route them properly
 const API_BASE_URL = '';
 
+// Import LiffService for role switching
+import { LiffService } from './liff';
+
 // Verify LINE ID token with backend
 export const verifyLiffToken = async (idToken: string, role?: 'resident' | 'guard'): Promise<LiffAuthResponse> => {
   try {
@@ -124,6 +127,59 @@ export const verifyLiffToken = async (idToken: string, role?: 'resident' | 'guar
     return {
       success: false,
       error: `Failed to verify LINE token: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    };
+  }
+};
+
+// Switch user role by re-authenticating with specific role
+export const switchUserRole = async (targetRole: 'resident' | 'guard'): Promise<LiffAuthResponse> => {
+  try {
+    const svc = LiffService.getInstance();
+    
+    // Check if user is logged in
+    if (!svc.isLoggedIn()) {
+      return {
+        success: false,
+        error: 'User not logged in. Please login first.',
+      };
+    }
+
+    // Get fresh ID token
+    const idToken = svc.getIDToken();
+    if (!idToken) {
+      return {
+        success: false,
+        error: 'No ID token available. Please refresh the page.',
+      };
+    }
+
+    console.log(`🔄 Switching to ${targetRole} role...`);
+    
+    // Re-authenticate with the specific role
+    const authResult = await verifyLiffToken(idToken, targetRole);
+    
+    if (authResult.success && authResult.user && authResult.token) {
+      // Store the new authentication data
+      localStorage.setItem('liff_user', JSON.stringify(authResult.user));
+      localStorage.setItem('liff_token', authResult.token);
+      
+      console.log(`✅ Successfully switched to ${targetRole} role:`, authResult.user);
+      
+      return {
+        success: true,
+        user: authResult.user,
+        token: authResult.token,
+        message: `Successfully switched to ${targetRole} role`,
+      };
+    } else {
+      console.error(`❌ Failed to switch to ${targetRole} role:`, authResult.error);
+      return authResult;
+    }
+  } catch (error) {
+    console.error('Error switching user role:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
     };
   }
 };

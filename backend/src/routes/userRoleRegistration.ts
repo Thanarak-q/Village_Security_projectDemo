@@ -7,6 +7,67 @@ import {
 } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 
+// LIFF Authentication middleware for cookie-based sessions
+const requireLiffAuth = async (context: any) => {
+  const { jwt, cookie, set } = context;
+  const token = cookie.liff_session?.value;
+
+  if (!token) {
+    set.status = 401;
+    return { error: "Unauthorized: No LIFF session token provided." };
+  }
+
+  let payload;
+  try {
+    payload = await jwt.verify(token);
+  } catch {
+    set.status = 401;
+    return { error: "Unauthorized: The provided LIFF token is invalid." };
+  }
+
+  if (!payload?.id || !payload?.iat) {
+    set.status = 401;
+    return { error: "Unauthorized: The LIFF token payload is malformed." };
+  }
+
+  const tokenAgeInSeconds = Date.now() / 1000 - payload.iat;
+  if (tokenAgeInSeconds > 60 * 60) { // 1 hour expiry for LIFF sessions
+    set.status = 401;
+    return { error: "Unauthorized: The provided LIFF token has expired." };
+  }
+
+  // Determine user type from JWT payload
+  const userRole = payload.role;
+  let user = null;
+
+  // Find user in the appropriate table based on their role
+  if (userRole === 'guard') {
+    user = await db.query.guards.findFirst({
+      where: eq(guards.guard_id, payload.id),
+    });
+  } else if (userRole === 'resident') {
+    user = await db.query.residents.findFirst({
+      where: eq(residents.resident_id, payload.id),
+    });
+  }
+
+  if (!user) {
+    set.status = 401;
+    return { error: "Unauthorized: User associated with the LIFF token not found." };
+  }
+
+  if (user.status !== "verified") {
+    set.status = 403;
+    return { error: "Forbidden: The user account is not active." };
+  }
+
+  // Add user to context
+  context.currentUser = {
+    ...user,
+    village_keys: user.village_key ? [user.village_key] : [],
+  };
+};
+
 /**
  * User role registration routes.
  * These routes allow users to register for additional roles without admin authentication.
@@ -15,7 +76,14 @@ import { eq, and } from "drizzle-orm";
 export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
 
   // Get user's existing roles
-  .get("/users/roles", async ({ query, set }) => {
+  .get("/users/roles", async (context: any) => {
+    // Apply LIFF authentication middleware
+    const authResult = await requireLiffAuth(context);
+    if (authResult) {
+      return authResult;
+    }
+    
+    const { query, set } = context;
     try {
       const { lineUserId } = query as { lineUserId: string };
 

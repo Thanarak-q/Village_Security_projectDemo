@@ -92,7 +92,7 @@ const validateStatus = (
  * @type {Elysia}
  */
 export const houseManageRoutes = new Elysia({ prefix: "/api" })
-  .onBeforeHandle(requireRole(["admin", "staff"]))
+  .onBeforeHandle(requireRole(["admin", "staff", "guard"]))
   // Test endpoint to check houses without authentication
   .get("/houses-test", async () => {
     try {

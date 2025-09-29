@@ -1,16 +1,16 @@
 import { Elysia } from "elysia";
 import db from "../db/drizzle";
-import { visitor_records, houses, villages } from "../db/schema";
+import { visitor_records, guards, houses, house_members, villages } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { saveBase64Image, getImageExtension } from "../utils/imageUtils";
 
 // Note: This route is intentionally left unauthenticated to support the
 // current mock frontend flow. Add role checks later if required.
-const approvalForm = new Elysia({ prefix: "/api" }).post(
+const approvalForm = new Elysia({ prefix: "/api" })
+  .post(
   "/approvalForms",
   async ({ body }) => {
     type ApprovalFormBody = {
-      residentId?: string;
       visitorIDCard: string;
       guardId: string;
       houseId: string;
@@ -46,6 +46,44 @@ const approvalForm = new Elysia({ prefix: "/api" }).post(
     }
     if (errors.length > 0) {
       return { error: errors };
+    }
+
+    // Validate that guard exists
+    let guard;
+    try {
+      guard = await db.query.guards.findFirst({
+        where: eq(guards.guard_id, guardId),
+      });
+      
+      if (!guard) {
+        return { 
+          error: `Guard with ID ${guardId} not found. Please use a valid guard ID from the /api/guards endpoint.` 
+        };
+      }
+      
+      console.log(`✅ Guard found: ${guard.fname} ${guard.lname} (${guard.guard_id})`);
+    } catch (guardError) {
+      console.error("Error validating guard:", guardError);
+      return { error: "Failed to validate guard ID" };
+    }
+
+    // Validate that house exists
+    let house;
+    try {
+      house = await db.query.houses.findFirst({
+        where: eq(houses.house_id, houseId),
+      });
+      
+      if (!house) {
+        return { 
+          error: `House with ID ${houseId} not found. Please provide a valid house ID.` 
+        };
+      }
+      
+      console.log(`✅ House found: ${house.address} (${house.house_id})`);
+    } catch (houseError) {
+      console.error("Error validating house:", houseError);
+      return { error: "Failed to validate house ID" };
     }
 
     let savedImageFilename: string | null = null;
@@ -126,41 +164,124 @@ const approvalForm = new Elysia({ prefix: "/api" }).post(
     }
 
     try {
+      // Use a transaction to ensure data consistency
+      const result = await db.transaction(async (tx) => {
+        // Re-validate guard exists within transaction
+        const guardInTx = await tx.query.guards.findFirst({
+          where: eq(guards.guard_id, guardId),
+        });
+        
+        if (!guardInTx) {
+          throw new Error(`Guard with ID ${guardId} not found during transaction. Please use a valid guard ID from the /api/guards endpoint.`);
+        }
 
-    console.log("🚀 Inserting visitor record:", {
-      resident_id: null,
-      guard_id: guardId,
-      house_id: houseId,
-      visitor_id_card: visitorIDCard,
-      picture_key: savedImageFilename,
-      license_plate: licensePlate,
-      visit_purpose: visitPurpose,
-    });
-      const [inserted] = await db
-        .insert(visitor_records)
-        .values({
-          resident_id: null,
+        // Re-validate house exists within transaction
+        const houseInTx = await tx.query.houses.findFirst({
+          where: eq(houses.house_id, houseId),
+        });
+        
+        if (!houseInTx) {
+          throw new Error(`House with ID ${houseId} not found during transaction. Please provide a valid house ID.`);
+        }
+
+        // Find all residents associated with this house
+        let residents: any[] = [];
+        try {
+          const houseMembers = await tx.query.house_members.findMany({
+            where: eq(house_members.house_id, houseId),
+            with: {
+              resident: true
+            }
+          });
+          
+          residents = houseMembers.map(member => member.resident).filter(Boolean);
+          console.log(`✅ Found ${residents.length} residents for house ${houseId}:`, 
+            residents.map((r: any) => `${r.fname} ${r.lname} (${r.line_user_id})`));
+        } catch (residentError) {
+          console.error("Error finding residents for house:", residentError);
+        }
+
+        // Use the first resident found as the primary resident for this visitor record
+        const primaryResidentId = residents.length > 0 ? residents[0].resident_id : null;
+
+        console.log("🚀 Inserting visitor record:", {
+          resident_id: primaryResidentId,
           guard_id: guardId,
           house_id: houseId,
           visitor_id_card: visitorIDCard,
           picture_key: savedImageFilename,
           license_plate: licensePlate,
           visit_purpose: visitPurpose,
-          createdAt: new Date(),
-          record_status: "pending",
-        })
-        .returning();
+        });
+
+        const [inserted] = await tx
+          .insert(visitor_records)
+          .values({
+            resident_id: primaryResidentId,
+            guard_id: guardId,
+            house_id: houseId,
+            visitor_id_card: visitorIDCard,
+            picture_key: savedImageFilename,
+            license_plate: licensePlate,
+            visit_purpose: visitPurpose,
+            createdAt: new Date(),
+            record_status: "pending",
+          })
+          .returning();
+
+        return { inserted, residents: residents };
+      });
+
+      // Send notifications to residents after successful database insertion
+      if (result.residents && result.residents.length > 0) {
+        try {
+          console.log(`📱 Sending notifications to ${result.residents.length} residents`);
+          
+          // Import notification service
+          const { sendVisitorNotification } = await import('../services/notificationService');
+          
+          for (const resident of result.residents) {
+            if (resident.line_user_id) {
+              try {
+                await sendVisitorNotification({
+                  lineUserId: resident.line_user_id,
+                  visitorRecordId: result.inserted.visitor_record_id,
+                  houseAddress: house.address,
+                  visitorIdCard: visitorIDCard,
+                  licensePlate: licensePlate || 'ไม่ระบุ',
+                  visitPurpose: visitPurpose || 'ไม่ระบุ',
+                  guardName: guard.fname + ' ' + guard.lname,
+                  residentName: resident.fname + ' ' + resident.lname,
+                  imageUrl: savedImageFilename ? `/images/${savedImageFilename}` : null
+                });
+                
+                console.log(`✅ Notification sent to ${resident.fname} ${resident.lname} (${resident.line_user_id})`);
+              } catch (notifError) {
+                console.error(`❌ Failed to send notification to ${resident.fname} ${resident.lname}:`, notifError);
+              }
+            } else {
+              console.log(`⚠️ No LINE user ID for resident ${resident.fname} ${resident.lname}`);
+            }
+          }
+        } catch (notificationError) {
+          console.error("Error sending notifications:", notificationError);
+          // Don't fail the whole request if notifications fail
+        }
+      } else {
+        console.log("⚠️ No residents found for this house, no notifications sent");
+      }
 
       return {
         success: true,
-        visitorId: inserted?.visitor_record_id,
+        visitorId: result.inserted?.visitor_record_id,
         imageFilename: savedImageFilename,
         idCardImageFilename: savedIdCardImageFilename,
         message: "Visitor record created successfully",
+        residentsNotified: result.residents?.length || 0,
       };
     } catch (dbError) {
       console.error("Database insertion failed:", dbError);
-      return { error: "Failed to save visitor record to database" };
+      return { error: `Failed to save visitor record to database: ${dbError instanceof Error ? dbError.message : 'Unknown error'}` };
     }
   }
 )

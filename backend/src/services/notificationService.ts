@@ -412,6 +412,48 @@ class NotificationService {
   }
 
   /**
+   * Send visitor notification to a specific resident
+   */
+  async sendVisitorNotification(data: {
+    lineUserId: string;
+    visitorRecordId: string;
+    houseAddress: string;
+    visitorIdCard: string;
+    licensePlate: string;
+    visitPurpose: string;
+    guardName: string;
+    residentName: string;
+    imageUrl?: string | null;
+  }) {
+    try {
+      const visitorData: VisitorNotificationData = {
+        visitorName: data.visitorIdCard, // Using ID card as visitor name for now
+        visitorPhone: 'ไม่ระบุ',
+        houseNumber: data.houseAddress,
+        residentName: data.residentName,
+        purpose: data.visitPurpose,
+        entryTime: new Date().toLocaleString('th-TH'),
+        villageName: 'หมู่บ้าน', // You might want to get this from house data
+        visitorId: data.visitorRecordId,
+        imageUrl: data.imageUrl || undefined
+      };
+
+      const success = await this.sendVisitorNotificationFlexMessage(data.lineUserId, visitorData);
+      
+      if (success) {
+        console.log(`📱 Visitor notification sent to ${data.residentName} (${data.lineUserId})`);
+      } else {
+        console.error(`❌ Failed to send visitor notification to ${data.residentName} (${data.lineUserId})`);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('Error sending visitor notification:', error);
+      return false;
+    }
+  }
+
+  /**
    * Send visitor notification to all residents in a house
    */
   async sendVisitorNotificationToResidents(visitorData: VisitorNotificationData, houseNumber: string, villageKey: string) {
@@ -551,3 +593,6 @@ class NotificationService {
 
 // Export singleton instance
 export const notificationService = new NotificationService();
+
+// Export individual functions for easier importing
+export const { sendVisitorNotification } = notificationService;

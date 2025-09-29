@@ -5,7 +5,7 @@
  */
 
 import db from "./drizzle";
-import { visitor_records, houses, residents, guards } from "./schema";
+import { visitor_records, houses, residents, guards, house_members } from "./schema";
 import { eq, sql, and, gte, lte, inArray } from "drizzle-orm";
 
 /**
@@ -250,6 +250,7 @@ export async function getVisitorRecordsByLineId(lineUserId: string) {
   
   console.log(`✅ Found resident: ${resident.resident_id} (${resident.fname} ${resident.lname})`);
   
+  // Find visitor records where the resident is associated with the house
   const result = await db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
@@ -273,9 +274,10 @@ export async function getVisitorRecordsByLineId(lineUserId: string) {
       village_key: houses.village_key,
     })
     .from(visitor_records)
-    .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
     .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
+    .innerJoin(house_members, eq(visitor_records.house_id, house_members.house_id))
+    .innerJoin(residents, eq(house_members.resident_id, residents.resident_id))
     .where(eq(residents.line_user_id, lineUserId));
 
   console.log(`📊 Found ${result.length} visitor records for resident ${resident.resident_id}`);
