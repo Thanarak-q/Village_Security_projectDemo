@@ -80,7 +80,15 @@ export const requireRole = (required: string | string[] = "*") => {
       return { error: "Unauthorized: User associated with the token not found." };
     }
 
-    if (user.status !== "verified") {
+    // Allow pending users for certain roles and endpoints
+    // Only block disabled users
+    if (user.status === "disable") {
+      set.status = 403;
+      return { error: "Forbidden: The user account is disabled." };
+    }
+    
+    // For admin endpoints, require verified status
+    if ((userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff') && user.status !== "verified") {
       set.status = 403;
       return { error: "Forbidden: The user account is not active." };
     }

@@ -290,14 +290,16 @@ export default function GuardPendingPage() {
             </h1>
             <span className="flex items-center gap-2">
               <ModeToggle />
-              <button
-                onClick={handleSwitchToResident}
-                className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-                aria-label="Go to Resident page"
-                title="ไปยังหน้าผู้อยู่อาศัย"
-              >
-                <Home className="w-5 h-5 text-foreground" />
-              </button>
+              {hasResidentRole && (
+                <button
+                  onClick={handleSwitchToResident}
+                  className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                  aria-label="Go to Resident page"
+                  title="ไปยังหน้าผู้อยู่อาศัย"
+                >
+                  <Home className="w-5 h-5 text-foreground" />
+                </button>
+              )}
               <button
                 onClick={handleNavigateToProfile}
                 className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"

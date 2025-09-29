@@ -10,7 +10,7 @@ function Page() {
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [userRoles, setUserRoles] = useState<Array<{role: string, village_key: string, village_name?: string}>>([]);
+  const [userRoles, setUserRoles] = useState<Array<{role: string, village_key: string, village_name?: string, status: string}>>([]);
 
   useEffect(() => {
     const checkAuthAndStatus = () => {
@@ -28,8 +28,8 @@ function Page() {
       console.log("🔍 Guard user data:", user);
       
       if (!user) {
-        console.log("❌ No user data found, redirecting to LIFF");
-        router.push("/liff");
+        console.log("❌ No user data found, redirecting to LIFF with guard context");
+        router.push("/liff?role=guard");
         return;
       }
 
@@ -118,8 +118,8 @@ function Page() {
                   console.log("🔍 Guard role check - all roles:", data.roles);
                   
                   if (!guardRole) {
-                    console.log("❌ User does not have guard role, redirecting to LIFF");
-                    router.push("/liff");
+                    console.log("❌ User does not have guard role, redirecting to LIFF with guard context");
+                    router.push("/liff?role=guard");
                     return;
                   }
                   
@@ -140,24 +140,24 @@ function Page() {
                     console.log("🔄 User has both roles - role switching available");
                   }
                 } else {
-                  console.log("❌ No roles found or API error, redirecting to LIFF");
-                  router.push("/liff");
+                  console.log("❌ No roles found or API error, redirecting to LIFF with guard context");
+                  router.push("/liff?role=guard");
                   return;
                 }
               }
             } else {
               console.log("❌ Roles API failed with status:", response.status);
-              router.push("/liff");
+              router.push("/liff?role=guard");
               return;
             }
           } catch (error) {
             console.error('Error fetching user roles:', error);
-            router.push("/liff");
+            router.push("/liff?role=guard");
             return;
           }
         } else {
-          console.log("❌ No user ID found, redirecting to LIFF");
-          router.push("/liff");
+          console.log("❌ No user ID found, redirecting to LIFF with guard context");
+          router.push("/liff?role=guard");
           return;
         }
       }
@@ -180,7 +180,7 @@ function Page() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-        <ApprovalForm />
+        <ApprovalForm userRoles={userRoles} />
     </div>
   );
 }

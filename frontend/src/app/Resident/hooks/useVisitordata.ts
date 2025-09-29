@@ -92,9 +92,9 @@ export const useVisitorData = () => {
       const data = await response.json();
       console.log('🔍 Village validation data:', data);
       
-      if (data.success && data.village) {
-        setVillageName(data.village.village_name);
-        console.log('✅ Village name set:', data.village.village_name);
+      if (data.success && data.data && data.data.village_name) {
+        setVillageName(data.data.village_name);
+        console.log('✅ Village name set:', data.data.village_name);
       } else {
         console.error('❌ Village validation failed:', data);
       }

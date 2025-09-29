@@ -42,12 +42,15 @@ const visitorSchema = z.object({
   visit_purpose: z.string().optional(),
 });
 
-function ApprovalForm() {
+interface ApprovalFormProps {
+  userRoles?: Array<{role: string, village_key: string, village_name?: string, status: string}>;
+}
+
+function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   const router = useRouter();
   const [houses, setHouses] = useState<
     Array<{ house_id: string; address: string; village_key: string }>
   >([]);
-  const [userRoles, setUserRoles] = useState<Array<{role: string, village_key: string, village_name?: string, status: string}>>([]);
   const [currentUser, setCurrentUser] = useState<{
     id: string;
     fname: string;
@@ -114,38 +117,6 @@ function ApprovalForm() {
     fetchData();
   }, []);
 
-  // Fetch user roles to check if they have resident role
-  useEffect(() => {
-    const fetchUserRoles = async () => {
-      if (currentUser?.id) {
-        try {
-          const { token } = getAuthData();
-          const apiUrl = '';
-          const response = await fetch(`${apiUrl}/api/users/roles?lineUserId=${currentUser.id}`, {
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-          });
-          
-          if (response.ok) {
-            const contentType = response.headers.get("content-type");
-            if (contentType && contentType.includes("application/json")) {
-              const data = await response.json();
-              if (data.success && data.roles) {
-                setUserRoles(data.roles);
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching user roles:', error);
-        }
-      }
-    };
-
-    fetchUserRoles();
-  }, [currentUser]);
 
   const handleSwitchToResident = async () => {
     if (isSwitchingRole) return; // Prevent multiple clicks
@@ -253,8 +224,6 @@ function ApprovalForm() {
     router.push('/guard/profile');
   };
 
-  // Check if user has resident role
-  const hasResidentRole = userRoles.some(role => role.role === 'resident');
 
   const getLocalDateTimeForInput = () => {
     const now = new Date();
@@ -497,14 +466,16 @@ function ApprovalForm() {
               </h1>
               <span className="flex items-center gap-2">
                 <ModeToggle />
-                <button
-                  onClick={handleSwitchToResident}
-                  className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-                  aria-label="Go to Resident page"
-                  title="ไปยังหน้าผู้อยู่อาศัย"
-                >
-                  <Home className="w-5 h-5 text-foreground" />
-                </button>
+                {userRoles.some(role => role.role === 'resident') && (
+                  <button
+                    onClick={handleSwitchToResident}
+                    className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                    aria-label="Go to Resident page"
+                    title="ไปยังหน้าผู้อยู่อาศัย"
+                  >
+                    <Home className="w-5 h-5 text-foreground" />
+                  </button>
+                )}
                 <button
                   onClick={handleNavigateToProfile}
                   className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
