@@ -74,10 +74,25 @@ const requireLiffAuth = async (context: any) => {
     return { error: "Forbidden: The user account is not active." };
   }
 
+  const villageIds = 'village_id' in user && user.village_id ? [user.village_id] : [];
+  let villageKeys: string[] = [];
+  if (villageIds.length) {
+    const villagesData = await db
+      .select({ id: villages.village_id, key: villages.village_key })
+      .from(villages)
+      .where(inArray(villages.village_id, villageIds));
+
+    const idToKey = new Map(villagesData.map((v) => [v.id, v.key]));
+    villageKeys = villageIds
+      .map((id) => idToKey.get(id))
+      .filter((key): key is string => Boolean(key));
+  }
+
   // Add user to context
   context.currentUser = {
     ...user,
-    village_keys: user.village_key ? [user.village_key] : [],
+    village_ids: villageIds,
+    village_keys: villageKeys,
   };
 };
 
@@ -203,22 +218,34 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
    */
   .get("/me", async ({ currentUser }: any) => {
     // Get village information for all assigned villages
-    let villages_info: Array<{ village_key: string; village_name: string }> = [];
+    let villages_info: Array<{ village_id: string; village_key: string | null; village_name: string }> = [];
     let village_name: string | null = null;
-    
-    if (currentUser.village_keys && currentUser.village_keys.length > 0) {
+
+    const villageIds: string[] = currentUser.village_ids || [];
+    const villageKeysFallback: string[] = currentUser.village_keys || [];
+
+    if (villageIds.length > 0) {
       villages_info = await db
-        .select({ 
+        .select({
+          village_id: villages.village_id,
           village_key: villages.village_key,
-          village_name: villages.village_name 
+          village_name: villages.village_name,
         })
         .from(villages)
-        .where(inArray(villages.village_key, currentUser.village_keys));
-      
-      // For staff users, get their assigned village name
-      if (currentUser.role === "staff" && villages_info.length > 0) {
-        village_name = villages_info[0].village_name;
-      }
+        .where(inArray(villages.village_id, villageIds));
+    } else if (villageKeysFallback.length > 0) {
+      villages_info = await db
+        .select({
+          village_id: villages.village_id,
+          village_key: villages.village_key,
+          village_name: villages.village_name,
+        })
+        .from(villages)
+        .where(inArray(villages.village_key, villageKeysFallback));
+    }
+
+    if (currentUser.role === "staff" && villages_info.length > 0) {
+      village_name = villages_info[0].village_name;
     }
 
     // Base user data
@@ -229,7 +256,8 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       fname: currentUser.fname,
       lname: currentUser.lname,
       role: currentUser.role,
-      village_keys: currentUser.village_keys || [],
+      village_ids: villageIds.length ? villageIds : villages_info.map((v) => v.village_id),
+      village_keys: villages_info.map((v) => v.village_key).filter((key): key is string => Boolean(key)),
       villages: villages_info,
       village_name: village_name,
     };
@@ -266,21 +294,34 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
     const { currentUser } = context;
     
     // Get village information for all assigned villages
-    let villages_info: Array<{ village_key: string; village_name: string }> = [];
+    let villages_info: Array<{ village_id: string; village_key: string | null; village_name: string }> = [];
     let village_name: string | null = null;
-    
-    if (currentUser.village_keys && currentUser.village_keys.length > 0) {
+
+    const villageIds: string[] = currentUser.village_ids || [];
+    const villageKeysFallback: string[] = currentUser.village_keys || [];
+
+    if (villageIds.length > 0) {
       villages_info = await db
-        .select({ 
+        .select({
+          village_id: villages.village_id,
           village_key: villages.village_key,
-          village_name: villages.village_name 
+          village_name: villages.village_name,
         })
         .from(villages)
-        .where(inArray(villages.village_key, currentUser.village_keys));
-      
-      if (villages_info.length > 0) {
-        village_name = villages_info[0].village_name;
-      }
+        .where(inArray(villages.village_id, villageIds));
+    } else if (villageKeysFallback.length > 0) {
+      villages_info = await db
+        .select({
+          village_id: villages.village_id,
+          village_key: villages.village_key,
+          village_name: villages.village_name,
+        })
+        .from(villages)
+        .where(inArray(villages.village_key, villageKeysFallback));
+    }
+
+    if (villages_info.length > 0) {
+      village_name = villages_info[0].village_name;
     }
 
     // Base user data
@@ -291,7 +332,8 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       fname: currentUser.fname,
       lname: currentUser.lname,
       role: currentUser.role,
-      village_keys: currentUser.village_keys || [],
+      village_ids: villageIds.length ? villageIds : villages_info.map((v) => v.village_id),
+      village_keys: villages_info.map((v) => v.village_key).filter((key): key is string => Boolean(key)),
       villages: villages_info,
       village_name: village_name,
     };

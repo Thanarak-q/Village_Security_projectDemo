@@ -36,7 +36,6 @@ interface SystemStats {
     list: Array<{
       village_id: string;
       village_name: string;
-      village_key: string;
       admin_count: number;
     }>;
   };
@@ -47,8 +46,10 @@ interface SystemStats {
       email: string;
       role: string;
       status: string;
-      village_key: string;
-      village_name: string;
+      villages: Array<{
+        village_id: string;
+        village_name: string;
+      }>;
       createdAt: string;
     }>;
   };
@@ -56,7 +57,6 @@ interface SystemStats {
     villagesWithoutAdmins: Array<{
       village_id: string;
       village_name: string;
-      village_key: string;
       admin_count: number;
     }>;
     pendingAdmins: number;
@@ -422,7 +422,7 @@ export default function StatsPage() {
                   <div className="flex-1">
                     <p className="font-medium">{village.village_name}</p>
                     <p className="text-sm text-muted-foreground">
-                      Key: {village.village_key}
+                      ID: {village.village_id}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">

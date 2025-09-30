@@ -28,6 +28,7 @@ import { useTheme } from "next-themes";
 import Image from "next/image";
 import { type AdminRole } from "@/lib/roleUtils";
 // import { MenuShowColor } from "@/components/animation";
+import { getSelectedVillage } from "@/lib/villageSelection";
 
 const items = [
   {
@@ -93,6 +94,22 @@ const AppSidebar = memo(function AppSidebar() {
   } | null>(null);
   const [selectedVillageName, setSelectedVillageName] = useState<string>("");
 
+  const fetchVillageNameByKey = async (villageKey: string) => {
+    try {
+      const villageRes = await fetch(`/api/villages/check/${villageKey}`, {
+        credentials: "include",
+      });
+      if (villageRes.ok) {
+        const villageData = await villageRes.json();
+        if (villageData.exists && villageData.village_name) {
+          setSelectedVillageName(villageData.village_name);
+          sessionStorage.setItem("selectedVillageName", villageData.village_name);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching village name:", error);
+    }
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -109,29 +126,17 @@ const AppSidebar = memo(function AppSidebar() {
         if (json) {
           setUserData(json);
           
-          // Handle village name display for all user types
+          const { key, name } = getSelectedVillage();
+
           if (json.role === "admin" || json.role === "superadmin") {
-            // For admin/superadmin, get the selected village name
-            const selectedVillageKey = sessionStorage.getItem("selectedVillage");
-            if (selectedVillageKey) {
-              try {
-                const villageRes = await fetch(`/api/villages/check/${selectedVillageKey}`, {
-                  credentials: "include",
-                });
-                if (villageRes.ok) {
-                  const villageData = await villageRes.json();
-                  if (villageData.exists) {
-                    setSelectedVillageName(villageData.village_name);
-                  }
-                }
-              } catch (error) {
-                console.error("Error fetching village name:", error);
-              }
+            if (name) {
+              setSelectedVillageName(name);
+            } else if (key) {
+              fetchVillageNameByKey(key);
             }
           }
-          
-          // For all users (including staff), use their assigned village name if available
-          if (json.village_name) {
+
+          if (!name && json.village_name) {
             setSelectedVillageName(json.village_name);
           }
         }
@@ -143,29 +148,32 @@ const AppSidebar = memo(function AppSidebar() {
     fetchUserData();
 
     // Listen for village changes to update the village name display
-    const handleVillageChange = async () => {
-      const selectedVillageKey = sessionStorage.getItem("selectedVillage");
-      if (selectedVillageKey && userData?.role === "admin" || userData?.role === "superadmin") {
-        try {
-          const villageRes = await fetch(`/api/villages/check/${selectedVillageKey}`, {
-            credentials: "include",
-          });
-          if (villageRes.ok) {
-            const villageData = await villageRes.json();
-            if (villageData.exists) {
-              setSelectedVillageName(villageData.village_name);
-            }
-          }
-        } catch (error) {
-          console.error("Error fetching village name on change:", error);
-        }
+    const handleVillageChange = (event: Event) => {
+      const detail = (event as CustomEvent<{ villageName?: string; villageKey?: string }>).detail;
+
+      if (detail?.villageName) {
+        setSelectedVillageName(detail.villageName);
+        sessionStorage.setItem("selectedVillageName", detail.villageName);
+        return;
+      }
+
+      if (detail?.villageKey) {
+        fetchVillageNameByKey(detail.villageKey);
+        return;
+      }
+
+      const { key, name } = getSelectedVillage();
+      if (name) {
+        setSelectedVillageName(name);
+      } else if (key) {
+        fetchVillageNameByKey(key);
       }
     };
 
-    window.addEventListener('villageChanged', handleVillageChange);
-    
+    window.addEventListener('villageChanged', handleVillageChange as EventListener);
+
     return () => {
-      window.removeEventListener('villageChanged', handleVillageChange);
+      window.removeEventListener('villageChanged', handleVillageChange as EventListener);
     };
   }, [userData?.role]);
 

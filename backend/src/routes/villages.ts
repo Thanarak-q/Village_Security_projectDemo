@@ -70,19 +70,26 @@ export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
         };
       }
 
-      const { role, village_keys } = currentUser;
+      const { role, village_ids, village_keys } = currentUser;
       
       let adminVillages;
       
       if (role === "superadmin") {
         // Superadmin can see all villages
-        adminVillages = await db.select({
-          village_key: villages.village_key,
-          village_name: villages.village_name,
-        }).from(villages);
+        adminVillages = await db
+          .select({
+            village_id: villages.village_id,
+            village_key: villages.village_key,
+            village_name: villages.village_name,
+          })
+          .from(villages);
       } else {
         // Regular admin can only see their assigned villages
-        if (!village_keys || village_keys.length === 0) {
+        const allowedVillageIds: string[] = Array.isArray(village_ids)
+          ? village_ids
+          : [];
+
+        if (!allowedVillageIds.length) {
           return { 
             success: true, 
             data: [], 
@@ -92,11 +99,12 @@ export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
         
         adminVillages = await db
           .select({
+            village_id: villages.village_id,
             village_key: villages.village_key,
             village_name: villages.village_name,
           })
           .from(villages)
-          .where(inArray(villages.village_key, village_keys));
+          .where(inArray(villages.village_id, allowedVillageIds));
       }
       
       return {

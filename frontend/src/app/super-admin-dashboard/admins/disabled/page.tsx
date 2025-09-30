@@ -42,9 +42,9 @@ interface Admin {
   role: "admin" | "staff";
   status: "verified" | "pending" | "disable";
   disable_at: string | null;
-  village_keys: string[];
+  village_ids: string[];
   villages: Array<{
-    village_key: string;
+    village_id: string;
     village_name: string;
   }>;
   createdAt: string;
@@ -247,7 +247,7 @@ export default function DisabledAdminsPage() {
                       <div className="flex flex-wrap gap-1">
                         {admin.villages.length > 0 ? (
                           admin.villages.map((village) => (
-                            <Badge key={village.village_key} variant="outline" className="text-xs">
+                            <Badge key={village.village_id} variant="outline" className="text-xs">
                               <Building className="h-3 w-3 mr-1" />
                               {village.village_name}
                             </Badge>

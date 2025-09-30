@@ -24,12 +24,13 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
 
       const adminVillages = await db
         .select({
+          village_id: villages.village_id,
           village_key: villages.village_key,
           village_name: villages.village_name,
           created_at: admin_villages.created_at,
         })
         .from(admin_villages)
-        .innerJoin(villages, eq(admin_villages.village_key, villages.village_key))
+        .innerJoin(villages, eq(admin_villages.village_id, villages.village_id))
         .where(eq(admin_villages.admin_id, adminId))
         .orderBy(admin_villages.created_at);
 
@@ -53,10 +54,29 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
       const adminId = user.admin_id;
 
       // Validation
-      if (!village_key) {
+      if (!village_key?.trim()) {
         set.status = 400;
         return { success: false, error: "village_key is required" };
       }
+
+      const normalizedVillageKey = village_key.trim();
+
+      // Resolve village id
+      const village = await db
+        .select({
+          village_id: villages.village_id,
+          village_key: villages.village_key,
+          village_name: villages.village_name,
+        })
+        .from(villages)
+        .where(eq(villages.village_key, normalizedVillageKey));
+
+      if (village.length === 0) {
+        set.status = 404;
+        return { success: false, error: "Village not found" };
+      }
+
+      const targetVillage = village[0];
 
       // Check if admin has access to this village
       const adminVillage = await db
@@ -64,23 +84,12 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
         .from(admin_villages)
         .where(and(
           eq(admin_villages.admin_id, adminId),
-          eq(admin_villages.village_key, village_key)
+          eq(admin_villages.village_id, targetVillage.village_id)
         ));
 
       if (adminVillage.length === 0) {
         set.status = 403;
         return { success: false, error: "You don't have access to this village" };
-      }
-
-      // Get village details
-      const village = await db
-        .select()
-        .from(villages)
-        .where(eq(villages.village_key, village_key));
-
-      if (village.length === 0) {
-        set.status = 404;
-        return { success: false, error: "Village not found" };
       }
 
       // In a real application, you might store this in session or JWT
@@ -89,8 +98,9 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
         success: true, 
         message: "Village selected successfully",
         data: {
-          village_key: village[0].village_key,
-          village_name: village[0].village_name
+          village_id: targetVillage.village_id,
+          village_key: targetVillage.village_key,
+          village_name: targetVillage.village_name
         }
       };
     } catch (error) {
@@ -125,7 +135,7 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
       const adminId = user.admin_id;
 
       // Validation
-      if (!village_key || !email || !fname || !lname || !phone) {
+      if (!village_key?.trim() || !email?.trim() || !fname?.trim() || !lname?.trim() || !phone?.trim()) {
         set.status = 400;
         return { 
           success: false, 
@@ -133,11 +143,27 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
         };
       }
 
-      if (email.trim().length === 0 || fname.trim().length === 0 || 
-          lname.trim().length === 0 || phone.trim().length === 0) {
-        set.status = 400;
-        return { success: false, error: "Fields cannot be empty" };
+      const normalizedVillageKey = village_key.trim();
+      const trimmedEmail = email.trim();
+      const trimmedFname = fname.trim();
+      const trimmedLname = lname.trim();
+      const trimmedPhone = phone.trim();
+
+      const village = await db
+        .select({
+          village_id: villages.village_id,
+          village_key: villages.village_key,
+          village_name: villages.village_name,
+        })
+        .from(villages)
+        .where(eq(villages.village_key, normalizedVillageKey));
+
+      if (village.length === 0) {
+        set.status = 404;
+        return { success: false, error: "Village not found" };
       }
+
+      const targetVillage = village[0];
 
       // Check if admin has access to this village
       const adminVillage = await db
@@ -145,7 +171,7 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
         .from(admin_villages)
         .where(and(
           eq(admin_villages.admin_id, adminId),
-          eq(admin_villages.village_key, village_key)
+          eq(admin_villages.village_id, targetVillage.village_id)
         ));
 
       if (adminVillage.length === 0) {
@@ -153,22 +179,11 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
         return { success: false, error: "You don't have access to this village" };
       }
 
-      // Check if village exists
-      const village = await db
-        .select()
-        .from(villages)
-        .where(eq(villages.village_key, village_key));
-
-      if (village.length === 0) {
-        set.status = 404;
-        return { success: false, error: "Village not found" };
-      }
-
       // Check if email already exists
       const existingEmail = await db
         .select()
         .from(guards)
-        .where(eq(guards.email, email.trim()));
+        .where(eq(guards.email, trimmedEmail));
 
       if (existingEmail.length > 0) {
         set.status = 400;
@@ -182,11 +197,11 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
       const newStaff = await db
         .insert(guards)
         .values({
-          email: email.trim(),
-          fname: fname.trim(),
-          lname: lname.trim(),
-          phone: phone.trim(),
-          village_key: village_key,
+          email: trimmedEmail,
+          fname: trimmedFname,
+          lname: trimmedLname,
+          phone: trimmedPhone,
+          village_id: targetVillage.village_id,
           status: "pending", // Staff needs approval
         })
         .returning({
@@ -195,7 +210,7 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
           fname: guards.fname,
           lname: guards.lname,
           phone: guards.phone,
-          village_key: guards.village_key,
+          village_id: guards.village_id,
           status: guards.status,
           createdAt: guards.createdAt,
         });
@@ -204,6 +219,8 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
         success: true, 
         data: {
           ...newStaff[0],
+          village_key: targetVillage.village_key,
+          village_name: targetVillage.village_name,
           default_password: defaultPassword, // Return for admin to share with staff
           message: "Staff created successfully. Please share the default password with the staff member."
         }
@@ -227,10 +244,27 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
       const adminId = user.admin_id;
 
       // Validation
-      if (!village_key) {
+      if (!village_key?.trim()) {
         set.status = 400;
         return { success: false, error: "village_key is required" };
       }
+
+      const normalizedVillageKey = village_key.trim();
+
+      const village = await db
+        .select({
+          village_id: villages.village_id,
+          village_key: villages.village_key,
+        })
+        .from(villages)
+        .where(eq(villages.village_key, normalizedVillageKey));
+
+      if (village.length === 0) {
+        set.status = 404;
+        return { success: false, error: "Village not found" };
+      }
+
+      const targetVillage = village[0];
 
       // Check if admin has access to this village
       const adminVillage = await db
@@ -238,7 +272,7 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
         .from(admin_villages)
         .where(and(
           eq(admin_villages.admin_id, adminId),
-          eq(admin_villages.village_key, village_key)
+          eq(admin_villages.village_id, targetVillage.village_id)
         ));
 
       if (adminVillage.length === 0) {
@@ -260,7 +294,7 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
           updatedAt: guards.updatedAt,
         })
         .from(guards)
-        .where(eq(guards.village_key, village_key))
+        .where(eq(guards.village_id, targetVillage.village_id))
         .orderBy(guards.createdAt);
 
       return { success: true, data: staffList };
@@ -310,7 +344,7 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
         .from(admin_villages)
         .where(and(
           eq(admin_villages.admin_id, adminId),
-          eq(admin_villages.village_key, staff[0].village_key)
+          eq(admin_villages.village_id, staff[0].village_id)
         ));
 
       if (adminVillage.length === 0) {

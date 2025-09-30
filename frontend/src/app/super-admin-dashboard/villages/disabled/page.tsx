@@ -35,7 +35,6 @@ import { toast } from "sonner";
 interface Village {
   village_id: string;
   village_name: string;
-  village_key: string;
   status: string;
   disable_at: string | null;
   admin_count: number;
@@ -219,7 +218,7 @@ export default function DisabledVillagesPage() {
                     </TableCell>
                     <TableCell>
                       <code className="bg-muted px-2 py-1 rounded text-sm">
-                        {village.village_key}
+                        {village.village_id}
                       </code>
                     </TableCell>
                     <TableCell>

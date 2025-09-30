@@ -173,10 +173,21 @@ class NotificationService {
     address: string;
     old_status: string;
     new_status: string;
-    village_key: string;
+    village_id?: string;
+    village_key?: string | null;
   }) {
+    let villageKey = houseData.village_key ?? null;
+
+    if ((!villageKey || !villageKey.trim()) && houseData.village_id) {
+      const [village] = await db
+        .select({ village_key: villages.village_key })
+        .from(villages)
+        .where(eq(villages.village_id, houseData.village_id));
+      villageKey = village?.village_key ?? null;
+    }
+
     return this.createNotification({
-      village_key: houseData.village_key,
+      village_key: villageKey ?? houseData.village_id ?? "",
       type: 'house_updated',
       category: 'house_management',
       title: 'สถานะบ้านเปลี่ยนแปลง',

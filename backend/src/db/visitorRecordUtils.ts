@@ -5,7 +5,7 @@
  */
 
 import db from "./drizzle";
-import { visitor_records, houses, residents, guards, house_members, visitors } from "./schema";
+import { visitor_records, houses, residents, guards, house_members, visitors, villages } from "./schema";
 import { eq, sql, and, gte, lte, inArray } from "drizzle-orm";
 
 /**
@@ -42,23 +42,25 @@ export async function getAllVisitorRecords() {
       guard_email: guards.email,
       // House information
       house_address: houses.address,
-      village_key: houses.village_key,
+      village_id: houses.village_id,
+      village_key: villages.village_key,
     })
     .from(visitor_records)
     .leftJoin(visitors, eq(visitor_records.visitor_id, visitors.visitor_id))
     .leftJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
     .leftJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
-    .innerJoin(houses, eq(visitor_records.house_id, houses.house_id));
+    .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
+    .leftJoin(villages, eq(houses.village_id, villages.village_id));
 
   return result;
 }
 
 /**
  * Retrieves all visitor records for a specific village.
- * @param {string} villageKey - The unique key of the village.
+ * @param {string} villageId - The UUID of the village.
  * @returns {Promise<Array<Object>>} A promise that resolves to an array of visitor records for the specified village.
  */
-export async function getVisitorRecordsByVillage(villageKey: string) {
+export async function getVisitorRecordsByVillage(villageId: string) {
   const result = await db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
@@ -88,14 +90,16 @@ export async function getVisitorRecordsByVillage(villageKey: string) {
       guard_email: guards.email,
       // House information
       house_address: houses.address,
-      village_key: houses.village_key,
+      village_id: houses.village_id,
+      village_key: villages.village_key,
     })
     .from(visitor_records)
     .leftJoin(visitors, eq(visitor_records.visitor_id, visitors.visitor_id))
     .leftJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
     .leftJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
-    .where(eq(houses.village_key, villageKey));
+    .innerJoin(villages, eq(houses.village_id, villages.village_id))
+    .where(eq(houses.village_id, villageId));
 
   return result;
 }
@@ -135,13 +139,15 @@ export async function getVisitorRecordsByResident(residentId: string) {
       guard_email: guards.email,
       // House information
       house_address: houses.address,
-      village_key: houses.village_key,
+      village_id: houses.village_id,
+      village_key: villages.village_key,
     })
     .from(visitor_records)
     .leftJoin(visitors, eq(visitor_records.visitor_id, visitors.visitor_id))
     .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
     .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
+    .leftJoin(villages, eq(houses.village_id, villages.village_id))
     .where(eq(visitor_records.resident_id, residentId));
 
   return result;
@@ -182,13 +188,15 @@ export async function getVisitorRecordsByGuard(guardId: string) {
       guard_email: guards.email,
       // House information
       house_address: houses.address,
-      village_key: houses.village_key,
+      village_id: houses.village_id,
+      village_key: villages.village_key,
     })
     .from(visitor_records)
     .leftJoin(visitors, eq(visitor_records.visitor_id, visitors.visitor_id))
     .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
     .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
+    .leftJoin(villages, eq(houses.village_id, villages.village_id))
     .where(eq(visitor_records.guard_id, guardId));
 
   return result;
@@ -229,7 +237,8 @@ export async function getVisitorRecordsByHouse(houseId: string) {
       guard_email: guards.email,
       // House information
       house_address: houses.address,
-      village_key: houses.village_key,
+      village_id: houses.village_id,
+      village_key: villages.village_key,
     })
     .from(visitor_records)
     .leftJoin(visitors, eq(visitor_records.visitor_id, visitors.visitor_id))
@@ -278,7 +287,8 @@ export async function getVisitorRecordsByStatus(
       guard_email: guards.email,
       // House information
       house_address: houses.address,
-      village_key: houses.village_key,
+      village_id: houses.village_id,
+      village_key: villages.village_key,
     })
     .from(visitor_records)
     .leftJoin(visitors, eq(visitor_records.visitor_id, visitors.visitor_id))
@@ -340,12 +350,14 @@ export async function getVisitorRecordsByLineId(lineUserId: string) {
       guard_email: guards.email,
       // House information
       house_address: houses.address,
-      village_key: houses.village_key,
+      village_id: houses.village_id,
+      village_key: villages.village_key,
     })
     .from(visitor_records)
     .leftJoin(visitors, eq(visitor_records.visitor_id, visitors.visitor_id))
     .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
+    .leftJoin(villages, eq(houses.village_id, villages.village_id))
     .innerJoin(house_members, eq(visitor_records.house_id, house_members.house_id))
     .innerJoin(residents, eq(house_members.resident_id, residents.resident_id))
     .where(eq(residents.line_user_id, lineUserId));
@@ -467,15 +479,17 @@ export async function getVisitorRecordsByResidentName(residentName: string) {
         // Guard information
         guard_name: sql`${guards.fname} || ' ' || ${guards.lname}`,
         guard_email: guards.email,
-        // House information
-        house_address: houses.address,
-        village_key: houses.village_key,
-      })
-      .from(visitor_records)
-      .leftJoin(visitors, eq(visitor_records.visitor_id, visitors.visitor_id))
-      .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
-      .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
-      .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
+      // House information
+      house_address: houses.address,
+      village_id: houses.village_id,
+      village_key: villages.village_key,
+    })
+    .from(visitor_records)
+    .leftJoin(visitors, eq(visitor_records.visitor_id, visitors.visitor_id))
+    .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
+    .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
+    .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
+    .leftJoin(villages, eq(houses.village_id, villages.village_id))
       .orderBy(visitor_records.createdAt);
 
     console.log(`📊 Total records in database: ${allRecords.length}`);
@@ -508,11 +522,11 @@ export async function getVisitorRecordsByResidentName(residentName: string) {
 
 /**
  * Retrieves and compiles statistics for visitor records for the current week (Sunday to Saturday).
- * @param {string[]} villageKeys - Array of village keys to filter by (optional).
+ * @param {string[]} villageIds - Array of village IDs to filter by (optional).
  * @param {string} role - User role for permission checking.
  * @returns {Promise<Object>} A promise that resolves to an object containing weekly statistics, including counts per day and a summary.
  */
-export async function getWeeklyVisitorRecords(villageKeys?: string[], role?: string) {
+export async function getWeeklyVisitorRecords(villageIds?: string[], role?: string) {
   // Calculate the start and end of current week (Sunday to Saturday)
   const now = new Date();
   const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
@@ -535,20 +549,20 @@ export async function getWeeklyVisitorRecords(villageKeys?: string[], role?: str
     })
     .from(visitor_records);
 
-  // Add village filtering if villageKeys provided and user is not superadmin
-  if (villageKeys && villageKeys.length > 0 && role !== "superadmin") {
+  // Add village filtering if villageIds provided and user is not superadmin
+  if (villageIds && villageIds.length > 0 && role !== "superadmin") {
     query = query
       .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
       .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
       .where(
         and(
-          inArray(houses.village_key, villageKeys),
+          inArray(houses.village_id, villageIds),
           gte(visitor_records.entry_time, startOfWeek),
           lte(visitor_records.entry_time, endOfWeek)
         )
       );
   } else {
-    // No village filtering for superadmin or when no villageKeys provided
+    // No village filtering for superadmin or when no villageIds provided
     query = query.where(
       and(
         gte(visitor_records.entry_time, startOfWeek),
@@ -609,11 +623,11 @@ export async function getWeeklyVisitorRecords(villageKeys?: string[], role?: str
 
 /**
  * Retrieves and compiles statistics for visitor records for each month of the current year.
- * @param {string[]} villageKeys - Array of village keys to filter by (optional).
+ * @param {string[]} villageIds - Array of village IDs to filter by (optional).
  * @param {string} role - User role for permission checking.
  * @returns {Promise<Object>} A promise that resolves to an object containing monthly statistics and a summary.
  */
-export async function getMonthlyVisitorRecords(villageKeys?: string[], role?: string) {
+export async function getMonthlyVisitorRecords(villageIds?: string[], role?: string) {
   // Get current year
   const currentYear = new Date().getFullYear();
 
@@ -632,20 +646,20 @@ export async function getMonthlyVisitorRecords(villageKeys?: string[], role?: st
     })
     .from(visitor_records);
 
-  // Add village filtering if villageKeys provided and user is not superadmin
-  if (villageKeys && villageKeys.length > 0 && role !== "superadmin") {
+  // Add village filtering if villageIds provided and user is not superadmin
+  if (villageIds && villageIds.length > 0 && role !== "superadmin") {
     query = query
       .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
       .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
       .where(
         and(
-          inArray(houses.village_key, villageKeys),
+          inArray(houses.village_id, villageIds),
           gte(visitor_records.entry_time, startOfYear),
           lte(visitor_records.entry_time, endOfYear)
         )
       );
   } else {
-    // No village filtering for superadmin or when no villageKeys provided
+    // No village filtering for superadmin or when no villageIds provided
     query = query.where(
       and(
         gte(visitor_records.entry_time, startOfYear),
@@ -715,11 +729,11 @@ export async function getMonthlyVisitorRecords(villageKeys?: string[], role?: st
 
 /**
  * Retrieves and compiles statistics for visitor records, aggregated by year.
- * @param {string[]} villageKeys - Array of village keys to filter by (optional).
+ * @param {string[]} villageIds - Array of village IDs to filter by (optional).
  * @param {string} role - User role for permission checking.
  * @returns {Promise<Object>} A promise that resolves to an object containing yearly statistics and a summary.
  */
-export async function getYearlyVisitorRecords(villageKeys?: string[], role?: string) {
+export async function getYearlyVisitorRecords(villageIds?: string[], role?: string) {
   // Build query with village filtering if provided
   let query = db
     .select({
@@ -731,12 +745,12 @@ export async function getYearlyVisitorRecords(villageKeys?: string[], role?: str
     })
     .from(visitor_records);
 
-  // Add village filtering if villageKeys provided and user is not superadmin
-  if (villageKeys && villageKeys.length > 0 && role !== "superadmin") {
+  // Add village filtering if villageIds provided and user is not superadmin
+  if (villageIds && villageIds.length > 0 && role !== "superadmin") {
     query = query
       .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
       .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
-      .where(inArray(houses.village_key, villageKeys));
+      .where(inArray(houses.village_id, villageIds));
   }
 
   const allRecords = await query;

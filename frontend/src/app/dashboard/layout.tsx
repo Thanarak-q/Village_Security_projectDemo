@@ -27,19 +27,46 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           setData(json);
           
           // Check if user is admin/superadmin and needs village selection
-          if ((json.role === "admin" || json.role === "superadmin")) {
-            const selectedVillage = sessionStorage.getItem("selectedVillage");
-            if (!selectedVillage) {
-              // Redirect to village selection if no village is selected
+          if (json.role === "admin" || json.role === "superadmin") {
+            const selectedVillageId = sessionStorage.getItem("selectedVillageId");
+            const selectedVillageKey =
+              sessionStorage.getItem("selectedVillageKey") ??
+              sessionStorage.getItem("selectedVillage");
+
+            const clearSelectionAndRedirect = () => {
+              sessionStorage.removeItem("selectedVillage");
+              sessionStorage.removeItem("selectedVillageKey");
+              sessionStorage.removeItem("selectedVillageId");
+              sessionStorage.removeItem("selectedVillageName");
               window.location.href = "/admin-village-selection";
+            };
+
+            if (!selectedVillageId) {
+              // Redirect to village selection if no village is selected
+              clearSelectionAndRedirect();
               return;
             }
-            
+
             // Verify that the selected village is in the user's accessible villages
-            if (json.village_keys && !json.village_keys.includes(selectedVillage)) {
-              // Clear invalid selected village and redirect to selection
-              sessionStorage.removeItem("selectedVillage");
-              window.location.href = "/admin-village-selection";
+            const accessibleVillageIds: string[] = Array.isArray(json.village_ids)
+              ? json.village_ids
+              : [];
+            if (
+              json.role !== "superadmin" &&
+              accessibleVillageIds.length > 0 &&
+              !accessibleVillageIds.includes(selectedVillageId)
+            ) {
+              clearSelectionAndRedirect();
+              return;
+            }
+
+            if (
+              json.role !== "superadmin" &&
+              selectedVillageKey &&
+              Array.isArray(json.village_keys) &&
+              !json.village_keys.includes(selectedVillageKey)
+            ) {
+              clearSelectionAndRedirect();
               return;
             }
           }

@@ -28,13 +28,15 @@ import {
 } from "lucide-react";
 import EditHouseDialog from "./popup_edithouse";
 import AddHouseDialog from "./popup_addhouse";
+import { getSelectedVillage } from "@/lib/villageSelection";
 
 // ข้อมูลบ้านจาก API
 interface HouseData {
   house_id: string;
   address: string;
   status: string;
-  village_key: string;
+  village_id?: string | null;
+  village_key?: string | null;
 }
 
 export default function HouseManagementTable() {
@@ -43,6 +45,7 @@ export default function HouseManagementTable() {
   const [houses, setHouses] = useState<HouseData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedVillageId, setSelectedVillageId] = useState<string | null>(null);
   const [selectedVillageKey, setSelectedVillageKey] = useState<string | null>(null);
   const [selectedVillageName, setSelectedVillageName] = useState<string>("");
 
@@ -60,51 +63,88 @@ export default function HouseManagementTable() {
   // State สำหรับการ refresh ข้อมูล
   const [refreshing, setRefreshing] = useState(false);
 
-  // Get selected village key and name from sessionStorage
+  const fetchVillageName = (villageKey: string) => {
+    fetch(`/api/villages/check/${villageKey}`, {
+      credentials: "include",
+    })
+      .then((res) => res.json())
+      .then((villageData) => {
+        if (villageData.exists && villageData.village_name) {
+          setSelectedVillageName(villageData.village_name);
+          sessionStorage.setItem("selectedVillageName", villageData.village_name);
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching village name:", err);
+      });
+  };
+
+  // Get selected village info from sessionStorage on mount
   useEffect(() => {
-    const villageKey = sessionStorage.getItem("selectedVillage");
-    if (villageKey) {
-      setSelectedVillageKey(villageKey);
-      // Fetch village name
-      fetch(`/api/villages/check/${villageKey}`, {
-        credentials: "include",
-      })
-        .then((res) => res.json())
-        .then((villageData) => {
-          if (villageData.exists) {
-            setSelectedVillageName(villageData.village_name);
+    const { id, key, name } = getSelectedVillage();
+
+    if (id) {
+      setSelectedVillageId(id);
+    }
+
+    if (key) {
+      setSelectedVillageKey(key);
+    }
+
+    if (name) {
+      setSelectedVillageName(name);
+    }
+
+    if (key && !name) {
+      fetchVillageName(key);
+    }
+
+    if (id && key) {
+      return;
+    }
+
+    // If no village is selected yet, fallback to the first accessible village from user data
+    fetch("/api/auth/me", {
+      credentials: "include",
+    })
+      .then((res) => res.json())
+      .then((userData) => {
+        const fallbackId: string | undefined = userData?.village_ids?.[0];
+        const fallbackKey: string | undefined = userData?.village_keys?.[0];
+
+        if (fallbackId) {
+          setSelectedVillageId(fallbackId);
+          sessionStorage.setItem("selectedVillageId", fallbackId);
+        }
+
+        if (fallbackKey) {
+          setSelectedVillageKey(fallbackKey);
+          sessionStorage.setItem("selectedVillage", fallbackKey);
+          sessionStorage.setItem("selectedVillageKey", fallbackKey);
+          if (!name) {
+            fetchVillageName(fallbackKey);
           }
-        })
-        .catch((err) => {
-          console.error("Error fetching village name:", err);
-        });
-    } else {
-      // If no village is selected, try to get user's first village as fallback
-      fetch("/api/auth/me", {
-        credentials: "include",
-      })
-        .then((res) => res.json())
-        .then((userData) => {
-          if (userData && userData.village_keys && userData.village_keys.length > 0) {
-            const firstVillage = userData.village_keys[0];
-            sessionStorage.setItem("selectedVillage", firstVillage);
-            setSelectedVillageKey(firstVillage);
-          } else {
-            setError("กรุณาเลือกหมู่บ้านก่อน - ไปที่เมนู 'เปลี่ยนหมู่บ้าน' เพื่อเลือกหมู่บ้าน");
-            setLoading(false);
-          }
-        })
-        .catch((err) => {
-          console.error("Error fetching user data:", err);
+        }
+
+        if (!fallbackId && !fallbackKey) {
           setError("กรุณาเลือกหมู่บ้านก่อน - ไปที่เมนู 'เปลี่ยนหมู่บ้าน' เพื่อเลือกหมู่บ้าน");
           setLoading(false);
-        });
-    }
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching user data:", err);
+        setError("กรุณาเลือกหมู่บ้านก่อน - ไปที่เมนู 'เปลี่ยนหมู่บ้าน' เพื่อเลือกหมู่บ้าน");
+        setLoading(false);
+      });
   }, []);
 
-  // Fetch data from API with village_key parameter
+  // Fetch data from API with village identifier parameter
   const fetchHouses = async (isRefresh = false) => {
-    if (!selectedVillageKey) {
+    const activeVillageId = selectedVillageId;
+    const activeVillageKey = selectedVillageKey;
+    const queryValue = activeVillageId ?? activeVillageKey;
+
+    if (!queryValue) {
       setError("กรุณาเลือกหมู่บ้านก่อน");
       setLoading(false);
       return;
@@ -117,7 +157,8 @@ export default function HouseManagementTable() {
         setLoading(true);
       }
       
-      const response = await fetch(`/api/houses?village_key=${encodeURIComponent(selectedVillageKey)}`, {
+      const queryParam = activeVillageId ? "village_id" : "village_key";
+      const response = await fetch(`/api/houses?${queryParam}=${encodeURIComponent(queryValue)}`, {
         credentials: "include",
       });
       const result = await response.json();
@@ -125,6 +166,20 @@ export default function HouseManagementTable() {
       if (result.success) {
         setHouses(result.data);
         setError(null);
+
+        if (result.village_id) {
+          setSelectedVillageId(result.village_id);
+          sessionStorage.setItem("selectedVillageId", result.village_id);
+        }
+
+        if (result.village_key) {
+          setSelectedVillageKey(result.village_key);
+          sessionStorage.setItem("selectedVillage", result.village_key);
+          sessionStorage.setItem("selectedVillageKey", result.village_key);
+          if (!selectedVillageName) {
+            fetchVillageName(result.village_key);
+          }
+        }
       } else {
         setError(result.error || "ไม่สามารถโหลดข้อมูลได้");
       }
@@ -138,29 +193,29 @@ export default function HouseManagementTable() {
   };
 
   useEffect(() => {
-    if (selectedVillageKey) {
+    if (selectedVillageId || selectedVillageKey) {
       fetchHouses();
     }
-  }, [selectedVillageKey]);
+  }, [selectedVillageId, selectedVillageKey]);
 
   // Listen for village changes from village selection page
   useEffect(() => {
     const handleVillageChange = (event: CustomEvent) => {
-      const newVillageKey = event.detail.villageKey;
-      setSelectedVillageKey(newVillageKey);
-      // Fetch village name for the new village
-      fetch(`/api/villages/check/${newVillageKey}`, {
-        credentials: "include",
-      })
-        .then((res) => res.json())
-        .then((villageData) => {
-          if (villageData.exists) {
-            setSelectedVillageName(villageData.village_name);
-          }
-        })
-        .catch((err) => {
-          console.error("Error fetching village name:", err);
-        });
+      const { villageKey, villageId, villageName } = event.detail as {
+        villageKey?: string;
+        villageId?: string;
+        villageName?: string;
+      };
+
+      setSelectedVillageKey(villageKey ?? null);
+      setSelectedVillageId(villageId ?? null);
+
+      if (villageName) {
+        setSelectedVillageName(villageName);
+        sessionStorage.setItem("selectedVillageName", villageName);
+      } else if (villageKey) {
+        fetchVillageName(villageKey);
+      }
     };
 
     window.addEventListener('villageChanged', handleVillageChange as EventListener);
@@ -204,9 +259,10 @@ export default function HouseManagementTable() {
   };
 
   const filteredData = houses.filter((house) => {
+    const houseVillageKey = house.village_key ?? selectedVillageKey ?? "";
     const matchesSearch =
       house.address.includes(searchTerm) ||
-      house.village_key.includes(searchTerm);
+      houseVillageKey.includes(searchTerm);
     const matchesStatus =
       statusFilter === "ทั้งหมด" ||
       getStatusText(house.status) === statusFilter;
@@ -368,8 +424,23 @@ export default function HouseManagementTable() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {getCurrentPageData().map((house) => (
-                  <TableRow key={house.house_id} className="hover:bg-muted/30 transition-colors border-b border-border/50">
+                {getCurrentPageData().map((house) => {
+                  const normalizedHouse: HouseData = {
+                    ...house,
+                    village_key: house.village_key ?? selectedVillageKey ?? null,
+                    village_id: house.village_id ?? selectedVillageId ?? null,
+                  };
+
+                  const houseVillageKey = normalizedHouse.village_key ?? selectedVillageKey ?? "";
+                  const villageLabel = selectedVillageName ||
+                    (houseVillageKey
+                      ? houseVillageKey
+                          .replace(/-/g, " ")
+                          .replace(/\b\w/g, (l) => l.toUpperCase())
+                      : "ไม่ระบุ");
+
+                  return (
+                    <TableRow key={house.house_id} className="hover:bg-muted/30 transition-colors border-b border-border/50">
                     <TableCell className="min-w-[120px] py-4 px-6">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -381,9 +452,7 @@ export default function HouseManagementTable() {
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground min-w-[150px] text-sm sm:text-base py-4 px-6">
-                      {house.village_key
-                        .replace(/-/g, " ")
-                        .replace(/\b\w/g, (l) => l.toUpperCase())}
+                      {villageLabel}
                     </TableCell>
                     <TableCell className="min-w-[120px] py-4 px-6">
                       <Badge
@@ -398,7 +467,7 @@ export default function HouseManagementTable() {
                     </TableCell>
                     <TableCell className="min-w-[80px]">
                       <EditHouseDialog
-                        house={house}
+                        house={normalizedHouse}
                         onUpdate={() => fetchHouses(true)}
                       >
                         <Button
@@ -411,7 +480,8 @@ export default function HouseManagementTable() {
                       </EditHouseDialog>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
         </div>

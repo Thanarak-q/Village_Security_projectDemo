@@ -56,31 +56,45 @@ export const superAdminStatsRoutes = new Elysia({ prefix: "/api/superadmin" })
         .select({
           village_id: villages.village_id,
           village_name: villages.village_name,
-          village_key: villages.village_key,
           admin_count: count(admin_villages.admin_id),
         })
         .from(villages)
-        .leftJoin(admin_villages, eq(villages.village_key, admin_villages.village_key))
-        .groupBy(villages.village_id, villages.village_name, villages.village_key)
+        .leftJoin(admin_villages, eq(villages.village_id, admin_villages.village_id))
+        .groupBy(villages.village_id, villages.village_name)
         .orderBy(villages.village_name);
 
-      // Get recent admins (last 10)
-      const recentAdmins = await db
+      // Get recent admins (last 10) - without duplicates
+      const recentAdminsBase = await db
         .select({
           admin_id: admins.admin_id,
           username: admins.username,
           email: admins.email,
           role: admins.role,
           status: admins.status,
-          village_key: admin_villages.village_key,
-          village_name: villages.village_name,
           createdAt: admins.createdAt,
         })
         .from(admins)
-        .leftJoin(admin_villages, eq(admins.admin_id, admin_villages.admin_id))
-        .leftJoin(villages, eq(admin_villages.village_key, villages.village_key))
         .orderBy(sql`${admins.createdAt} DESC`)
         .limit(10);
+
+      // Get villages for each admin separately to avoid duplicates
+      const recentAdmins = await Promise.all(
+        recentAdminsBase.map(async (admin) => {
+          const adminVillages = await db
+            .select({
+              village_id: villages.village_id,
+              village_name: villages.village_name,
+            })
+            .from(admin_villages)
+            .innerJoin(villages, eq(admin_villages.village_id, villages.village_id))
+            .where(eq(admin_villages.admin_id, admin.admin_id));
+
+          return {
+            ...admin,
+            villages: adminVillages,
+          };
+        })
+      );
 
       // Get villages without admins
       const villagesWithoutAdmins = villagesWithAdminCount.filter(v => v.admin_count === 0);

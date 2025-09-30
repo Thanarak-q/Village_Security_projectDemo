@@ -52,33 +52,38 @@ export default function AddHouseDialog({
   async function onSubmit(data: FormData) {
     setIsSubmitting(true);
     try {
-      // Get selected village from sessionStorage
-      let villageKey = sessionStorage.getItem("selectedVillage");
-      
-      if (!villageKey) {
-        // Try to get user's first village as fallback
+      let { id: villageId, key: villageKey } = getSelectedVillage();
+
+      if (!villageId || !villageKey) {
         try {
           const userResponse = await fetch("/api/auth/me", {
             credentials: "include",
           });
-          
+
           if (userResponse.ok) {
             const userData = await userResponse.json();
-            if (userData && userData.village_keys && userData.village_keys.length > 0) {
-              villageKey = userData.village_keys[0];
-              if (villageKey) {
-                sessionStorage.setItem("selectedVillage", villageKey);
-              }
+            const fallbackId: string | undefined = userData?.village_ids?.[0];
+            const fallbackKey: string | undefined = userData?.village_keys?.[0];
+
+            if (fallbackId) {
+              villageId = fallbackId;
+              sessionStorage.setItem("selectedVillageId", fallbackId);
+            }
+
+            if (fallbackKey) {
+              villageKey = fallbackKey;
+              sessionStorage.setItem("selectedVillage", fallbackKey);
+              sessionStorage.setItem("selectedVillageKey", fallbackKey);
             }
           }
         } catch (err) {
           console.error("Error fetching user data:", err);
         }
-        
-        if (!villageKey) {
-          alert("กรุณาเลือกหมู่บ้านก่อน - ไปที่เมนู 'เปลี่ยนหมู่บ้าน' เพื่อเลือกหมู่บ้าน");
-          return;
-        }
+      }
+
+      if (!villageId) {
+        alert("กรุณาเลือกหมู่บ้านก่อน - ไปที่เมนู 'เปลี่ยนหมู่บ้าน' เพื่อเลือกหมู่บ้าน");
+        return;
       }
 
       // Make API call to create new house
@@ -89,7 +94,8 @@ export default function AddHouseDialog({
         },
         body: JSON.stringify({
           address: data.address.trim(),
-          village_key: villageKey,
+          village_id: villageId,
+          ...(villageKey ? { village_key: villageKey } : {}),
         }),
       });
 
