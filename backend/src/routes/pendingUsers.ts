@@ -51,30 +51,30 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
    */
   .get("/pendingUsers", async ({ currentUser, query, request }: any) => {
     try {
-      // Extract village_key from query parameters
-      let village_key = query?.village_key;
+      // Extract village_id from query parameters
+      let village_id = query?.village_id;
       
       // Fallback: if query parsing fails, try to extract from URL
-      if (!village_key && request?.url) {
+      if (!village_id && request?.url) {
         const url = new URL(request.url);
-        village_key = url.searchParams.get('village_key');
+        village_id = url.searchParams.get('village_id');
       }
       
-      const { village_keys, role } = currentUser;
+      const { village_ids, role } = currentUser;
 
-      console.log("PendingUsers - Extracted village_key:", village_key);
-      console.log("PendingUsers - Available village_keys:", village_keys);
+      console.log("PendingUsers - Extracted village_id:", village_id);
+      console.log("PendingUsers - Available village_ids:", village_ids);
 
-      // Validate village_key parameter
-      if (!village_key || typeof village_key !== 'string') {
+      // Validate village_id parameter
+      if (!village_id || typeof village_id !== 'string') {
         return {
           success: false,
-          error: "Village key is required",
+          error: "Village ID is required",
         };
       }
 
       // Check if admin has access to the specified village
-      if (role !== "superadmin" && !village_keys.includes(village_key)) {
+      if (role !== "superadmin" && !village_ids.includes(village_id)) {
         return {
           success: false,
           error: "You don't have access to this village",
@@ -90,7 +90,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
           phone: residents.phone,
           status: residents.status,
           role: sql`'resident'`.as("role"),
-          village_key: residents.village_key,
+          village_id: residents.village_id,
           house_address: houses.address,
           createdAt: residents.createdAt,
           updatedAt: residents.updatedAt,
@@ -101,7 +101,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             eq(residents.status, "pending"),
             role === "superadmin" 
               ? sql`1=1` // Super admin can see all pending residents
-              : eq(residents.village_key, village_key),
+              : eq(residents.village_id, village_id),
             isNull(residents.disable_at)
           )
         )
@@ -122,7 +122,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
           phone: guards.phone,
           status: guards.status,
           role: sql`'guard'`.as("role"),
-          village_key: guards.village_key,
+          village_id: guards.village_id,
           house_address: sql`NULL`.as("house_address"),
           createdAt: guards.createdAt,
           updatedAt: guards.updatedAt,
@@ -133,7 +133,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             eq(guards.status, "pending"),
             role === "superadmin" 
               ? sql`1=1` // Super admin can see all pending guards
-              : eq(guards.village_key, village_key),
+              : eq(guards.village_id, village_id),
             isNull(guards.disable_at)
           )
         );
@@ -149,7 +149,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
           guards: pendingGuardsData.length,
           total: pendingResidentsData.length + pendingGuardsData.length,
         },
-        village_key: village_key,
+        village_id: village_id,
       };
     } catch (error) {
       return {
@@ -244,12 +244,12 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
 
         // Assign house if provided
         if (houseAddress) {
-          const villageKey = updateResult[0].village_key;
+          const villageId = updateResult[0].village_id;
           
-          if (!villageKey) {
+          if (!villageId) {
             return {
               success: false,
-              error: "Village key is required for house assignment",
+              error: "Village ID is required for house assignment",
             };
           }
           
@@ -260,7 +260,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             .where(
               and(
                 eq(houses.address, houseAddress.trim()),
-                eq(houses.village_key, villageKey)
+                eq(houses.village_id, villageId)
               )
             );
 
@@ -276,7 +276,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
               .insert(houses)
               .values({
                 address: houseAddress.trim(),
-                village_key: villageKey,
+                village_id: villageId,
               })
               .returning();
             
@@ -314,7 +314,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
                 resident_id: userId,
                 resident_name: `${updateResult[0].fname} ${updateResult[0].lname}`,
                 house_address: houseAddress.trim(),
-                village_key: villageKey || '',
+                village_id: villageId || '',
               });
               console.log(`📢 House member added notification sent: ${updateResult[0].fname} ${updateResult[0].lname}`);
             } catch (notificationError) {
@@ -330,14 +330,14 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
               user_type: 'resident',
               fname: updateResult[0].fname,
               lname: updateResult[0].lname,
-              village_key: updateResult[0].village_key || '',
+              village_id: updateResult[0].village_id || '',
             });
           await notificationService.notifyUserApproval({
             user_id: userId,
             user_type: 'resident',
             fname: updateResult[0].fname,
             lname: updateResult[0].lname,
-            village_key: updateResult[0].village_key || '',
+            village_id: updateResult[0].village_id || '',
           });
         } catch (notificationError) {
           console.error('Error creating approval notification:', notificationError);
@@ -386,7 +386,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             user_type: 'guard',
             fname: updateResult[0].fname,
             lname: updateResult[0].lname,
-            village_key: updateResult[0].village_key || '',
+            village_id: updateResult[0].village_id || '',
           });
         } catch (notificationError) {
           console.error('Error creating approval notification:', notificationError);
@@ -437,7 +437,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             fname: resident[0].fname,
             lname: resident[0].lname,
             phone: resident[0].phone,
-            village_key: resident[0].village_key,
+            village_id: resident[0].village_id,
             status: "verified" as "verified" | "pending" | "disable",
             line_display_name: resident[0].line_display_name,
             line_profile_url: resident[0].line_profile_url,
@@ -457,7 +457,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
               resident_id: userId,
               resident_name: `${resident[0].fname} ${resident[0].lname}`,
               house_address: removedHouseAddress,
-              village_key: resident[0].village_key || '',
+              village_id: resident[0].village_id || '',
             });
             console.log(`📢 House member removed notification sent: ${resident[0].fname} ${resident[0].lname}`);
           } catch (notificationError) {
@@ -502,7 +502,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             user_type: 'guard',
             fname: newGuard[0].fname,
             lname: newGuard[0].lname,
-            village_key: newGuard[0].village_key || '',
+            village_id: newGuard[0].village_id || '',
           });
         } catch (notificationError) {
           console.error('❌ Error sending guard approval notification:', notificationError);
@@ -536,7 +536,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             fname: guard[0].fname,
             lname: guard[0].lname,
             phone: guard[0].phone,
-            village_key: guard[0].village_key,
+            village_id: guard[0].village_id,
             status: "verified" as "verified" | "pending" | "disable",
             line_display_name: guard[0].line_display_name,
             line_profile_url: guard[0].line_profile_url,
@@ -545,12 +545,12 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
 
         // Assign house for resident
         if (houseAddress) {
-          const villageKey = newResident[0].village_key;
+          const villageId = newResident[0].village_id;
           
-          if (!villageKey) {
+          if (!villageId) {
             return {
               success: false,
-              error: "Village key is required for house assignment",
+              error: "Village ID is required for house assignment",
             };
           }
           
@@ -561,7 +561,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             .where(
               and(
                 eq(houses.address, houseAddress.trim()),
-                eq(houses.village_key, villageKey)
+                eq(houses.village_id, villageId)
               )
             );
 
@@ -577,7 +577,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
               .insert(houses)
               .values({
                 address: houseAddress.trim(),
-                village_key: villageKey,
+                village_id: villageId,
               })
               .returning();
             
@@ -597,7 +597,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
                 resident_id: newResident[0].resident_id,
                 resident_name: `${newResident[0].fname} ${newResident[0].lname}`,
                 house_address: houseAddress.trim(),
-                village_key: villageKey,
+                village_id: villageId,
               });
             console.log(`📢 House member added notification sent: ${newResident[0].fname} ${newResident[0].lname}`);
           } catch (notificationError) {
@@ -643,7 +643,7 @@ export const pendingUsersRoutes = new Elysia({ prefix: "/api" })
             user_type: 'resident',
             fname: newResident[0].fname,
             lname: newResident[0].lname,
-            village_key: newResident[0].village_key || '',
+            village_id: newResident[0].village_id || '',
           });
         } catch (notificationError) {
           console.error('❌ Error sending resident approval notification:', notificationError);

@@ -61,30 +61,30 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
     try {
       const { startOfDay, endOfDay } = getTodayDateRange();
       
-      // Extract village_key from query parameters
-      let village_key = query?.village_key;
+      // Extract village_id from query parameters
+      let village_id = query?.village_id;
       
       // Fallback: if query parsing fails, try to extract from URL
-      if (!village_key && request?.url) {
+      if (!village_id && request?.url) {
         const url = new URL(request.url);
-        village_key = url.searchParams.get('village_key');
+        village_id = url.searchParams.get('village_id');
       }
       
-      const { village_keys, role } = currentUser;
+      const { village_ids, role } = currentUser;
 
-      console.log("StatsCard - Extracted village_key:", village_key);
-      console.log("StatsCard - Available village_keys:", village_keys);
+      console.log("StatsCard - Extracted village_id:", village_id);
+      console.log("StatsCard - Available village_ids:", village_ids);
 
-      // Validate village_key parameter
-      if (!village_key || typeof village_key !== 'string') {
+      // Validate village_id parameter
+      if (!village_id || typeof village_id !== 'string') {
         return {
           success: false,
-          error: "Village key is required",
+          error: "Village ID is required",
         };
       }
 
       // Check if admin has access to the specified village
-      if (role !== "superadmin" && !village_keys.includes(village_key)) {
+      if (role !== "superadmin" && !village_ids.includes(village_id)) {
         return {
           success: false,
           error: "You don't have access to this village",
@@ -94,7 +94,7 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
       // Count total residents (filtered by village if not superadmin)
       const countResidents = role === "superadmin"
         ? await db.select({ count: count() }).from(residents)
-        : await db.select({ count: count() }).from(residents).where(eq(residents.village_key, village_key));
+        : await db.select({ count: count() }).from(residents).where(eq(residents.village_id, village_id));
 
       // Count residents with pending status (filtered by village if not superadmin)
       const countResidentsPending = role === "superadmin"
@@ -105,7 +105,7 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
         : await db
             .select({ count: count() })
             .from(residents)
-            .where(and(eq(residents.status, "pending"), eq(residents.village_key, village_key)));
+            .where(and(eq(residents.status, "pending"), eq(residents.village_id, village_id)));
 
       // Count guards with pending status (filtered by village if not superadmin)
       const countGuardsPending = role === "superadmin"
@@ -116,7 +116,7 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
         : await db
             .select({ count: count() })
             .from(guards)
-            .where(and(eq(guards.status, "pending"), eq(guards.village_key, village_key)));
+            .where(and(eq(guards.status, "pending"), eq(guards.village_id, village_id)));
 
       // Count visitor records for today (filtered by village if not superadmin)
       const countVisitorRecordToday = role === "superadmin"
@@ -135,7 +135,7 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
             .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
             .where(
               and(
-                eq(residents.village_key, village_key),
+                eq(residents.village_id, village_id),
                 gte(visitor_records.createdAt, startOfDay),
                 lt(visitor_records.createdAt, endOfDay)
               )
@@ -159,7 +159,7 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
             .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
             .where(
               and(
-                eq(residents.village_key, village_key),
+                eq(residents.village_id, village_id),
                 eq(visitor_records.record_status, "approved"),
                 gte(visitor_records.createdAt, startOfDay),
                 lt(visitor_records.createdAt, endOfDay)
@@ -184,7 +184,7 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
             .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
             .where(
               and(
-                eq(residents.village_key, village_key),
+                eq(residents.village_id, village_id),
                 eq(visitor_records.record_status, "pending"),
                 gte(visitor_records.createdAt, startOfDay),
                 lt(visitor_records.createdAt, endOfDay)
@@ -209,7 +209,7 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
             .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
             .where(
               and(
-                eq(residents.village_key, village_key),
+                eq(residents.village_id, village_id),
                 eq(visitor_records.record_status, "rejected"),
                 gte(visitor_records.createdAt, startOfDay),
                 lt(visitor_records.createdAt, endOfDay)
@@ -230,7 +230,7 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
         success: true,
         data: statsData,
         message: "ข้อมูลสถิติประจำวัน",
-        village_key: village_key,
+        village_id: village_id,
       };
     } catch (error) {
       console.error("Error fetching statistics:", error);

@@ -18,41 +18,41 @@ export const visitorRecordWeeklyRoutes = new Elysia({ prefix: "/api" })
    */
   .get("/visitor-record-weekly", async ({ currentUser, query, request }: any) => {
     try {
-      // Extract village_key from query parameters
-      let village_key = query?.village_key;
+      // Extract village_id from query parameters
+      let village_id = query?.village_id;
       
       // Fallback: if query parsing fails, try to extract from URL
-      if (!village_key && request?.url) {
+      if (!village_id && request?.url) {
         const url = new URL(request.url);
-        village_key = url.searchParams.get('village_key');
+        village_id = url.searchParams.get('village_id');
       }
       
-      const { village_keys, role } = currentUser;
+      const { village_ids, role } = currentUser;
 
-      console.log("Weekly Records - Extracted village_key:", village_key);
-      console.log("Weekly Records - Available village_keys:", village_keys);
+      console.log("Weekly Records - Extracted village_id:", village_id);
+      console.log("Weekly Records - Available village_ids:", village_ids);
 
-      // Validate village_key parameter
-      if (!village_key || typeof village_key !== 'string') {
+      // Validate village_id parameter
+      if (!village_id || typeof village_id !== 'string') {
         return {
           success: false,
-          error: "Village key is required",
+          error: "Village ID is required",
         };
       }
 
       // Check if admin has access to the specified village
-      if (role !== "superadmin" && !village_keys.includes(village_key)) {
+      if (role !== "superadmin" && !village_ids.includes(village_id)) {
         return {
           success: false,
           error: "You don't have access to this village",
         };
       }
       
-      const result = await getWeeklyVisitorRecords([village_key], role);
+      const result = await getWeeklyVisitorRecords([village_id], role);
       return { 
         success: true, 
         data: result,
-        village_key: village_key 
+        village_id: village_id 
       };
     } catch (error) {
       console.error("Error fetching weekly visitor records:", error);

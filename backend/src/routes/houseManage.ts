@@ -13,7 +13,6 @@ import { notificationService } from "../services/notificationService";
 interface CreateHouseBody {
   address: string;
   village_id?: string; // Admin must specify which village to create house in
-  village_key?: string;
 }
 
 /**
@@ -46,8 +45,8 @@ const validateHouseData = (data: CreateHouseBody) => {
     errors.push("Address is required");
   }
 
-  if (!data.village_id?.trim() && !data.village_key?.trim()) {
-    errors.push("Village is required");
+  if (!data.village_id?.trim()) {
+    errors.push("Village ID is required");
   }
 
   return errors;
@@ -118,48 +117,21 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
     console.log("request URL:", request?.url);
     
     try {
-      // Extract village identifiers from query parameters
+      // Extract village_id from query parameters
       let village_id = query?.village_id as string | undefined;
-      let village_key = query?.village_key as string | undefined;
 
       // Fallback: if query parsing fails, try to extract from URL
       if (!village_id && request?.url) {
         const url = new URL(request.url);
         village_id = village_id ?? url.searchParams.get('village_id') ?? undefined;
-        village_key = village_key ?? url.searchParams.get('village_key') ?? undefined;
       }
 
       const role = currentUser.role;
       const villageIds: string[] = Array.isArray(currentUser.village_ids)
         ? currentUser.village_ids
         : [];
-      const villageKeys: string[] = Array.isArray(currentUser.village_keys)
-        ? currentUser.village_keys
-        : [];
-
-      if (!village_id && village_key) {
-        const [village] = await db
-          .select({ id: villages.village_id })
-          .from(villages)
-          .where(eq(villages.village_key, village_key));
-        village_id = village?.id ?? undefined;
-      }
-
-      if (!village_key && village_id) {
-        const index = villageIds.indexOf(village_id);
-        if (index !== -1 && villageKeys[index]) {
-          village_key = villageKeys[index];
-        } else {
-          const [village] = await db
-            .select({ key: villages.village_key })
-            .from(villages)
-            .where(eq(villages.village_id, village_id));
-          village_key = village?.key ?? undefined;
-        }
-      }
 
       console.log("Extracted village_id:", village_id);
-      console.log("Extracted village_key:", village_key);
       console.log("Available village_ids:", villageIds);
 
       // Validate village_id parameter
@@ -192,7 +164,6 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         data: result,
         total: result.length,
         village_id,
-        village_key,
       };
     } catch (error) {
       console.error("Error fetching houses:", error);
@@ -228,25 +199,7 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
       const villageIds: string[] = Array.isArray(currentUser.village_ids)
         ? currentUser.village_ids
         : [];
-      const villageKeys: string[] = Array.isArray(currentUser.village_keys)
-        ? currentUser.village_keys
-        : [];
-
       let villageId = houseData.village_id?.trim();
-      const providedVillageKey = houseData.village_key?.trim();
-
-      if (!villageId && providedVillageKey) {
-        const index = villageKeys.indexOf(providedVillageKey);
-        if (index !== -1 && villageIds[index]) {
-          villageId = villageIds[index];
-        } else {
-          const [village] = await db
-            .select({ id: villages.village_id })
-            .from(villages)
-            .where(eq(villages.village_key, providedVillageKey));
-          villageId = village?.id ?? undefined;
-        }
-      }
 
       if (!villageId) {
         return {

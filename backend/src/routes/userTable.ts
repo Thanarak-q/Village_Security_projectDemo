@@ -70,7 +70,7 @@ const requireLiffAuth = async (context: any) => {
   // Add user to context
   context.currentUser = {
     ...user,
-    village_keys: user.village_key ? [user.village_key] : [],
+    village_ids: user.village_id ? [user.village_id] : [],
   };
 };
 
@@ -178,7 +178,7 @@ async function createGuardFromResident(resident: any, status: string) {
       fname: resident.fname,
       lname: resident.lname,
       phone: resident.phone,
-      village_key: resident.village_key,
+      village_id: resident.village_id,
       status: status as "verified" | "pending" | "disable",
       line_display_name: resident.line_display_name,
       line_profile_url: resident.line_profile_url,
@@ -202,7 +202,7 @@ async function createResidentFromGuard(guard: any, status: string) {
       fname: guard.fname,
       lname: guard.lname,
       phone: guard.phone,
-      village_key: guard.village_key,
+      village_id: guard.village_id,
       status: status as "verified" | "pending" | "disable",
       line_display_name: guard.line_display_name,
       line_profile_url: guard.line_profile_url,
@@ -237,15 +237,15 @@ async function cleanupOrphanedHouse(houseId: string) {
 async function createHouseForResident(
   residentId: string,
   houseNumber: string,
-  villageKey: string | null
+  villageId: string | null
 ) {
-  if (!villageKey) return null;
+  if (!villageId) return null;
 
   const newHouse = await db
     .insert(houses)
     .values({
       address: houseNumber,
-      village_key: villageKey,
+      village_id: villageId,
     })
     .returning();
 
@@ -291,7 +291,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           lname: true,
           email: true,
           phone: true,
-          village_key: true,
+          village_id: true,
           status: true,
           line_user_id: true,
         }
@@ -308,7 +308,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
       // If currentUser is provided (authenticated request), verify it's the same person
       if (currentUser) {
         // Check if the found guard matches the current user's village
-        if (currentUser.village_key && guard.village_key !== currentUser.village_key) {
+        if (currentUser.village_id && guard.village_id !== currentUser.village_id) {
           set.status = 403;
           return {
             success: false,
@@ -354,7 +354,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           lname: true,
           email: true,
           phone: true,
-          village_key: true,
+          village_id: true,
           status: true,
           line_user_id: true,
         }
@@ -371,7 +371,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
       // If currentUser is provided (authenticated request), verify it's the same person
       if (currentUser) {
         // Check if the found guard matches the current user's village
-        if (currentUser.village_key && guard.village_key !== currentUser.village_key) {
+        if (currentUser.village_id && guard.village_id !== currentUser.village_id) {
           set.status = 403;
           return {
             success: false,
@@ -403,30 +403,30 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
    */
   .get("/userTable", async ({ currentUser, query, request }: any) => {
     try {
-      // Extract village_key from query parameters
-      let village_key = query?.village_key;
+      // Extract village_id from query parameters
+      let village_id = query?.village_id;
       
       // Fallback: if query parsing fails, try to extract from URL
-      if (!village_key && request?.url) {
+      if (!village_id && request?.url) {
         const url = new URL(request.url);
-        village_key = url.searchParams.get('village_key');
+        village_id = url.searchParams.get('village_id');
       }
       
-      const { village_keys, role } = currentUser;
+      const { village_ids, role } = currentUser;
 
-      console.log("UserTable - Extracted village_key:", village_key);
-      console.log("UserTable - Available village_keys:", village_keys);
+      console.log("UserTable - Extracted village_id:", village_id);
+      console.log("UserTable - Available village_ids:", village_ids);
 
-      // Validate village_key parameter
-      if (!village_key || typeof village_key !== 'string') {
+      // Validate village_id parameter
+      if (!village_id || typeof village_id !== 'string') {
         return {
           success: false,
-          error: "Village key is required",
+          error: "Village ID is required",
         };
       }
 
       // Check if admin has access to the specified village
-      if (role !== "superadmin" && !village_keys.includes(village_key)) {
+      if (role !== "superadmin" && !village_ids.includes(village_id)) {
         return {
           success: false,
           error: "You don't have access to this village",
@@ -442,7 +442,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           phone: residents.phone,
           status: residents.status,
           role: sql`'resident'`.as("role"),
-          village_key: residents.village_key,
+          village_id: residents.village_id,
           house_address: houses.address,
           createdAt: residents.createdAt,
           updatedAt: residents.updatedAt,
@@ -453,7 +453,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           and(
             role === "superadmin" 
               ? sql`1=1` // Super admin can see all residents
-              : eq(residents.village_key, village_key),
+              : eq(residents.village_id, village_id),
             sql`${residents.status} != 'pending'`,
             isNull(residents.disable_at)
           )
@@ -473,7 +473,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           phone: guards.phone,
           status: guards.status,
           role: sql`'guard'`.as("role"),
-          village_key: guards.village_key,
+          village_id: guards.village_id,
           house_address: sql`NULL`.as("house_address"),
           createdAt: guards.createdAt,
           updatedAt: guards.updatedAt,
@@ -484,7 +484,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           and(
             role === "superadmin" 
               ? sql`1=1` // Super admin can see all guards
-              : eq(guards.village_key, village_key),
+              : eq(guards.village_id, village_id),
             sql`${guards.status} != 'pending'`,
             isNull(guards.disable_at)
           )
@@ -502,7 +502,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           guards: guardsData.length,
           total: residentsData.length + guardsData.length,
         },
-        village_key: village_key,
+        village_id: village_id,
       };
     } catch (error) {
       return {
@@ -546,7 +546,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
 
         // Get old status for notification
         const oldResident = await db
-          .select({ status: residents.status, fname: residents.fname, lname: residents.lname, village_key: residents.village_key })
+          .select({ status: residents.status, fname: residents.fname, lname: residents.lname, village_id: residents.village_id })
           .from(residents)
           .where(eq(residents.resident_id, userId));
 
@@ -591,7 +591,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
                 house_address: houseMember[0].address,
                 old_status: oldResident[0].status || 'unknown',
                 new_status: status,
-                village_key: oldResident[0].village_key || '',
+                village_id: oldResident[0].village_id || '',
               });
               console.log(`📢 Resident status change notification sent: ${oldResident[0].fname} ${oldResident[0].lname}`);
             }
@@ -624,14 +624,14 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
               .where(eq(houses.house_id, currentHouseMember[0].house_id));
           } else {
             // Create new house and house_member record
-            const villageKey = updateResult[0].village_key;
+            const villageId = updateResult[0].village_id;
 
             // Create new house
             const newHouse = await db
               .insert(houses)
               .values({
                 address: houseNumber,
-                village_key: villageKey,
+                village_id: villageId,
               })
               .returning();
 
@@ -829,7 +829,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
                   resident_id: userId,
                   resident_name: `${resident.fname} ${resident.lname}`,
                   house_address: houseInfo[0].address,
-                  village_key: resident.village_key || '',
+                  village_id: resident.village_id || '',
                 });
                 console.log(`📢 House member removed notification sent: ${resident.fname} ${resident.lname}`);
               }
@@ -970,7 +970,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
             await createHouseForResident(
               newResident.resident_id,
               houseNumber,
-              guard.village_key
+              guard.village_id
             );
 
             // Create notification for house member added
@@ -980,7 +980,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
                 resident_id: newResident.resident_id,
                 resident_name: `${newResident.fname} ${newResident.lname}`,
                 house_address: houseNumber || '',
-                village_key: guard.village_key || '',
+                village_id: guard.village_id || '',
               });
               console.log(`📢 House member added notification sent: ${newResident.fname} ${newResident.lname}`);
             } catch (notificationError) {
