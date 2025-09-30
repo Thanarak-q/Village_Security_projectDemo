@@ -3,7 +3,7 @@ import { simpleMessageQueue } from './messageQueue';
 
 const ADMIN_TOPIC_PREFIX = 'admin:';
 
-const sanitizeVillageKey = (value: unknown): string | null => {
+const sanitizeVillageId = (value: unknown): string | null => {
   if (typeof value !== 'string') {
     return null;
   }
@@ -13,17 +13,17 @@ const sanitizeVillageKey = (value: unknown): string | null => {
     return null;
   }
 
-  const normalized = trimmed.toLowerCase();
-  const sanitized = normalized.replace(/[^a-z0-9_-]/g, '');
-
-  if (!sanitized) {
+  // UUID format validation: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  
+  if (!uuidRegex.test(trimmed)) {
     return null;
   }
 
-  return sanitized;
+  return trimmed.toLowerCase();
 };
 
-const getAdminTopic = (villageKey: string) => `${ADMIN_TOPIC_PREFIX}${villageKey}`;
+const getAdminTopic = (villageId: string) => `${ADMIN_TOPIC_PREFIX}${villageId}`;
 
 export type AdminNotification = {
     id: string
@@ -31,7 +31,7 @@ export type AdminNotification = {
     body?: string
     level?: 'info' | 'warning' | 'critical'
     createdAt: number // epoch ms
-    villageKey: string
+    villageId: string
     type?: string
     category?: string
     data?: Record<string, unknown> | null
@@ -80,7 +80,7 @@ export type NotifyService = {
         open(ws) {
           ws.data = {
             currentAdminTopic: null as string | null,
-            villageKey: null as string | null,
+            villageId: null as string | null,
             connectionId: Math.random().toString(36).substring(7),
             connectedAt: Date.now()
           };
@@ -116,18 +116,18 @@ export type NotifyService = {
 
             // Handle admin subscription requests
             if (payload.type === 'SUBSCRIBE_ADMIN') {
-              const requestedVillageKey = sanitizeVillageKey(payload.data?.villageKey);
+              const requestedVillageId = sanitizeVillageId(payload.data?.villageId);
 
-              if (!requestedVillageKey) {
+              if (!requestedVillageId) {
                 ws.send(JSON.stringify({
                   type: 'ERROR',
-                  error: 'Invalid village key',
+                  error: 'Invalid village ID',
                   timestamp: Date.now()
                 }));
                 return;
               }
 
-              const topic = getAdminTopic(requestedVillageKey);
+              const topic = getAdminTopic(requestedVillageId);
 
               if (ws.data?.currentAdminTopic && ws.data.currentAdminTopic !== topic) {
                 ws.unsubscribe(ws.data.currentAdminTopic);
@@ -137,12 +137,12 @@ export type NotifyService = {
               ws.data = {
                 ...ws.data,
                 currentAdminTopic: topic,
-                villageKey: requestedVillageKey
+                villageId: requestedVillageId
               };
 
               ws.send(JSON.stringify({
                 type: 'SUBSCRIBED_ADMIN',
-                villageKey: requestedVillageKey,
+                villageId: requestedVillageId,
                 timestamp: Date.now()
               }));
               return;
@@ -162,19 +162,19 @@ export type NotifyService = {
                   return;
                 }
 
-                const targetVillageKey = sanitizeVillageKey(payload.data.villageKey);
+                const targetVillageId = sanitizeVillageId(payload.data.villageId);
 
-                if (!targetVillageKey) {
-                  console.warn('⚠️ ADMIN_NOTIFICATION missing valid village key:', payload);
+                if (!targetVillageId) {
+                  console.warn('⚠️ ADMIN_NOTIFICATION missing valid village ID:', payload);
                   ws.send(JSON.stringify({
                     type: 'ERROR',
-                    error: 'Notification missing village key',
+                    error: 'Notification missing village ID',
                     timestamp: Date.now()
                   }));
                   return;
                 }
 
-                const topic = getAdminTopic(targetVillageKey);
+                const topic = getAdminTopic(targetVillageId);
                 server.publish(topic, JSON.stringify(payload));
                 console.log('📣 Broadcast ADMIN_NOTIFICATION to topic', topic, 'title:', payload.data.title);
                 return;
@@ -236,17 +236,17 @@ export type NotifyService = {
       server.publish(topic, JSON.stringify(payload))
 
     const publishAdmin = (n: AdminNotification) => {
-      const sanitizedVillageKey = sanitizeVillageKey(n.villageKey);
+      const sanitizedVillageId = sanitizeVillageId(n.villageId);
 
-      if (!sanitizedVillageKey) {
-        console.error('❌ Cannot queue admin notification without valid village key:', n);
-        return 'invalid_village_key';
+      if (!sanitizedVillageId) {
+        console.error('❌ Cannot queue admin notification without valid village ID:', n);
+        return 'invalid_village_id';
       }
 
-      const topic = getAdminTopic(sanitizedVillageKey);
+      const topic = getAdminTopic(sanitizedVillageId);
       const payload = {
         ...n,
-        villageKey: sanitizedVillageKey
+        villageId: sanitizedVillageId
       };
 
       // Use simple message queue for deduplication and queuing
@@ -269,9 +269,9 @@ export type NotifyService = {
           const targetTopic = typeof message.metadata?.topic === 'string'
             ? message.metadata.topic
             : getAdminTopic(
-                sanitizeVillageKey(
-                  (message.data && typeof message.data === 'object' && 'villageKey' in (message.data as Record<string, unknown>))
-                    ? (message.data as Record<string, unknown>).villageKey
+                sanitizeVillageId(
+                  (message.data && typeof message.data === 'object' && 'villageId' in (message.data as Record<string, unknown>))
+                    ? (message.data as Record<string, unknown>).villageId
                     : ''
                 ) || 'unknown'
               );

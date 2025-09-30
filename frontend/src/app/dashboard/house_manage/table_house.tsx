@@ -171,9 +171,15 @@ export default function HouseManagementTable() {
           setSelectedVillageKey(result.village_id);
           sessionStorage.setItem("selectedVillage", result.village_id);
           sessionStorage.setItem("selectedVillageKey", result.village_id);
-          if (!selectedVillageName) {
-            fetchVillageName(result.village_id);
-          }
+        }
+
+        // Use village_name from API response if available
+        if (result.village_name && result.village_name.trim() !== "") {
+          setSelectedVillageName(result.village_name);
+          sessionStorage.setItem("selectedVillageName", result.village_name);
+        } else if (!selectedVillageName) {
+          // Fallback to fetching village name if not provided in response
+          fetchVillageName(result.village_id);
         }
       } else {
         setError(result.error || "ไม่สามารถโหลดข้อมูลได้");
@@ -424,8 +430,9 @@ export default function HouseManagementTable() {
                   };
 
                   const houseVillageId = normalizedHouse.village_id ?? selectedVillageId ?? "";
-                  const villageLabel = selectedVillageName ||
-                    (houseVillageId
+                  const villageLabel = (selectedVillageName && selectedVillageName.trim() !== "") 
+                    ? selectedVillageName
+                    : (houseVillageId && houseVillageId.trim() !== ""
                       ? houseVillageId
                           .replace(/-/g, " ")
                           .replace(/\b\w/g, (l) => l.toUpperCase())
@@ -439,7 +446,7 @@ export default function HouseManagementTable() {
                           <Home className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                         </div>
                         <span className="font-semibold text-sm sm:text-base truncate text-foreground">
-                          {house.address === "-" ? "ไม่ระบุ" : house.address}
+                          {!house.address || house.address === "-" || house.address.trim() === "" ? "ไม่ระบุ" : house.address}
                         </span>
                       </div>
                     </TableCell>

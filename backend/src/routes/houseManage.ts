@@ -159,11 +159,21 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
           isNull(houses.disable_at)
         ));
 
+      // Get village name
+      const village = await db
+        .select({
+          village_name: villages.village_name,
+        })
+        .from(villages)
+        .where(eq(villages.village_id, village_id))
+        .limit(1);
+
       return {
         success: true,
         data: result,
         total: result.length,
         village_id,
+        village_name: village[0]?.village_name || null,
       };
     } catch (error) {
       console.error("Error fetching houses:", error);
