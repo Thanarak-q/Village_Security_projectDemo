@@ -25,7 +25,6 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
       const adminVillages = await db
         .select({
           village_id: villages.village_id,
-          village_key: villages.village_key,
           village_name: villages.village_name,
           created_at: admin_villages.created_at,
         })
@@ -65,7 +64,6 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
       const adminVillage = await db
         .select({
           village_id: villages.village_id,
-          village_key: villages.village_key,
           village_name: villages.village_name,
         })
         .from(admin_villages)
@@ -89,7 +87,6 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
         message: "Village selected successfully",
         data: {
           village_id: targetVillage.village_id,
-          village_key: targetVillage.village_key,
           village_name: targetVillage.village_name
         }
       };
@@ -143,7 +140,6 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
       const adminVillage = await db
         .select({
           village_id: villages.village_id,
-          village_key: villages.village_key,
           village_name: villages.village_name,
         })
         .from(admin_villages)
@@ -200,7 +196,6 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
         success: true, 
         data: {
           ...newStaff[0],
-          village_key: targetVillage.village_key,
           village_name: targetVillage.village_name,
           default_password: defaultPassword, // Return for admin to share with staff
           message: "Staff created successfully. Please share the default password with the staff member."

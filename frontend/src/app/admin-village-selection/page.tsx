@@ -27,7 +27,7 @@ const VillageSelectionPage = () => {
   const [villages, setVillages] = useState<Village[]>([]);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedVillageKey, setSelectedVillageKey] = useState<string | null>(null);
+  const [selectedVillageId, setSelectedVillageId] = useState<string | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
 
   // Animation refs
@@ -40,7 +40,6 @@ const VillageSelectionPage = () => {
   useEffect(() => {
     // Clear any existing selected village when entering village selection
     sessionStorage.removeItem("selectedVillage");
-    sessionStorage.removeItem("selectedVillageKey");
     sessionStorage.removeItem("selectedVillageId");
     sessionStorage.removeItem("selectedVillageName");
     
@@ -138,11 +137,10 @@ const VillageSelectionPage = () => {
     if (isSelecting) return;
     
     setIsSelecting(true);
-    setSelectedVillageKey(village.village_id);
+    setSelectedVillageId(village.village_id);
 
     // Store selected village in sessionStorage for dashboard access
     sessionStorage.setItem("selectedVillage", village.village_id); // legacy key
-    sessionStorage.setItem("selectedVillageKey", village.village_id);
     sessionStorage.setItem("selectedVillageId", village.village_id);
     sessionStorage.setItem("selectedVillageName", village.village_name);
 
@@ -333,7 +331,7 @@ const VillageSelectionPage = () => {
                     <p className="text-muted-foreground text-sm">
                       คลิกเพื่อจัดการหมู่บ้านนี้
                     </p>
-                    {selectedVillageKey === village.village_id && isSelecting && (
+                    {selectedVillageId === village.village_id && isSelecting && (
                       <div className="mt-4">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
                       </div>

@@ -112,7 +112,7 @@ export default function StaffManagePage() {
         console.warn('GSAP cleanup error:', error);
       }
     };
-  }, [loading, userRole, selectedVillageKey]); // Dependencies are stable now
+  }, [loading, userRole, selectedVillageId]); // Dependencies are stable now
 
   useEffect(() => {
     // Check user role first
@@ -258,7 +258,7 @@ export default function StaffManagePage() {
     );
   }
 
-  if (!selectedVillageKey) {
+  if (!selectedVillageId) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md">

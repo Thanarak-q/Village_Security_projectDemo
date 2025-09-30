@@ -28,14 +28,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           
           // Check if user is admin/superadmin and needs village selection
           if (json.role === "admin" || json.role === "superadmin") {
-            const selectedVillageId = sessionStorage.getItem("selectedVillageId");
-            const selectedVillageKey =
-              sessionStorage.getItem("selectedVillageKey") ??
-              sessionStorage.getItem("selectedVillage");
+            const selectedVillageId = sessionStorage.getItem("selectedVillageId") ?? sessionStorage.getItem("selectedVillage");
 
             const clearSelectionAndRedirect = () => {
               sessionStorage.removeItem("selectedVillage");
-              sessionStorage.removeItem("selectedVillageKey");
               sessionStorage.removeItem("selectedVillageId");
               sessionStorage.removeItem("selectedVillageName");
               window.location.href = "/admin-village-selection";
@@ -60,15 +56,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               return;
             }
 
-            if (
-              json.role !== "superadmin" &&
-              selectedVillageKey &&
-              Array.isArray(json.village_ids) &&
-              !json.village_ids.includes(selectedVillageKey)
-            ) {
-              clearSelectionAndRedirect();
-              return;
-            }
           }
         }
       } catch (error) {

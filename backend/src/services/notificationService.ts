@@ -146,12 +146,12 @@ class NotificationService {
     user_type: 'resident' | 'guard';
     fname: string;
     lname: string;
-    village_key: string;
+    village_id: string;
   }) {
     const userTypeText = userData.user_type === 'resident' ? 'ผู้อยู่อาศัย' : 'ยามรักษาความปลอดภัย';
     
     return this.createNotification({
-      village_key: userData.village_key,
+      village_id: userData.village_id,
       type: userData.user_type === 'resident' ? 'member_added' : 'status_changed',
       category: userData.user_type === 'resident' ? 'house_management' : 'user_approval',
       title: `${userTypeText}ได้รับการอนุมัติ`,
@@ -209,10 +209,10 @@ class NotificationService {
     visitor_record_id: string;
     visitor_name: string;
     wait_time: string;
-    village_key: string;
+    village_id: string;
   }) {
     return this.createNotification({
-      village_key: visitorData.village_key,
+      village_id: visitorData.village_id,
       type: 'visitor_pending_too_long',
       category: 'visitor_management',
       title: 'ผู้เยี่ยมรอการอนุมัตินานเกินไป',
@@ -233,10 +233,10 @@ class NotificationService {
     visitor_record_id: string;
     visitor_name: string;
     reason: string;
-    village_key: string;
+    village_id: string;
   }) {
     return this.createNotification({
-      village_key: visitorData.village_key,
+      village_id: visitorData.village_id,
       type: 'visitor_rejected_review',
       category: 'visitor_management',
       title: 'ผู้เยี่ยมถูกปฏิเสธ',
@@ -258,10 +258,10 @@ class NotificationService {
     resident_id: string;
     resident_name: string;
     house_address: string;
-    village_key: string;
+    village_id: string;
   }) {
     return this.createNotification({
-      village_key: memberData.village_key,
+      village_id: memberData.village_id,
       type: 'member_added',
       category: 'house_management',
       title: 'เพิ่มลูกบ้านใหม่',
@@ -284,10 +284,10 @@ class NotificationService {
     resident_id: string;
     resident_name: string;
     house_address: string;
-    village_key: string;
+    village_id: string;
   }) {
     return this.createNotification({
-      village_key: memberData.village_key,
+      village_id: memberData.village_id,
       type: 'member_removed',
       category: 'house_management',
       title: 'ลบลูกบ้าน',
@@ -311,10 +311,10 @@ class NotificationService {
     house_address: string;
     old_status: string;
     new_status: string;
-    village_key: string;
+    village_id: string;
   }) {
     return this.createNotification({
-      village_key: residentData.village_key,
+      village_id: residentData.village_id,
       type: 'status_changed',
       category: 'house_management',
       title: 'เปลี่ยนสถานะลูกบ้าน',
