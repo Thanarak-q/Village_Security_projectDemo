@@ -34,6 +34,7 @@ import {
   Trash2,
   Users,
   Loader2,
+  User,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -72,8 +73,8 @@ export function StaffTable({ staffMembers, onStaffDeleted, loading }: StaffTable
   // Function to get password status badge color
   const getPasswordStatusColor = (passwordChangedAt: string | null) => {
     return passwordChangedAt 
-      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" 
-      : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+      ? "bg-green-600 hover:bg-green-700 text-white px-1 py-1 text-sm rounded-lg flex-1 disabled:opacity-50 dark:bg-green-900/20 dark:text-green-400" 
+      : "bg-red-600 hover:bg-red-700 text-white px-1 py-1 text-sm rounded-lg flex-1 disabled:opacity-50 dark:bg-red-900/20 dark:text-red-400";
   };
 
 
@@ -147,27 +148,34 @@ export function StaffTable({ staffMembers, onStaffDeleted, loading }: StaffTable
           <TableBody>
             {staffMembers.map((staff) => (
               <TableRow key={staff.admin_id} className="hover:bg-muted/30 transition-colors border-b border-border/50">
-                {/* User column - Name only */}
+                {/* User column - Staff icon and name */}
                 <TableCell className="py-4 px-6">
-                  <div className="min-w-0 flex-1">
-                    <div className="font-semibold text-foreground text-base">
-                      {staff.username}
+                  <div className="flex items-center space-x-3">
+                    {/* Staff icon */}
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-blue-500 text-white flex-shrink-0">
+                      <User className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      @{staff.username}
-                    </div>
-                      {/* Show join date on mobile */}
-                      <div className="lg:hidden text-xs text-muted-foreground mt-1">
-                        <div>{staff.created_at ? (() => {
-                          try {
-                            return format(new Date(staff.created_at), "dd MMM yyyy", { locale: th });
-                          } catch (error) {
-                            console.error('Date formatting error:', error, 'created_at:', staff.created_at);
-                            return 'Invalid Date';
-                          }
-                        })() : 'N/A'}</div>
+                    {/* Name and username */}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-foreground text-base">
+                        {staff.username}
                       </div>
-                    </div>
+                      <div className="text-sm text-muted-foreground">
+                        @{staff.username}
+                      </div>
+                        {/* Show join date on mobile */}
+                        <div className="lg:hidden text-xs text-muted-foreground mt-1">
+                          <div>{staff.created_at ? (() => {
+                            try {
+                              return format(new Date(staff.created_at), "dd MMM yyyy", { locale: th });
+                            } catch (error) {
+                              console.error('Date formatting error:', error, 'created_at:', staff.created_at);
+                              return 'Invalid Date';
+                            }
+                          })() : 'N/A'}</div>
+                        </div>
+                      </div>
+                  </div>
                 </TableCell>
 
                 {/* Contact info column - hidden on mobile */}
