@@ -75,6 +75,12 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
       console.log("StatsCard - Extracted village_id:", village_id);
       console.log("StatsCard - Available village_ids:", village_ids);
 
+      // For staff role, use their assigned village if no village_id provided
+      if (!village_id && role === "staff" && village_ids && village_ids.length > 0) {
+        village_id = village_ids[0];
+        console.log("StatsCard - Using staff's assigned village:", village_id);
+      }
+
       // Validate village_id parameter
       if (!village_id || typeof village_id !== 'string') {
         return {

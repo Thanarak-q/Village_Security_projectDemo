@@ -26,7 +26,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         if (json) {
           setData(json);
           
-          // Check if user is admin/superadmin and needs village selection
+          // Handle village selection based on user role
           if (json.role === "admin" || json.role === "superadmin") {
             const selectedVillageId = sessionStorage.getItem("selectedVillageId") ?? sessionStorage.getItem("selectedVillage");
 
@@ -56,6 +56,29 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               return;
             }
 
+          } else if (json.role === "staff") {
+            // For staff users, auto-select their assigned village
+            const accessibleVillageIds: string[] = Array.isArray(json.village_ids)
+              ? json.village_ids
+              : [];
+            
+            if (accessibleVillageIds.length > 0) {
+              const staffVillageId = accessibleVillageIds[0];
+              const currentSelectedVillage = sessionStorage.getItem("selectedVillageId") ?? sessionStorage.getItem("selectedVillage");
+              
+              // Auto-set village for staff if not already set
+              if (!currentSelectedVillage || currentSelectedVillage !== staffVillageId) {
+                sessionStorage.setItem("selectedVillage", staffVillageId);
+                sessionStorage.setItem("selectedVillageId", staffVillageId);
+                
+                // Set village name if available
+                if (json.village_name) {
+                  sessionStorage.setItem("selectedVillageName", json.village_name);
+                }
+                
+                console.log("Auto-selected village for staff:", staffVillageId);
+              }
+            }
           }
         }
       } catch (error) {

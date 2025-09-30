@@ -78,32 +78,37 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
       const password = randomBytes(4).toString('hex'); // 8 characters
       const hashedPassword = await hashPassword(password);
 
-      // Create new staff admin
-      const newStaff = await db
-        .insert(admins)
-        .values({
-          username: prefixedUsername,
-          email: null, // No email required
-          phone: null, // No phone required
-          password_hash: hashedPassword,
-          role: "staff",
-          status: "verified",
-        })
-        .returning();
+      // Use database transaction to ensure data consistency
+      const result = await db.transaction(async (tx) => {
+        // Create new staff admin
+        const newStaff = await tx
+          .insert(admins)
+          .values({
+            username: prefixedUsername,
+            email: null, // No email required
+            phone: null, // No phone required
+            password_hash: hashedPassword,
+            role: "staff",
+            status: "verified",
+          })
+          .returning();
 
-      // Create admin_village relationship
-      await db
-        .insert(admin_villages)
-        .values({
-          admin_id: newStaff[0].admin_id,
-          village_id: village_id,
-        });
+        // Create admin_village relationship
+        await tx
+          .insert(admin_villages)
+          .values({
+            admin_id: newStaff[0].admin_id,
+            village_id: village_id,
+          });
+
+        return newStaff[0];
+      });
 
       return {
         success: true,
         message: "เพิ่มนิติบุคคลสำเร็จ",
         data: {
-          admin_id: newStaff[0].admin_id,
+          admin_id: result.admin_id,
           username: prefixedUsername,
           original_username: username, // Keep original for reference
           password,
@@ -111,7 +116,7 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
           village_name: village[0].village_name,
           role: "staff",
           status: "verified",
-          created_at: newStaff[0].createdAt
+          created_at: result.createdAt
         }
       };
     } catch (error) {

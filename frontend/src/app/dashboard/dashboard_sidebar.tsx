@@ -134,6 +134,14 @@ const AppSidebar = memo(function AppSidebar() {
             } else if (key) {
               fetchVillageNameByKey(key);
             }
+          } else if (json.role === "staff") {
+            // For staff users, use their assigned village name
+            if (json.village_name) {
+              setSelectedVillageName(json.village_name);
+            } else if (json.village_ids && json.village_ids.length > 0) {
+              // Fetch village name by ID if village_name is not available
+              fetchVillageNameById(json.village_ids[0]);
+            }
           }
 
           if (!name && json.village_name) {

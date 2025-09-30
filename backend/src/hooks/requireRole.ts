@@ -92,7 +92,7 @@ export const requireRole = (required: string | string[] = "*") => {
 
     // Resolve village associations to IDs and keys
     let village_ids: string[] = [];
-    if (userRole === 'admin' || userRole === 'superadmin') {
+    if (userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff') {
       if (userRole !== "superadmin" && 'admin_id' in user) {
         const adminVillages = await db.query.admin_villages.findMany({
           where: eq(admin_villages.admin_id, user.admin_id),
@@ -105,7 +105,7 @@ export const requireRole = (required: string | string[] = "*") => {
         village_ids = [user.village_id];
       }
     } else {
-      // For guards, residents, and staff fallback, use their village_id if present
+      // For guards and residents, use their village_id if present
       if ('village_id' in user && user.village_id) {
         village_ids = [user.village_id];
       }
