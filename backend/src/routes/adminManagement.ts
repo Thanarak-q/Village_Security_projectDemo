@@ -18,7 +18,7 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
    * @param {Object} context - The context for the request.
    * @returns {Promise<Object>} List of villages assigned to the admin
    */
-  .get("/villages", async ({ set, user }) => {
+  .get("/villages", async ({ set, user }: any) => {
     try {
       const adminId = user.admin_id;
 
@@ -48,49 +48,39 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
    * @param {Object} context.body - The body of the request.
    * @returns {Promise<Object>} Success message
    */
-  .post("/select-village", async ({ body, set, user }) => {
+  .post("/select-village", async ({ body, set, user }: any) => {
     try {
-      const { village_key } = body as { village_key: string };
+      const { village_id } = body as { village_id: string };
       const adminId = user.admin_id;
 
       // Validation
-      if (!village_key?.trim()) {
+      if (!village_id?.trim()) {
         set.status = 400;
-        return { success: false, error: "village_key is required" };
+        return { success: false, error: "village_id is required" };
       }
 
-      const normalizedVillageKey = village_key.trim();
+      const normalizedVillageId = village_id.trim();
 
-      // Resolve village id
-      const village = await db
+      // Check if admin has access to this village
+      const adminVillage = await db
         .select({
           village_id: villages.village_id,
           village_key: villages.village_key,
           village_name: villages.village_name,
         })
-        .from(villages)
-        .where(eq(villages.village_key, normalizedVillageKey));
-
-      if (village.length === 0) {
-        set.status = 404;
-        return { success: false, error: "Village not found" };
-      }
-
-      const targetVillage = village[0];
-
-      // Check if admin has access to this village
-      const adminVillage = await db
-        .select()
         .from(admin_villages)
+        .innerJoin(villages, eq(admin_villages.village_id, villages.village_id))
         .where(and(
           eq(admin_villages.admin_id, adminId),
-          eq(admin_villages.village_id, targetVillage.village_id)
+          eq(admin_villages.village_id, normalizedVillageId)
         ));
 
       if (adminVillage.length === 0) {
         set.status = 403;
         return { success: false, error: "You don't have access to this village" };
       }
+
+      const targetVillage = adminVillage[0];
 
       // In a real application, you might store this in session or JWT
       // For now, we'll just return success with village info
@@ -116,16 +106,16 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
    * @param {Object} context.body - The body of the request.
    * @returns {Promise<Object>} Created staff data
    */
-  .post("/staff/create", async ({ body, set, user }) => {
+  .post("/staff/create", async ({ body, set, user }: any) => {
     try {
       const { 
-        village_key,
+        village_id,
         email, 
         fname, 
         lname, 
         phone 
       } = body as {
-        village_key: string;
+        village_id: string;
         email: string;
         fname: string;
         lname: string;
@@ -135,49 +125,40 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
       const adminId = user.admin_id;
 
       // Validation
-      if (!village_key?.trim() || !email?.trim() || !fname?.trim() || !lname?.trim() || !phone?.trim()) {
+      if (!village_id?.trim() || !email?.trim() || !fname?.trim() || !lname?.trim() || !phone?.trim()) {
         set.status = 400;
         return { 
           success: false, 
-          error: "All fields are required (village_key, email, fname, lname, phone)" 
+          error: "All fields are required (village_id, email, fname, lname, phone)" 
         };
       }
 
-      const normalizedVillageKey = village_key.trim();
+      const normalizedVillageId = village_id.trim();
       const trimmedEmail = email.trim();
       const trimmedFname = fname.trim();
       const trimmedLname = lname.trim();
       const trimmedPhone = phone.trim();
 
-      const village = await db
+      // Check if admin has access to this village and get village info
+      const adminVillage = await db
         .select({
           village_id: villages.village_id,
           village_key: villages.village_key,
           village_name: villages.village_name,
         })
-        .from(villages)
-        .where(eq(villages.village_key, normalizedVillageKey));
-
-      if (village.length === 0) {
-        set.status = 404;
-        return { success: false, error: "Village not found" };
-      }
-
-      const targetVillage = village[0];
-
-      // Check if admin has access to this village
-      const adminVillage = await db
-        .select()
         .from(admin_villages)
+        .innerJoin(villages, eq(admin_villages.village_id, villages.village_id))
         .where(and(
           eq(admin_villages.admin_id, adminId),
-          eq(admin_villages.village_id, targetVillage.village_id)
+          eq(admin_villages.village_id, normalizedVillageId)
         ));
 
       if (adminVillage.length === 0) {
         set.status = 403;
         return { success: false, error: "You don't have access to this village" };
       }
+
+      const targetVillage = adminVillage[0];
 
       // Check if email already exists
       const existingEmail = await db
@@ -238,33 +219,18 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
    * @param {Object} context.query - The query parameters.
    * @returns {Promise<Object>} List of staff for the village
    */
-  .get("/staff", async ({ query, set, user }) => {
+  .get("/staff", async ({ query, set, user }: any) => {
     try {
-      const { village_key } = query as { village_key: string };
+      const { village_id } = query as { village_id: string };
       const adminId = user.admin_id;
 
       // Validation
-      if (!village_key?.trim()) {
+      if (!village_id?.trim()) {
         set.status = 400;
-        return { success: false, error: "village_key is required" };
+        return { success: false, error: "village_id is required" };
       }
 
-      const normalizedVillageKey = village_key.trim();
-
-      const village = await db
-        .select({
-          village_id: villages.village_id,
-          village_key: villages.village_key,
-        })
-        .from(villages)
-        .where(eq(villages.village_key, normalizedVillageKey));
-
-      if (village.length === 0) {
-        set.status = 404;
-        return { success: false, error: "Village not found" };
-      }
-
-      const targetVillage = village[0];
+      const normalizedVillageId = village_id.trim();
 
       // Check if admin has access to this village
       const adminVillage = await db
@@ -272,7 +238,7 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
         .from(admin_villages)
         .where(and(
           eq(admin_villages.admin_id, adminId),
-          eq(admin_villages.village_id, targetVillage.village_id)
+          eq(admin_villages.village_id, normalizedVillageId)
         ));
 
       if (adminVillage.length === 0) {
@@ -294,7 +260,7 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
           updatedAt: guards.updatedAt,
         })
         .from(guards)
-        .where(eq(guards.village_id, targetVillage.village_id))
+        .where(eq(guards.village_id, normalizedVillageId))
         .orderBy(guards.createdAt);
 
       return { success: true, data: staffList };
@@ -312,7 +278,7 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
    * @param {Object} context.body - The body of the request.
    * @returns {Promise<Object>} Success message
    */
-  .put("/staff/:id/status", async ({ params, body, set, user }) => {
+  .put("/staff/:id/status", async ({ params, body, set, user }: any) => {
     try {
       const { id } = params as { id: string };
       const { status } = body as { status: "verified" | "pending" | "disable" };
@@ -339,6 +305,11 @@ export const adminManagementRoutes = new Elysia({ prefix: "/api/admin" })
       }
 
       // Check if admin has access to this staff's village
+      if (!staff[0].village_id) {
+        set.status = 400;
+        return { success: false, error: "Staff member has no associated village" };
+      }
+
       const adminVillage = await db
         .select()
         .from(admin_villages)

@@ -10,7 +10,7 @@ import { websocketClient } from './websocketClient';
 import { flexMessageService, type VisitorNotificationData, type ApprovalNotificationData, type SecurityAlertData } from '../routes/(line)/flexMessage';
 
 export interface CreateNotificationData {
-  village_key: string;
+  village_id: string;
   type: 'resident_pending' | 'guard_pending' | 'admin_pending' | 'house_updated' | 'member_added' | 'member_removed' | 'status_changed' | 'visitor_pending_too_long' | 'visitor_rejected_review';
   category: 'user_approval' | 'house_management' | 'visitor_management';
   title: string;
@@ -45,7 +45,7 @@ class NotificationService {
       const [notification] = await db
         .insert(admin_notifications)
         .values({
-          village_key: data.village_key,
+          village_id: data.village_id,
           type: data.type,
           category: data.category,
           title: data.title,
@@ -59,10 +59,10 @@ class NotificationService {
       const [village] = await db
         .select({ village_name: villages.village_name })
         .from(villages)
-        .where(eq(villages.village_key, data.village_key));
+        .where(eq(villages.village_id, data.village_id));
 
 
-      console.log(`📢 Created notification: ${notification.title} for village ${data.village_key}`);
+      console.log(`📢 Created notification: ${notification.title} for village ${data.village_id}`);
 
       // Send via WebSocket to admins
       try {
@@ -72,7 +72,7 @@ class NotificationService {
         body: notification.message,
         level: this.getNotificationLevel(data.type),
         createdAt: notification.created_at ? notification.created_at.getTime() : Date.now(),
-        villageKey: notification.village_key,
+        villageId: notification.village_id,
         type: notification.type,
         category: notification.category,
         data: notification.data
@@ -99,10 +99,10 @@ class NotificationService {
     resident_id: string;
     fname: string;
     lname: string;
-    village_key: string;
+    village_id: string;
   }) {
     return this.createNotification({
-      village_key: residentData.village_key,
+      village_id: residentData.village_id,
       type: 'resident_pending',
       category: 'user_approval',
       title: 'ผู้อยู่อาศัยใหม่รอการอนุมัติ',
@@ -122,10 +122,10 @@ class NotificationService {
     guard_id: string;
     fname: string;
     lname: string;
-    village_key: string;
+    village_id: string;
   }) {
     return this.createNotification({
-      village_key: guardData.village_key,
+      village_id: guardData.village_id,
       type: 'guard_pending',
       category: 'user_approval',
       title: 'ยามรักษาความปลอดภัยใหม่รอการอนุมัติ',
