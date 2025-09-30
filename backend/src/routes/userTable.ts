@@ -8,10 +8,13 @@ import {
   house_members,
   visitor_records,
 } from "../db/schema";
-import { eq, sql, and, isNull } from "drizzle-orm";
+import { eq, sql, and, isNull, or } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { userManagementActivityLogger } from "../utils/activityLogUtils";
 import { notificationService } from "../services/notificationService";
+
+// In-memory store to prevent concurrent role conversions
+const roleConversionInProgress = new Set<string>();
 
 // LIFF Authentication middleware for cookie-based sessions
 const requireLiffAuth = async (context: any) => {
@@ -170,21 +173,197 @@ async function cleanupVisitorRecords(
  * @returns {Promise<Object|null>} A promise that resolves to the new guard object or null if creation fails.
  */
 async function createGuardFromResident(resident: any, status: string) {
-  const result = await db
-    .insert(guards)
-    .values({
+  try {
+    // Debug logging
+    console.log("🔍 Creating guard from resident with data:", {
+      resident_id: resident.resident_id,
+      email: resident.email,
+      fname: resident.fname,
+      lname: resident.lname,
+      phone: resident.phone,
+      village_id: resident.village_id,
       line_user_id: resident.line_user_id,
+      line_display_name: resident.line_display_name,
+      line_profile_url: resident.line_profile_url,
+      status: status
+    });
+
+    // Check if a guard with the same email or line_user_id already exists (only active guards)
+    const existingGuard = await db.query.guards.findFirst({
+      where: and(
+        or(
+          eq(guards.email, resident.email),
+          resident.line_user_id ? eq(guards.line_user_id, resident.line_user_id) : sql`1=0`
+        ),
+        isNull(guards.disable_at) // Only check active guards
+      ),
+    });
+
+    if (existingGuard) {
+      throw new Error(`A guard with this email or LINE user ID already exists`);
+    }
+
+    const insertValues = {
+      line_user_id: resident.line_user_id || null,
       email: resident.email,
       fname: resident.fname,
       lname: resident.lname,
       phone: resident.phone,
       village_id: resident.village_id,
       status: status as "verified" | "pending" | "disable",
-      line_display_name: resident.line_display_name,
-      line_profile_url: resident.line_profile_url,
-    })
-    .returning();
-  return result[0] || null;
+      line_display_name: resident.line_display_name || null,
+      line_profile_url: resident.line_profile_url || null,
+    };
+
+    console.log("📝 Inserting guard with values:", insertValues);
+
+    const result = await db
+      .insert(guards)
+      .values(insertValues)
+      .returning();
+    return result[0] || null;
+  } catch (error) {
+    console.error("Error creating guard from resident:", error);
+    throw error;
+  }
+}
+
+/**
+ * Creates a guard from a resident with transaction support.
+ * @param {any} resident - The resident object.
+ * @param {string} status - The status of the new guard.
+ * @param {any} tx - Database transaction object.
+ * @returns {Promise<Object|null>} A promise that resolves to the new guard object or null if creation fails.
+ */
+async function createGuardFromResidentWithTx(resident: any, status: string, tx: any) {
+  try {
+    // Validate resident has required village_id
+    if (!resident.village_id) {
+      throw new Error("Resident must have a valid village_id to convert to guard");
+    }
+
+    // Verify village exists
+    const village = await tx
+      .select()
+      .from(villages)
+      .where(eq(villages.village_id, resident.village_id))
+      .limit(1);
+
+    if (village.length === 0) {
+      throw new Error(`Village with ID ${resident.village_id} not found`);
+    }
+
+    // Check if a guard with the same email or line_user_id already exists (only active guards)
+    console.log("🔍 Checking for existing guards with email:", resident.email);
+    const existingGuard = await tx.query.guards.findFirst({
+      where: and(
+        or(
+          eq(guards.email, resident.email),
+          resident.line_user_id ? eq(guards.line_user_id, resident.line_user_id) : sql`1=0`
+        ),
+        isNull(guards.disable_at) // Only check active guards
+      ),
+    });
+
+    if (existingGuard) {
+      console.log("❌ Found existing active guard:", existingGuard);
+      throw new Error(`A guard with this email or LINE user ID already exists`);
+    }
+
+    console.log("✅ No duplicate guards found, proceeding with creation");
+
+    const insertValues = {
+      line_user_id: resident.line_user_id || null,
+      email: resident.email,
+      fname: resident.fname,
+      lname: resident.lname,
+      phone: resident.phone,
+      village_id: resident.village_id,
+      status: status as "verified" | "pending" | "disable",
+      line_display_name: resident.line_display_name || null,
+      line_profile_url: resident.line_profile_url || null,
+    };
+
+    console.log("📝 Inserting guard with values:", insertValues);
+
+    const result = await tx
+      .insert(guards)
+      .values(insertValues)
+      .returning();
+    return result[0] || null;
+  } catch (error) {
+    console.error("Error creating guard from resident:", error);
+    throw error;
+  }
+}
+
+/**
+ * Creates a resident from a guard with transaction support.
+ * @param {any} guard - The guard object.
+ * @param {string} status - The status of the new resident.
+ * @param {any} tx - Database transaction object.
+ * @returns {Promise<Object|null>} A promise that resolves to the new resident object or null if creation fails.
+ */
+async function createResidentFromGuardWithTx(guard: any, status: string, tx: any) {
+  try {
+    // Validate guard has required village_id
+    if (!guard.village_id) {
+      throw new Error("Guard must have a valid village_id to convert to resident");
+    }
+
+    // Verify village exists
+    const village = await tx
+      .select()
+      .from(villages)
+      .where(eq(villages.village_id, guard.village_id))
+      .limit(1);
+
+    if (village.length === 0) {
+      throw new Error(`Village with ID ${guard.village_id} not found`);
+    }
+
+    // Check if a resident with the same email or line_user_id already exists (only active residents)
+    console.log("🔍 Checking for existing residents with email:", guard.email);
+    const existingResident = await tx.query.residents.findFirst({
+      where: and(
+        or(
+          eq(residents.email, guard.email),
+          guard.line_user_id ? eq(residents.line_user_id, guard.line_user_id) : sql`1=0`
+        ),
+        isNull(residents.disable_at) // Only check active residents
+      ),
+    });
+
+    if (existingResident) {
+      console.log("❌ Found existing active resident:", existingResident);
+      throw new Error(`A resident with this email or LINE user ID already exists`);
+    }
+
+    console.log("✅ No duplicate residents found, proceeding with creation");
+
+    const insertValues = {
+      line_user_id: guard.line_user_id || null,
+      email: guard.email,
+      fname: guard.fname,
+      lname: guard.lname,
+      phone: guard.phone,
+      village_id: guard.village_id,
+      status: status as "verified" | "pending" | "disable",
+      line_display_name: guard.line_display_name || null,
+      line_profile_url: guard.line_profile_url || null,
+    };
+
+    console.log("📝 Inserting resident with values:", insertValues);
+
+    const result = await tx
+      .insert(residents)
+      .values(insertValues)
+      .returning();
+    return result[0] || null;
+  } catch (error) {
+    console.error("Error creating resident from guard:", error);
+    throw error;
+  }
 }
 
 /**
@@ -194,21 +373,61 @@ async function createGuardFromResident(resident: any, status: string) {
  * @returns {Promise<Object|null>} A promise that resolves to the new resident object or null if creation fails.
  */
 async function createResidentFromGuard(guard: any, status: string) {
-  const result = await db
-    .insert(residents)
-    .values({
-      line_user_id: guard.line_user_id,
-      email: guard.email,
-      fname: guard.fname,
-      lname: guard.lname,
-      phone: guard.phone,
-      village_id: guard.village_id,
-      status: status as "verified" | "pending" | "disable",
-      line_display_name: guard.line_display_name,
-      line_profile_url: guard.line_profile_url,
-    })
-    .returning();
-  return result[0] || null;
+  try {
+    // Validate guard has required village_id
+    if (!guard.village_id) {
+      throw new Error("Guard must have a valid village_id to convert to resident");
+    }
+
+    // Verify village exists
+    const village = await db
+      .select()
+      .from(villages)
+      .where(eq(villages.village_id, guard.village_id))
+      .limit(1);
+
+    if (village.length === 0) {
+      throw new Error(`Village with ID ${guard.village_id} not found`);
+    }
+
+    // Check if a resident with the same email or line_user_id already exists (only active residents)
+    console.log("🔍 Checking for existing residents with email:", guard.email);
+    const existingResident = await db.query.residents.findFirst({
+      where: and(
+        or(
+          eq(residents.email, guard.email),
+          guard.line_user_id ? eq(residents.line_user_id, guard.line_user_id) : sql`1=0`
+        ),
+        isNull(residents.disable_at) // Only check active residents
+      ),
+    });
+
+    if (existingResident) {
+      console.log("❌ Found existing active resident:", existingResident);
+      throw new Error(`A resident with this email or LINE user ID already exists`);
+    }
+
+    console.log("✅ No duplicate residents found, proceeding with creation");
+
+    const result = await db
+      .insert(residents)
+      .values({
+        line_user_id: guard.line_user_id || null,
+        email: guard.email,
+        fname: guard.fname,
+        lname: guard.lname,
+        phone: guard.phone,
+        village_id: guard.village_id,
+        status: status as "verified" | "pending" | "disable",
+        line_display_name: guard.line_display_name || null,
+        line_profile_url: guard.line_profile_url || null,
+      })
+      .returning();
+    return result[0] || null;
+  } catch (error) {
+    console.error("Error creating resident from guard:", error);
+    throw error;
+  }
 }
 
 /**
@@ -779,10 +998,24 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
       if (!userId || !currentRole || !newRole || !status) {
         return {
           success: false,
-          error:
-            "Missing required fields: userId, currentRole, newRole, status",
+          error: "ข้อมูลไม่ครบถ้วน กรุณาลองใหม่อีกครั้งในภายหลัง",
         };
       }
+
+      // Check if role conversion is already in progress for this user
+      const conversionKey = `role_conversion_${userId}`;
+      if (roleConversionInProgress.has(conversionKey)) {
+        return {
+          success: false,
+          error: "กำลังดำเนินการเปลี่ยนบทบาทอยู่ กรุณารอสักครู่แล้วลองใหม่อีกครั้ง",
+        };
+      }
+
+      // Mark role conversion as in progress
+      roleConversionInProgress.add(conversionKey);
+      console.log(`🔒 Role conversion started for user ${userId}`);
+
+      try {
 
       // Don't allow same role
       if (currentRole === newRole) {
@@ -807,7 +1040,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
         // Convert resident to guard
         const resident = await getResident(userId);
         if (!resident) {
-          return { success: false, error: "Resident not found" };
+          return { success: false, error: "ไม่พบข้อมูลผู้ใช้ กรุณาลองใหม่อีกครั้งในภายหลัง" };
         }
 
         try {
@@ -838,27 +1071,70 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
             }
           }
 
-          // Clean up visitor records for this resident
-          await cleanupVisitorRecords(userId, "resident");
+          console.log("🚀 Starting resident to guard conversion with retry logic...");
 
-          // Create new guard
-          const newGuard = await createGuardFromResident(resident, status);
-          if (!newGuard) {
-            throw new Error("Failed to create guard");
+          // Retry logic for role conversion
+          const maxRetries = 3;
+          let newGuard = null;
+          let lastError = null;
+
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+              console.log(`🔄 Resident to guard conversion attempt ${attempt}/${maxRetries}`);
+              
+              // Use database transaction with timeout to ensure atomicity
+              const result = await db.transaction(async (tx) => {
+                console.log("📦 Inside transaction, starting operations...");
+                
+                // Clean up visitor records for this resident
+                await cleanupVisitorRecords(userId, "resident");
+
+                // Soft delete old resident FIRST to avoid unique constraint violation
+                console.log("🗑️ Disabling resident:", resident.resident_id);
+                const deleteResult = await tx
+                  .update(residents)
+                  .set({ 
+                    disable_at: new Date(),
+                    status: "disable"
+                  })
+                  .where(eq(residents.resident_id, userId))
+                  .returning();
+
+                if (deleteResult.length === 0) {
+                  throw new Error("Failed to delete resident");
+                }
+
+                console.log("✅ Resident disabled successfully");
+
+                // Create new guard AFTER deleting the resident
+                console.log("👤 Creating new guard from resident data");
+                const guard = await createGuardFromResidentWithTx(resident, status, tx);
+                if (!guard) {
+                  throw new Error("Failed to create guard");
+                }
+
+                return guard;
+              }); // Database transaction
+
+              newGuard = result;
+              console.log(`✅ Resident to guard conversion successful on attempt ${attempt}`);
+              break; // Success, exit retry loop
+
+            } catch (error) {
+              lastError = error;
+              console.error(`❌ Resident to guard conversion attempt ${attempt} failed:`, error);
+              
+              if (attempt < maxRetries) {
+                // Wait before retry with exponential backoff
+                const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+                console.log(`⏳ Waiting ${delay}ms before retry...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+              }
+            }
           }
 
-          // Soft delete old resident
-          const deleteResult = await db
-            .update(residents)
-            .set({ 
-              disable_at: new Date(),
-              status: "disable"
-            })
-            .where(eq(residents.resident_id, userId))
-            .returning();
-
-          if (deleteResult.length === 0) {
-            throw new Error("Failed to delete resident");
+          if (!newGuard) {
+            throw new Error(`Resident to guard conversion failed after ${maxRetries} attempts. Last error: ${lastError instanceof Error ? lastError.message : 'Unknown error'}`);
           }
 
           // Clean up orphaned houses
@@ -868,11 +1144,11 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
 
           // Verify the conversion was successful
           const remainingResident = await getResident(userId);
-          if (remainingResident) {
+          if (remainingResident && !remainingResident.disable_at) {
             throw new Error("Resident still exists after conversion");
           }
 
-          const newGuardExists = await getGuard(newGuard.guard_id);
+          const newGuardExists = await getGuard((newGuard as any).guard_id);
           if (!newGuardExists) {
             throw new Error("New guard was not created properly");
           }
@@ -920,9 +1196,25 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
             console.error("Error during cleanup:", cleanupError);
           }
 
+          // Provide user-friendly error messages
+          let errorMessage = "เกิดข้อผิดพลาดในการเปลี่ยนบทบาท กรุณาลองใหม่อีกครั้งในภายหลัง";
+          if (error instanceof Error) {
+            if (error.message.includes("already exists")) {
+              errorMessage = "ไม่สามารถเปลี่ยนบทบาทได้: มีผู้ใช้ที่มีอีเมลหรือ LINE ID เดียวกันอยู่แล้ว กรุณาติดต่อผู้ดูแลระบบ";
+            } else if (error.message.includes("unique constraint")) {
+              errorMessage = "ไม่สามารถเปลี่ยนบทบาทได้: ข้อมูลซ้ำกับผู้ใช้อื่น กรุณาติดต่อผู้ดูแลระบบ";
+            } else if (error.message.includes("Role conversion failed after")) {
+              errorMessage = "เกิดข้อผิดพลาดในการเปลี่ยนบทบาท กรุณาลองใหม่อีกครั้งในภายหลัง";
+            } else if (error.message.includes("database") || error.message.includes("connection")) {
+              errorMessage = "เกิดปัญหาการเชื่อมต่อฐานข้อมูล กรุณาลองใหม่อีกครั้งในภายหลัง";
+            } else {
+              errorMessage = "เกิดข้อผิดพลาดในการเปลี่ยนบทบาท กรุณาลองใหม่อีกครั้งในภายหลัง";
+            }
+          }
+
           return {
             success: false,
-            error: "Failed to convert resident to guard",
+            error: errorMessage,
             details: error instanceof Error ? error.message : "Unknown error",
           };
         }
@@ -930,45 +1222,99 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
         // Convert guard to resident
         const guard = await getGuard(userId);
         if (!guard) {
-          return { success: false, error: "Guard not found" };
+          return { success: false, error: "ไม่พบข้อมูลผู้ใช้ กรุณาลองใหม่อีกครั้งในภายหลัง" };
         }
 
         // Validate house number is provided when converting to resident
         if (!houseNumber || houseNumber.trim() === "") {
           return {
             success: false,
-            error: "House number is required when converting guard to resident",
+            error: "กรุณาระบุหมายเลขบ้านเมื่อเปลี่ยนเป็นผู้อยู่อาศัย",
           };
         }
 
         try {
-          // Clean up visitor records for this guard
-          await cleanupVisitorRecords(userId, "guard");
+          // Debug logging
+          console.log("🔍 Converting guard to resident:", {
+            guard_id: guard.guard_id,
+            email: guard.email,
+            fname: guard.fname,
+            lname: guard.lname,
+            village_id: guard.village_id,
+            houseNumber: houseNumber
+          });
 
-          // Create new resident
-          const newResident = await createResidentFromGuard(guard, status);
-          if (!newResident) {
-            throw new Error("Failed to create resident");
+          console.log("🚀 Starting database transaction with retry logic...");
+
+          // Retry logic for role conversion
+          const maxRetries = 3;
+          let result = null;
+          let lastError = null;
+
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+              console.log(`🔄 Role conversion attempt ${attempt}/${maxRetries}`);
+              
+              // Use database transaction with timeout to ensure atomicity
+              result = await db.transaction(async (tx) => {
+                console.log("📦 Inside transaction, starting operations...");
+                
+                // Clean up visitor records for this guard
+                await cleanupVisitorRecords(userId, "guard");
+
+                // Soft delete old guard FIRST to avoid unique constraint violation
+                console.log("🗑️ Disabling guard:", guard.guard_id);
+                const deleteResult = await tx
+                  .update(guards)
+                  .set({ 
+                    disable_at: new Date(),
+                    status: "disable"
+                  })
+                  .where(eq(guards.guard_id, userId))
+                  .returning();
+
+                if (deleteResult.length === 0) {
+                  throw new Error("Failed to delete guard");
+                }
+
+                console.log("✅ Guard disabled successfully");
+
+                // Create new resident AFTER deleting the guard
+                console.log("👤 Creating new resident from guard data");
+                const newResident = await createResidentFromGuardWithTx(guard, status, tx);
+                if (!newResident) {
+                  throw new Error("Failed to create resident");
+                }
+
+                return newResident;
+              }); // Database transaction
+
+              console.log(`✅ Role conversion successful on attempt ${attempt}`);
+              break; // Success, exit retry loop
+
+            } catch (error) {
+              lastError = error;
+              console.error(`❌ Role conversion attempt ${attempt} failed:`, error);
+              
+              if (attempt < maxRetries) {
+                // Wait before retry with exponential backoff
+                const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+                console.log(`⏳ Waiting ${delay}ms before retry...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+              }
+            }
           }
 
-          // Soft delete old guard
-          const deleteResult = await db
-            .update(guards)
-            .set({ 
-              disable_at: new Date(),
-              status: "disable"
-            })
-            .where(eq(guards.guard_id, userId))
-            .returning();
-
-          if (deleteResult.length === 0) {
-            throw new Error("Failed to delete guard");
+          if (!result) {
+            throw new Error(`Role conversion failed after ${maxRetries} attempts. Last error: ${lastError instanceof Error ? lastError.message : 'Unknown error'}`);
           }
+
+          const newResident = result;
 
           // Create house if houseNumber provided
-          if (houseNumber && newResident.resident_id) {
+          if (houseNumber && (newResident as any).resident_id) {
             await createHouseForResident(
-              newResident.resident_id,
+              (newResident as any).resident_id,
               houseNumber,
               guard.village_id
             );
@@ -977,12 +1323,12 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
             try {
               await notificationService.notifyHouseMemberAdded({
                 house_member_id: '', // Will be generated by database
-                resident_id: newResident.resident_id,
-                resident_name: `${newResident.fname} ${newResident.lname}`,
+                resident_id: (newResident as any).resident_id,
+                resident_name: `${(newResident as any).fname} ${(newResident as any).lname}`,
                 house_address: houseNumber || '',
                 village_id: guard.village_id || '',
               });
-              console.log(`📢 House member added notification sent: ${newResident.fname} ${newResident.lname}`);
+              console.log(`📢 House member added notification sent: ${(newResident as any).fname} ${(newResident as any).lname}`);
             } catch (notificationError) {
               console.error('❌ Error sending house member added notification:', notificationError);
             }
@@ -990,11 +1336,11 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
 
           // Verify the conversion was successful
           const remainingGuard = await getGuard(userId);
-          if (remainingGuard) {
+          if (remainingGuard && !remainingGuard.disable_at) {
             throw new Error("Guard still exists after conversion");
           }
 
-          const newResidentExists = await getResident(newResident.resident_id);
+          const newResidentExists = await getResident((newResident as any).resident_id);
           if (!newResidentExists) {
             throw new Error("New resident was not created properly");
           }
@@ -1022,7 +1368,11 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           };
         } catch (error) {
           // If any step fails, we need to clean up
-          console.error("Error during guard to resident conversion:", error);
+          console.error("❌ Error during guard to resident conversion:", error);
+          console.error("❌ Error details:", {
+            message: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined
+          });
 
           // Try to clean up any partial changes
           try {
@@ -1042,23 +1392,46 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
             console.error("Error during cleanup:", cleanupError);
           }
 
+          // Provide user-friendly error messages
+          let errorMessage = "เกิดข้อผิดพลาดในการเปลี่ยนบทบาท กรุณาลองใหม่อีกครั้งในภายหลัง";
+          if (error instanceof Error) {
+            if (error.message.includes("already exists")) {
+              errorMessage = "ไม่สามารถเปลี่ยนบทบาทได้: มีผู้ใช้ที่มีอีเมลหรือ LINE ID เดียวกันอยู่แล้ว กรุณาติดต่อผู้ดูแลระบบ";
+            } else if (error.message.includes("unique constraint")) {
+              errorMessage = "ไม่สามารถเปลี่ยนบทบาทได้: ข้อมูลซ้ำกับผู้ใช้อื่น กรุณาติดต่อผู้ดูแลระบบ";
+            } else if (error.message.includes("Role conversion failed after")) {
+              errorMessage = "เกิดข้อผิดพลาดในการเปลี่ยนบทบาท กรุณาลองใหม่อีกครั้งในภายหลัง";
+            } else if (error.message.includes("database") || error.message.includes("connection")) {
+              errorMessage = "เกิดปัญหาการเชื่อมต่อฐานข้อมูล กรุณาลองใหม่อีกครั้งในภายหลัง";
+            } else if (error.message.includes("village_id") || error.message.includes("Village")) {
+              errorMessage = "เกิดข้อผิดพลาดในการเปลี่ยนบทบาท กรุณาลองใหม่อีกครั้งในภายหลัง";
+            } else {
+              errorMessage = "เกิดข้อผิดพลาดในการเปลี่ยนบทบาท กรุณาลองใหม่อีกครั้งในภายหลัง";
+            }
+          }
+
           return {
             success: false,
-            error: "Failed to convert guard to resident",
+            error: errorMessage,
             details: error instanceof Error ? error.message : "Unknown error",
           };
         }
       } else {
         return {
           success: false,
-          error: "Invalid role conversion",
+          error: "ไม่สามารถเปลี่ยนบทบาทได้ กรุณาลองใหม่อีกครั้งในภายหลัง",
         };
+      }
+      } finally {
+        // Always remove the conversion lock
+        roleConversionInProgress.delete(conversionKey);
+        console.log(`🔓 Role conversion completed for user ${userId}`);
       }
     } catch (error) {
       console.error("Error changing user role:", error);
       return {
         success: false,
-        error: "Failed to change user role",
+        error: "เกิดข้อผิดพลาดในการเปลี่ยนบทบาท กรุณาลองใหม่อีกครั้งในภายหลัง",
         details: error instanceof Error ? error.message : "Unknown error",
       };
     }

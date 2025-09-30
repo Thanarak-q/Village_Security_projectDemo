@@ -64,7 +64,7 @@ const requireLiffAuth = async (context: any) => {
   // Add user to context
   context.currentUser = {
     ...user,
-    village_keys: user.village_key ? [user.village_key] : [],
+    village_keys: user.village_id ? [user.village_id] : [],
   };
 };
 
@@ -101,24 +101,27 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
       const resident = await db
         .select({
           status: residents.status,
-          village_key: residents.village_key,
+          village_id: residents.village_id,
         })
         .from(residents)
         .where(eq(residents.line_user_id, lineUserId));
 
       for (const res of resident) {
-        if (res.village_key) {
-          // Get village name
+        if (res.village_id) {
+          // Get village name and key
           const village = await db
-            .select({ village_name: villages.village_name })
+            .select({ 
+              village_name: villages.village_name,
+              village_key: villages.village_key 
+            })
             .from(villages)
-            .where(eq(villages.village_key, res.village_key))
+            .where(eq(villages.village_id, res.village_id))
             .limit(1);
 
           roles.push({
             role: "resident",
-            village_key: res.village_key,
-            village_name: village[0]?.village_name || res.village_key,
+            village_key: village[0]?.village_key || '',
+            village_name: village[0]?.village_name || '',
             status: res.status || undefined
           });
         }
@@ -128,24 +131,27 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
       const guard = await db
         .select({
           status: guards.status,
-          village_key: guards.village_key,
+          village_id: guards.village_id,
         })
         .from(guards)
         .where(eq(guards.line_user_id, lineUserId));
 
       for (const g of guard) {
-        if (g.village_key) {
-          // Get village name
+        if (g.village_id) {
+          // Get village name and key
           const village = await db
-            .select({ village_name: villages.village_name })
+            .select({ 
+              village_name: villages.village_name,
+              village_key: villages.village_key 
+            })
             .from(villages)
-            .where(eq(villages.village_key, g.village_key))
+            .where(eq(villages.village_id, g.village_id))
             .limit(1);
 
           roles.push({
             role: "guard",
-            village_key: g.village_key,
-            village_name: village[0]?.village_name || g.village_key,
+            village_key: village[0]?.village_key || '',
+            village_name: village[0]?.village_name || '',
             status: g.status || undefined
           });
         }
@@ -197,6 +203,23 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
+      // Validate village exists first
+      const village = await db
+        .select()
+        .from(villages)
+        .where(eq(villages.village_key, village_key))
+        .limit(1);
+
+      if (village.length === 0) {
+        set.status = 400;
+        return {
+          success: false,
+          error: "Invalid village key",
+        };
+      }
+
+      const villageId = village[0].village_id;
+
       // Check if user already has this role in this specific village
       if (role === "resident") {
         const existingResident = await db
@@ -205,7 +228,7 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
           .where(
             and(
               eq(residents.line_user_id, lineUserId),
-              eq(residents.village_key, village_key)
+              eq(residents.village_id, villageId)
             )
           )
           .limit(1);
@@ -224,7 +247,7 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
           .where(
             and(
               eq(guards.line_user_id, lineUserId),
-              eq(guards.village_key, village_key)
+              eq(guards.village_id, villageId)
             )
           )
           .limit(1);
@@ -238,21 +261,6 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
         }
       }
 
-      // Validate village exists
-      const village = await db
-        .select()
-        .from(villages)
-        .where(eq(villages.village_key, village_key))
-        .limit(1);
-
-      if (village.length === 0) {
-        set.status = 400;
-        return {
-          success: false,
-          error: "Invalid village key",
-        };
-      }
-
       // Create new role entry
       if (role === "resident") {
         const newResident = await db
@@ -263,7 +271,7 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
             fname,
             lname,
             phone,
-            village_key,
+            village_id: village[0].village_id, // Use village_id instead of village_key
             line_profile_url: profile_image_url || null,
             status: "pending", // New role registrations start as pending
             createdAt: new Date(),
@@ -285,7 +293,7 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
             fname,
             lname,
             phone,
-            village_key,
+            village_id: village[0].village_id, // Use village_id instead of village_key
             line_profile_url: profile_image_url || null,
             status: "pending", // New role registrations start as pending
             createdAt: new Date(),

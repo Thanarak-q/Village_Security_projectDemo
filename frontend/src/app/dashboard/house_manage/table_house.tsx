@@ -80,25 +80,21 @@ export default function HouseManagementTable() {
 
   // Get selected village info from sessionStorage on mount
   useEffect(() => {
-    const { id, key, name } = getSelectedVillage();
+    const { id, name } = getSelectedVillage();
 
     if (id) {
       setSelectedVillageId(id);
-    }
-
-    if (key) {
-      setSelectedVillageKey(key);
     }
 
     if (name) {
       setSelectedVillageName(name);
     }
 
-    if (key && !name) {
-      fetchVillageName(key);
+    if (id && !name) {
+      fetchVillageName(id);
     }
 
-    if (id && key) {
+    if (id) {
       return;
     }
 
@@ -109,6 +105,7 @@ export default function HouseManagementTable() {
       .then((res) => res.json())
       .then((userData) => {
         const fallbackId: string | undefined = userData?.village_ids?.[0];
+        const fallbackKey: string | undefined = userData?.village_keys?.[0];
 
         if (fallbackId) {
           setSelectedVillageId(fallbackId);
