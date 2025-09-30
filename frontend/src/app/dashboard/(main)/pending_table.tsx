@@ -44,7 +44,7 @@ interface PendingResident {
   phone: string;
   status: string;
   role: string;
-  village_key: string;
+  village_id: string;
   house_address: string | null;
   createdAt: string;
   updatedAt: string;
@@ -60,7 +60,7 @@ interface PendingGuard {
   phone: string;
   status: string;
   role: string;
-  village_key: string;
+  village_id: string;
   house_address: string | null;
   createdAt: string;
   updatedAt: string;
@@ -131,7 +131,7 @@ export default function PendingTable() {
       // Get selected village from sessionStorage (with SSR safety check)
       const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem('selectedVillage') : null;
       const url = selectedVillage 
-        ? `/api/pendingUsers?village_key=${encodeURIComponent(selectedVillage)}`
+        ? `/api/pendingUsers?village_id=${encodeURIComponent(selectedVillage)}`
         : '/api/pendingUsers';
         
       const response = await fetch(url);

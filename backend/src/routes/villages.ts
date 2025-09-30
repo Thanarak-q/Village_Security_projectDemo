@@ -70,7 +70,7 @@ export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
         };
       }
 
-      const { role, village_ids, village_keys } = currentUser;
+      const { role, village_ids } = currentUser;
       
       let adminVillages;
       

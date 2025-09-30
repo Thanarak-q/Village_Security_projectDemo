@@ -52,9 +52,9 @@ export default function AddHouseDialog({
   async function onSubmit(data: FormData) {
     setIsSubmitting(true);
     try {
-      let { id: villageId, key: villageKey } = getSelectedVillage();
+      let villageId = sessionStorage.getItem("selectedVillageId");
 
-      if (!villageId || !villageKey) {
+      if (!villageId) {
         try {
           const userResponse = await fetch("/api/auth/me", {
             credentials: "include",
@@ -63,17 +63,10 @@ export default function AddHouseDialog({
           if (userResponse.ok) {
             const userData = await userResponse.json();
             const fallbackId: string | undefined = userData?.village_ids?.[0];
-            const fallbackKey: string | undefined = userData?.village_keys?.[0];
 
             if (fallbackId) {
               villageId = fallbackId;
               sessionStorage.setItem("selectedVillageId", fallbackId);
-            }
-
-            if (fallbackKey) {
-              villageKey = fallbackKey;
-              sessionStorage.setItem("selectedVillage", fallbackKey);
-              sessionStorage.setItem("selectedVillageKey", fallbackKey);
             }
           }
         } catch (err) {
@@ -95,7 +88,6 @@ export default function AddHouseDialog({
         body: JSON.stringify({
           address: data.address.trim(),
           village_id: villageId,
-          ...(villageKey ? { village_key: villageKey } : {}),
         }),
       });
 

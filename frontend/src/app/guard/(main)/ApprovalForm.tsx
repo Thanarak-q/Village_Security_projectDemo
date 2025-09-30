@@ -45,15 +45,15 @@ const visitorSchema = z.object({
 function ApprovalForm() {
   const router = useRouter();
   const [houses, setHouses] = useState<
-    Array<{ house_id: string; address: string; village_key: string }>
+    Array<{ house_id: string; address: string; village_id: string }>
   >([]);
-  const [userRoles, setUserRoles] = useState<Array<{role: string, village_key: string, village_name?: string}>>([]);
+  const [userRoles, setUserRoles] = useState<Array<{role: string, village_id: string, village_name?: string}>>([]);
   const [currentUser, setCurrentUser] = useState<{
     id: string;
     fname: string;
     lname: string;
     email: string;
-    village_key: string;
+    village_id: string;
   } | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [capturedIdCardImage, setCapturedIdCardImage] = useState<string | null>(null);
@@ -68,22 +68,22 @@ function ApprovalForm() {
           setCurrentUser(user);
         }
         
-        // Get village_key from user data or sessionStorage
-        let villageKey = user?.village_key;
-        if (!villageKey) {
-          villageKey = sessionStorage.getItem("selectedVillage") || undefined;
+        // Get village_id from user data or sessionStorage
+        let villageId = user?.village_id;
+        if (!villageId) {
+          villageId = sessionStorage.getItem("selectedVillageId") || undefined;
         }
         
-        if (!villageKey) {
-          console.error("No village_key found for guard", {
+        if (!villageId) {
+          console.error("No village_id found for guard", {
             user: user,
-            sessionStorage: sessionStorage.getItem("selectedVillage")
+            sessionStorage: sessionStorage.getItem("selectedVillageId")
           });
           alert("ไม่พบข้อมูลหมู่บ้าน กรุณาติดต่อผู้ดูแลระบบ");
           return;
         }
         
-        const housesResponse = await axios.get(`/api/houses?village_key=${encodeURIComponent(villageKey)}`, {
+        const housesResponse = await axios.get(`/api/houses?village_id=${encodeURIComponent(villageId)}`, {
           withCredentials: true,
           headers: {
             "Content-Type": "application/json",
@@ -95,13 +95,13 @@ function ApprovalForm() {
         setHouses(houses);
         console.log("🏠 Houses loaded:", {
           total: houses.length,
-          village_key: villageKey,
+          village_id: villageId,
           houses: houses,
           response: housesResponse.data
         });
         
         if (houses.length === 0) {
-          console.warn("No houses found for village:", villageKey);
+          console.warn("No houses found for village:", villageId);
         }
       } catch (err) {
         console.error("Error fetching houses data:", err);
@@ -688,9 +688,9 @@ function ApprovalForm() {
                       render={() => (
                         <FormItem>
                           <FormLabel>
-                            {currentUser?.village_key && (
+                            {currentUser?.village_id && (
                               <span className="text-base ml-2">
-                                หมู่บ้าน: {currentUser.village_key} <br />
+                                หมู่บ้าน: {currentUser.village_id} <br />
                                 เลือกบ้านเลขที่
                               </span>
                             )}
@@ -752,9 +752,9 @@ function ApprovalForm() {
                                         <p className="text-muted-foreground">
                                           ไม่มีบ้านในหมู่บ้านนี้
                                         </p>
-                                        {currentUser?.village_key && (
+                                        {currentUser?.village_id && (
                                           <p className="text-xs text-muted-foreground">
-                                            หมู่บ้าน: {currentUser.village_key}
+                                            หมู่บ้าน: {currentUser.village_id}
                                           </p>
                                         )}
                                       </div>

@@ -50,7 +50,7 @@ interface PendingResident {
   phone: string;
   status: string;
   role: string;
-  village_key: string;
+  village_id: string;
   house_address: string | null;
   createdAt: string;
   updatedAt: string;
@@ -66,7 +66,7 @@ interface PendingGuard {
   phone: string;
   status: string;
   role: string;
-  village_key: string;
+  village_id: string;
   house_address: string | null;
   createdAt: string;
   updatedAt: string;
@@ -149,7 +149,7 @@ export default function PendingUsersDialog({
       
       // Get selected village from sessionStorage (with SSR safety check)
       const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem("selectedVillage") : null;
-      const url = selectedVillage ? `/api/pendingUsers?village_key=${encodeURIComponent(selectedVillage)}` : "/api/pendingUsers";
+      const url = selectedVillage ? `/api/pendingUsers?village_id=${encodeURIComponent(selectedVillage)}` : "/api/pendingUsers";
       
       const response = await fetch(url);
       if (!response.ok) {
@@ -308,7 +308,7 @@ export default function PendingUsersDialog({
       requestDate: data.createdAt,
       status: data.status,
       profile_image_url: data.profile_image_url,
-      village_key: data.village_key
+      village_id: data.village_id
     };
   };
 

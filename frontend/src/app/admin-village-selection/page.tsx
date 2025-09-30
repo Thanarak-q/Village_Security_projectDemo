@@ -11,7 +11,6 @@ import { gsap } from "gsap";
 
 interface Village {
   village_id: string;
-  village_key: string;
   village_name: string;
 }
 
@@ -20,7 +19,7 @@ interface AdminUser {
   username: string;
   email: string;
   role: string;
-  village_key?: string;
+  village_id?: string;
 }
 
 const VillageSelectionPage = () => {
@@ -139,25 +138,24 @@ const VillageSelectionPage = () => {
     if (isSelecting) return;
     
     setIsSelecting(true);
-    setSelectedVillageKey(village.village_key);
+    setSelectedVillageKey(village.village_id);
 
     // Store selected village in sessionStorage for dashboard access
-    sessionStorage.setItem("selectedVillage", village.village_key); // legacy key
-    sessionStorage.setItem("selectedVillageKey", village.village_key);
+    sessionStorage.setItem("selectedVillage", village.village_id); // legacy key
+    sessionStorage.setItem("selectedVillageKey", village.village_id);
     sessionStorage.setItem("selectedVillageId", village.village_id);
     sessionStorage.setItem("selectedVillageName", village.village_name);
 
     // Dispatch custom event to notify other components
     window.dispatchEvent(new CustomEvent('villageChanged', {
       detail: {
-        villageKey: village.village_key,
         villageId: village.village_id,
         villageName: village.village_name,
       }
     }));
 
     // Animation for selection
-    const selectedCard = document.querySelector(`[data-village-key="${village.village_key}"]`);
+    const selectedCard = document.querySelector(`[data-village-id="${village.village_id}"]`);
     if (selectedCard) {
       gsap.to(selectedCard, {
         scale: 0.95,
@@ -310,8 +308,8 @@ const VillageSelectionPage = () => {
             }`}>
               {villages.map((village, index) => (
                 <Card
-                  key={village.village_key}
-                  data-village-key={village.village_key}
+                  key={village.village_id}
+                  data-village-id={village.village_id}
                   className={`group cursor-pointer bg-card border-border hover:bg-accent hover:border-accent-foreground/20 transition-all duration-300 transform hover:scale-105 hover:shadow-lg ${
                     villages.length === 1 ? "scale-105" : ""
                   }`}
@@ -335,7 +333,7 @@ const VillageSelectionPage = () => {
                     <p className="text-muted-foreground text-sm">
                       คลิกเพื่อจัดการหมู่บ้านนี้
                     </p>
-                    {selectedVillageKey === village.village_key && isSelecting && (
+                    {selectedVillageKey === village.village_id && isSelecting && (
                       <div className="mt-4">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
                       </div>

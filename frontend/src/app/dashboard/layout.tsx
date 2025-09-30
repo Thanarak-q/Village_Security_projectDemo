@@ -63,8 +63,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             if (
               json.role !== "superadmin" &&
               selectedVillageKey &&
-              Array.isArray(json.village_keys) &&
-              !json.village_keys.includes(selectedVillageKey)
+              Array.isArray(json.village_ids) &&
+              !json.village_ids.includes(selectedVillageKey)
             ) {
               clearSelectionAndRedirect();
               return;

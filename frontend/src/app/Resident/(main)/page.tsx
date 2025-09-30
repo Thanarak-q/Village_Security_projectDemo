@@ -17,7 +17,7 @@ import { switchUserRole } from "@/lib/liffAuth";
 // Main Resident Page Component
 const ResidentPage = () => {
   const router = useRouter();
-  const [userRoles, setUserRoles] = useState<Array<{role: string, village_key: string, village_name?: string}>>([]);
+  const [userRoles, setUserRoles] = useState<Array<{role: string, village_id: string, village_name?: string}>>([]);
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
   
   const {
@@ -140,7 +140,7 @@ const ResidentPage = () => {
               <div className="flex items-center gap-3">
                 <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2">
                   <Home className="w-6 h-6 sm:w-7 sm:h-7" /> 
-                  {villageName || (currentUser?.village_key ? `หมู่บ้าน${currentUser.village_key.split('-')[0]}` : 'หมู่บ้าน')}
+                  {villageName || (currentUser?.village_id ? `หมู่บ้าน${currentUser.village_id.split('-')[0]}` : 'หมู่บ้าน')}
                 </h1>
               </div>
               <span className="flex items-center gap-2">

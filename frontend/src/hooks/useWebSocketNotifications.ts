@@ -13,7 +13,7 @@ interface WebSocketNotification {
   type?: string;
   category?: string;
   data?: Record<string, unknown>;
-  villageKey?: string;
+  villageId?: string;
 }
 
 interface ErrorStats {
@@ -51,7 +51,7 @@ interface UseWebSocketNotificationsReturn {
 }
 
 interface UseWebSocketNotificationsOptions {
-  villageKey?: string;
+  villageId?: string;
 }
 
 const isBrowser = typeof window !== 'undefined';
@@ -79,34 +79,31 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
   const maxReconnectAttempts = 5;
   const subscribedVillageRef = useRef<string | null>(null);
 
-  const { villageKey: overrideVillageKey } = options;
+  const { villageId: overrideVillageId } = options;
   const { user } = useAuth();
 
-  const resolvedVillageKey = useSafeMemo(() => {
-    const fromOptions = typeof overrideVillageKey === 'string' ? overrideVillageKey.trim() : '';
-    const fromUser = typeof user?.village_key === 'string' ? user.village_key.trim() : '';
+  const resolvedVillageId = useSafeMemo(() => {
+    const fromOptions = typeof overrideVillageId === 'string' ? overrideVillageId.trim() : '';
+    const fromUser = typeof user?.village_id === 'string' ? user.village_id.trim() : '';
     const fromSession = typeof window !== 'undefined'
       ? (() => {
           try {
-            return sessionStorage.getItem('selectedVillage')?.trim() || '';
+            return sessionStorage.getItem('selectedVillageId')?.trim() || '';
           } catch (error) {
             console.warn('⚠️ Unable to read selected village from sessionStorage:', error);
             return '';
           }
         })()
       : '';
-    const fromEnv = typeof process.env.NEXT_PUBLIC_DEFAULT_VILLAGE_KEY === 'string'
-      ? process.env.NEXT_PUBLIC_DEFAULT_VILLAGE_KEY.trim()
-      : '';
 
-    const resolved = fromOptions || fromUser || fromSession || fromEnv || null;
+    const resolved = fromOptions || fromUser || fromSession || null;
 
     if (!resolved) {
-      console.warn('⚠️ No village key available for WebSocket subscription');
+      console.warn('⚠️ No village id available for WebSocket subscription');
     }
 
     return resolved;
-  }, [overrideVillageKey, user?.village_key]);
+  }, [overrideVillageId, user?.village_id]);
 
   const calculateHealthStatus = useCallback((stats: ErrorStats): HealthStatus => {
     const criticalCount = stats.bySeverity['CRITICAL'] || 0;
@@ -184,26 +181,26 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
     recordError('VALIDATION', 'LOW', message, details, false);
   }, [recordError]);
 
-  const subscribeToVillage = useCallback((ws: WebSocket, villageKey: string) => {
-    const trimmedKey = villageKey.trim();
+  const subscribeToVillage = useCallback((ws: WebSocket, villageId: string) => {
+    const trimmedId = villageId.trim();
 
-    if (!trimmedKey) {
-      console.warn('⚠️ Attempted to subscribe with empty village key');
+    if (!trimmedId) {
+      console.warn('⚠️ Attempted to subscribe with empty village id');
       return;
     }
 
     try {
       ws.send(JSON.stringify({
         type: 'SUBSCRIBE_ADMIN',
-        data: { villageKey: trimmedKey }
+        data: { villageId: trimmedId }
       }));
-      subscribedVillageRef.current = trimmedKey;
-      console.log(`🪪 Requested admin subscription for village ${trimmedKey}`);
+      subscribedVillageRef.current = trimmedId;
+      console.log(`🪪 Requested admin subscription for village ${trimmedId}`);
     } catch (error) {
       console.error('❌ Failed to send subscription request:', error);
       handleWebSocketError(
         error instanceof Error ? error : new Error('Subscription request failed'),
-        { messageType: 'subscribe_admin', villageKey: trimmedKey }
+        { messageType: 'subscribe_admin', villageId: trimmedId }
       );
     }
   }, [handleWebSocketError]);
@@ -278,9 +275,9 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
         // Update message manager connection status
         websocketMessageManager.setWebSocket(ws);
 
-        if (resolvedVillageKey) {
-          console.log('🪪 Subscribing to village:', resolvedVillageKey);
-          subscribeToVillage(ws, resolvedVillageKey);
+        if (resolvedVillageId) {
+          console.log('🪪 Subscribing to village:', resolvedVillageId);
+          subscribeToVillage(ws, resolvedVillageId);
         } else {
           console.warn('⚠️ No village key available for WebSocket subscription');
         }
@@ -325,7 +322,7 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
               type: data.data.type,
               category: data.data.category,
               data: data.data.data,
-              villageKey: data.data.villageKey
+              villageId: data.data.villageId
             };
             
             // Check for duplicates before adding
@@ -369,9 +366,9 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
           } else if (data.type === 'ECHO') {
             console.log('🔄 Echo response:', data.data);
           } else if (data.type === 'SUBSCRIBED_ADMIN') {
-            if (data.villageKey) {
-              subscribedVillageRef.current = data.villageKey;
-              console.log('✅ Subscription confirmed for village:', data.villageKey);
+            if (data.villageId) {
+              subscribedVillageRef.current = data.villageId;
+              console.log('✅ Subscription confirmed for village:', data.villageId);
             } else {
               console.warn('⚠️ Subscription confirmation received without village key');
             }
@@ -468,7 +465,7 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
       setConnectionStatus('error');
       return;
     }
-  }, [getWebSocketUrl, handleValidationError, handleWebSocketError, resolvedVillageKey, subscribeToVillage]);
+  }, [getWebSocketUrl, handleValidationError, handleWebSocketError, resolvedVillageId, subscribeToVillage]);
 
   const disconnect = useSafeCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -485,16 +482,16 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
   }, []);
 
   useEffect(() => {
-    if (!resolvedVillageKey) {
+    if (!resolvedVillageId) {
       subscribedVillageRef.current = null;
       return;
     }
 
     const ws = wsRef.current;
-    if (ws && ws.readyState === WebSocket.OPEN && subscribedVillageRef.current !== resolvedVillageKey) {
-      subscribeToVillage(ws, resolvedVillageKey);
+    if (ws && ws.readyState === WebSocket.OPEN && subscribedVillageRef.current !== resolvedVillageId) {
+      subscribeToVillage(ws, resolvedVillageId);
     }
-  }, [resolvedVillageKey, subscribeToVillage]);
+  }, [resolvedVillageId, subscribeToVillage]);
 
   const sendMessage = useSafeCallback((message: unknown) => {
     try {

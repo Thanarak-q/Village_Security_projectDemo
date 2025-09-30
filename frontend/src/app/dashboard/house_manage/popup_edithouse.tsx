@@ -51,7 +51,6 @@ interface EditHouseDialogProps {
     house_id: string
     address: string
     status: string
-    village_key?: string | null
     village_id?: string | null
   }
   children?: React.ReactNode
@@ -138,8 +137,8 @@ export default function EditHouseDialog({ house, children, onUpdate }: EditHouse
               {house.address === '-' ? 'ไม่ระบุ' : house.address}
             </div>
             <div className="text-sm text-muted-foreground">
-              {(house.village_key ?? "")
-                ? (house.village_key ?? "")
+              {(house.village_id ?? "")
+                ? (house.village_id ?? "")
                     .replace(/-/g, ' ')
                     .replace(/\b\w/g, l => l.toUpperCase())
                 : 'ไม่ระบุ'}
@@ -177,8 +176,8 @@ export default function EditHouseDialog({ house, children, onUpdate }: EditHouse
                 หมู่บ้าน
               </label>
               <div className="px-3 py-2 bg-muted border border-border rounded-md text-muted-foreground">
-                {(house.village_key ?? "")
-                  ? (house.village_key ?? "")
+                {(house.village_id ?? "")
+                  ? (house.village_id ?? "")
                       .replace(/-/g, ' ')
                       .replace(/\b\w/g, l => l.toUpperCase())
                   : "ไม่ระบุ"}

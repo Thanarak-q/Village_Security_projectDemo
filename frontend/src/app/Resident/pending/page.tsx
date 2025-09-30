@@ -12,7 +12,7 @@ export default function ResidentPendingPage() {
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [userRoles, setUserRoles] = useState<Array<{role: string, village_key: string, village_name?: string}>>([]);
+  const [userRoles, setUserRoles] = useState<Array<{role: string, village_id: string, village_name?: string}>>([]);
 
   useEffect(() => {
     const checkAuthAndStatus = () => {
@@ -243,7 +243,7 @@ export default function ResidentPendingPage() {
                 <p><span className="font-medium">ชื่อ:</span> {currentUser.fname} {currentUser.lname}</p>
                 <p><span className="font-medium">อีเมล:</span> {currentUser.email}</p>
                 <p><span className="font-medium">เบอร์โทร:</span> {currentUser.phone}</p>
-                <p><span className="font-medium">หมู่บ้าน:</span> {currentUser.village_key}</p>
+                <p><span className="font-medium">หมู่บ้าน:</span> {currentUser.village_id}</p>
                 <p><span className="font-medium">ตำแหน่ง:</span> ผู้อยู่อาศัย</p>
                 <p><span className="font-medium">สถานะ:</span> <span className="font-bold text-red-600">{currentUser.status}</span></p>
               </div>

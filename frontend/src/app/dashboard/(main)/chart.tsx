@@ -119,7 +119,7 @@ const WeeklyAccessBarChart = memo(function WeeklyAccessBarChart() {
       // Get selected village from sessionStorage (with SSR safety check)
       const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem('selectedVillage') : null;
       const url = selectedVillage 
-        ? `${endpoint}?village_key=${encodeURIComponent(selectedVillage)}`
+        ? `${endpoint}?village_id=${encodeURIComponent(selectedVillage)}`
         : endpoint;
 
       console.log('🔍 Fetching chart data for village:', selectedVillage, 'Period:', period, 'URL:', url);

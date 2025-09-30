@@ -8,7 +8,7 @@ import ApprovalForm from "./ApprovalForm";
 function Page() {
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [userRoles, setUserRoles] = useState<Array<{role: string, village_key: string, village_name?: string}>>([]);
+  const [userRoles, setUserRoles] = useState<Array<{role: string, village_id: string, village_name?: string}>>([]);
 
   useEffect(() => {
     const checkAuthAndStatus = () => {

@@ -61,18 +61,18 @@ const ResidentProfilePage = () => {
       setLoading(false);
 
       // Fetch village name
-      if (user.village_key) {
-        fetchVillageName(user.village_key);
+      if (user.village_id) {
+        fetchVillageName(user.village_id);
       }
     };
 
     loadUserData();
   }, [router]);
 
-  const fetchVillageName = async (villageKey: string) => {
+  const fetchVillageName = async (villageId: string) => {
     try {
       const apiUrl = '';
-      const response = await fetch(`${apiUrl}/api/villages/validate?key=${encodeURIComponent(villageKey)}`);
+      const response = await fetch(`${apiUrl}/api/villages/validate?key=${encodeURIComponent(villageId)}`);
       const data = await response.json();
       
       if (data.success && data.village) {
@@ -188,7 +188,7 @@ const ResidentProfilePage = () => {
                 <MapPin className="w-5 h-5 text-muted-foreground" />
                 <div>
                   <p className="text-sm text-muted-foreground">หมู่บ้าน</p>
-                  <p className="text-foreground">{villageName || currentUser.village_key}</p>
+                  <p className="text-foreground">{villageName || currentUser.village_id}</p>
                 </div>
               </div>
 

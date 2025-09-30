@@ -94,9 +94,9 @@ const AppSidebar = memo(function AppSidebar() {
   } | null>(null);
   const [selectedVillageName, setSelectedVillageName] = useState<string>("");
 
-  const fetchVillageNameByKey = async (villageKey: string) => {
+  const fetchVillageNameById = async (villageId: string) => {
     try {
-      const villageRes = await fetch(`/api/villages/check/${villageKey}`, {
+      const villageRes = await fetch(`/api/villages/check/${villageId}`, {
         credentials: "include",
       });
       if (villageRes.ok) {
@@ -149,7 +149,7 @@ const AppSidebar = memo(function AppSidebar() {
 
     // Listen for village changes to update the village name display
     const handleVillageChange = (event: Event) => {
-      const detail = (event as CustomEvent<{ villageName?: string; villageKey?: string }>).detail;
+      const detail = (event as CustomEvent<{ villageName?: string; villageId?: string }>).detail;
 
       if (detail?.villageName) {
         setSelectedVillageName(detail.villageName);
@@ -157,8 +157,8 @@ const AppSidebar = memo(function AppSidebar() {
         return;
       }
 
-      if (detail?.villageKey) {
-        fetchVillageNameByKey(detail.villageKey);
+      if (detail?.villageId) {
+        fetchVillageNameById(detail.villageId);
         return;
       }
 

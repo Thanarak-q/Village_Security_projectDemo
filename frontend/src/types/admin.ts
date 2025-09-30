@@ -14,7 +14,7 @@ export interface AdminUser {
   username: string;
   email: string;
   phone: string;
-  village_key: string;
+  village_id: string;
   status: 'verified' | 'pending' | 'disable';
   role: AdminRole;
   createdAt: string;

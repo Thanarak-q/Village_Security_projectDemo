@@ -1,21 +1,17 @@
 export interface SelectedVillageInfo {
   id: string | null;
-  key: string | null;
   name: string | null;
 }
 
 export const getSelectedVillage = (): SelectedVillageInfo => {
   if (typeof window === "undefined") {
-    return { id: null, key: null, name: null };
+    return { id: null, name: null };
   }
 
   const id = sessionStorage.getItem("selectedVillageId");
-  const key =
-    sessionStorage.getItem("selectedVillageKey") ??
-    sessionStorage.getItem("selectedVillage");
   const name = sessionStorage.getItem("selectedVillageName");
 
-  return { id, key, name };
+  return { id, name };
 };
 
 export const clearSelectedVillage = () => {
@@ -33,14 +29,10 @@ export const getVillageSearchParams = (
   additional?: Record<string, string | undefined | null>
 ): URLSearchParams => {
   const params = new URLSearchParams();
-  const { id, key } = getSelectedVillage();
+  const { id } = getSelectedVillage();
 
   if (id) {
     params.set("village_id", id);
-  }
-
-  if (key) {
-    params.set("village_key", key);
   }
 
   if (additional) {

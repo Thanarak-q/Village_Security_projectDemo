@@ -7,7 +7,7 @@ export interface LiffUser {
   fname: string;
   lname: string;
   phone: string;
-  village_key: string;
+  village_id: string;
   status: 'verified' | 'pending' | 'disable';
   line_profile_url?: string;
   role: 'resident' | 'guard';
@@ -192,7 +192,7 @@ export const registerLiffUser = async (
     fname: string;
     lname: string;
     phone: string;
-    village_key: string;
+    village_id: string;
     userType: 'resident' | 'guard';
     profile_image_url: string;
     role?: 'resident' | 'guard'; // Optional role parameter for LINE Login channels

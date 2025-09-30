@@ -20,7 +20,7 @@ const RoleRegistrationPage = () => {
   const [success, setSuccess] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'resident' | 'guard' | null>(null);
   const [selectedVillage, setSelectedVillage] = useState<string>('');
-  const [existingRoles, setExistingRoles] = useState<Array<{role: string, village_key: string, village_name?: string, status?: string}>>([]);
+  const [existingRoles, setExistingRoles] = useState<Array<{role: string, village_id: string, village_name?: string, status?: string}>>([]);
   const [villageValidation, setVillageValidation] = useState<{
     isValid: boolean;
     isLoading: boolean;
@@ -73,8 +73,8 @@ const RoleRegistrationPage = () => {
     }
   };
 
-  const validateVillage = async (villageKey: string) => {
-    if (!villageKey.trim()) {
+  const validateVillage = async (villageId: string) => {
+    if (!villageId.trim()) {
       setVillageValidation({ isValid: false, isLoading: false });
       return;
     }
@@ -82,7 +82,7 @@ const RoleRegistrationPage = () => {
     setVillageValidation({ isValid: false, isLoading: true });
 
     try {
-      const response = await fetch(`/api/villages/check/${encodeURIComponent(villageKey)}`);
+      const response = await fetch(`/api/villages/check/${encodeURIComponent(villageId)}`);
       const data = await response.json();
 
       if (data.exists && data.village_name) {
@@ -105,13 +105,13 @@ const RoleRegistrationPage = () => {
     setError(null);
   };
 
-  const handleVillageInput = (villageKey: string) => {
-    setSelectedVillage(villageKey);
+  const handleVillageInput = (villageId: string) => {
+    setSelectedVillage(villageId);
     setError(null);
     
     // Validate village with debounce
     const timeoutId = setTimeout(() => {
-      validateVillage(villageKey);
+      validateVillage(villageId);
     }, 500);
     
     return () => clearTimeout(timeoutId);
@@ -154,7 +154,7 @@ const RoleRegistrationPage = () => {
           fname: currentUser.fname,
           lname: currentUser.lname,
           phone: currentUser.phone,
-          village_key: selectedVillage,
+          village_id: selectedVillage,
           profile_image_url: currentUser.line_profile_url,
         }),
       });
@@ -172,7 +172,7 @@ const RoleRegistrationPage = () => {
         // Update existing roles with village information
         setExistingRoles(prev => [...prev, {
           role: selectedRole,
-          village_key: selectedVillage,
+          village_id: selectedVillage,
           village_name: villageValidation.villageName
         }]);
         // Reset form
@@ -443,7 +443,7 @@ const RoleRegistrationPage = () => {
                 <div className="space-y-2">
                   {existingRoles.map((roleInfo, index) => (
                     <div
-                      key={`${roleInfo.role}-${roleInfo.village_key}-${index}`}
+                      key={`${roleInfo.role}-${roleInfo.village_id}-${index}`}
                       className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border"
                     >
                       <div className="flex items-center gap-3">
@@ -460,7 +460,7 @@ const RoleRegistrationPage = () => {
                           </p>
                           <p className="text-sm text-muted-foreground flex items-center gap-1">
                             <MapPin className="w-3 h-3" />
-                            {roleInfo.village_name || roleInfo.village_key}
+                            {roleInfo.village_name || roleInfo.village_id}
                           </p>
                         </div>
                       </div>

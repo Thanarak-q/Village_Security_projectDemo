@@ -56,8 +56,8 @@ export const useVisitorData = () => {
       setIsCheckingAuth(false);
       
       // Fetch village name
-      if (user.village_key) {
-        fetchVillageName(user.village_key);
+      if (user.village_id) {
+        fetchVillageName(user.village_id);
       }
     };
 
@@ -65,10 +65,10 @@ export const useVisitorData = () => {
   }, [router]);
 
   // Function to fetch village name
-  const fetchVillageName = async (villageKey: string) => {
+  const fetchVillageName = async (villageId: string) => {
     try {
       const apiUrl = '';
-      const response = await fetch(`${apiUrl}/api/villages/validate?key=${encodeURIComponent(villageKey)}`);
+      const response = await fetch(`${apiUrl}/api/villages/validate?key=${encodeURIComponent(villageId)}`);
       
       console.log('🔍 Village validation response status:', response.status);
       console.log('🔍 Village validation response headers:', Object.fromEntries(response.headers.entries()));

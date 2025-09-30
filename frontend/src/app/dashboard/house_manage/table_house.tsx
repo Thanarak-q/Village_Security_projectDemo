@@ -36,7 +36,6 @@ interface HouseData {
   address: string;
   status: string;
   village_id?: string | null;
-  village_key?: string | null;
 }
 
 export default function HouseManagementTable() {
@@ -63,8 +62,8 @@ export default function HouseManagementTable() {
   // State สำหรับการ refresh ข้อมูล
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchVillageName = (villageKey: string) => {
-    fetch(`/api/villages/check/${villageKey}`, {
+  const fetchVillageName = (villageId: string) => {
+    fetch(`/api/villages/check/${villageId}`, {
       credentials: "include",
     })
       .then((res) => res.json())
@@ -110,7 +109,6 @@ export default function HouseManagementTable() {
       .then((res) => res.json())
       .then((userData) => {
         const fallbackId: string | undefined = userData?.village_ids?.[0];
-        const fallbackKey: string | undefined = userData?.village_keys?.[0];
 
         if (fallbackId) {
           setSelectedVillageId(fallbackId);
@@ -157,7 +155,7 @@ export default function HouseManagementTable() {
         setLoading(true);
       }
       
-      const queryParam = activeVillageId ? "village_id" : "village_key";
+      const queryParam = "village_id";
       const response = await fetch(`/api/houses?${queryParam}=${encodeURIComponent(queryValue)}`, {
         credentials: "include",
       });
@@ -172,12 +170,12 @@ export default function HouseManagementTable() {
           sessionStorage.setItem("selectedVillageId", result.village_id);
         }
 
-        if (result.village_key) {
-          setSelectedVillageKey(result.village_key);
-          sessionStorage.setItem("selectedVillage", result.village_key);
-          sessionStorage.setItem("selectedVillageKey", result.village_key);
+        if (result.village_id) {
+          setSelectedVillageKey(result.village_id);
+          sessionStorage.setItem("selectedVillage", result.village_id);
+          sessionStorage.setItem("selectedVillageKey", result.village_id);
           if (!selectedVillageName) {
-            fetchVillageName(result.village_key);
+            fetchVillageName(result.village_id);
           }
         }
       } else {
@@ -201,20 +199,18 @@ export default function HouseManagementTable() {
   // Listen for village changes from village selection page
   useEffect(() => {
     const handleVillageChange = (event: CustomEvent) => {
-      const { villageKey, villageId, villageName } = event.detail as {
-        villageKey?: string;
+      const { villageId, villageName } = event.detail as {
         villageId?: string;
         villageName?: string;
       };
 
-      setSelectedVillageKey(villageKey ?? null);
       setSelectedVillageId(villageId ?? null);
 
       if (villageName) {
         setSelectedVillageName(villageName);
         sessionStorage.setItem("selectedVillageName", villageName);
-      } else if (villageKey) {
-        fetchVillageName(villageKey);
+      } else if (villageId) {
+        fetchVillageName(villageId);
       }
     };
 
@@ -259,10 +255,10 @@ export default function HouseManagementTable() {
   };
 
   const filteredData = houses.filter((house) => {
-    const houseVillageKey = house.village_key ?? selectedVillageKey ?? "";
+    const houseVillageId = house.village_id ?? selectedVillageKey ?? "";
     const matchesSearch =
       house.address.includes(searchTerm) ||
-      houseVillageKey.includes(searchTerm);
+      houseVillageId.includes(searchTerm);
     const matchesStatus =
       statusFilter === "ทั้งหมด" ||
       getStatusText(house.status) === statusFilter;
@@ -427,14 +423,13 @@ export default function HouseManagementTable() {
                 {getCurrentPageData().map((house) => {
                   const normalizedHouse: HouseData = {
                     ...house,
-                    village_key: house.village_key ?? selectedVillageKey ?? null,
                     village_id: house.village_id ?? selectedVillageId ?? null,
                   };
 
-                  const houseVillageKey = normalizedHouse.village_key ?? selectedVillageKey ?? "";
+                  const houseVillageId = normalizedHouse.village_id ?? selectedVillageId ?? "";
                   const villageLabel = selectedVillageName ||
-                    (houseVillageKey
-                      ? houseVillageKey
+                    (houseVillageId
+                      ? houseVillageId
                           .replace(/-/g, " ")
                           .replace(/\b\w/g, (l) => l.toUpperCase())
                       : "ไม่ระบุ");

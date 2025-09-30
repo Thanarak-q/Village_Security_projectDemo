@@ -33,7 +33,7 @@ export const registrationSchema = z.object({
       message: 'เบอร์โทรศัพท์ต้องไม่เกิน 15 หลัก'
     }),
   
-  village_key: z
+  village_id: z
     .string()
     .min(1, 'กรุณากรอกรหัสหมู่บ้าน')
     .min(3, 'รหัสหมู่บ้านต้องมีอย่างน้อย 3 ตัวอักษร')

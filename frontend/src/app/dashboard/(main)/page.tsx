@@ -49,10 +49,10 @@ export default function Page() {
       });
 
     // Get selected village name and key
-    const villageKey = sessionStorage.getItem("selectedVillage");
-    if (villageKey) {
-      setSelectedVillageKey(villageKey);
-      fetch(`/api/villages/check/${villageKey}`, {
+    const villageId = sessionStorage.getItem("selectedVillage");
+    if (villageId) {
+      setSelectedVillageKey(villageId);
+      fetch(`/api/villages/check/${villageId}`, {
         credentials: "include",
       })
         .then(async (res) => {
@@ -128,12 +128,12 @@ export default function Page() {
   useEffect(() => {
     const handleVillageChange = () => {
       console.log('🔄 Dashboard: Village changed event received');
-      const villageKey = sessionStorage.getItem("selectedVillage");
-      console.log('🏘️ Dashboard: Selected village key:', villageKey);
+      const villageId = sessionStorage.getItem("selectedVillageId");
+      console.log('🏘️ Dashboard: Selected village id:', villageId);
 
-      if (villageKey) {
-        setSelectedVillageKey(villageKey);
-        fetch(`/api/villages/check/${villageKey}`, {
+      if (villageId) {
+        setSelectedVillageKey(villageId);
+        fetch(`/api/villages/check/${villageId}`, {
           credentials: "include",
         })
           .then((res) => res.json())
