@@ -18,9 +18,8 @@ import { useForm } from "react-hook-form";
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
-// @ts-ignore
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Upload, Home, House, User, Search, Shield, Loader2} from "lucide-react";
+import { Upload, Home, House, User, Search, Loader2} from "lucide-react";
 import axios from "axios";
 import { ModeToggle } from "@/components/mode-toggle";
 import { getAuthData, switchUserRole } from "@/lib/liffAuth";
@@ -154,7 +153,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                 console.log("🔍 Fresh roles data:", data);
                 
                 if (data.success && data.roles) {
-                  const freshResidentRole = data.roles.find((role: any) => role.role === 'resident');
+                  const freshResidentRole = data.roles.find((role: {role: string}) => role.role === 'resident');
                   console.log("🔍 Fresh residentRole:", freshResidentRole);
                   
                   if (freshResidentRole) {
@@ -184,7 +183,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
     }
   };
 
-  const handleRoleSwitchWithData = async (residentRole: any) => {
+  const handleRoleSwitchWithData = async (residentRole: {status: string}) => {
     try {
       // Check resident role status and redirect accordingly
       if (residentRole.status === "verified") {
