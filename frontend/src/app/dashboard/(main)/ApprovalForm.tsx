@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -39,22 +39,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Check, X, UserCheck } from "lucide-react";
+import { Check, X, UserCheck, Search, Home } from "lucide-react";
+
+// Interface for available house
+interface AvailableHouse {
+  house_id: string;
+  address: string;
+  status: string;
+  village_key: string;
+}
 
 // Zod validation schema
 const approvalFormSchema = z.object({
   approvedRole: z.string().min(1, "กรุณาเลือกบทบาทที่อนุมัติ"),
-  houseNumber: z.string().optional(),
+  houseId: z.string().optional(),
+  houseNumber: z.string().optional(), // Keep for backward compatibility
   notes: z.string().optional(),
 }).refine((data) => {
-  // If approved role is 'ลูกบ้าน', house number is required
+  // If approved role is 'ลูกบ้าน', house selection is required
   if (data.approvedRole === 'ลูกบ้าน') {
-    return data.houseNumber && data.houseNumber.trim().length > 0;
+    return data.houseId && data.houseId.trim().length > 0;
   }
   return true;
 }, {
-  message: "กรุณาระบุบ้านเลขที่สำหรับลูกบ้าน",
-  path: ["houseNumber"],
+  message: "กรุณาเลือกบ้านสำหรับลูกบ้าน",
+  path: ["houseId"],
 });
 
 type ApprovalFormData = z.infer<typeof approvalFormSchema>;
@@ -83,26 +92,86 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
   // Confirmation dialog states
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
+  const [availableHouses, setAvailableHouses] = useState<AvailableHouse[]>([]);
+  const [loadingHouses, setLoadingHouses] = useState(false);
+  const [houseQuery, setHouseQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const housesPerPage = 5;
 
   const form = useForm<ApprovalFormData>({
     resolver: zodResolver(approvalFormSchema),
     defaultValues: {
       approvedRole: "",
+      houseId: "",
       houseNumber: "",
       notes: ""
     }
   });
+
+  // Fetch available houses
+  const fetchAvailableHouses = async () => {
+    try {
+      setLoadingHouses(true);
+      const selectedVillage = sessionStorage.getItem("selectedVillage");
+      if (!selectedVillage) return;
+
+      const response = await fetch(`/api/houses?village_key=${encodeURIComponent(selectedVillage)}`, {
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          // Filter for available houses on the client side
+          const availableOnly = result.data.filter((house: AvailableHouse) => house.status === 'available');
+          setAvailableHouses(availableOnly);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching available houses:", error);
+    } finally {
+      setLoadingHouses(false);
+    }
+  };
 
   // โหลดข้อมูล user เข้าฟอร์มเมื่อเปิด
   useEffect(() => {
     if (user) {
       form.reset({
         approvedRole: user.role === 'resident' ? 'ลูกบ้าน' : 'ยาม',
+        houseId: "", // Will be set based on houseNumber if needed
         houseNumber: user.houseNumber !== "-" ? user.houseNumber : "",
         notes: ""
       });
     }
   }, [user, form]);
+
+  // Filtered and paginated houses
+  const filteredHouses = useMemo(
+    () =>
+      availableHouses.filter((house) =>
+        house.address.toLowerCase().includes(houseQuery.toLowerCase()) ||
+        house.house_id.toLowerCase().includes(houseQuery.toLowerCase())
+      ),
+    [availableHouses, houseQuery]
+  );
+
+  const paginatedHouses = useMemo(() => {
+    const startIndex = (currentPage - 1) * housesPerPage;
+    const endIndex = startIndex + housesPerPage;
+    return filteredHouses.slice(startIndex, endIndex);
+  }, [filteredHouses, currentPage, housesPerPage]);
+
+  const totalPages = Math.ceil(filteredHouses.length / housesPerPage);
+
+  // Reset search and pagination when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setHouseQuery("");
+      setCurrentPage(1);
+      fetchAvailableHouses();
+    }
+  }, [isOpen]);
 
   const handleApproveClick = () => {
     if (!user) return;
@@ -123,6 +192,15 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
   const handleConfirmApprove = () => {
     setShowApproveConfirm(false);
     const formData = form.getValues();
+    
+    // Get house address from selected house ID
+    if (formData.approvedRole === 'ลูกบ้าน' && formData.houseId) {
+      const selectedHouse = availableHouses.find(house => house.house_id === formData.houseId);
+      if (selectedHouse) {
+        formData.houseNumber = selectedHouse.address;
+      }
+    }
+    
     onSubmit('approve', formData);
   };
 
@@ -209,26 +287,110 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
                 )}
               />
 
-              {/* บ้านเลขที่ */}
+              {/* เลือกบ้าน */}
               {form.watch("approvedRole") === "ลูกบ้าน" && (
                 <FormField
                   control={form.control}
-                  name="houseNumber"
+                  name="houseId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-sm font-medium text-foreground">
-                        บ้านเลขที่
+                        เลือกบ้าน
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="เช่น 88/123"
-                          {...field}
-                        />
+                        <div className="space-y-3">
+                          {/* Search Input */}
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                            <Input
+                              placeholder="ค้นหาด้วยเลขที่บ้านหรือรหัสบ้าน"
+                              value={houseQuery}
+                              onChange={(e) => setHouseQuery(e.target.value)}
+                              className="pl-10 text-sm"
+                            />
+                          </div>
+                          
+                          {/* House List */}
+                          <div className="space-y-2 max-h-60 overflow-y-auto border rounded-md p-2">
+                            {loadingHouses ? (
+                              <div className="text-center py-4 text-muted-foreground">
+                                กำลังโหลด...
+                              </div>
+                            ) : filteredHouses.length === 0 ? (
+                              <div className="text-center py-4 text-muted-foreground">
+                                {houseQuery ? "ไม่พบบ้านที่ตรงกับการค้นหา" : "ไม่มีบ้านที่ว่าง"}
+                              </div>
+                            ) : (
+                              paginatedHouses.map((house) => (
+                                <button
+                                  key={house.house_id}
+                                  type="button"
+                                  onClick={() => {
+                                    field.onChange(house.house_id);
+                                  }}
+                                  className={`w-full text-left px-3 py-2 rounded-md border flex items-center gap-3 transition-colors ${
+                                    field.value === house.house_id
+                                      ? "border-primary bg-primary/10"
+                                      : "border-border hover:border-ring hover:bg-muted/50"
+                                  }`}
+                                >
+                                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                                    <Home className="w-4 h-4" />
+                                  </span>
+                                  <div className="flex-1">
+                                    <p className="font-medium text-sm">
+                                      {house.address}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      ID: {house.house_id.slice(-8)}
+                                    </p>
+                                  </div>
+                                  {field.value === house.house_id && (
+                                    <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                                      <div className="w-2 h-2 rounded-full bg-white"></div>
+                                    </div>
+                                  )}
+                                </button>
+                              ))
+                            )}
+                          </div>
+                          
+                          {/* Pagination */}
+                          {totalPages > 1 && (
+                            <div className="flex items-center justify-between pt-2 border-t">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                                disabled={currentPage === 1}
+                                className="text-xs"
+                              >
+                                ก่อนหน้า
+                              </Button>
+                              <span className="text-xs text-muted-foreground">
+                                หน้า {currentPage} จาก {totalPages}
+                              </span>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                                disabled={currentPage === totalPages}
+                                className="text-xs"
+                              >
+                                ถัดไป
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       </FormControl>
                       <FormMessage />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        กรอกบ้านเลขที่สำหรับลูกบ้าน
-                      </p>
+                      {availableHouses.length === 0 && !loadingHouses && (
+                        <p className="text-xs text-muted-foreground">
+                          ไม่มีบ้านที่ว่างในหมู่บ้านนี้ กรุณาเพิ่มบ้านใหม่ในหน้าจัดการบ้าน
+                        </p>
+                      )}
                     </FormItem>
                   )}
                 />
@@ -298,8 +460,12 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
             <AlertDialogDescription>
               คุณต้องการอนุมัติผู้ใช้ <strong>{user?.fname} {user?.lname}</strong> 
               เป็น <strong>{form.watch("approvedRole")}</strong> ใช่หรือไม่?
-              {form.watch("approvedRole") === 'ลูกบ้าน' && form.watch("houseNumber") && (
-                <><br />บ้านเลขที่: <strong>{form.watch("houseNumber")}</strong></>
+              {form.watch("approvedRole") === 'ลูกบ้าน' && form.watch("houseId") && (
+                <>
+                  <br />บ้านเลขที่: <strong>
+                    {availableHouses.find(house => house.house_id === form.watch("houseId"))?.address}
+                  </strong>
+                </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>

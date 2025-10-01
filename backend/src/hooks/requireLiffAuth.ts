@@ -78,9 +78,11 @@ export const requireLiffAuth = (required: string | string[] = "*") => {
       return { error: "Unauthorized: User associated with the LIFF token not found." };
     }
 
-    if (user.status !== "verified") {
+    // Allow pending users for LIFF endpoints (guards and residents)
+    // Only block disabled users
+    if (user.status === "disable") {
       set.status = 403;
-      return { error: "Forbidden: The user account is not active." };
+      return { error: "Forbidden: The user account is disabled." };
     }
 
     if (required !== "*" && !allowedRoles.includes(userRole)) {

@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import db from "../db/drizzle";
 import { houses, villages, guards, admins } from "../db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, and, asc } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { houseActivityLogger } from "../utils/activityLogUtils";
 import { notificationService } from "../services/notificationService";
@@ -169,6 +169,68 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
       };
     }
   })
+
+  // Get available houses for user assignment - accessible by admin and staff
+  .get("/houses/available", async ({ query, currentUser, request }: any) => {
+    try {
+      // Extract village_key from query parameters
+      let village_key = query?.village_key;
+      
+      // Fallback: if query parsing fails, try to extract from URL
+      if (!village_key && request?.url) {
+        const url = new URL(request.url);
+        village_key = url.searchParams.get('village_key');
+      }
+      
+      const { village_keys, role } = currentUser;
+
+      // Validate village_key parameter
+      if (!village_key || typeof village_key !== 'string') {
+        return {
+          success: false,
+          error: "Village key is required",
+        };
+      }
+
+      // Check if admin has access to the specified village
+      if (role !== "superadmin" && !village_keys.includes(village_key)) {
+        return {
+          success: false,
+          error: "You don't have access to this village",
+        };
+      }
+
+      // Fetch available houses (status = "available") for the specific village
+      const result = await db
+        .select({
+          house_id: houses.house_id,
+          address: houses.address,
+          status: houses.status,
+          village_key: houses.village_key,
+        })
+        .from(houses)
+        .where(
+          and(
+            eq(houses.village_key, village_key),
+            eq(houses.status, "available")
+          )
+        )
+        .orderBy(asc(houses.address));
+
+      return {
+        success: true,
+        data: result,
+        total: result.length,
+        village_key: village_key,
+      };
+    } catch (error) {
+      console.error("Error fetching available houses:", error);
+      return {
+        success: false,
+        error: "Failed to fetch available houses",
+      };
+    }
+  })
   
   // Create new house - admin only
   .post("/house-manage", async ({ body, currentUser }: any) => {
@@ -211,6 +273,24 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         return {
           success: false,
           error: "Village not found",
+        };
+      }
+
+      // Check if house with this address already exists in the village
+      const existingHouse = await db
+        .select()
+        .from(houses)
+        .where(
+          and(
+            eq(houses.address, houseData.address.trim()),
+            eq(houses.village_key, houseData.village_key)
+          )
+        );
+
+      if (existingHouse.length > 0) {
+        return {
+          success: false,
+          error: `บ้านเลขที่ "${houseData.address.trim()}" มีอยู่ในหมู่บ้านนี้แล้ว`,
         };
       }
 

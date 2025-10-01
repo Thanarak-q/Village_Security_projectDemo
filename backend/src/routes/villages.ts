@@ -5,7 +5,8 @@ import { eq, or, inArray } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { requireLiffAuth } from "../hooks/requireLiffAuth";
 
-export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
+// Create separate route groups to avoid middleware conflicts
+const publicRoutes = new Elysia({ prefix: "/api/villages" })
   // Public endpoint for village key validation used during registration
   .get("/check/:villageKey", async ({ params, set }) => {
     try {
@@ -34,27 +35,13 @@ export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
       set.status = 500;
       return { error: "Failed to check village" };
     }
-  })
-  .onBeforeHandle(requireRole("*"))
-  .get("/", async ({ set }) => {
-    try {
-      const allVillages = await db.select({
-        village_key: villages.village_key,
-        village_name: villages.village_name,
-      }).from(villages);
-      
-      return allVillages;
-    } catch (error) {
-      console.error("Error fetching villages:", error);
-      set.status = 500;
-      return { error: "Failed to fetch villages" };
-    }
-  })
+  });
+
+const adminRoutes = new Elysia({ prefix: "/api/villages" })
   .onBeforeHandle(requireRole(["admin", "superadmin"]))
   .get("/admin", async ({ currentUser, set }: any) => {
     try {
       // Role checking is already handled by requireRole middleware
-      console.log("currentUser in /api/villages/admin:", currentUser);
       const { role, village_keys } = currentUser;
       
       let adminVillages;
@@ -97,9 +84,26 @@ export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
         error: "Failed to fetch admin villages" 
       };
     }
-  })
+  });
 
-  // LIFF endpoint for village validation (used by guards and residents)
+const generalRoutes = new Elysia({ prefix: "/api/villages" })
+  .onBeforeHandle(requireRole("*"))
+  .get("/", async ({ set }) => {
+    try {
+      const allVillages = await db.select({
+        village_key: villages.village_key,
+        village_name: villages.village_name,
+      }).from(villages);
+      
+      return allVillages;
+    } catch (error) {
+      console.error("Error fetching villages:", error);
+      set.status = 500;
+      return { error: "Failed to fetch villages" };
+    }
+  });
+
+const liffRoutes = new Elysia({ prefix: "/api/villages" })
   .onBeforeHandle(requireLiffAuth(["guard", "resident"]))
   .get("/validate", async ({ query, currentUser, set }: any) => {
     try {
@@ -157,4 +161,11 @@ export const villagesRoutes = new Elysia({ prefix: "/api/villages" })
         error: "Failed to validate village"
       };
     }
-  })
+  });
+
+// Combine all routes
+export const villagesRoutes = new Elysia()
+  .use(publicRoutes)
+  .use(adminRoutes)
+  .use(generalRoutes)
+  .use(liffRoutes);

@@ -69,9 +69,11 @@ const requireLiffAuth = async (context: any) => {
     return { error: "Unauthorized: User associated with the LIFF token not found." };
   }
 
-  if (user.status !== "verified") {
+  // Allow pending users for LIFF authentication
+  // Only block disabled users
+  if (user.status === "disable") {
     set.status = 403;
-    return { error: "Forbidden: The user account is not active." };
+    return { error: "Forbidden: The user account is disabled." };
   }
 
   // Add user to context
