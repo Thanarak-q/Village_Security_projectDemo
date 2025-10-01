@@ -64,11 +64,21 @@ export const houseLiffRoutes = new Elysia({ prefix: "/api" })
         .from(houses)
         .where(eq(houses.village_id, village_id));
 
+      // Get village name
+      const village = await db
+        .select({
+          village_name: villages.village_name,
+        })
+        .from(villages)
+        .where(eq(villages.village_id, village_id))
+        .limit(1);
+
       return {
         success: true,
         data: result,
         total: result.length,
         village_id: village_id,
+        village_name: village[0]?.village_name || null,
         user_role: role,
       };
     } catch (error) {

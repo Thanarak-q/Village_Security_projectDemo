@@ -59,6 +59,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
     email: string;
     village_id: string;
   } | null>(null);
+  const [villageName, setVillageName] = useState<string>("");
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [capturedIdCardImage, setCapturedIdCardImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -97,9 +98,17 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
 
         const houses = housesResponse.data?.data || [];
         setHouses(houses);
+        
+        // Get village name from the response
+        const villageNameFromResponse = housesResponse.data?.village_name;
+        if (villageNameFromResponse) {
+          setVillageName(villageNameFromResponse);
+        }
+        
         console.log("🏠 Houses loaded:", {
           total: houses.length,
           village_id: villageId,
+          village_name: villageNameFromResponse,
           houses: houses,
           response: housesResponse.data
         });
@@ -746,7 +755,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                           <FormLabel>
                             {currentUser?.village_id && (
                               <span className="text-base ml-2">
-                                หมู่บ้าน: {currentUser.village_id} <br />
+                                หมู่บ้าน: {villageName || currentUser.village_id} <br />
                                 เลือกบ้านเลขที่
                               </span>
                             )}
