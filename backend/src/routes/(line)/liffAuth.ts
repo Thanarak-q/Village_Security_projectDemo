@@ -181,6 +181,8 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         success: true,
         user: {
           id: id,
+          ...(userRole === 'guard' && { guard_id: id }),
+          ...(userRole === 'resident' && { resident_id: id }),
           lineUserId: user.line_user_id,
           email: user.email,
           fname: user.fname,

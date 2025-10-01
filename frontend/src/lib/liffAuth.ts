@@ -2,6 +2,8 @@
 // LIFF Authentication Service
 export interface LiffUser {
   id: string;
+  guard_id?: string; // For guards
+  resident_id?: string; // For residents
   lineUserId: string;
   email: string;
   fname: string;

@@ -18,6 +18,7 @@ const approvalForm = new Elysia({ prefix: "/api" })
       idCardImage?: string;
       licensePlate?: string;
       visitPurpose?: string;
+      guardId?: string;
     };
 
     const {
@@ -27,10 +28,11 @@ const approvalForm = new Elysia({ prefix: "/api" })
       idCardImage,
       licensePlate,
       visitPurpose,
+      guardId: payloadGuardId,
     } = (body || {}) as ApprovalFormBody;
 
-    // Get guard ID from authenticated user
-    const guardId = currentUser.guard_id;
+    // Get guard ID from payload or authenticated user
+    const guardId = payloadGuardId || currentUser.guard_id || currentUser.id;
 
     const errors: string[] = [];
 

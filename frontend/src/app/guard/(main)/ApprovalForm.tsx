@@ -53,6 +53,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   >([]);
   const [currentUser, setCurrentUser] = useState<{
     id: string;
+    guard_id?: string;
     fname: string;
     lname: string;
     email: string;
@@ -87,11 +88,10 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
         }
         
         
-        const housesResponse = await axios.get(`/api/houses?village_id=${encodeURIComponent(villageId)}`, {
+        const housesResponse = await axios.get(`/api/houses/liff?village_id=${encodeURIComponent(villageId)}`, {
           withCredentials: true,
           headers: {
             "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         });
 
@@ -235,7 +235,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
     resolver: zodResolver(visitorSchema),
     defaultValues: {
       license_image: "",
-      guard_id: currentUser?.id,
+      guard_id: currentUser?.guard_id || currentUser?.id,
       id_card_image: "",
       license_plate: "",
       visitor_id_card: "",
@@ -246,10 +246,10 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   });
 
     useEffect(() => {
-      if (currentUser?.id) {
-        visitorForm.setValue("guard_id", currentUser.id);
+      if (currentUser?.guard_id || currentUser?.id) {
+        visitorForm.setValue("guard_id", currentUser.guard_id || currentUser.id);
       }
-    }, [currentUser?.id, visitorForm]);
+    }, [currentUser?.guard_id, currentUser?.id, visitorForm]);
 
   const [step, setStep] = useState<number>(1);
   const progress = step === 1 ? 25 : step === 2 ? 60 : 100;
@@ -418,7 +418,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
         // Reset form values and UI state for a new submission
         visitorForm.reset({
           license_image: "",
-          guard_id: currentUser?.id ?? "",
+          guard_id: currentUser?.guard_id || currentUser?.id || "",
           id_card_image: "",
           license_plate: "",
           visitor_id_card: "",

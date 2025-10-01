@@ -9,7 +9,8 @@ import ApprovalForm from "./ApprovalForm";
 function Page() {
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [userRoles, setUserRoles] = useState<Array<{role: string, village_id: string, village_name?: string}>>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [userRoles, setUserRoles] = useState<Array<{role: string, village_id: string, village_name?: string, status: string}>>([]);
 
   useEffect(() => {
     const checkAuthAndStatus = () => {
@@ -109,8 +110,8 @@ function Page() {
                   setUserRoles(data.roles);
                   
                   // Check if user has guard role and its status
-                  const guardRole = data.roles.find((role: any) => role.role === 'guard');
-                  const hasResidentRole = data.roles.some((role: any) => role.role === 'resident');
+                  const guardRole = data.roles.find((role: {role: string, village_id: string, village_name?: string, status: string}) => role.role === 'guard');
+                  const hasResidentRole = data.roles.some((role: {role: string, village_id: string, village_name?: string, status: string}) => role.role === 'resident');
                   
                   console.log("🔍 Guard role check - guardRole:", guardRole);
                   console.log("🔍 Guard role check - hasResidentRole:", hasResidentRole);
