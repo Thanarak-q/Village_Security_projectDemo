@@ -65,9 +65,11 @@ const requireLiffAuth = async (context: any) => {
     return { error: "Unauthorized: User associated with the LIFF token not found." };
   }
 
-  if (user.status !== "verified") {
+  // Allow pending users for LIFF authentication
+  // Only block disabled users
+  if (user.status === "disable") {
     set.status = 403;
-    return { error: "Forbidden: The user account is not active." };
+    return { error: "Forbidden: The user account is disabled." };
   }
 
   // Add user to context
@@ -85,6 +87,7 @@ interface UpdateUserRequest {
   userId: string;
   role: "resident" | "guard";
   status: string;
+  houseId?: string;
   houseNumber?: string;
   notes?: string;
 }
@@ -98,6 +101,7 @@ interface ChangeRoleRequest {
   currentRole: "resident" | "guard";
   newRole: "resident" | "guard";
   status: string;
+  houseId?: string;
   houseNumber?: string;
   notes?: string;
 }
@@ -436,13 +440,43 @@ async function createResidentFromGuard(guard: any, status: string) {
  * @returns {Promise<void>}
  */
 async function cleanupOrphanedHouse(houseId: string) {
-  const remainingResidents = await db
-    .select()
-    .from(house_members)
-    .where(eq(house_members.house_id, houseId));
+  try {
+    // Check for remaining residents
+    const remainingResidents = await db
+      .select()
+      .from(house_members)
+      .where(eq(house_members.house_id, houseId));
 
-  if (remainingResidents.length === 0) {
-    await db.delete(houses).where(eq(houses.house_id, houseId));
+    // Check for visitor records
+    const visitorRecords = await db
+      .select()
+      .from(visitor_records)
+      .where(eq(visitor_records.house_id, houseId));
+
+    if (remainingResidents.length === 0) {
+      // No residents left, but check if house has visitor records
+      if (visitorRecords.length > 0) {
+        // House has visitor records, just mark as available instead of deleting
+        await db
+          .update(houses)
+          .set({ status: "available" })
+          .where(eq(houses.house_id, houseId));
+        console.log(`🏠 House ${houseId} marked as available (has ${visitorRecords.length} visitor records)`);
+      } else {
+        // No residents and no visitor records, mark as available but don't delete
+        // This preserves the house for potential future use
+        await db
+          .update(houses)
+          .set({ status: "available" })
+          .where(eq(houses.house_id, houseId));
+        console.log(`🏠 House ${houseId} marked as available (no residents or visitor records)`);
+      }
+    } else {
+      console.log(`🏠 House ${houseId} still has ${remainingResidents.length} residents, not changing status`);
+    }
+  } catch (error) {
+    console.error(`❌ Error cleaning up house ${houseId}:`, error);
+    // Don't throw the error - house cleanup failure shouldn't break the main operation
   }
 }
 
@@ -460,20 +494,43 @@ async function createHouseForResident(
 ) {
   if (!villageId) return null;
 
-  const newHouse = await db
-    .insert(houses)
-    .values({
-      address: houseNumber,
-      village_id: villageId,
-    })
-    .returning();
+  // Check if house with this address already exists in the village
+  const existingHouse = await db
+    .select()
+    .from(houses)
+    .where(
+      and(
+        eq(houses.address, houseNumber.trim()),
+        eq(houses.village_id, villageId)
+      )
+    );
+
+  let houseId: string;
+
+  if (existingHouse.length > 0) {
+    // Use existing house
+    houseId = existingHouse[0].house_id;
+    console.log(`🏠 Using existing house: ${houseNumber} (ID: ${houseId})`);
+  } else {
+    // Create new house
+    const newHouse = await db
+      .insert(houses)
+      .values({
+        address: houseNumber.trim(),
+        village_id: villageId,
+      })
+      .returning();
+    
+    houseId = newHouse[0].house_id;
+    console.log(`🏠 Created new house: ${houseNumber} (ID: ${houseId})`);
+  }
 
   await db.insert(house_members).values({
-    house_id: newHouse[0].house_id,
+    house_id: houseId,
     resident_id: residentId,
   });
 
-  return newHouse[0];
+  return { house_id: houseId, address: houseNumber, village_id: villageId };
 }
 
 /**
@@ -741,7 +798,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
    */
   .put("/updateUser", async ({ body, currentUser }: any) => {
     try {
-      const { userId, role, status, houseNumber, notes }: UpdateUserRequest =
+      const { userId, role, status, houseId, houseNumber, notes }: UpdateUserRequest =
         body as UpdateUserRequest;
 
       // Validate required fields
@@ -819,9 +876,22 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           }
         }
 
-        // If houseNumber is provided, update house address
+        // If houseId is provided, move resident to the selected house
         let oldHouseAddress = null;
-        if (houseNumber) {
+        if (houseId) {
+          // Validate that the house exists
+          const targetHouse = await db
+            .select()
+            .from(houses)
+            .where(eq(houses.house_id, houseId));
+
+          if (targetHouse.length === 0) {
+            return {
+              success: false,
+              error: `House with ID ${houseId} not found`,
+            };
+          }
+
           // First, get the current house_id for this resident
           const currentHouseMember = await db
             .select()
@@ -829,36 +899,47 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
             .where(eq(house_members.resident_id, userId));
 
           if (currentHouseMember.length > 0 && currentHouseMember[0].house_id) {
-            // Get current house address for logging
-            const currentHouse = await db
-              .select()
-              .from(houses)
-              .where(eq(houses.house_id, currentHouseMember[0].house_id));
-            oldHouseAddress = currentHouse[0]?.address || null;
+            // Check if resident is already assigned to the selected house
+            if (currentHouseMember[0].house_id === houseId) {
+              console.log(`🏠 Resident is already assigned to house ID: ${houseId}, no change needed`);
+              // No need to do anything, resident is already in the correct house
+            } else {
+              // Get current house address for logging
+              const currentHouse = await db
+                .select()
+                .from(houses)
+                .where(eq(houses.house_id, currentHouseMember[0].house_id));
+              oldHouseAddress = currentHouse[0]?.address || null;
 
+              // Remove old house_member relationship
+              await db
+                .delete(house_members)
+                .where(eq(house_members.resident_id, userId));
+
+              // Clean up orphaned house if no other residents
+              await cleanupOrphanedHouse(currentHouseMember[0].house_id);
+
+              // Create new house_member relationship with the selected house
+              await db.insert(house_members).values({
+                house_id: houseId,
+                resident_id: userId,
+              });
+
+              console.log(`🏠 Moved resident from house ${currentHouseMember[0].house_id} to house ID: ${houseId}`);
+            }
+          } else {
+            // Resident has no current house assignment, create new relationship
+            await db.insert(house_members).values({
+              house_id: houseId,
+              resident_id: userId,
+            });
+
+            console.log(`🏠 Assigned resident to house ID: ${houseId}`);
             // Update existing house address
             await db
               .update(houses)
               .set({ address: houseNumber })
-              .where(eq(houses.house_id, currentHouseMember[0].house_id));
-          } else {
-            // Create new house and house_member record
-            const villageId = updateResult[0].village_id;
-
-            // Create new house
-            const newHouse = await db
-              .insert(houses)
-              .values({
-                address: houseNumber,
-                village_id: villageId,
-              })
-              .returning();
-
-            // Create house_member relationship
-            await db.insert(house_members).values({
-              house_id: newHouse[0].house_id,
-              resident_id: userId,
-            });
+              .where(eq(houses.house_id, houseId));
           }
         }
 
@@ -990,6 +1071,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
         currentRole,
         newRole,
         status,
+        houseId,
         houseNumber,
         notes,
       }: ChangeRoleRequest = body as ChangeRoleRequest;
@@ -1225,8 +1307,8 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
           return { success: false, error: "ไม่พบข้อมูลผู้ใช้ กรุณาลองใหม่อีกครั้งในภายหลัง" };
         }
 
-        // Validate house number is provided when converting to resident
-        if (!houseNumber || houseNumber.trim() === "") {
+        // Validate house ID is provided when converting to resident
+        if (!houseId || houseId.trim() === "") {
           return {
             success: false,
             error: "กรุณาระบุหมายเลขบ้านเมื่อเปลี่ยนเป็นผู้อยู่อาศัย",
@@ -1241,6 +1323,7 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
             fname: guard.fname,
             lname: guard.lname,
             village_id: guard.village_id,
+            houseId: houseId,
             houseNumber: houseNumber
           });
 
@@ -1311,24 +1394,40 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
 
           const newResident = result;
 
-          // Create house if houseNumber provided
-          if (houseNumber && (newResident as any).resident_id) {
-            await createHouseForResident(
-              (newResident as any).resident_id,
-              houseNumber,
-              guard.village_id
-            );
+          // Assign resident to the selected house
+          if (houseId && newResident.resident_id) {
+            // Validate that the house exists
+            const targetHouse = await db
+              .select()
+              .from(houses)
+              .where(eq(houses.house_id, houseId));
+
+            if (targetHouse.length === 0) {
+              throw new Error(`House with ID ${houseId} not found`);
+            }
+
+            // Create house_member relationship with the selected house
+            await db.insert(house_members).values({
+              house_id: houseId,
+              resident_id: newResident.resident_id,
+            });
+
+            // Get house address for notification
+            const houseInfo = await db
+              .select({ address: houses.address })
+              .from(houses)
+              .where(eq(houses.house_id, houseId));
 
             // Create notification for house member added
             try {
               await notificationService.notifyHouseMemberAdded({
                 house_member_id: '', // Will be generated by database
-                resident_id: (newResident as any).resident_id,
-                resident_name: `${(newResident as any).fname} ${(newResident as any).lname}`,
-                house_address: houseNumber || '',
+                resident_id: newResident.resident_id,
+                resident_name: `${newResident.fname} ${newResident.lname}`,
+                house_address: houseInfo[0]?.address || '',
                 village_id: guard.village_id || '',
               });
-              console.log(`📢 House member added notification sent: ${(newResident as any).fname} ${(newResident as any).lname}`);
+              console.log(`📢 House member added notification sent: ${newResident.fname} ${newResident.lname}`);
             } catch (notificationError) {
               console.error('❌ Error sending house member added notification:', notificationError);
             }
@@ -1381,23 +1480,23 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
               .select()
               .from(residents)
               .where(eq(residents.email, guard.email))
-              .limit(1);
+              .then(results => results[0]);
 
-            if (newResident.length > 0) {
+            if (newResident) {
               await db
-                .delete(residents)
-                .where(eq(residents.resident_id, newResident[0].resident_id));
+                .update(residents)
+                .set({ disable_at: new Date() })
+                .where(eq(residents.resident_id, newResident.resident_id));
+              console.log("🧹 Cleaned up partially created resident");
             }
           } catch (cleanupError) {
-            console.error("Error during cleanup:", cleanupError);
+            console.error("❌ Error during cleanup:", cleanupError);
           }
 
-          // Provide user-friendly error messages
+          // Determine appropriate error message
           let errorMessage = "เกิดข้อผิดพลาดในการเปลี่ยนบทบาท กรุณาลองใหม่อีกครั้งในภายหลัง";
           if (error instanceof Error) {
-            if (error.message.includes("already exists")) {
-              errorMessage = "ไม่สามารถเปลี่ยนบทบาทได้: มีผู้ใช้ที่มีอีเมลหรือ LINE ID เดียวกันอยู่แล้ว กรุณาติดต่อผู้ดูแลระบบ";
-            } else if (error.message.includes("unique constraint")) {
+            if (error.message.includes("duplicate") || error.message.includes("unique")) {
               errorMessage = "ไม่สามารถเปลี่ยนบทบาทได้: ข้อมูลซ้ำกับผู้ใช้อื่น กรุณาติดต่อผู้ดูแลระบบ";
             } else if (error.message.includes("Role conversion failed after")) {
               errorMessage = "เกิดข้อผิดพลาดในการเปลี่ยนบทบาท กรุณาลองใหม่อีกครั้งในภายหลัง";

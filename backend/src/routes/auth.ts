@@ -69,21 +69,17 @@ const requireLiffAuth = async (context: any) => {
     return { error: "Unauthorized: User associated with the LIFF token not found." };
   }
 
-  if (user.status !== "verified") {
+  // Allow pending users for LIFF authentication
+  // Only block disabled users
+  if (user.status === "disable") {
     set.status = 403;
-    return { error: "Forbidden: The user account is not active." };
+    return { error: "Forbidden: The user account is disabled." };
   }
 
-  // Get admin's village_ids from admin_villages table
+  // Get village_ids for LIFF users (guards and residents only)
+  // Note: Admin users use regular authentication, not LIFF
   let villageIds: string[] = [];
-  if (user.role === "admin" || user.role === "staff" || user.role === "superadmin") {
-    const adminVillages = await db
-      .select({ village_id: admin_villages.village_id })
-      .from(admin_villages)
-      .where(eq(admin_villages.admin_id, user.admin_id));
-    
-    villageIds = adminVillages.map(av => av.village_id);
-  } else if ('village_id' in user && user.village_id) {
+  if ('village_id' in user && user.village_id) {
     villageIds = [user.village_id];
   }
 

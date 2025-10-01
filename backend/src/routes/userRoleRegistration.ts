@@ -56,15 +56,17 @@ const requireLiffAuth = async (context: any) => {
     return { error: "Unauthorized: User associated with the LIFF token not found." };
   }
 
-  if (user.status !== "verified") {
+  // Allow pending users to access role-related endpoints
+  // Only block disabled users
+  if (user.status === "disable") {
     set.status = 403;
-    return { error: "Forbidden: The user account is not active." };
+    return { error: "Forbidden: The user account is disabled." };
   }
 
   // Add user to context
   context.currentUser = {
     ...user,
-    village_keys: user.village_id ? [user.village_id] : [],
+    village_ids: user.village_id ? [user.village_id] : [],
   };
 };
 
@@ -95,7 +97,7 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
-      const roles: Array<{role: string, village_key: string, village_name?: string, status?: string}> = [];
+      const roles: Array<{role: string, village_id: string, village_name?: string, status?: string}> = [];
 
       // Check if user exists as resident
       const resident = await db
@@ -120,7 +122,7 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
 
           roles.push({
             role: "resident",
-            village_key: village[0]?.village_key || '',
+            village_id: res.village_id || '',
             village_name: village[0]?.village_name || '',
             status: res.status || undefined
           });
@@ -150,7 +152,7 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
 
           roles.push({
             role: "guard",
-            village_key: village[0]?.village_key || '',
+            village_id: g.village_id || '',
             village_name: village[0]?.village_name || '',
             status: g.status || undefined
           });
@@ -271,7 +273,7 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
             fname,
             lname,
             phone,
-            village_id: village[0].village_id, // Use village_id instead of village_key
+            village_id: village[0].village_id,
             line_profile_url: profile_image_url || null,
             status: "pending", // New role registrations start as pending
             createdAt: new Date(),
@@ -293,7 +295,7 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
             fname,
             lname,
             phone,
-            village_id: village[0].village_id, // Use village_id instead of village_key
+            village_id: village[0].village_id,
             line_profile_url: profile_image_url || null,
             status: "pending", // New role registrations start as pending
             createdAt: new Date(),

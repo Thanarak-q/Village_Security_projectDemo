@@ -67,8 +67,16 @@ export const useVisitorData = () => {
   // Function to fetch village name
   const fetchVillageName = async (villageId: string) => {
     try {
+      const { token } = getAuthData();
       const apiUrl = '';
-      const response = await fetch(`${apiUrl}/api/villages/validate?key=${encodeURIComponent(villageId)}`);
+      
+      const response = await fetch(`${apiUrl}/api/villages/validate?key=${encodeURIComponent(villageKey)}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
       
       console.log('🔍 Village validation response status:', response.status);
       console.log('🔍 Village validation response headers:', Object.fromEntries(response.headers.entries()));
@@ -84,9 +92,9 @@ export const useVisitorData = () => {
       const data = await response.json();
       console.log('🔍 Village validation data:', data);
       
-      if (data.success && data.village) {
-        setVillageName(data.village.village_name);
-        console.log('✅ Village name set:', data.village.village_name);
+      if (data.success && data.data && data.data.village_name) {
+        setVillageName(data.data.village_name);
+        console.log('✅ Village name set:', data.data.village_name);
       } else {
         console.error('❌ Village validation failed:', data);
       }

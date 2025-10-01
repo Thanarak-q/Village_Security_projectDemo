@@ -4,6 +4,7 @@ import jwt from "@elysiajs/jwt";
 import cookie from "@elysiajs/cookie";
 import "dotenv/config";
 import { houseManageRoutes } from "./routes/houseManage";
+import { houseLiffRoutes } from "./routes/houseLiff";
 import { visitorRecordRoutes } from "./routes/visitorRecord";
 import { visitorRecordWeeklyRoutes } from "./routes/visitorRecord-weekly";
 import { visitorRecordMonthlyRoutes } from "./routes/visitorRecord-monthly";
@@ -82,6 +83,7 @@ const app = new Elysia()
   .use(jwt({ name: "jwt", secret: jwtSecret, exp: "7d" }))
   .use(healthCheck)
   .use(houseManageRoutes)
+  .use(houseLiffRoutes)
   .use(visitorRecordRoutes)
   .use(visitorRecordWeeklyRoutes)
   .use(visitorRecordMonthlyRoutes)

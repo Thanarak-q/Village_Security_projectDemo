@@ -75,8 +75,8 @@ const ResidentProfilePage = () => {
       const response = await fetch(`${apiUrl}/api/villages/validate?key=${encodeURIComponent(villageId)}`);
       const data = await response.json();
       
-      if (data.success && data.village) {
-        setVillageName(data.village.village_name);
+      if (data.success && data.data && data.data.village_name) {
+        setVillageName(data.data.village_name);
       }
     } catch (error) {
       console.error('Error fetching village name:', error);

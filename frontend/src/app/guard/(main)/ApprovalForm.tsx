@@ -42,7 +42,11 @@ const visitorSchema = z.object({
   visit_purpose: z.string().optional(),
 });
 
-function ApprovalForm() {
+interface ApprovalFormProps {
+  userRoles?: Array<{role: string, village_key: string, village_name?: string, status: string}>;
+}
+
+function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   const router = useRouter();
   const [houses, setHouses] = useState<
     Array<{ house_id: string; address: string; village_id: string }>
@@ -83,6 +87,8 @@ function ApprovalForm() {
           return;
         }
         
+        
+        const housesResponse = await axios.get(`/api/houses/liff?village_key=${encodeURIComponent(villageKey)}`, {
         const housesResponse = await axios.get(`/api/houses?village_id=${encodeURIComponent(villageId)}`, {
           withCredentials: true,
           headers: {
@@ -113,33 +119,6 @@ function ApprovalForm() {
     fetchData();
   }, []);
 
-  // Fetch user roles to check if they have resident role
-  useEffect(() => {
-    const fetchUserRoles = async () => {
-      if (currentUser?.id) {
-        try {
-          const apiUrl = '';
-          const response = await fetch(`${apiUrl}/api/users/roles?lineUserId=${currentUser.id}`, {
-            credentials: 'include'
-          });
-          
-          if (response.ok) {
-            const contentType = response.headers.get("content-type");
-            if (contentType && contentType.includes("application/json")) {
-              const data = await response.json();
-              if (data.success && data.roles) {
-                setUserRoles(data.roles);
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching user roles:', error);
-        }
-      }
-    };
-
-    fetchUserRoles();
-  }, [currentUser]);
 
   const handleSwitchToResident = async () => {
     if (isSwitchingRole) return; // Prevent multiple clicks
@@ -147,17 +126,96 @@ function ApprovalForm() {
     try {
       setIsSwitchingRole(true);
       console.log("🔄 Switching to resident role...");
-      const result = await switchUserRole('resident');
       
-      if (result.success) {
-        console.log("✅ Successfully switched to resident role");
-        router.push('/Resident');
-      } else {
-        console.error("❌ Failed to switch to resident role:", result.error);
-        alert(`ไม่สามารถสลับบทบาทได้: ${result.error}`);
+      // First check the resident role status from userRoles
+      const residentRole = userRoles.find(role => role.role === 'resident');
+      console.log("🔍 Current userRoles:", userRoles);
+      console.log("🔍 Found residentRole:", residentRole);
+      
+      // If userRoles is empty or doesn't have resident role, try to fetch fresh data
+      if (!residentRole || userRoles.length === 0) {
+        console.log("⚠️ No resident role found in userRoles, attempting to fetch fresh roles data...");
+        
+        try {
+          const { user, token } = getAuthData();
+          if (user?.lineUserId || user?.id) {
+            const userId = user.lineUserId || user.id;
+            const apiUrl = '';
+            const response = await fetch(`${apiUrl}/api/users/roles?lineUserId=${userId}`, {
+              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+            });
+            
+            if (response.ok) {
+              const contentType = response.headers.get("content-type");
+              if (contentType && contentType.includes("application/json")) {
+                const data = await response.json();
+                console.log("🔍 Fresh roles data:", data);
+                
+                if (data.success && data.roles) {
+                  const freshResidentRole = data.roles.find((role: any) => role.role === 'resident');
+                  console.log("🔍 Fresh residentRole:", freshResidentRole);
+                  
+                  if (freshResidentRole) {
+                    // Use the fresh data for role switching
+                    return handleRoleSwitchWithData(freshResidentRole);
+                  }
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error("❌ Error fetching fresh roles data:", error);
+        }
+        
+        console.log("❌ User does not have resident role, redirecting to LIFF with resident context");
+        router.push("/liff?role=resident");
+        return;
       }
+      
+      // Use the found resident role
+      handleRoleSwitchWithData(residentRole);
     } catch (error) {
       console.error("❌ Error switching to resident role:", error);
+      alert("เกิดข้อผิดพลาดในการสลับบทบาท");
+    } finally {
+      setIsSwitchingRole(false);
+    }
+  };
+
+  const handleRoleSwitchWithData = async (residentRole: any) => {
+    try {
+      // Check resident role status and redirect accordingly
+      if (residentRole.status === "verified") {
+        console.log("✅ Resident role is verified, switching to resident main page");
+        const result = await switchUserRole('resident');
+        
+        if (result.success) {
+          console.log("✅ Successfully switched to resident role");
+          router.push('/Resident');
+        } else if (result.needsRedirect && result.redirectTo) {
+          // Handle the special case where user needs to go to the role page first
+          console.log(`🔄 Redirecting to ${result.redirectTo} first, then will redirect to LIFF`);
+          router.push(result.redirectTo);
+        } else {
+          console.error("❌ Failed to switch to resident role:", result.error);
+          alert(`ไม่สามารถสลับบทบาทได้: ${result.error}`);
+        }
+      } else if (residentRole.status === "pending") {
+        console.log("⏳ Resident role is pending, redirecting to resident pending page");
+        router.push('/Resident/pending');
+      } else if (residentRole.status === "disable") {
+        console.log("❌ Resident role is disabled, redirecting to LIFF with resident context");
+        router.push("/liff?role=resident");
+      } else {
+        console.log("❌ Unknown resident role status, redirecting to LIFF with resident context");
+        router.push("/liff?role=resident");
+      }
+    } catch (error) {
+      console.error("❌ Error in handleRoleSwitchWithData:", error);
       alert("เกิดข้อผิดพลาดในการสลับบทบาท");
     } finally {
       setIsSwitchingRole(false);
@@ -168,8 +226,6 @@ function ApprovalForm() {
     router.push('/guard/profile');
   };
 
-  // Check if user has resident role
-  const hasResidentRole = userRoles.some(role => role.role === 'resident');
 
   const getLocalDateTimeForInput = () => {
     const now = new Date();
@@ -412,14 +468,16 @@ function ApprovalForm() {
               </h1>
               <span className="flex items-center gap-2">
                 <ModeToggle />
-                <button
-                  onClick={handleSwitchToResident}
-                  className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-                  aria-label="Go to Resident page"
-                  title="ไปยังหน้าผู้อยู่อาศัย"
-                >
-                  <Home className="w-5 h-5 text-foreground" />
-                </button>
+                {userRoles.some(role => role.role === 'resident') && (
+                  <button
+                    onClick={handleSwitchToResident}
+                    className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                    aria-label="Go to Resident page"
+                    title="ไปยังหน้าผู้อยู่อาศัย"
+                  >
+                    <Home className="w-5 h-5 text-foreground" />
+                  </button>
+                )}
                 <button
                   onClick={handleNavigateToProfile}
                   className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"

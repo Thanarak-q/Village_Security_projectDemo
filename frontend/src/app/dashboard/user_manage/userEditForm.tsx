@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -29,23 +29,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Edit, Home, Shield } from "lucide-react";
+import { Edit, Home, Shield, Search } from "lucide-react";
+
+// Interface for available house
+interface AvailableHouse {
+  house_id: string;
+  address: string;
+  status: string;
+  village_key: string;
+}
 
 // Zod validation schema
 const userEditFormSchema = z.object({
   status: z.string().min(1, "กรุณาเลือกสถานะ"),
   role: z.string().min(1, "กรุณาเลือกบทบาท"),
-  houseNumber: z.string().optional(),
+  houseId: z.string().optional(),
+  houseNumber: z.string().optional(), // Keep for backward compatibility
   notes: z.string().optional(),
 }).refine((data) => {
-  // If role is 'resident', house number is required
+  // If role is 'resident', house selection is required
   if (data.role === 'resident') {
-    return data.houseNumber && data.houseNumber.trim().length > 0;
+    return data.houseId && data.houseId.trim().length > 0;
   }
   return true;
 }, {
-  message: "กรุณาระบุบ้านเลขที่สำหรับลูกบ้าน",
-  path: ["houseNumber"],
+  message: "กรุณาเลือกบ้านสำหรับลูกบ้าน",
+  path: ["houseId"],
 });
 
 type UserEditFormData = z.infer<typeof userEditFormSchema>;
@@ -72,50 +81,166 @@ interface UserEditFormProps {
 }
 
 export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEditFormProps) {
+  const [availableHouses, setAvailableHouses] = useState<AvailableHouse[]>([]);
+  const [loadingHouses, setLoadingHouses] = useState(false);
+  const [houseQuery, setHouseQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const housesPerPage = 5;
+
+  // Filter houses based on search query
+  const filteredHouses = useMemo(
+    () =>
+      availableHouses.filter((h) =>
+        h.address.toLowerCase().includes(houseQuery.toLowerCase())
+      ),
+    [availableHouses, houseQuery]
+  );
+
+  // Paginate filtered houses
+  const paginatedHouses = useMemo(() => {
+    const startIndex = (currentPage - 1) * housesPerPage;
+    const endIndex = startIndex + housesPerPage;
+    return filteredHouses.slice(startIndex, endIndex);
+  }, [filteredHouses, currentPage, housesPerPage]);
+
+  const totalPages = Math.ceil(filteredHouses.length / housesPerPage);
+
+  // Reset to first page when search query changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [houseQuery]);
+
   const form = useForm<UserEditFormData>({
     resolver: zodResolver(userEditFormSchema),
     defaultValues: {
       status: "",
       role: "",
+      houseId: "",
       houseNumber: "",
       notes: ""
     }
   });
 
+  // Fetch available houses
+  const fetchAvailableHouses = async () => {
+    try {
+      setLoadingHouses(true);
+      // Use selectedVillageId instead of selectedVillage to avoid confusion
+      const selectedVillageId = sessionStorage.getItem("selectedVillageId");
+      if (!selectedVillageId) return;
+
+      // Use the same endpoint as guard page but filter for available houses
+      const response = await fetch(`/api/houses?village_id=${encodeURIComponent(selectedVillageId)}`, {
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          // Filter for available houses only
+          const availableHouses = result.data.filter((house: any) => house.status === "available");
+          setAvailableHouses(availableHouses);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching available houses:", error);
+    } finally {
+      setLoadingHouses(false);
+    }
+  };
+
   useEffect(() => {
     if (user) {
+      // Find the current house ID based on the user's house number
+      let currentHouseId = "";
+      if (user.role === 'resident' && user.houseNumber && availableHouses.length > 0) {
+        const currentHouse = availableHouses.find(house => house.address === user.houseNumber);
+        currentHouseId = currentHouse?.house_id || "";
+      }
+
       form.reset({
         status: user.status,
         role: user.role,
+        houseId: currentHouseId,
         houseNumber: user.houseNumber || "",
         notes: ""
       });
     }
-  }, [user, form]);
+  }, [user, form, availableHouses]);
+
+  // Fetch available houses when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchAvailableHouses();
+      // Reset search and pagination when dialog opens
+      setHouseQuery("");
+      setCurrentPage(1);
+    }
+  }, [isOpen]);
 
   const handleSubmit = async (data: UserEditFormData) => {
     if (!user) return;
 
     const roleChanged = user.role !== data.role;
+    const statusChanged = user.status !== data.status;
+    
+    // For house comparison, we need to find the current house ID from the available houses
+    let currentHouseId = null;
+    if (user.role === 'resident' && user.houseNumber && availableHouses.length > 0) {
+      const currentHouse = availableHouses.find(house => house.address === user.houseNumber);
+      currentHouseId = currentHouse?.house_id;
+    }
+    
+    const houseChanged = user.role === 'resident' && data.role === 'resident' && 
+      currentHouseId !== data.houseId && data.houseId; // Also check that houseId is not empty
+    
+    console.log('Change detection:', {
+      roleChanged,
+      statusChanged,
+      houseChanged,
+      currentHouseId,
+      selectedHouseId: data.houseId,
+      userHouseNumber: user.houseNumber,
+      availableHousesCount: availableHouses.length
+    });
+    
+    // Check if there are any actual changes
+    if (!roleChanged && !statusChanged && !houseChanged && !data.notes?.trim()) {
+      alert('ไม่มีการเปลี่ยนแปลงใดๆ');
+      return;
+    }
+
+    // Validate that if role is resident, houseId is provided
+    if (data.role === 'resident' && (!data.houseId || data.houseId.trim() === '')) {
+      alert('กรุณาเลือกบ้านสำหรับลูกบ้าน');
+      return;
+    }
 
     try {
       const apiEndpoint = roleChanged ? '/api/changeUserRole' : '/api/updateUser';
+      
+      // Send houseId directly for proper house assignment
       const requestBody = roleChanged 
         ? {
             userId: user.id,
             currentRole: user.role as 'resident' | 'guard',
             newRole: data.role as 'resident' | 'guard',
             status: data.status,
-            houseNumber: data.role === 'resident' ? data.houseNumber : undefined,
+            houseId: data.role === 'resident' ? data.houseId : undefined,
             notes: data.notes
           }
         : {
             userId: user.id,
             role: data.role,
             status: data.status,
-            houseNumber: data.role === 'resident' ? data.houseNumber : undefined,
+            houseId: data.role === 'resident' ? data.houseId : undefined,
             notes: data.notes
           };
+
+      console.log('Sending request to:', apiEndpoint);
+      console.log('Request body:', requestBody);
+      console.log('Form data:', data);
+      console.log('Available houses:', availableHouses.length);
 
       const response = await fetch(apiEndpoint, {
         method: 'PUT',
@@ -125,15 +250,55 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
         body: JSON.stringify(requestBody),
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+      
+      // Check if response is ok
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('HTTP Error:', response.status, errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      // Check content type
+      const contentType = response.headers.get('content-type');
+      console.log('Content-Type:', contentType);
+      
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        console.error('Non-JSON response:', responseText);
+        throw new Error('Server returned non-JSON response');
+      }
+
       const result = await response.json();
+      console.log('API Response:', result);
+
+      // Check if result is valid
+      if (!result || typeof result !== 'object') {
+        console.error('Invalid API response:', result);
+        alert('ได้รับข้อมูลตอบกลับที่ไม่ถูกต้องจากเซิร์ฟเวอร์');
+        return;
+      }
 
       if (result.success) {
         console.log(roleChanged ? 'User role changed successfully:' : 'User updated successfully:', result);
         alert(roleChanged ? 'เปลี่ยนบทบาทผู้ใช้สำเร็จแล้ว!' : 'อัปเดตข้อมูลผู้ใช้สำเร็จแล้ว!');
+        
+        // Refresh the data and close the form
         onSubmit(data);
+        
+        // Reset form to clean state
+        form.reset({
+          status: "",
+          role: "",
+          houseId: "",
+          houseNumber: "",
+          notes: ""
+        });
       } else {
-        console.error('Failed to update user:', result.error);
-        alert(`Failed to ${roleChanged ? 'change user role' : 'update user'}: ${result.error}`);
+        console.error('Failed to update user:', result);
+        const errorMessage = result.error || result.details || result.message || 'Unknown error occurred';
+        alert(`Failed to ${roleChanged ? 'change user role' : 'update user'}: ${errorMessage}`);
       }
     } catch (error) {
       console.error('Error updating user:', error);
@@ -253,24 +418,110 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
               )}
             />
 
-            {/* House Number Field (for residents only) */}
+            {/* House Selection Field (for residents only) */}
             {form.watch("role") === 'resident' && (
               <FormField
                 control={form.control}
-                name="houseNumber"
+                name="houseId"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-xs sm:text-sm font-medium text-foreground">
-                      บ้านเลขที่
+                      เลือกบ้าน
                     </FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="เช่น 88/123"
-                        className="text-sm"
-                        {...field}
-                      />
+                      <div className="space-y-3">
+                        {/* Search Input */}
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                          <Input
+                            placeholder="ค้นหาด้วยเลขที่บ้านหรือรหัสบ้าน"
+                            value={houseQuery}
+                            onChange={(e) => setHouseQuery(e.target.value)}
+                            className="pl-10 text-sm"
+                          />
+                        </div>
+                        
+                        {/* House List */}
+                        <div className="space-y-2 max-h-60 overflow-y-auto border rounded-md p-2">
+                          {loadingHouses ? (
+                            <div className="text-center py-4 text-muted-foreground">
+                              กำลังโหลด...
+                            </div>
+                          ) : filteredHouses.length === 0 ? (
+                            <div className="text-center py-4 text-muted-foreground">
+                              {houseQuery ? "ไม่พบบ้านที่ตรงกับการค้นหา" : "ไม่มีบ้านที่ว่าง"}
+                            </div>
+                          ) : (
+                            paginatedHouses.map((house) => (
+                              <button
+                                key={house.house_id}
+                                type="button"
+                                onClick={() => {
+                                  field.onChange(house.house_id);
+                                }}
+                                className={`w-full text-left px-3 py-2 rounded-md border flex items-center gap-3 transition-colors ${
+                                  field.value === house.house_id
+                                    ? "border-primary bg-primary/10"
+                                    : "border-border hover:border-ring hover:bg-muted/50"
+                                }`}
+                              >
+                                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                                  <Home className="w-4 h-4" />
+                                </span>
+                                <div className="flex-1">
+                                  <p className="font-medium text-sm">
+                                    {house.address}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    ID: {house.house_id.slice(-8)}
+                                  </p>
+                                </div>
+                                {field.value === house.house_id && (
+                                  <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                                    <div className="w-2 h-2 rounded-full bg-white"></div>
+                                  </div>
+                                )}
+                              </button>
+                            ))
+                          )}
+                        </div>
+                        
+                        {/* Pagination */}
+                        {totalPages > 1 && (
+                          <div className="flex items-center justify-between pt-2 border-t">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                              disabled={currentPage === 1}
+                              className="text-xs"
+                            >
+                              ก่อนหน้า
+                            </Button>
+                            <span className="text-xs text-muted-foreground">
+                              หน้า {currentPage} จาก {totalPages}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                              disabled={currentPage === totalPages}
+                              className="text-xs"
+                            >
+                              ถัดไป
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </FormControl>
                     <FormMessage />
+                    {availableHouses.length === 0 && !loadingHouses && (
+                      <p className="text-xs text-muted-foreground">
+                        ไม่มีบ้านที่ว่างในหมู่บ้านนี้ กรุณาเพิ่มบ้านใหม่ในหน้าจัดการบ้าน
+                      </p>
+                    )}
                   </FormItem>
                 )}
               />

@@ -115,6 +115,10 @@ export default function SelectRolePage() {
             router.push('/guard');
           }
         }
+      } else if (result.needsRedirect && result.redirectTo) {
+        // Handle the special case where user needs to go to the role page first
+        console.log(`🔄 Redirecting to ${result.redirectTo} first, then will redirect to LIFF`);
+        router.push(result.redirectTo);
       } else {
         console.error(`❌ Failed to switch to ${role} role:`, result.error);
         alert(`ไม่สามารถสลับบทบาทได้: ${result.error}`);

@@ -165,7 +165,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         id,
         lineUserId: user.line_user_id,
         role: userRole,
-        village_key: user.village_key,
+        village_id: user.village_id,
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + (60 * 60), // 1 hour expiration
       });
@@ -186,7 +186,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
           fname: user.fname,
           lname: user.lname,
           phone: user.phone,
-          village_key: user.village_key,
+          village_id: user.village_id,
           status: user.status,
           line_profile_url: user.line_profile_url,
           role: userRole,
@@ -303,9 +303,10 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
       // Use userType as the declared role
       const expectedRole: 'resident' | 'guard' = userType || 'resident';
 
-      // Validate village_key existence server-side
+      // Validate village_key existence server-side and get village_id
+      let village = null;
       if (village_key) {
-        const village = await db.query.villages.findFirst({
+        village = await db.query.villages.findFirst({
           where: eq(villages.village_key, sanitizeString(village_key)),
         });
         if (!village) {
@@ -372,7 +373,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
             fname: sanitizeString(fname),
             lname: sanitizeString(lname),
             phone: sanitizeString(phone),
-            village_key: sanitizeString(village_key),
+            village_id: village.village_id,
             status: "pending",
             line_profile_url: profile_image_url ? sanitizeString(profile_image_url) : null,
             move_in_date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
@@ -382,11 +383,11 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         // Create notification for new resident registration
         try {
           // Find admin for this village
-          if (newResident.village_key) {
+          if (newResident.village_id) {
             const [villageAdmin] = await db
               .select()
               .from(admins)
-              .where(eq(admins.village_key, newResident.village_key))
+              .where(eq(admins.village_id, newResident.village_id))
               .limit(1);
 
             if (villageAdmin) {
@@ -394,7 +395,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
                 resident_id: newResident.resident_id,
                 fname: newResident.fname,
                 lname: newResident.lname,
-                village_key: newResident.village_key,
+                village_id: newResident.village_id,
               });
             }
           }
@@ -407,7 +408,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
           id: newResident.resident_id,
           lineUserId: newResident.line_user_id,
           role: "resident",
-          village_key: newResident.village_key,
+          village_id: newResident.village_id,
           iat: Math.floor(Date.now() / 1000),
           exp: Math.floor(Date.now() / 1000) + (60 * 60),
         });
@@ -430,7 +431,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
             fname: newResident.fname,
             lname: newResident.lname,
             phone: newResident.phone,
-            village_key: newResident.village_key,
+            village_id: newResident.village_id,
             status: newResident.status,
             line_profile_url: newResident.line_profile_url,
             role: "resident",
@@ -449,7 +450,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
             fname: sanitizeString(fname),
             lname: sanitizeString(lname),
             phone: sanitizeString(phone),
-            village_key: sanitizeString(village_key),
+            village_id: village.village_id,
             status: "pending",
             line_profile_url: profile_image_url ? sanitizeString(profile_image_url) : null,
           })
@@ -458,11 +459,11 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         // Create notification for new guard registration
         try {
           // Find admin for this village
-          if (newGuard.village_key) {
+          if (newGuard.village_id) {
             const [villageAdmin] = await db
               .select()
               .from(admins)
-              .where(eq(admins.village_key, newGuard.village_key))
+              .where(eq(admins.village_id, newGuard.village_id))
               .limit(1);
 
             if (villageAdmin && villageAdmin.admin_id) {
@@ -470,7 +471,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
                 guard_id: newGuard.guard_id,
                 fname: newGuard.fname,
                 lname: newGuard.lname,
-                village_key: newGuard.village_key,
+                village_id: newGuard.village_id,
               });
             }
           }
@@ -483,7 +484,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
           id: newGuard.guard_id,
           lineUserId: newGuard.line_user_id,
           role: "guard",
-          village_key: newGuard.village_key,
+          village_id: newGuard.village_id,
           iat: Math.floor(Date.now() / 1000),
           exp: Math.floor(Date.now() / 1000) + (60 * 60),
         });
@@ -506,7 +507,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
             fname: newGuard.fname,
             lname: newGuard.lname,
             phone: newGuard.phone,
-            village_key: newGuard.village_key,
+            village_id: newGuard.village_id,
             status: newGuard.status,
             line_profile_url: newGuard.line_profile_url,
             role: "guard",
@@ -546,7 +547,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
             fname: resident.fname,
             lname: resident.lname,
             phone: resident.phone,
-            village_key: resident.village_key,
+            village_id: resident.village_id,
             status: resident.status,
             line_profile_url: resident.line_profile_url,
             role: "resident",
@@ -569,7 +570,7 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
             fname: guard.fname,
             lname: guard.lname,
             phone: guard.phone,
-            village_key: guard.village_key,
+            village_id: guard.village_id,
             status: guard.status,
             line_profile_url: guard.line_profile_url,
             role: "guard",

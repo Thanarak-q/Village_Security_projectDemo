@@ -140,11 +140,13 @@ export default function GuardRegisterRolePage() {
     setSuccess(null);
 
     try {
+      const { token } = getAuthData();
       const apiUrl = '';
       const response = await fetch(`${apiUrl}/api/users/register-role`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         credentials: 'include',
         body: JSON.stringify({

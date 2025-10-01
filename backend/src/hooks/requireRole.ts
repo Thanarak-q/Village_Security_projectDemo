@@ -80,12 +80,21 @@ export const requireRole = (required: string | string[] = "*") => {
       return { error: "Unauthorized: User associated with the token not found." };
     }
 
-    if (user.status !== "verified") {
+    // Allow pending users for certain roles and endpoints
+    // Only block disabled users
+    if (user.status === "disable") {
+      set.status = 403;
+      return { error: "Forbidden: The user account is disabled." };
+    }
+    
+    // For admin endpoints, require verified status
+    if ((userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff') && user.status !== "verified") {
       set.status = 403;
       return { error: "Forbidden: The user account is not active." };
     }
 
     if (required !== "*" && !allowedRoles.includes(userRole)) {
+      console.log("Role check failed:", { userRole, allowedRoles, required });
       set.status = 403;
       return { error: "Forbidden: You do not have the required role to access this resource." };
     }
@@ -127,6 +136,7 @@ export const requireRole = (required: string | string[] = "*") => {
     // Add village data to currentUser
     context.currentUser = {
       ...user,
+      role: userRole, // Ensure role is properly set for endpoint access
       village_ids,
       village_keys,
     };

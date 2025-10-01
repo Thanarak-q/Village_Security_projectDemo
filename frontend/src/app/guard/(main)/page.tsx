@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAuthenticated, getAuthData } from "@/lib/liffAuth";
+import { LiffService } from "@/lib/liff";
 import ApprovalForm from "./ApprovalForm";
 
 function Page() {
@@ -17,7 +18,7 @@ function Page() {
       // Check if user is authenticated
       if (!isAuthenticated()) {
         console.log("❌ User not authenticated, redirecting to guard LIFF");
-        router.push("/liff");
+        router.push("/liff?role=guard");
         return;
       }
 
@@ -26,8 +27,8 @@ function Page() {
       console.log("🔍 Guard user data:", user);
       
       if (!user) {
-        console.log("❌ No user data found, redirecting to LIFF");
-        router.push("/liff");
+        console.log("❌ No user data found, redirecting to LIFF with guard context");
+        router.push("/liff?role=guard");
         return;
       }
 
@@ -44,33 +45,34 @@ function Page() {
         role: user.role
       });
 
-      // Check user status - redirect pending users to pending page
-      if (user.status === "pending") {
-        console.log("❌ Guard status is pending, redirecting to pending page");
-        router.push("/guard/pending");
-        return;
-      }
-
-      // Check if user is disabled
-      if (user.status === "disable") {
-        console.log("❌ Guard is disabled, redirecting to login");
-        router.push("/liff");
-        return;
-      }
-
-      // Only verified users can access the main page
-      if (user.status !== "verified") {
-        console.log("❌ Guard status is not verified, redirecting to pending page");
-        router.push("/guard/pending");
-        return;
-      }
-
-      console.log("✅ Guard is verified, allowing access to main page");
-      // User is verified - allow access
-      setIsCheckingAuth(false);
+      // Basic user authentication check - detailed role checking will be done in roles fetch
+      console.log("✅ User authenticated, will check guard role status in roles fetch");
+      // Set currentUser for the roles fetch useEffect
+      setCurrentUser(user);
+      // Don't set isCheckingAuth to false yet - wait for role verification
     };
 
     checkAuthAndStatus();
+  }, [router]);
+
+  // Check if user came from role switch and needs LIFF authentication
+  useEffect(() => {
+    const checkRoleSwitch = () => {
+      // Check if user has stored auth data but LIFF session is not active
+      const { user: storedUser, token: storedToken } = getAuthData();
+      const svc = LiffService.getInstance();
+      
+      if (storedUser && storedToken && !svc.isLoggedIn()) {
+        console.log("🔄 User has stored auth data but LIFF session inactive. Redirecting to LIFF...");
+        // Redirect to LIFF with role parameter to maintain context
+        router.push('/liff?role=guard');
+        return;
+      }
+    };
+
+    // Only check after a short delay to allow other effects to run first
+    const timer = setTimeout(checkRoleSwitch, 1000);
+    return () => clearTimeout(timer);
   }, [router]);
 
   // Fetch user roles to check if they have guard role
@@ -84,11 +86,16 @@ function Page() {
         console.log("🔍 Guard main page - current user object:", user);
         
         if (userId) {
-          try {
-            const apiUrl = '';
-            const response = await fetch(`${apiUrl}/api/users/roles?lineUserId=${userId}`, {
-              credentials: 'include'
-            });
+        try {
+          const { token } = getAuthData();
+          const apiUrl = '';
+          const response = await fetch(`${apiUrl}/api/users/roles?lineUserId=${userId}`, {
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          });
             
             console.log("🔍 Guard main page - roles API response status:", response.status);
             
@@ -101,55 +108,62 @@ function Page() {
                 if (data.success && data.roles) {
                   setUserRoles(data.roles);
                   
-                  // Check if user has guard role and other roles
-                  const hasGuardRole = data.roles.some((role: any) => role.role === 'guard');
+                  // Check if user has guard role and its status
+                  const guardRole = data.roles.find((role: any) => role.role === 'guard');
                   const hasResidentRole = data.roles.some((role: any) => role.role === 'resident');
                   
-                  console.log("🔍 Guard role check - hasGuardRole:", hasGuardRole);
+                  console.log("🔍 Guard role check - guardRole:", guardRole);
                   console.log("🔍 Guard role check - hasResidentRole:", hasResidentRole);
                   console.log("🔍 Guard role check - all roles:", data.roles);
                   
-                  if (!hasGuardRole) {
-                    console.log("❌ User does not have guard role, redirecting to LIFF");
-                    router.push("/liff");
+                  if (!guardRole) {
+                    console.log("❌ User does not have guard role, redirecting to LIFF with guard context");
+                    router.push("/liff?role=guard");
                     return;
                   }
                   
-                  console.log("✅ User has guard role, continuing to main page");
+                  // Check if guard role is verified
+                  if (guardRole.status !== "verified") {
+                    console.log("❌ Guard role is not verified (status:", guardRole.status, "), redirecting to pending page");
+                    router.push("/guard/pending");
+                    return;
+                  }
+                  
+                  console.log("✅ User has verified guard role, continuing to main page");
+                  
+                  // User is verified - allow access
+                  setIsCheckingAuth(false);
                   
                   // Store role information for potential role switching
                   if (hasResidentRole) {
                     console.log("🔄 User has both roles - role switching available");
                   }
                 } else {
-                  console.log("❌ No roles found or API error, redirecting to LIFF");
-                  router.push("/liff");
+                  console.log("❌ No roles found or API error, redirecting to LIFF with guard context");
+                  router.push("/liff?role=guard");
                   return;
                 }
               }
             } else {
               console.log("❌ Roles API failed with status:", response.status);
-              router.push("/liff");
+              router.push("/liff?role=guard");
               return;
             }
           } catch (error) {
             console.error('Error fetching user roles:', error);
-            router.push("/liff");
+            router.push("/liff?role=guard");
             return;
           }
         } else {
-          console.log("❌ No user ID found, redirecting to LIFF");
-          router.push("/liff");
+          console.log("❌ No user ID found, redirecting to LIFF with guard context");
+          router.push("/liff?role=guard");
           return;
         }
       }
     };
 
-    // Only fetch roles if we're not checking auth
-    if (!isCheckingAuth) {
-      fetchUserRoles();
-    }
-  }, [isCheckingAuth, router]);
+    fetchUserRoles();
+  }, [currentUser, router]);
 
   // Show loading state while checking authentication
   if (isCheckingAuth) {
@@ -165,7 +179,7 @@ function Page() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-        <ApprovalForm />
+        <ApprovalForm userRoles={userRoles} />
     </div>
   );
 }

@@ -7,7 +7,7 @@ import db from '../db/drizzle';
 import { admin_notifications, villages, house_members } from '../db/schema';
 import { eq, and, count } from 'drizzle-orm';
 import { websocketClient } from './websocketClient';
-import { flexMessageService, type VisitorNotificationData, type ApprovalNotificationData, type SecurityAlertData } from '../routes/(line)/flexMessage';
+import { flexMessageService, type VisitorNotificationData, type ApprovalNotificationData } from '../routes/(line)/flexMessage';
 
 export interface CreateNotificationData {
   village_id: string;
@@ -376,51 +376,7 @@ class NotificationService {
     }
   }
 
-  /**
-   * Send security alert via LINE flex message
-   */
-  async sendSecurityAlertFlexMessage(userId: string, alertData: SecurityAlertData) {
-    try {
-      const success = await flexMessageService.sendFlexMessage(
-        userId,
-        flexMessageService.createSecurityAlertMessage(alertData)
-      );
-      
-      if (success) {
-        console.log(`📱 LINE flex message sent for security alert: ${alertData.alertType}`);
-      } else {
-        console.error(`❌ Failed to send LINE flex message for security alert: ${alertData.alertType}`);
-      }
-      
-      return success;
-    } catch (error) {
-      console.error('Error sending security alert flex message:', error);
-      return false;
-    }
-  }
 
-  /**
-   * Send welcome message via LINE flex message
-   */
-  async sendWelcomeFlexMessage(userId: string, residentName: string, villageName: string) {
-    try {
-      const success = await flexMessageService.sendFlexMessage(
-        userId,
-        flexMessageService.createWelcomeMessage(residentName, villageName)
-      );
-      
-      if (success) {
-        console.log(`📱 LINE welcome message sent to: ${residentName}`);
-      } else {
-        console.error(`❌ Failed to send LINE welcome message to: ${residentName}`);
-      }
-      
-      return success;
-    } catch (error) {
-      console.error('Error sending welcome flex message:', error);
-      return false;
-    }
-  }
 
   /**
    * Send visitor notification to a specific resident
@@ -434,7 +390,6 @@ class NotificationService {
     visitPurpose: string;
     guardName: string;
     residentName: string;
-    imageUrl?: string | null;
   }) {
     try {
       const visitorData: VisitorNotificationData = {
@@ -446,7 +401,7 @@ class NotificationService {
         entryTime: new Date().toLocaleString('th-TH'),
         villageName: 'หมู่บ้าน', // You might want to get this from house data
         visitorId: data.visitorRecordId,
-        imageUrl: data.imageUrl || undefined
+        licensePlate: data.licensePlate || undefined
       };
 
       const success = await this.sendVisitorNotificationFlexMessage(data.lineUserId, visitorData);

@@ -11,6 +11,7 @@ import {
   updateVisitorRecordStatus,
   deleteVisitorRecord,
 } from "../db/visitorRecordUtils";
+import { requireLiffAuth } from "../hooks/requireLiffAuth";
 
 /**
  * Interface for the create visitor record request body.
@@ -502,7 +503,8 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
    * @param {string} params.line_user_id - The LINE user ID.
    * @returns {Promise<Object>} A promise that resolves to pending visitor requests.
    */
-  .get("/visitor-requests/pending/line/:line_user_id", async ({ params }) => {
+  .onBeforeHandle(requireLiffAuth(["resident"]))
+  .get("/visitor-requests/pending/line/:line_user_id", async ({ params, currentUser }: any) => {
     try {
       const { line_user_id } = params;
 
@@ -510,6 +512,14 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
         return {
           success: false,
           error: "LINE user ID is required",
+        };
+      }
+
+      // Verify that the authenticated resident is accessing their own data
+      if (currentUser.line_user_id !== line_user_id) {
+        return {
+          success: false,
+          error: "Access denied: You can only access your own visitor requests",
         };
       }
 
@@ -537,7 +547,8 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
    * @param {string} params.line_user_id - The LINE user ID.
    * @returns {Promise<Object>} A promise that resolves to visitor request history.
    */
-  .get("/visitor-requests/history/line/:line_user_id", async ({ params }) => {
+  .onBeforeHandle(requireLiffAuth(["resident"]))
+  .get("/visitor-requests/history/line/:line_user_id", async ({ params, currentUser }: any) => {
     try {
       const { line_user_id } = params;
 
@@ -545,6 +556,14 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
         return {
           success: false,
           error: "LINE user ID is required",
+        };
+      }
+
+      // Verify that the authenticated resident is accessing their own data
+      if (currentUser.line_user_id !== line_user_id) {
+        return {
+          success: false,
+          error: "Access denied: You can only access your own visitor history",
         };
       }
 
