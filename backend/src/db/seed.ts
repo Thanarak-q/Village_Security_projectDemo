@@ -181,6 +181,7 @@ const villageData = [
 
 /**
  * An array of mock data for houses, associated with villages by `village_key`.
+ * Note: village_key will be converted to village_id during seeding.
  * @type {Array<Object>}
  */
 const houseData = [
@@ -1455,7 +1456,7 @@ async function createVisitorRecordsData() {
           );
         }
 
-        const randomVisitor = getRandomVisitorFromVillage(randomResident.village_id);
+        const randomVisitor = randomResident.village_id ? getRandomVisitorFromVillage(randomResident.village_id) : null;
 
         visitorRecordsData.push({
           visitor_id: randomVisitor?.visitor_id,
@@ -1537,7 +1538,7 @@ async function createVisitorRecordsData() {
         // Generate realistic timestamps
         const entryTime = generateRandomTimestamp();
 
-      const randomVisitor = getRandomVisitorFromVillage(randomResident.village_id);
+      const randomVisitor = randomResident.village_id ? getRandomVisitorFromVillage(randomResident.village_id) : null;
 
         visitorRecordsData.push({
           visitor_id: randomVisitor?.visitor_id,

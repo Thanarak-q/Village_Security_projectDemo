@@ -122,7 +122,7 @@ const approvalForm = new Elysia({ prefix: "/api" })
       const rows = await db
         .select({ address: houses.address, village_name: villages.village_name })
         .from(houses)
-        .innerJoin(villages, eq(houses.village_key, villages.village_key))
+        .innerJoin(villages, eq(houses.village_id, villages.village_id))
         .where(eq(houses.house_id, houseId));
       if (rows && rows[0]?.address) houseAddressForPath = rows[0].address;
       if (rows && rows[0]?.village_name) villageNameForPath = rows[0].village_name;
@@ -207,21 +207,21 @@ const approvalForm = new Elysia({ prefix: "/api" })
         // Find or create visitor record
         let visitorId: string | null = null;
         try {
-          // Get village_key from house
+          // Get village_id from house
           const houseWithVillage = await tx
-            .select({ village_key: houses.village_key })
+            .select({ village_id: houses.village_id })
             .from(houses)
             .where(eq(houses.house_id, houseId))
             .limit(1);
 
-          if (houseWithVillage.length > 0 && houseWithVillage[0].village_key) {
-            const villageKey = houseWithVillage[0].village_key;
+          if (houseWithVillage.length > 0 && houseWithVillage[0].village_id) {
+            const villageId = houseWithVillage[0].village_id;
             
             // Try to find existing visitor by ID card hash
             const existingVisitor = await tx.query.visitors.findFirst({
               where: and(
                 eq(visitors.id_number_hash, visitorIDCard), // Assuming visitorIDCard is already hashed
-                eq(visitors.village_key, villageKey)
+                eq(visitors.village_id, villageId)
               )
             });
 
@@ -236,7 +236,7 @@ const approvalForm = new Elysia({ prefix: "/api" })
                   fname: "ไม่ระบุ", // We don't have visitor name in the form
                   lname: "ไม่ระบุ",
                   id_number_hash: visitorIDCard,
-                  village_key: villageKey,
+                  village_id: villageId,
                   risk_status: "clear",
                   visit_count: 0,
                   created_at: new Date(),
