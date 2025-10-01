@@ -212,7 +212,7 @@ export const registerLiffUser = async (
     fname: string;
     lname: string;
     phone: string;
-    village_id: string;
+    village_key: string;
     userType: 'resident' | 'guard';
     profile_image_url: string;
     role?: 'resident' | 'guard'; // Optional role parameter for LINE Login channels

@@ -43,7 +43,7 @@ const visitorSchema = z.object({
 });
 
 interface ApprovalFormProps {
-  userRoles?: Array<{role: string, village_key: string, village_name?: string, status: string}>;
+  userRoles?: Array<{role: string, village_id: string, village_name?: string, status: string}>;
 }
 
 function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
@@ -51,7 +51,6 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   const [houses, setHouses] = useState<
     Array<{ house_id: string; address: string; village_id: string }>
   >([]);
-  const [userRoles, setUserRoles] = useState<Array<{role: string, village_id: string, village_name?: string}>>([]);
   const [currentUser, setCurrentUser] = useState<{
     id: string;
     fname: string;
@@ -88,7 +87,6 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
         }
         
         
-        const housesResponse = await axios.get(`/api/houses/liff?village_key=${encodeURIComponent(villageKey)}`, {
         const housesResponse = await axios.get(`/api/houses?village_id=${encodeURIComponent(villageId)}`, {
           withCredentials: true,
           headers: {

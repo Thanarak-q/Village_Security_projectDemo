@@ -12,7 +12,7 @@ export default function ResidentPendingPage() {
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [userRoles, setUserRoles] = useState<Array<{role: string, village_key: string, village_name?: string, status: string}>>([]);
+  const [userRoles, setUserRoles] = useState<Array<{role: string, village_id: string, village_name?: string, status: string}>>([]);
   const [residentData, setResidentData] = useState<any>(null);
 
   useEffect(() => {
@@ -121,7 +121,7 @@ export default function ResidentPendingPage() {
                     lname: residentRole.lname || currentUser.lname,
                     email: residentRole.email || currentUser.email,
                     phone: residentRole.phone || currentUser.phone,
-                    village_key: residentRole.village_key || currentUser.village_key,
+                    village_id: residentRole.village_id || currentUser.village_id,
                     village_name: residentRole.village_name || currentUser.village_name,
                     status: residentRole.status
                   });
@@ -272,7 +272,7 @@ export default function ResidentPendingPage() {
                     lname: residentRole.lname || currentUser.lname,
                     email: residentRole.email || currentUser.email,
                     phone: residentRole.phone || currentUser.phone,
-                    village_key: residentRole.village_key || currentUser.village_key,
+                    village_id: residentRole.village_id || currentUser.village_id,
                     village_name: residentRole.village_name || currentUser.village_name,
                     status: residentRole.status
                   });
@@ -381,7 +381,7 @@ export default function ResidentPendingPage() {
                 <p><span className="font-medium">ชื่อ:</span> {residentData.fname} {residentData.lname}</p>
                 <p><span className="font-medium">อีเมล:</span> {residentData.email}</p>
                 <p><span className="font-medium">เบอร์โทร:</span> {residentData.phone}</p>
-                <p><span className="font-medium">หมู่บ้าน:</span> {residentData.village_name || residentData.village_key}</p>
+                <p><span className="font-medium">หมู่บ้าน:</span> {residentData.village_name || residentData.village_id}</p>
                 <p><span className="font-medium">ตำแหน่ง:</span> ผู้อยู่อาศัย</p>
                 <p><span className="font-medium">สถานะ:</span> <span className="font-bold text-red-600">{residentData.status}</span></p>
               </div>

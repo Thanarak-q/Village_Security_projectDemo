@@ -37,7 +37,7 @@ function RegisterPageContent() {
     fname: '',
     lname: '',
     phone: '',
-    village_id: '',
+    village_key: '',
     userType: 'resident' as 'resident' | 'guard',
     profile_image_url: '',
     line_display_name: '',
@@ -45,9 +45,9 @@ function RegisterPageContent() {
 
   const [lineProfile, setLineProfile] = useState<{ userId?: string; displayName?: string; pictureUrl?: string } | null>(null);
 
-  // Validate village id
-  const validateVillage = async (villageId: string) => {
-    if (!villageId.trim()) {
+  // Validate village key
+  const validateVillage = async (villageKey: string) => {
+    if (!villageKey.trim()) {
       setVillageValidation({ isValid: false, isLoading: false });
       return;
     }
@@ -55,7 +55,7 @@ function RegisterPageContent() {
     setVillageValidation({ isValid: false, isLoading: true });
 
     try {
-      const response = await fetch(`/api/villages/check/${encodeURIComponent(villageId)}`);
+      const response = await fetch(`/api/villages/check/${encodeURIComponent(villageKey)}`);
       const data = await response.json();
 
       if (data.exists && data.village_name) {
@@ -121,8 +121,8 @@ function RegisterPageContent() {
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
-    // Validate village id when it changes
-    if (field === 'village_id') {
+    // Validate village key when it changes
+    if (field === 'village_key') {
       const timeoutId = setTimeout(() => validateVillage(value), 500);
       return () => clearTimeout(timeoutId);
     }
@@ -160,7 +160,7 @@ function RegisterPageContent() {
         fname: formData.fname,
         lname: formData.lname,
         phone: formData.phone,
-        village_id: formData.village_id,
+        village_key: formData.village_key,
         userType: formData.userType,
         profile_image_url: formData.profile_image_url,
       });
@@ -197,7 +197,7 @@ function RegisterPageContent() {
           fname: formData.fname,
           lname: formData.lname,
           phone: formData.phone,
-          village_id: formData.village_id,
+          village_key: formData.village_key,
           userType: formData.userType,
         }
       });
@@ -369,12 +369,12 @@ function RegisterPageContent() {
               </div>
 
               <div>
-                <Label htmlFor="village_id" className="text-sm font-medium text-foreground">รหัสหมู่บ้าน *</Label>
+                <Label htmlFor="village_key" className="text-sm font-medium text-foreground">รหัสหมู่บ้าน *</Label>
                 <Input
-                  id="village_id"
+                  id="village_key"
                   type="text"
-                  value={formData.village_id}
-                  onChange={(e) => handleInputChange('village_id', e.target.value)}
+                  value={formData.village_key}
+                  onChange={(e) => handleInputChange('village_key', e.target.value)}
                   className="mt-1"
                   placeholder="กรอกรหัสหมู่บ้าน"
                   required
@@ -390,7 +390,7 @@ function RegisterPageContent() {
                     </span>
                   </div>
                 )}
-                {!villageValidation.isValid && !villageValidation.isLoading && formData.village_id && (
+                {!villageValidation.isValid && !villageValidation.isLoading && formData.village_key && (
                   <p className="text-sm text-red-500 mt-1">รหัสหมู่บ้านไม่ถูกต้อง</p>
                 )}
               </div>

@@ -18,8 +18,7 @@ import { LiffService } from "@/lib/liff";
 // Main Resident Page Component
 const ResidentPage = () => {
   const router = useRouter();
-  const [userRoles, setUserRoles] = useState<Array<{role: string, village_key: string, village_name?: string, status: string}>>([]);
-  const [userRoles, setUserRoles] = useState<Array<{role: string, village_id: string, village_name?: string}>>([]);
+  const [userRoles, setUserRoles] = useState<Array<{role: string, village_id: string, village_name?: string, status: string}>>([]);
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
   
   const {
