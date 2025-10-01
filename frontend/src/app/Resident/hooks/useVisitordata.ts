@@ -23,7 +23,6 @@ export const useVisitorData = () => {
   const [error, setError] = useState<string | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [villageName, setVillageName] = useState<string>('');
   
   // Confirmation dialog state
   const [confirmationDialog, setConfirmationDialog] = useState<ConfirmationDialogState>({
@@ -55,53 +54,13 @@ export const useVisitorData = () => {
       setCurrentUser(user);
       setIsCheckingAuth(false);
       
-      // Fetch village name
-      if (user.village_id) {
-        fetchVillageName(user.village_id);
-      }
+      // Note: village_name is not directly available in LIFF auth user data
+      // It would need to be fetched separately if needed
     };
 
     checkAuthAndRole();
   }, [router]);
 
-  // Function to fetch village name
-  const fetchVillageName = async (villageId: string) => {
-    try {
-      const { token } = getAuthData();
-      const apiUrl = '';
-      
-      const response = await fetch(`${apiUrl}/api/villages/validate?key=${encodeURIComponent(villageKey)}`, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-      
-      console.log('🔍 Village validation response status:', response.status);
-      console.log('🔍 Village validation response headers:', Object.fromEntries(response.headers.entries()));
-      
-      // Check if response is JSON
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const responseText = await response.text();
-        console.error('❌ Non-JSON response received:', responseText);
-        throw new Error(`Response is not JSON. Status: ${response.status}, Content-Type: ${contentType}`);
-      }
-      
-      const data = await response.json();
-      console.log('🔍 Village validation data:', data);
-      
-      if (data.success && data.data && data.data.village_name) {
-        setVillageName(data.data.village_name);
-        console.log('✅ Village name set:', data.data.village_name);
-      } else {
-        console.error('❌ Village validation failed:', data);
-      }
-    } catch (error) {
-      console.error('❌ Error fetching village name:', error);
-    }
-  };
 
   // Fetch data on component mount
   useEffect(() => {
@@ -306,7 +265,6 @@ export const useVisitorData = () => {
     error,
     isCheckingAuth,
     currentUser,
-    villageName,
     confirmationDialog,
     handleApprove,
     handleDeny,

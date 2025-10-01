@@ -154,7 +154,7 @@ const RoleRegistrationPage = () => {
           fname: currentUser.fname,
           lname: currentUser.lname,
           phone: currentUser.phone,
-          village_id: selectedVillage,
+          village_key: selectedVillage,
           profile_image_url: currentUser.line_profile_url,
         }),
       });
