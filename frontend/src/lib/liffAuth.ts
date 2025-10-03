@@ -2,12 +2,14 @@
 // LIFF Authentication Service
 export interface LiffUser {
   id: string;
+  guard_id?: string; // For guards
+  resident_id?: string; // For residents
   lineUserId: string;
   email: string;
   fname: string;
   lname: string;
   phone: string;
-  village_key: string;
+  village_id: string;
   status: 'verified' | 'pending' | 'disable';
   line_profile_url?: string;
   role: 'resident' | 'guard';

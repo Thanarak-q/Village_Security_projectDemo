@@ -17,7 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Shield, Search, ChevronLeft, ChevronRight, Clock, Car, RefreshCw } from "lucide-react";
+import { Shield, Search, ChevronLeft, ChevronRight, Clock, Car, RefreshCw, User } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 // API Response Interface
 
@@ -45,7 +46,7 @@ interface VisitorRecordAPI {
   guard_name: string;
   guard_email: string;
   house_address: string;
-  village_key: string;
+  village_id: string;
 }
 
 // Interface for Admin History from API
@@ -110,6 +111,9 @@ export default function HistoryTable() {
   
   // State สำหรับเก็บชื่อหมู่บ้านที่เลือก
   const [selectedVillageName, setSelectedVillageName] = useState<string>("");
+  
+  // State สำหรับเก็บ role ของ user ที่ login
+  const [userRole, setUserRole] = useState<string>("");
 
   // Fetch data from API
   const fetchHistory = async (isRefresh = false) => {
@@ -228,8 +232,25 @@ export default function HistoryTable() {
     }
   };
 
+  // Fetch user role
+  const fetchUserRole = async () => {
+    try {
+      const response = await fetch("/api/auth/me", {
+        credentials: "include",
+      });
+      
+      if (response.ok) {
+        const userData = await response.json();
+        setUserRole(userData.role || "");
+      }
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+    }
+  };
+
   useEffect(() => {
     fetchHistory();
+    fetchUserRole();
   }, []);
 
   // Listen for village changes and refresh data
@@ -247,23 +268,37 @@ export default function HistoryTable() {
     };
   }, []);
 
-  // Function to create avatar initials from name
-  const getAvatarInitials = (name: string) => {
-    const names = name.split(' ');
-    return names.map(n => n.charAt(0)).join('').toUpperCase();
+  // Function to generate avatar initials from license plate
+  const getVisitorAvatarInitials = (licensePlate: string) => {
+    if (!licensePlate || licensePlate.trim() === "") return "??";
+    
+    const trimmedPlate = licensePlate.trim();
+    // Take first two characters from license plate
+    return trimmedPlate.substring(0, 2).toUpperCase();
   };
 
-  // Function to get avatar color based on user ID
-  const getAvatarColor = (userId: string) => {
+  // Function to get avatar color based on license plate
+  const getVisitorAvatarColor = (licensePlate: string) => {
     const colors = [
-      "bg-blue-500",
       "bg-green-500",
+      "bg-blue-500", 
       "bg-purple-500",
-      "bg-yellow-500",
-      "bg-red-500",
+      "bg-pink-500",
       "bg-indigo-500",
+      "bg-teal-500",
+      "bg-orange-500",
+      "bg-red-500",
+      "bg-cyan-500",
+      "bg-lime-500",
+      "bg-amber-500",
+      "bg-emerald-500"
     ];
-    const index = userId.charCodeAt(0) % colors.length;
+    
+    if (!licensePlate) return colors[0];
+    
+    // Use first character of license plate to determine color
+    const firstChar = licensePlate.charCodeAt(0);
+    const index = firstChar % colors.length;
     return colors[index];
   };
 
@@ -401,7 +436,7 @@ export default function HistoryTable() {
                   }`}
                 >
                   <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
-                  <span>ประวัติผู้ดูแล ({adminHistoryData.length})</span>
+                  <span>{userRole === "staff" ? "ประวัตินิติบุคคล" : "ประวัติผู้ดูแล"} ({adminHistoryData.length})</span>
                 </button>
                 
                 {/* Visitor History tab */}
@@ -497,16 +532,12 @@ export default function HistoryTable() {
                     ) : (
                       getCurrentAdminHistory().map((item) => (
                       <TableRow key={item.id} className="hover:bg-muted/30 transition-colors border-b border-border/50">
-                        {/* User column - Avatar and name */}
+                        {/* User column - Staff icon and name */}
                         <TableCell className="min-w-[200px] py-4 px-6">
-                          <div className="flex items-center space-x-4">
-                            {/* Avatar circle with initials */}
-                            <div
-                              className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 shadow-sm ${getAvatarColor(
-                                item.id
-                              )}`}
-                            >
-                              {getAvatarInitials(item.name)}
+                          <div className="flex items-center space-x-3">
+                            {/* Staff icon */}
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-blue-500 text-white flex-shrink-0">
+                              <User className="w-4 h-4 sm:w-5 sm:h-5" />
                             </div>
                             {/* Name and email */}
                             <div className="min-w-0 flex-1">
@@ -580,14 +611,16 @@ export default function HistoryTable() {
                   <TableBody>
                     {getCurrentVisitorHistory().map((item) => (
                       <TableRow key={item.id} className="hover:bg-muted">
-                        {/* Visitor info column - License plate and resident */}
+                        {/* Visitor info column - Avatar and license plate */}
                         <TableCell className="min-w-[200px]">
                           <div className="flex items-center space-x-3">
-                            {/* Avatar circle with car icon */}
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-medium text-xs sm:text-sm bg-blue-500 flex-shrink-0">
-                              <Car className="w-4 h-4" />
-                            </div>
-                            {/* License plate and resident info */}
+                            {/* Avatar with license plate initials */}
+                            <Avatar className="w-8 h-8 sm:w-10 sm:h-10">
+                              <AvatarFallback className={`${getVisitorAvatarColor(item.license_plate || '')} text-white font-semibold text-sm`}>
+                                {getVisitorAvatarInitials(item.license_plate || '')}
+                              </AvatarFallback>
+                            </Avatar>
+                            {/* License plate and purpose info */}
                             <div className="min-w-0 flex-1">
                               <div className="font-medium text-foreground text-sm sm:text-base truncate">
                                 {item.license_plate || 'ไม่ระบุ'}

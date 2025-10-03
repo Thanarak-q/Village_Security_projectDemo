@@ -22,14 +22,14 @@ interface StaffMember {
   password_changed_at: string | null;
   created_at: string;
   updated_at: string;
-  village_key: string;
+  village_id: string;
   village_name: string;
 }
 
 export default function StaffManagePage() {
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedVillageKey, setSelectedVillageKey] = useState<string>("");
+  const [selectedVillageId, setSelectedVillageId] = useState<string>("");
   const [villageName, setVillageName] = useState<string>("");
   const [userRole, setUserRole] = useState<string>("");
   
@@ -48,14 +48,14 @@ export default function StaffManagePage() {
   
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const fetchStaffMembers = useCallback(async (villageKey: string, isRefresh = false) => {
+  const fetchStaffMembers = useCallback(async (villageId: string, isRefresh = false) => {
     try {
       if (isRefresh) {
         setRefreshing(true);
       } else {
         setLoading(true);
       }
-      const response = await fetch(`/api/staff/staff?village_key=${villageKey}`, {
+      const response = await fetch(`/api/staff/staff?village_id=${villageId}`, {
         credentials: "include",
       });
 
@@ -83,7 +83,7 @@ export default function StaffManagePage() {
   // GSAP smooth scroll-up animation - matching other sidebar pages
   useEffect(() => {
     // Only animate when loading is complete and we have user role
-    if (loading || !userRole || userRole === "staff" || !selectedVillageKey) return;
+    if (loading || !userRole || userRole === "staff" || !selectedVillageId) return;
 
     const cardElement = cardRef.current;
     
@@ -112,7 +112,7 @@ export default function StaffManagePage() {
         console.warn('GSAP cleanup error:', error);
       }
     };
-  }, [loading, userRole, selectedVillageKey]); // Dependencies are stable now
+  }, [loading, userRole, selectedVillageId]); // Dependencies are stable now
 
   useEffect(() => {
     // Check user role first
@@ -134,10 +134,10 @@ export default function StaffManagePage() {
           }
 
           // Get selected village from session storage for admin/superadmin
-          const villageKey = sessionStorage.getItem("selectedVillage");
-          if (villageKey) {
-            setSelectedVillageKey(villageKey);
-            fetchStaffMembers(villageKey);
+          const villageId = sessionStorage.getItem("selectedVillage");
+          if (villageId) {
+            setSelectedVillageId(villageId);
+            fetchStaffMembers(villageId);
           } else {
             // toast.error("กรุณาเลือกหมู่บ้านก่อน");
             setLoading(false);
@@ -258,7 +258,7 @@ export default function StaffManagePage() {
     );
   }
 
-  if (!selectedVillageKey) {
+  if (!selectedVillageId) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md">
@@ -287,7 +287,14 @@ export default function StaffManagePage() {
         <div className="container mx-auto px-4 py-6 max-w-7xl">
           <Card>
             <CardHeader>
-              
+              <CardTitle className="text-xl font-semibold text-foreground">
+                จัดการนิติบุคคล
+              </CardTitle>
+              <CardDescription className="text-muted-foreground">
+                {villageName && villageName.trim() !== "" 
+                  ? `หมู่บ้าน: ${villageName}` 
+                  : "จัดการนิติบุคคลในระบบ"}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                   {/* Add Staff Button and Search Controls */}
@@ -295,10 +302,10 @@ export default function StaffManagePage() {
                     {/* Add Staff Button */}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
                       <AddStaffDialog
-                        villageKey={selectedVillageKey}
+                        villageId={selectedVillageId}
                         villageName={villageName}
                         onStaffAdded={handleStaffAdded}
-                        onRefresh={() => fetchStaffMembers(selectedVillageKey, true)}
+                        onRefresh={() => fetchStaffMembers(selectedVillageId, true)}
                       />
                     </div>
                     

@@ -11,10 +11,10 @@ import { eq, sql } from "drizzle-orm";
 /**
  * Retrieves a list of house members for a specific village, joining house and resident data.
  *
- * @param {string} villageKey - The unique key of the village.
+ * @param {string} villageId - The unique key of the village.
  * @returns {Promise<Array<Object>>} A promise that resolves to an array of objects, each representing a house member with associated house and resident details.
  */
-export async function getHouseMembersByVillage(villageKey: string) {
+export async function getHouseMembersByVillage(villageId: string) {
   const result = await db
     .select({
       house_member_id: house_members.house_member_id,
@@ -23,12 +23,12 @@ export async function getHouseMembersByVillage(villageKey: string) {
       house_address: houses.address,
       resident_name: sql`${residents.fname} || ' ' || ${residents.lname}`,
       resident_email: residents.email,
-      village_key: houses.village_key,
+      village_id: houses.village_id,
     })
     .from(house_members)
     .innerJoin(houses, eq(house_members.house_id, houses.house_id))
     .innerJoin(residents, eq(house_members.resident_id, residents.resident_id))
-    .where(eq(houses.village_key, villageKey));
+    .where(eq(houses.village_id, villageId));
 
   return result;
 }
@@ -47,7 +47,7 @@ export async function getAllHouseMembers() {
       house_address: houses.address,
       resident_name: sql`${residents.fname} || ' ' || ${residents.lname}`,
       resident_email: residents.email,
-      village_key: houses.village_key,
+      village_id: houses.village_id,
     })
     .from(house_members)
     .innerJoin(houses, eq(house_members.house_id, houses.house_id))
@@ -75,7 +75,7 @@ export async function getHouseMembersByHouse(houseId: string) {
       resident_name: sql`${residents.fname} || ' ' || ${residents.lname}`,
       resident_email: residents.email,
       resident_phone: residents.phone,
-      village_key: houses.village_key,
+      village_id: houses.village_id,
     })
     .from(house_members)
     .innerJoin(houses, eq(house_members.house_id, houses.house_id))
@@ -100,7 +100,7 @@ export async function getHouseMembersByResident(residentId: string) {
       house_address: houses.address,
       resident_name: sql`${residents.fname} || ' ' || ${residents.lname}`,
       resident_email: residents.email,
-      village_key: houses.village_key,
+      village_id: houses.village_id,
     })
     .from(house_members)
     .innerJoin(houses, eq(house_members.house_id, houses.house_id))

@@ -6,7 +6,7 @@
 
 import db from "./drizzle";
 import { houses, residents, house_members, villages } from "./schema";
-import { eq, and, isNotNull } from "drizzle-orm";
+import { eq, and, isNotNull, inArray } from "drizzle-orm";
 
 /**
  * Interface for resident with LINE ID information
@@ -45,13 +45,13 @@ export async function getHouseResidentsWithLineId(houseId: string): Promise<Resi
         phone: residents.phone,
         house_id: houses.house_id,
         house_address: houses.address,
-        village_key: houses.village_key,
+        village_key: houses.village_id,
         village_name: villages.village_name,
       })
       .from(house_members)
       .innerJoin(residents, eq(house_members.resident_id, residents.resident_id))
       .innerJoin(houses, eq(house_members.house_id, houses.house_id))
-      .innerJoin(villages, eq(houses.village_key, villages.village_key))
+      .innerJoin(villages, eq(houses.village_id, villages.village_id))
       .where(
         and(
           eq(house_members.house_id, houseId),
@@ -93,16 +93,16 @@ export async function getMultipleHouseResidentsWithLineId(houseIds: string[]): P
         phone: residents.phone,
         house_id: houses.house_id,
         house_address: houses.address,
-        village_key: houses.village_key,
+        village_key: houses.village_id,
         village_name: villages.village_name,
       })
       .from(house_members)
       .innerJoin(residents, eq(house_members.resident_id, residents.resident_id))
       .innerJoin(houses, eq(house_members.house_id, houses.house_id))
-      .innerJoin(villages, eq(houses.village_key, villages.village_key))
+      .innerJoin(villages, eq(houses.village_id, villages.village_id))
       .where(
         and(
-          eq(house_members.house_id, houseIds[0]), // This needs to be fixed for multiple houses
+          inArray(house_members.house_id, houseIds),
           isNotNull(residents.line_user_id),
           eq(residents.status, "verified")
         )
@@ -137,13 +137,13 @@ export async function getResidentWithLineId(residentId: string): Promise<Residen
         phone: residents.phone,
         house_id: houses.house_id,
         house_address: houses.address,
-        village_key: houses.village_key,
+        village_key: houses.village_id,
         village_name: villages.village_name,
       })
       .from(house_members)
       .innerJoin(residents, eq(house_members.resident_id, residents.resident_id))
       .innerJoin(houses, eq(house_members.house_id, houses.house_id))
-      .innerJoin(villages, eq(houses.village_key, villages.village_key))
+      .innerJoin(villages, eq(houses.village_id, villages.village_id))
       .where(
         and(
           eq(residents.resident_id, residentId),
@@ -187,16 +187,16 @@ export async function getVillageResidentsWithLineId(villageKey: string): Promise
         phone: residents.phone,
         house_id: houses.house_id,
         house_address: houses.address,
-        village_key: houses.village_key,
+        village_key: houses.village_id,
         village_name: villages.village_name,
       })
       .from(house_members)
       .innerJoin(residents, eq(house_members.resident_id, residents.resident_id))
       .innerJoin(houses, eq(house_members.house_id, houses.house_id))
-      .innerJoin(villages, eq(houses.village_key, villages.village_key))
+      .innerJoin(villages, eq(houses.village_id, villages.village_id))
       .where(
         and(
-          eq(houses.village_key, villageKey),
+          eq(villages.village_key, villageKey),
           isNotNull(residents.line_user_id),
           eq(residents.status, "verified")
         )

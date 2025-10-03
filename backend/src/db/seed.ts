@@ -15,6 +15,7 @@ import {
   admins,
   admin_villages,
   house_members,
+  visitors,
   visitor_records,
   admin_activity_logs,
   admin_notifications,
@@ -180,6 +181,7 @@ const villageData = [
 
 /**
  * An array of mock data for houses, associated with villages by `village_key`.
+ * Note: village_key will be converted to village_id during seeding.
  * @type {Array<Object>}
  */
 const houseData = [
@@ -847,14 +849,25 @@ async function createAdminVillagesData() {
 
   // Get all admins from database
   const allAdmins = await db.select().from(admins);
+  const allVillages = await db.select().from(villages);
+  const villageKeyToId = new Map(
+    allVillages.map((v) => [v.village_key, v.village_id])
+  );
   
   for (const mapping of adminVillageMapping) {
     const admin = allAdmins.find((a: any) => a.username === mapping.username);
-    if (admin) {
+    const villageId = villageKeyToId.get(mapping.village_key);
+    if (admin && villageId) {
       adminVillagesData.push({
         admin_id: admin.admin_id,
-        village_key: mapping.village_key,
+        village_id: villageId,
       });
+    } else {
+      if (!admin) {
+        console.warn(`Admin not found for username ${mapping.username}, skipping admin_village seed entry.`);
+      } else {
+        console.warn(`Village not found for key ${mapping.village_key}, skipping admin_village seed entry.`);
+      }
     }
   }
 
@@ -894,6 +907,14 @@ export async function clearDb() {
     console.log("Cleared visitor_records");
   } catch (error) {
     console.log("visitor_records table doesn't exist yet, skipping...");
+  }
+
+  console.log("Clearing visitors");
+  try {
+    await db.delete(visitors);
+    console.log("Cleared visitors");
+  } catch (error) {
+    console.log("visitors table doesn't exist yet, skipping...");
   }
 
   console.log("Clearing house_members");
@@ -981,37 +1002,47 @@ async function createHouseMembersData() {
   // Fetch all houses and residents from database
   const allHouses = await db.select().from(houses);
   const allResidents = await db.select().from(residents);
+  const villagesList = await db.select({
+    village_id: villages.village_id,
+    village_key: villages.village_key,
+  }).from(villages);
+  const villageIdToKey = new Map(
+    villagesList.map((v) => [v.village_id, v.village_key])
+  );
 
   const houseMembersData: Array<{ house_id: string; resident_id: string }> = [];
 
   // Group residents by village
   const residentsByVillage: Record<string, typeof allResidents> = {};
   for (const resident of allResidents) {
-    if (resident.village_key && !residentsByVillage[resident.village_key]) {
-      residentsByVillage[resident.village_key] = [];
+    if (!resident.village_id) {
+      continue;
     }
-    if (resident.village_key) {
-      residentsByVillage[resident.village_key].push(resident);
+    if (!residentsByVillage[resident.village_id]) {
+      residentsByVillage[resident.village_id] = [];
     }
+    residentsByVillage[resident.village_id].push(resident);
   }
 
   // Group houses by village
   const housesByVillage: Record<string, typeof allHouses> = {};
   for (const house of allHouses) {
-    if (house.village_key && !housesByVillage[house.village_key]) {
-      housesByVillage[house.village_key] = [];
+    if (!house.village_id) {
+      continue;
     }
-    if (house.village_key) {
-      housesByVillage[house.village_key].push(house);
+    if (!housesByVillage[house.village_id]) {
+      housesByVillage[house.village_id] = [];
     }
+    housesByVillage[house.village_id].push(house);
   }
 
   // Assign residents to houses in their village
-  for (const villageKey in residentsByVillage) {
-    const villageResidents = residentsByVillage[villageKey];
-    const villageHouses = housesByVillage[villageKey] || [];
+  for (const villageId in residentsByVillage) {
+    const villageResidents = residentsByVillage[villageId];
+    const villageHouses = housesByVillage[villageId] || [];
 
     if (villageHouses.length === 0) {
+      const villageKey = villageIdToKey.get(villageId) ?? villageId;
       console.log(`No houses found for village: ${villageKey}`);
       continue;
     }
@@ -1034,6 +1065,107 @@ async function createHouseMembersData() {
 }
 
 /**
+ * Generates mock visitor data for the visitors table.
+ * Creates realistic visitor profiles with various risk statuses and visit patterns.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of visitor data objects.
+ */
+async function createVisitorsData() {
+  console.log("Creating visitors data...");
+
+  // Fetch all villages to assign visitors to
+  const allVillages = await db.select().from(villages);
+  
+  const visitorsData: Array<{
+    fname: string;
+    lname: string;
+    id_doc_type: "thai_id" | "passport" | "other";
+    id_number_hash: string;
+    phone?: string | null;
+    village_id: string;
+    risk_status: "clear" | "watchlist" | "banned";
+    visit_count: number;
+    last_visit_at?: Date;
+  }> = [];
+
+  // Sample Thai names for visitors
+  const thaiFirstNames = [
+    "สมชาย", "สมหญิง", "วิชัย", "มาลี", "ประเสริฐ", "สุดา", "ชัยวัฒน์", "นิตยา",
+    "สมศักดิ์", "วิไล", "สุรชัย", "รัตนา", "ธนาคาร", "อรุณี", "สมบูรณ์", "กัลยา",
+    "วีระ", "มาลัย", "สมพร", "สุดา", "ชัยสิทธิ์", "นงเยาว์", "สมคิด", "วิไลวรรณ"
+  ];
+
+  const thaiLastNames = [
+    "ใจดี", "รักบ้าน", "สุขใส", "ใจงาม", "รักธรรม", "สุขใจ", "ใจใส", "รักบ้าน",
+    "สุขใส", "ใจงาม", "รักธรรม", "สุขใจ", "ใจใส", "รักบ้าน", "สุขใส", "ใจงาม"
+  ];
+
+  // Sample phone numbers
+  const phoneNumbers = [
+    "081-234-5678", "082-345-6789", "083-456-7890", "084-567-8901",
+    "085-678-9012", "086-789-0123", "087-890-1234", "088-901-2345",
+    "089-012-3456", "090-123-4567", null, null, null // Some visitors without phone
+  ];
+
+  // Risk status distribution (most visitors are clear)
+  const riskStatuses: Array<"clear" | "watchlist" | "banned"> = [
+    "clear", "clear", "clear", "clear", "clear", "clear", "clear", "clear", "clear", "clear", // 10 clear
+    "watchlist", "watchlist", // 2 watchlist
+    "banned" // 1 banned
+  ];
+
+  // ID document types
+  const idDocTypes: Array<"thai_id" | "passport" | "other"> = [
+    "thai_id", "thai_id", "thai_id", "thai_id", "thai_id", "thai_id", "thai_id", "thai_id", // 8 thai_id
+    "passport", "passport", // 2 passport
+    "other" // 1 other
+  ];
+
+  // Create visitors for each village
+  for (const village of allVillages) {
+    // Create 20-50 visitors per village
+    const numVisitors = Math.floor(Math.random() * 31) + 20;
+    
+    for (let i = 0; i < numVisitors; i++) {
+      const fname = thaiFirstNames[Math.floor(Math.random() * thaiFirstNames.length)];
+      const lname = thaiLastNames[Math.floor(Math.random() * thaiLastNames.length)];
+      const phone = phoneNumbers[Math.floor(Math.random() * phoneNumbers.length)];
+      const riskStatus = riskStatuses[Math.floor(Math.random() * riskStatuses.length)];
+      const idDocType = idDocTypes[Math.floor(Math.random() * idDocTypes.length)];
+      
+      // Generate realistic ID number hash (simulating hashed ID numbers)
+      const idNumber = `${Math.floor(Math.random() * 9) + 1}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}`;
+      const idNumberHash = `hash_${idNumber}`;
+      
+      // Generate visit count (0-20 visits)
+      const visitCount = Math.floor(Math.random() * 21);
+      
+      // Generate last visit date (within last 6 months, or null if never visited)
+      let lastVisitAt: Date | undefined;
+      if (visitCount > 0) {
+        const daysAgo = Math.floor(Math.random() * 180); // 0-180 days ago
+        lastVisitAt = new Date();
+        lastVisitAt.setDate(lastVisitAt.getDate() - daysAgo);
+      }
+
+      visitorsData.push({
+        fname,
+        lname,
+        id_doc_type: idDocType,
+        id_number_hash: idNumberHash,
+        phone: phone || undefined,
+        village_id: village.village_id,
+        risk_status: riskStatus,
+        visit_count: visitCount,
+        last_visit_at: lastVisitAt,
+      });
+    }
+  }
+
+  console.log(`Created ${visitorsData.length} visitors`);
+  return visitorsData;
+}
+
+/**
  * Generates a large and varied set of mock visitor records. This function creates
  * realistic data by randomly assigning visitors to residents, guards, and houses
  * within the same village, and by generating plausible timestamps and other details.
@@ -1048,8 +1180,21 @@ async function createVisitorRecordsData() {
   const allResidents = await db.select().from(residents);
   const allGuards = await db.select().from(guards);
   const allHouses = await db.select().from(houses);
+  const allVisitors = await db.select().from(visitors);
+  const villagesList = await db.select({
+    village_id: villages.village_id,
+    village_key: villages.village_key,
+    village_name: villages.village_name,
+  }).from(villages);
+  const villageIdToKey = new Map(
+    villagesList.map((v) => [v.village_id, v.village_key])
+  );
+  const villageIdToName = new Map(
+    villagesList.map((v) => [v.village_id, v.village_name])
+  );
 
   const visitorRecordsData: Array<{
+    visitor_id?: string;
     resident_id: string;
     guard_id: string;
     house_id: string;
@@ -1119,6 +1264,16 @@ async function createVisitorRecordsData() {
     "rejected",
   ];
 
+  // Helper function to get random visitor from same village
+  const getRandomVisitorFromVillage = (villageId: string) => {
+    const visitorsInSameVillage = allVisitors.filter(
+      (visitor) => visitor.village_id === villageId
+    );
+    return visitorsInSameVillage.length > 0 
+      ? visitorsInSameVillage[Math.floor(Math.random() * visitorsInSameVillage.length)]
+      : null;
+  };
+
   // Generate realistic timestamps distributed across different time periods
   function generateRandomTimestamp(): Date {
     const now = new Date();
@@ -1170,14 +1325,17 @@ async function createVisitorRecordsData() {
 
   // Create visitor records for each resident
   for (const resident of allResidents) {
+    if (!resident.village_id) {
+      continue;
+    }
     // Find guards in the same village as the resident
     const guardsInSameVillage = allGuards.filter(
-      (guard) => guard.village_key === resident.village_key
+      (guard) => guard.village_id === resident.village_id
     );
 
     // Find houses in the same village as the resident
     const housesInSameVillage = allHouses.filter(
-      (house) => house.village_key === resident.village_key
+      (house) => house.village_id === resident.village_id
     );
 
     if (guardsInSameVillage.length > 0 && housesInSameVillage.length > 0) {
@@ -1212,7 +1370,10 @@ async function createVisitorRecordsData() {
         // For rejected records, no exit time
         // For pending records, no exit time
 
+        const randomVisitor = getRandomVisitorFromVillage(resident.village_id);
+
         visitorRecordsData.push({
+          visitor_id: randomVisitor?.visitor_id,
           resident_id: resident.resident_id,
           guard_id: randomGuard.guard_id,
           house_id: randomHouse.house_id,
@@ -1222,7 +1383,6 @@ async function createVisitorRecordsData() {
           record_status: randomStatus,
           visit_purpose: randomVisitPurpose,
           entry_time: entryTime,
-
         });
       }
     }
@@ -1234,17 +1394,17 @@ async function createVisitorRecordsData() {
   console.log("Adding additional records for data coverage...");
 
   // Get all villages
-  const allVillages = await db.select().from(villages);
+  const allVillages = villagesList;
 
   for (const village of allVillages) {
     const villageResidents = allResidents.filter(
-      (r) => r.village_key === village.village_key
+      (r) => r.village_id === village.village_id
     );
     const villageGuards = allGuards.filter(
-      (g) => g.village_key === village.village_key
+      (g) => g.village_id === village.village_id
     );
     const villageHouses = allHouses.filter(
-      (h) => h.village_key === village.village_key
+      (h) => h.village_id === village.village_id
     );
 
     // If village has very few records, add some more
@@ -1252,7 +1412,7 @@ async function createVisitorRecordsData() {
       const resident = allResidents.find(
         (r) => r.resident_id === record.resident_id
       );
-      return resident?.village_key === village.village_key;
+      return resident?.village_id === village.village_id;
     });
 
     if (
@@ -1296,7 +1456,10 @@ async function createVisitorRecordsData() {
           );
         }
 
+        const randomVisitor = randomResident.village_id ? getRandomVisitorFromVillage(randomResident.village_id) : null;
+
         visitorRecordsData.push({
+          visitor_id: randomVisitor?.visitor_id,
           resident_id: randomResident.resident_id,
           guard_id: randomGuard.guard_id,
           house_id: randomHouse.house_id,
@@ -1324,13 +1487,13 @@ async function createVisitorRecordsData() {
 
   for (const village of allVillages) {
     const villageResidents = allResidents.filter(
-      (r) => r.village_key === village.village_key
+      (r) => r.village_id === village.village_id
     );
     const villageGuards = allGuards.filter(
-      (g) => g.village_key === village.village_key
+      (g) => g.village_id === village.village_id
     );
     const villageHouses = allHouses.filter(
-      (h) => h.village_key === village.village_key
+      (h) => h.village_id === village.village_id
     );
 
     if (
@@ -1353,8 +1516,8 @@ async function createVisitorRecordsData() {
       }
 
       for (let i = 0; i < extraRecords; i++) {
-        const randomResident =
-          villageResidents[Math.floor(Math.random() * villageResidents.length)];
+      const randomResident =
+        villageResidents[Math.floor(Math.random() * villageResidents.length)];
         const randomGuard =
           villageGuards[Math.floor(Math.random() * villageGuards.length)];
         const randomHouse =
@@ -1375,7 +1538,10 @@ async function createVisitorRecordsData() {
         // Generate realistic timestamps
         const entryTime = generateRandomTimestamp();
 
+      const randomVisitor = randomResident.village_id ? getRandomVisitorFromVillage(randomResident.village_id) : null;
+
         visitorRecordsData.push({
+          visitor_id: randomVisitor?.visitor_id,
           resident_id: randomResident.resident_id,
           guard_id: randomGuard.guard_id,
           house_id: randomHouse.house_id,
@@ -1425,13 +1591,13 @@ async function createVisitorRecordsData() {
         const randomVillage =
           allVillages[Math.floor(Math.random() * allVillages.length)];
         const villageResidents = allResidents.filter(
-          (r) => r.village_key === randomVillage.village_key
+          (r) => r.village_id === randomVillage.village_id
         );
         const villageGuards = allGuards.filter(
-          (g) => g.village_key === randomVillage.village_key
+          (g) => g.village_id === randomVillage.village_id
         );
         const villageHouses = allHouses.filter(
-          (h) => h.village_key === randomVillage.village_key
+          (h) => h.village_id === randomVillage.village_id
         );
 
         if (
@@ -1461,7 +1627,6 @@ async function createVisitorRecordsData() {
             ];
           const randomStatus =
             recordStatuses[Math.floor(Math.random() * recordStatuses.length)];
-// admin_suk
           // Generate realistic timestamps
           const entryTime = generateRandomTimestamp();
 
@@ -1508,7 +1673,8 @@ async function createNotificationData() {
   }
 
   const notificationDataWithReferences: Array<{
-    village_key: string;
+    village_id: string;
+    village_key?: string | null;
     type: "resident_pending" | "guard_pending" | "admin_pending" | "house_updated" | "member_added" | "member_removed" | "status_changed" | "visitor_pending_too_long" | "visitor_rejected_review";
     category: string;
     title: string;
@@ -1544,6 +1710,7 @@ async function createNotificationData() {
       const createdTime = generateRandomTimestamp();
 
       notificationDataWithReferences.push({
+        village_id: village.village_id,
         village_key: village.village_key,
         type: randomNotification.type as "resident_pending" | "guard_pending" | "admin_pending" | "house_updated" | "member_added" | "member_removed" | "status_changed" | "visitor_pending_too_long" | "visitor_rejected_review",
         category: randomNotification.category as "user_approval" | "house_management" | "visitor_management",
@@ -1598,16 +1765,65 @@ async function seed() {
     console.log("Completed inserting villages (with conflict handling)");
   }
 
+  const insertedVillages = await db
+    .select({ village_id: villages.village_id, village_key: villages.village_key })
+    .from(villages);
+  const villageKeyToId = new Map(
+    insertedVillages.map((v) => [v.village_key, v.village_id])
+  );
+
   console.log("Inserting houses");
-  await db.insert(houses).values(houseData as any);
+  const housesWithIds: Array<Omit<typeof houseData[number], "village_key"> & { village_id: string }> = [];
+  for (const house of houseData) {
+    const villageId = house.village_key
+      ? villageKeyToId.get(house.village_key)
+      : undefined;
+    if (!villageId) {
+      console.warn(
+        `Skipping house ${house.address} - village key ${house.village_key} not found`
+      );
+      continue;
+    }
+    const { village_key, ...rest } = house;
+    housesWithIds.push({ ...rest, village_id: villageId });
+  }
+  await db.insert(houses).values(housesWithIds as any);
   console.log("Completed inserting houses");
 
   console.log("Inserting residents");
-  await db.insert(residents).values(residentData as any);
+  const residentsWithIds: Array<Omit<typeof residentData[number], "village_key"> & { village_id: string }> = [];
+  for (const resident of residentData) {
+    const villageId = resident.village_key
+      ? villageKeyToId.get(resident.village_key)
+      : undefined;
+    if (!villageId) {
+      console.warn(
+        `Skipping resident ${resident.email} - village key ${resident.village_key} not found`
+      );
+      continue;
+    }
+    const { village_key, ...rest } = resident;
+    residentsWithIds.push({ ...rest, village_id: villageId });
+  }
+  await db.insert(residents).values(residentsWithIds as any);
   console.log("Completed inserting residents");
 
   console.log("Inserting guards");
-  await db.insert(guards).values(guardData as any);
+  const guardsWithIds: Array<Omit<typeof guardData[number], "village_key"> & { village_id: string }> = [];
+  for (const guard of guardData) {
+    const villageId = guard.village_key
+      ? villageKeyToId.get(guard.village_key)
+      : undefined;
+    if (!villageId) {
+      console.warn(
+        `Skipping guard ${guard.email} - village key ${guard.village_key} not found`
+      );
+      continue;
+    }
+    const { village_key, ...rest } = guard;
+    guardsWithIds.push({ ...rest, village_id: villageId });
+  }
+  await db.insert(guards).values(guardsWithIds as any);
   console.log("Completed inserting guards");
 
   console.log("Inserting admins");
@@ -1639,6 +1855,15 @@ async function seed() {
     console.log("No house_members data to insert");
   }
 
+  console.log("Creating and inserting visitors");
+  const visitorsData = await createVisitorsData();
+  if (visitorsData.length > 0) {
+    await db.insert(visitors).values(visitorsData);
+    console.log("Completed inserting visitors");
+  } else {
+    console.log("No visitors data to insert");
+  }
+
   console.log("Creating and inserting visitor_records");
   const visitorRecordsData = await createVisitorRecordsData();
   if (visitorRecordsData.length > 0) {
@@ -1651,7 +1876,18 @@ async function seed() {
   console.log("Creating and inserting admin_notifications");
   const notificationDataWithReferences = await createNotificationData();
   if (notificationDataWithReferences.length > 0) {
-    await db.insert(admin_notifications).values(notificationDataWithReferences as any);
+    const formattedNotifications = notificationDataWithReferences.map(
+      ({ village_id, type, category, title, message, data, created_at }) => ({
+        village_id,
+        type,
+        category: category as any,
+        title,
+        message,
+        data,
+        created_at,
+      })
+    );
+    await db.insert(admin_notifications).values(formattedNotifications as any);
     console.log("Completed inserting admin_notifications");
   } else {
     console.log("No notification data to insert");

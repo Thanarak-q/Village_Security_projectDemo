@@ -191,7 +191,7 @@ export function useStatsData() {
       // Get selected village from sessionStorage (with SSR safety check)
       const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem('selectedVillage') : null;
       const url = selectedVillage 
-        ? `/api/statsCard?village_key=${encodeURIComponent(selectedVillage)}`
+        ? `/api/statsCard?village_id=${encodeURIComponent(selectedVillage)}`
         : '/api/statsCard';
         
       console.log('🔍 Fetching stats for village:', selectedVillage, 'URL:', url);

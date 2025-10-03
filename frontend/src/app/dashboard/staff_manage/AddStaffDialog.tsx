@@ -23,18 +23,18 @@ interface StaffMember {
   password_changed_at: string | null;
   created_at: string;
   updated_at: string;
-  village_key: string;
+  village_id: string;
   village_name: string;
 }
 
 interface AddStaffDialogProps {
-  villageKey: string;
+  villageId: string;
   villageName: string;
   onStaffAdded: (staff: StaffMember) => void;
   onRefresh: () => void;
 }
 
-export function AddStaffDialog({ villageKey, villageName, onStaffAdded, onRefresh }: AddStaffDialogProps) {
+export function AddStaffDialog({ villageId, villageName, onStaffAdded, onRefresh }: AddStaffDialogProps) {
   const [open, setOpen] = useState(false);
 
   const handleStaffAdded = (staff: StaffMember) => {
@@ -64,7 +64,7 @@ export function AddStaffDialog({ villageKey, villageName, onStaffAdded, onRefres
         </DialogHeader>
         <div className="mt-4">
           <AddStaffForm
-            villageKey={villageKey}
+            villageId={villageId}
             villageName={villageName}
             onStaffAdded={handleStaffAdded}
           />

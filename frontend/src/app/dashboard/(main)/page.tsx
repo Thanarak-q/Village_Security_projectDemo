@@ -14,9 +14,10 @@ import {
 const WeeklyAccessBarChart = lazy(() => import("./chart"));
 
 export default function Page() {
-  const [data, setData] = useState<unknown>(null);
+  const [data, setData] = useState<any>(null);
   const [selectedVillageName, setSelectedVillageName] = useState<string>("");
   const [selectedVillageKey, setSelectedVillageKey] = useState<string>("");
+  const [villageKey, setVillageKey] = useState<string>("");
   const [showVillageKey, setShowVillageKey] = useState<boolean>(false);
   const { data: statsData, loading: statsLoading, error: statsError } = useStatsData();
   const villageInfoRef = useRef<HTMLDivElement>(null);
@@ -42,36 +43,26 @@ export default function Page() {
         return res.json();
       })
       .then((json) => {
-        if (json) setData(json);
+        if (json) {
+          setData(json);
+          // Extract village information from user data
+          if (json.villages && json.villages.length > 0) {
+            const selectedVillageId = sessionStorage.getItem("selectedVillage");
+            if (selectedVillageId) {
+              const selectedVillage = json.villages.find((v: any) => v.village_id === selectedVillageId);
+              if (selectedVillage) {
+                setSelectedVillageName(selectedVillage.village_name);
+                setVillageKey(selectedVillage.village_key);
+                setSelectedVillageKey(selectedVillageId);
+              }
+            }
+          }
+        }
       })
       .catch((error) => {
         console.error("Error fetching auth data:", error);
       });
 
-    // Get selected village name and key
-    const villageKey = sessionStorage.getItem("selectedVillage");
-    if (villageKey) {
-      setSelectedVillageKey(villageKey);
-      fetch(`/api/villages/check/${villageKey}`, {
-        credentials: "include",
-      })
-        .then(async (res) => {
-          // Check if response is JSON
-          const contentType = res.headers.get("content-type");
-          if (!contentType || !contentType.includes("application/json")) {
-            throw new Error("Response is not JSON");
-          }
-          return res.json();
-        })
-        .then((villageData) => {
-          if (villageData && villageData.exists) {
-            setSelectedVillageName(villageData.village_name);
-          }
-        })
-        .catch((error) => {
-          console.error("Error fetching village name:", error);
-        });
-    }
   }, []);
 
   // GSAP smooth scroll-up animation - matching other sidebar pages
@@ -107,7 +98,7 @@ export default function Page() {
 
   // Animate village info changes when village selection changes
   useEffect(() => {
-    if (!villageInfoRef.current || !selectedVillageKey) return;
+    if (!villageInfoRef.current || !villageKey) return;
 
     // Smooth transition when village changes - matching other sidebar pages
     gsap.fromTo(villageInfoRef.current,
@@ -122,34 +113,28 @@ export default function Page() {
         ease: "power2.inOut"
       }
     );
-  }, [selectedVillageKey, selectedVillageName]);
+  }, [villageKey, selectedVillageName]);
 
   // Refetch data when selected village changes
   useEffect(() => {
     const handleVillageChange = () => {
       console.log('🔄 Dashboard: Village changed event received');
-      const villageKey = sessionStorage.getItem("selectedVillage");
-      console.log('🏘️ Dashboard: Selected village key:', villageKey);
+      const villageId = sessionStorage.getItem("selectedVillageId");
+      console.log('🏘️ Dashboard: Selected village id:', villageId);
 
-      if (villageKey) {
-        setSelectedVillageKey(villageKey);
-        fetch(`/api/villages/check/${villageKey}`, {
-          credentials: "include",
-        })
-          .then((res) => res.json())
-          .then((villageData) => {
-            if (villageData.exists) {
-              console.log('✅ Dashboard: Village name updated:', villageData.village_name);
-              setSelectedVillageName(villageData.village_name);
-            }
-          })
-          .catch((error) => {
-            console.error("Error fetching village name:", error);
-          });
+      if (villageId && data && data.villages) {
+        const selectedVillage = data.villages.find((v: any) => v.village_id === villageId);
+        if (selectedVillage) {
+          console.log('✅ Dashboard: Village updated:', selectedVillage.village_name);
+          setSelectedVillageName(selectedVillage.village_name);
+          setVillageKey(selectedVillage.village_key);
+          setSelectedVillageKey(villageId);
+        }
       } else {
         console.log('❌ Dashboard: No village selected');
         setSelectedVillageName("");
         setSelectedVillageKey("");
+        setVillageKey("");
       }
     };
 
@@ -176,7 +161,7 @@ export default function Page() {
         >
           <div className="space-y-1">
 
-            {selectedVillageKey && (
+            {villageKey && (
               <div
                 ref={villageInfoRef}
                 className="flex items-center gap-2"
@@ -186,7 +171,7 @@ export default function Page() {
                 </span>
                 <div className="flex items-center gap-2">
                   <span className="text-xs sm:text-sm md:text-base font-medium text-primary bg-primary/10 px-2 py-1 rounded-md font-mono select-all">
-                    {showVillageKey ? selectedVillageKey : '••••••••'}
+                    {showVillageKey ? villageKey : '••••••••'}
                   </span>
                   <button
                     onClick={() => setShowVillageKey(!showVillageKey)}

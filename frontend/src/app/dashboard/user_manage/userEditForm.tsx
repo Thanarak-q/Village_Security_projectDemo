@@ -125,11 +125,12 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
   const fetchAvailableHouses = async () => {
     try {
       setLoadingHouses(true);
-      const selectedVillage = sessionStorage.getItem("selectedVillage");
-      if (!selectedVillage) return;
+      // Use selectedVillageId instead of selectedVillage to avoid confusion
+      const selectedVillageId = sessionStorage.getItem("selectedVillageId");
+      if (!selectedVillageId) return;
 
       // Use the same endpoint as guard page but filter for available houses
-      const response = await fetch(`/api/houses?village_key=${encodeURIComponent(selectedVillage)}`, {
+      const response = await fetch(`/api/houses?village_id=${encodeURIComponent(selectedVillageId)}`, {
         credentials: "include",
       });
 

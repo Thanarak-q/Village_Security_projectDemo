@@ -6,7 +6,7 @@
  */
 
 import { unique } from "drizzle-orm/gel-core";
-import { pgTable, text, timestamp, uuid, date, index, boolean, json } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, date, index, boolean, json, integer } from "drizzle-orm/pg-core";
 // import { status } from "elysia"; // Not used in this file
 
 /**
@@ -16,6 +16,10 @@ export const villages = pgTable("villages", {
   village_id: uuid("village_id").primaryKey().defaultRandom(),
   village_name: text("village_name").notNull(),
   village_key: text("village_key").notNull().unique(),
+  status: text("status")
+    .$type<"active" | "disable">()
+    .default("active"),
+  disable_at: timestamp("disable_at"),
 });
 /**
  * Represents a selectable village record from the database.
@@ -37,10 +41,11 @@ export const houses = pgTable("houses", {
   status: text("status")
     .$type<"available" | "occupied" | "disable">()
     .default("available"),
-  village_key: text("village_key").references(() => villages.village_key),
+  village_id: uuid("village_id").references(() => villages.village_id),
+  disable_at: timestamp("disable_at"),
 }, (table) => [
   // Indexes for houses table
-  index("idx_houses_village_key").on(table.village_key),
+  index("idx_houses_village_id").on(table.village_id),
 ]);
 /**
  * Represents a selectable house record.
@@ -65,18 +70,19 @@ export const residents = pgTable("residents", {
   fname: text("fname").notNull(),
   lname: text("lname").notNull(),
   phone: text("phone").notNull(),
-  village_key: text("village_key").references(() => villages.village_key),
+  village_id: uuid("village_id").references(() => villages.village_id),
   status: text("status")
     .$type<"verified" | "pending" | "disable">()
     .default("pending"),
   move_in_date: date("move_in_date"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  disable_at: timestamp("disable_at"),
 }, (table) => [
   // Indexes for residents table
   index("idx_residents_status").on(table.status),
-  index("idx_residents_village_key").on(table.village_key),
-  index("idx_residents_status_village_key").on(table.status, table.village_key),
+  index("idx_residents_village_id").on(table.village_id),
+  index("idx_residents_status_village_id").on(table.status, table.village_id),
 ]);
 
 /**
@@ -102,18 +108,19 @@ export const guards = pgTable("guards", {
   fname: text("fname").notNull(),
   lname: text("lname").notNull(),
   phone: text("phone").notNull(),
-  village_key: text("village_key").references(() => villages.village_key),
+  village_id: uuid("village_id").references(() => villages.village_id),
   status: text("status")
     .$type<"verified" | "pending" | "disable">()
     .default("pending"),
   hired_date: date("hired_date"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  disable_at: timestamp("disable_at"),
 }, (table) => [
   // Indexes for guards table
   index("idx_guards_status").on(table.status),
-  index("idx_guards_village_key").on(table.village_key),
-  index("idx_guards_status_village_key").on(table.status, table.village_key),
+  index("idx_guards_village_id").on(table.village_id),
+  index("idx_guards_status_village_id").on(table.status, table.village_id),
 ]);
 
 /**
@@ -140,7 +147,7 @@ export const admins = pgTable("admins", {
   username: text("username").notNull().unique(),
   password_hash: text("password_hash").notNull(),
   phone: text("phone"),
-  village_key: text("village_key").references(() => villages.village_key),
+  village_id: uuid("village_id").references(() => villages.village_id),
   status: text("status")
     .$type<"verified" | "pending" | "disable">()
     .default("pending"),
@@ -151,6 +158,7 @@ export const admins = pgTable("admins", {
   password_changed_at: timestamp("password_changed_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  disable_at: timestamp("disable_at"),
 }, (table) => [
   // Indexes for admins table
   index("idx_admins_username").on(table.username),
@@ -174,13 +182,13 @@ export type AdminInsert = typeof admins.$inferInsert;
 export const admin_villages = pgTable("admin_villages", {
   admin_village_id: uuid("admin_village_id").primaryKey().defaultRandom(),
   admin_id: uuid("admin_id").references(() => admins.admin_id).notNull(),
-  village_key: text("village_key").references(() => villages.village_key).notNull(),
+  village_id: uuid("village_id").references(() => villages.village_id).notNull(),
   created_at: timestamp("created_at").defaultNow(),
 }, (table) => [
   // Indexes for admin_villages table
   index("idx_admin_villages_admin_id").on(table.admin_id),
-  index("idx_admin_villages_village_key").on(table.village_key),
-  index("idx_admin_villages_admin_village").on(table.admin_id, table.village_key),
+  index("idx_admin_villages_village_id").on(table.village_id),
+  index("idx_admin_villages_admin_village_id").on(table.admin_id, table.village_id),
 ]);
 
 /**
@@ -223,12 +231,11 @@ export type House_memberInsert = typeof house_members.$inferInsert;
  */
 export const visitor_records = pgTable("visitor_records", {
   visitor_record_id: uuid("visitor_record_id").primaryKey().defaultRandom(),
+  visitor_id: uuid("visitor_id").references(() => visitors.visitor_id),
   resident_id: uuid("resident_id").references(() => residents.resident_id),
   guard_id: uuid("guard_id").references(() => guards.guard_id),
   house_id: uuid("house_id").references(() => houses.house_id),
   picture_key: text("picture_key"),
-  visitor_name: text("visitor_name"),
-  visitor_id_card: text("visitor_id_card"),
   license_plate: text("license_plate"),
   entry_time: timestamp("entry_time").defaultNow(),
   record_status: text("record_status")
@@ -243,6 +250,7 @@ export const visitor_records = pgTable("visitor_records", {
   index("idx_visitor_records_entry_time").on(table.entry_time),
   index("idx_visitor_records_created_at").on(table.createdAt),
   index("idx_visitor_records_status_created_at").on(table.record_status, table.createdAt),
+  index("idx_visitor_records_visitor_id").on(table.visitor_id),
   index("idx_visitor_records_resident_id").on(table.resident_id),
   index("idx_visitor_records_guard_id").on(table.guard_id),
   index("idx_visitor_records_house_id").on(table.house_id),
@@ -280,7 +288,7 @@ export type AdminActivityLogInsert = typeof admin_activity_logs.$inferInsert;
  */
 export const admin_notifications = pgTable("admin_notifications", {
   notification_id: uuid("notification_id").primaryKey().defaultRandom(),
-  village_key: text("village_key").references(() => villages.village_key).notNull(),
+  village_id: uuid("village_id").references(() => villages.village_id).notNull(),
   type: text("type")
     .$type<"resident_pending" | "guard_pending" | "admin_pending" | "house_updated" | "member_added" | "member_removed" | "status_changed" | "visitor_pending_too_long" | "visitor_rejected_review">()
     .notNull(),
@@ -293,7 +301,7 @@ export const admin_notifications = pgTable("admin_notifications", {
   created_at: timestamp("created_at").defaultNow(),
 }, (table) => [
   // Indexes for admin_notifications table
-  index("idx_admin_notifications_village_key").on(table.village_key),
+  index("idx_admin_notifications_village_id").on(table.village_id),
   index("idx_admin_notifications_created_at").on(table.created_at),
   index("idx_admin_notifications_type").on(table.type),
 ]);
@@ -310,6 +318,44 @@ export type AdminNotification = typeof admin_notifications.$inferSelect;
 export type AdminNotificationInsert = typeof admin_notifications.$inferInsert;
 
 /**
+ * Schema for the `visitors` table. Represents visitors who have visited the village.
+ * Tracks visitor information, risk status, and visit statistics.
+ */
+export const visitors = pgTable("visitors", {
+  visitor_id: uuid("visitor_id").primaryKey().defaultRandom(),
+  fname: text("fname").notNull(),
+  lname: text("lname").notNull(),
+  id_doc_type: text("id_doc_type").$type<"thai_id" | "passport" | "other">(),
+  id_number_hash: text("id_number_hash").unique(),
+  phone: text("phone"),
+  village_id: uuid("village_id").references(() => villages.village_id).notNull(),
+  risk_status: text("risk_status")
+    .$type<"clear" | "watchlist" | "banned">()
+    .default("clear")
+    .notNull(),
+  visit_count: integer("visit_count").default(0).notNull(),
+  last_visit_at: timestamp("last_visit_at"),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  // Indexes for visitors table
+  index("idx_visitor_id_number_hash").on(table.id_number_hash),
+  index("idx_visitor_last_visit_at").on(table.last_visit_at),
+  index("idx_visitor_village_id").on(table.village_id),
+]);
+
+/**
+ * Represents a selectable visitor record.
+ * @type {typeof visitors.$inferSelect}
+ */
+export type Visitor = typeof visitors.$inferSelect;
+/**
+ * Represents a new visitor for insertion.
+ * @type {typeof visitors.$inferInsert}
+ */
+export type VisitorInsert = typeof visitors.$inferInsert;
+
+/**
  * An object containing all table schemas, used to initialize Drizzle ORM.
  * @type {Object}
  */
@@ -321,6 +367,7 @@ export const schema = {
   guards,
   houses,
   house_members,
+  visitors,
   visitor_records,
   admin_activity_logs,
   admin_notifications,

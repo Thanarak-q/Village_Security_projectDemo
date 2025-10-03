@@ -1,6 +1,7 @@
 import db from "../db/drizzle";
-import { admin_activity_logs } from "../db/schema";
+import { admin_activity_logs, villages } from "../db/schema";
 import { AdminActivityLogInsert } from "../db/schema";
+import { eq } from "drizzle-orm";
 
 /**
  * Logs an admin activity to the database.
@@ -34,6 +35,24 @@ export async function logAdminActivity(
 /**
  * Logs house-related admin activities.
  */
+const resolveVillageKey = async (villageId?: string | null) => {
+  if (!villageId) {
+    return null;
+  }
+
+  try {
+    const [village] = await db
+      .select({ village_key: villages.village_key })
+      .from(villages)
+      .where(eq(villages.village_id, villageId));
+
+    return village?.village_key ?? null;
+  } catch (error) {
+    console.error("Error resolving village key:", error);
+    return null;
+  }
+};
+
 export const houseActivityLogger = {
   /**
    * Logs when a house is created.
@@ -41,11 +60,12 @@ export const houseActivityLogger = {
    * @param {string} houseAddress - The address of the created house.
    * @param {string} villageKey - The village key.
    */
-  async logHouseCreated(adminId: string, houseAddress: string, villageKey: string) {
+  async logHouseCreated(adminId: string, houseAddress: string, villageId?: string | null) {
+    const villageKey = await resolveVillageKey(villageId);
     return await logAdminActivity(
       adminId,
       "house_create",
-      `สร้างบ้านใหม่: ${houseAddress} ในหมู่บ้าน ${villageKey}`
+      `สร้างบ้านใหม่: ${houseAddress} ในหมู่บ้าน ${villageKey ?? villageId ?? "unknown"}`
     );
   },
 
@@ -96,11 +116,12 @@ export const houseActivityLogger = {
    * @param {string} houseAddress - The address of the deleted house.
    * @param {string} villageKey - The village key.
    */
-  async logHouseDeleted(adminId: string, houseAddress: string, villageKey: string) {
+  async logHouseDeleted(adminId: string, houseAddress: string, villageId?: string | null) {
+    const villageKey = await resolveVillageKey(villageId);
     return await logAdminActivity(
       adminId,
       "house_delete",
-      `ลบบ้าน: ${houseAddress} จากหมู่บ้าน ${villageKey}`
+      `ลบบ้าน: ${houseAddress} จากหมู่บ้าน ${villageKey ?? villageId ?? "unknown"}`
     );
   },
 

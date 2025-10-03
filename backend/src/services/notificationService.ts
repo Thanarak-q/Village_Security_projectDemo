@@ -10,7 +10,7 @@ import { websocketClient } from './websocketClient';
 import { flexMessageService, type VisitorNotificationData, type ApprovalNotificationData } from '../routes/(line)/flexMessage';
 
 export interface CreateNotificationData {
-  village_key: string;
+  village_id: string;
   type: 'resident_pending' | 'guard_pending' | 'admin_pending' | 'house_updated' | 'member_added' | 'member_removed' | 'status_changed' | 'visitor_pending_too_long' | 'visitor_rejected_review';
   category: 'user_approval' | 'house_management' | 'visitor_management';
   title: string;
@@ -45,7 +45,7 @@ class NotificationService {
       const [notification] = await db
         .insert(admin_notifications)
         .values({
-          village_key: data.village_key,
+          village_id: data.village_id,
           type: data.type,
           category: data.category,
           title: data.title,
@@ -59,10 +59,10 @@ class NotificationService {
       const [village] = await db
         .select({ village_name: villages.village_name })
         .from(villages)
-        .where(eq(villages.village_key, data.village_key));
+        .where(eq(villages.village_id, data.village_id));
 
 
-      console.log(`📢 Created notification: ${notification.title} for village ${data.village_key}`);
+      console.log(`📢 Created notification: ${notification.title} for village ${data.village_id}`);
 
       // Send via WebSocket to admins
       try {
@@ -72,7 +72,7 @@ class NotificationService {
         body: notification.message,
         level: this.getNotificationLevel(data.type),
         createdAt: notification.created_at ? notification.created_at.getTime() : Date.now(),
-        villageKey: notification.village_key,
+        villageId: notification.village_id,
         type: notification.type,
         category: notification.category,
         data: notification.data
@@ -99,10 +99,10 @@ class NotificationService {
     resident_id: string;
     fname: string;
     lname: string;
-    village_key: string;
+    village_id: string;
   }) {
     return this.createNotification({
-      village_key: residentData.village_key,
+      village_id: residentData.village_id,
       type: 'resident_pending',
       category: 'user_approval',
       title: 'ผู้อยู่อาศัยใหม่รอการอนุมัติ',
@@ -122,10 +122,10 @@ class NotificationService {
     guard_id: string;
     fname: string;
     lname: string;
-    village_key: string;
+    village_id: string;
   }) {
     return this.createNotification({
-      village_key: guardData.village_key,
+      village_id: guardData.village_id,
       type: 'guard_pending',
       category: 'user_approval',
       title: 'ยามรักษาความปลอดภัยใหม่รอการอนุมัติ',
@@ -146,12 +146,12 @@ class NotificationService {
     user_type: 'resident' | 'guard';
     fname: string;
     lname: string;
-    village_key: string;
+    village_id: string;
   }) {
     const userTypeText = userData.user_type === 'resident' ? 'ผู้อยู่อาศัย' : 'ยามรักษาความปลอดภัย';
     
     return this.createNotification({
-      village_key: userData.village_key,
+      village_id: userData.village_id,
       type: userData.user_type === 'resident' ? 'member_added' : 'status_changed',
       category: userData.user_type === 'resident' ? 'house_management' : 'user_approval',
       title: `${userTypeText}ได้รับการอนุมัติ`,
@@ -173,10 +173,21 @@ class NotificationService {
     address: string;
     old_status: string;
     new_status: string;
-    village_key: string;
+    village_id?: string;
+    village_key?: string | null;
   }) {
+    let villageKey = houseData.village_key ?? null;
+
+    if ((!villageKey || !villageKey.trim()) && houseData.village_id) {
+      const [village] = await db
+        .select({ village_key: villages.village_key })
+        .from(villages)
+        .where(eq(villages.village_id, houseData.village_id));
+      villageKey = village?.village_key ?? null;
+    }
+
     return this.createNotification({
-      village_key: houseData.village_key,
+      village_key: villageKey ?? houseData.village_id ?? "",
       type: 'house_updated',
       category: 'house_management',
       title: 'สถานะบ้านเปลี่ยนแปลง',
@@ -198,10 +209,10 @@ class NotificationService {
     visitor_record_id: string;
     visitor_name: string;
     wait_time: string;
-    village_key: string;
+    village_id: string;
   }) {
     return this.createNotification({
-      village_key: visitorData.village_key,
+      village_id: visitorData.village_id,
       type: 'visitor_pending_too_long',
       category: 'visitor_management',
       title: 'ผู้เยี่ยมรอการอนุมัตินานเกินไป',
@@ -222,10 +233,10 @@ class NotificationService {
     visitor_record_id: string;
     visitor_name: string;
     reason: string;
-    village_key: string;
+    village_id: string;
   }) {
     return this.createNotification({
-      village_key: visitorData.village_key,
+      village_id: visitorData.village_id,
       type: 'visitor_rejected_review',
       category: 'visitor_management',
       title: 'ผู้เยี่ยมถูกปฏิเสธ',
@@ -247,10 +258,10 @@ class NotificationService {
     resident_id: string;
     resident_name: string;
     house_address: string;
-    village_key: string;
+    village_id: string;
   }) {
     return this.createNotification({
-      village_key: memberData.village_key,
+      village_id: memberData.village_id,
       type: 'member_added',
       category: 'house_management',
       title: 'เพิ่มลูกบ้านใหม่',
@@ -273,10 +284,10 @@ class NotificationService {
     resident_id: string;
     resident_name: string;
     house_address: string;
-    village_key: string;
+    village_id: string;
   }) {
     return this.createNotification({
-      village_key: memberData.village_key,
+      village_id: memberData.village_id,
       type: 'member_removed',
       category: 'house_management',
       title: 'ลบลูกบ้าน',
@@ -300,10 +311,10 @@ class NotificationService {
     house_address: string;
     old_status: string;
     new_status: string;
-    village_key: string;
+    village_id: string;
   }) {
     return this.createNotification({
-      village_key: residentData.village_key,
+      village_id: residentData.village_id,
       type: 'status_changed',
       category: 'house_management',
       title: 'เปลี่ยนสถานะลูกบ้าน',
@@ -382,7 +393,7 @@ class NotificationService {
   }) {
     try {
       const visitorData: VisitorNotificationData = {
-        visitorName: data.visitorIdCard, // Using ID card as visitor name for now
+        visitorName: data.visitorIdCard, // Using ID card as visitor name for now - this should be updated to use visitor name from visitors table
         visitorPhone: 'ไม่ระบุ',
         houseNumber: data.houseAddress,
         residentName: data.residentName,

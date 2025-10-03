@@ -125,6 +125,7 @@ export interface VisitorNotificationData {
   villageName: string;
   visitorId: string;
   licensePlate?: string;
+  imageUrl?: string;
 }
 
 // Approval notification data interface

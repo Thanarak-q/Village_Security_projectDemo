@@ -12,7 +12,7 @@
 
 // apps/api/src/routes/auth.ts
 import { Elysia, t } from "elysia";
-import { admins, villages, guards, residents } from "../db/schema";
+import { admins, villages, guards, residents, admin_villages } from "../db/schema";
 import db from "../db/drizzle";
 import { eq, inArray } from "drizzle-orm";
 import { verifyPassword } from "../utils/passwordUtils";
@@ -76,10 +76,17 @@ const requireLiffAuth = async (context: any) => {
     return { error: "Forbidden: The user account is disabled." };
   }
 
+  // Get village_ids for LIFF users (guards and residents only)
+  // Note: Admin users use regular authentication, not LIFF
+  let villageIds: string[] = [];
+  if ('village_id' in user && user.village_id) {
+    villageIds = [user.village_id];
+  }
+
   // Add user to context
   context.currentUser = {
     ...user,
-    village_keys: user.village_key ? [user.village_key] : [],
+    village_ids: villageIds,
   };
 };
 
@@ -205,22 +212,24 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
    */
   .get("/me", async ({ currentUser }: any) => {
     // Get village information for all assigned villages
-    let villages_info: Array<{ village_key: string; village_name: string }> = [];
+    let villages_info: Array<{ village_id: string; village_key: string | null; village_name: string }> = [];
     let village_name: string | null = null;
-    
-    if (currentUser.village_keys && currentUser.village_keys.length > 0) {
+
+    const villageIds: string[] = currentUser.village_ids || [];
+
+    if (villageIds.length > 0) {
       villages_info = await db
-        .select({ 
+        .select({
+          village_id: villages.village_id,
           village_key: villages.village_key,
-          village_name: villages.village_name 
+          village_name: villages.village_name,
         })
         .from(villages)
-        .where(inArray(villages.village_key, currentUser.village_keys));
-      
-      // For staff users, get their assigned village name
-      if (currentUser.role === "staff" && villages_info.length > 0) {
-        village_name = villages_info[0].village_name;
-      }
+        .where(inArray(villages.village_id, villageIds));
+    }
+
+    if (currentUser.role === "staff" && villages_info.length > 0) {
+      village_name = villages_info[0].village_name;
     }
 
     // Base user data
@@ -231,7 +240,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       fname: currentUser.fname,
       lname: currentUser.lname,
       role: currentUser.role,
-      village_keys: currentUser.village_keys || [],
+      village_ids: villageIds.length ? villageIds : villages_info.map((v) => v.village_id),
       villages: villages_info,
       village_name: village_name,
     };
@@ -268,21 +277,24 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
     const { currentUser } = context;
     
     // Get village information for all assigned villages
-    let villages_info: Array<{ village_key: string; village_name: string }> = [];
+    let villages_info: Array<{ village_id: string; village_key: string | null; village_name: string }> = [];
     let village_name: string | null = null;
-    
-    if (currentUser.village_keys && currentUser.village_keys.length > 0) {
+
+    const villageIds: string[] = currentUser.village_ids || [];
+
+    if (villageIds.length > 0) {
       villages_info = await db
-        .select({ 
+        .select({
+          village_id: villages.village_id,
           village_key: villages.village_key,
-          village_name: villages.village_name 
+          village_name: villages.village_name,
         })
         .from(villages)
-        .where(inArray(villages.village_key, currentUser.village_keys));
-      
-      if (villages_info.length > 0) {
-        village_name = villages_info[0].village_name;
-      }
+        .where(inArray(villages.village_id, villageIds));
+    }
+
+    if (villages_info.length > 0) {
+      village_name = villages_info[0].village_name;
     }
 
     // Base user data
@@ -293,7 +305,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       fname: currentUser.fname,
       lname: currentUser.lname,
       role: currentUser.role,
-      village_keys: currentUser.village_keys || [],
+      village_ids: villageIds.length ? villageIds : villages_info.map((v) => v.village_id),
       villages: villages_info,
       village_name: village_name,
     };

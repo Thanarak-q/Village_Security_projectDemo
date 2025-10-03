@@ -23,7 +23,7 @@ const GuardProfilePage = () => {
       if (user) {
         setCurrentUser(user);
         // You can add village name fetching logic here if needed
-        // For now, we'll use the village_key directly
+        // For now, we'll use the village_id directly
       }
       setLoading(false);
     };
@@ -136,7 +136,7 @@ const GuardProfilePage = () => {
                 <MapPin className="w-5 h-5 text-muted-foreground" />
                 <div>
                   <p className="text-sm text-muted-foreground">หมู่บ้าน</p>
-                  <p className="text-foreground">{villageName || currentUser.village_key}</p>
+                  <p className="text-foreground">{villageName || currentUser.village_id}</p>
                 </div>
               </div>
 

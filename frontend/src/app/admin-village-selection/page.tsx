@@ -10,7 +10,7 @@ import { Building2, Home, Users, Shield, LogOut } from "lucide-react";
 import { gsap } from "gsap";
 
 interface Village {
-  village_key: string;
+  village_id: string;
   village_name: string;
 }
 
@@ -19,7 +19,7 @@ interface AdminUser {
   username: string;
   email: string;
   role: string;
-  village_key?: string;
+  village_id?: string;
 }
 
 const VillageSelectionPage = () => {
@@ -27,7 +27,7 @@ const VillageSelectionPage = () => {
   const [villages, setVillages] = useState<Village[]>([]);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedVillage, setSelectedVillage] = useState<string | null>(null);
+  const [selectedVillageId, setSelectedVillageId] = useState<string | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
 
   // Animation refs
@@ -40,6 +40,8 @@ const VillageSelectionPage = () => {
   useEffect(() => {
     // Clear any existing selected village when entering village selection
     sessionStorage.removeItem("selectedVillage");
+    sessionStorage.removeItem("selectedVillageId");
+    sessionStorage.removeItem("selectedVillageName");
     
     // Check authentication and get admin data
     const checkAuth = async () => {
@@ -131,22 +133,27 @@ const VillageSelectionPage = () => {
     }
   }, [loading, villages.length]);
 
-  const handleVillageSelect = async (villageKey: string) => {
+  const handleVillageSelect = async (village: Village) => {
     if (isSelecting) return;
     
     setIsSelecting(true);
-    setSelectedVillage(villageKey);
+    setSelectedVillageId(village.village_id);
 
     // Store selected village in sessionStorage for dashboard access
-    sessionStorage.setItem("selectedVillage", villageKey);
+    sessionStorage.setItem("selectedVillage", village.village_id); // legacy key
+    sessionStorage.setItem("selectedVillageId", village.village_id);
+    sessionStorage.setItem("selectedVillageName", village.village_name);
 
     // Dispatch custom event to notify other components
-    window.dispatchEvent(new CustomEvent('villageChanged', { 
-      detail: { villageKey } 
+    window.dispatchEvent(new CustomEvent('villageChanged', {
+      detail: {
+        villageId: village.village_id,
+        villageName: village.village_name,
+      }
     }));
 
     // Animation for selection
-    const selectedCard = document.querySelector(`[data-village-key="${villageKey}"]`);
+    const selectedCard = document.querySelector(`[data-village-id="${village.village_id}"]`);
     if (selectedCard) {
       gsap.to(selectedCard, {
         scale: 0.95,
@@ -299,12 +306,12 @@ const VillageSelectionPage = () => {
             }`}>
               {villages.map((village, index) => (
                 <Card
-                  key={village.village_key}
-                  data-village-key={village.village_key}
+                  key={village.village_id}
+                  data-village-id={village.village_id}
                   className={`group cursor-pointer bg-card border-border hover:bg-accent hover:border-accent-foreground/20 transition-all duration-300 transform hover:scale-105 hover:shadow-lg ${
                     villages.length === 1 ? "scale-105" : ""
                   }`}
-                  onClick={() => handleVillageSelect(village.village_key)}
+                  onClick={() => handleVillageSelect(village)}
                 >
                   <CardContent className={`text-center ${
                     villages.length === 1 ? "p-10" : "p-8"
@@ -324,7 +331,7 @@ const VillageSelectionPage = () => {
                     <p className="text-muted-foreground text-sm">
                       คลิกเพื่อจัดการหมู่บ้านนี้
                     </p>
-                    {selectedVillage === village.village_key && isSelecting && (
+                    {selectedVillageId === village.village_id && isSelecting && (
                       <div className="mt-4">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
                       </div>

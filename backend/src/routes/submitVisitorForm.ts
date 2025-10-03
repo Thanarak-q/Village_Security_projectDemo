@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import db from "../db/drizzle";
-import { visitor_records, guards, houses, house_members, villages } from "../db/schema";
-import { eq } from "drizzle-orm";
+import { visitor_records, guards, houses, house_members, villages, visitors } from "../db/schema";
+import { eq, and } from "drizzle-orm";
 import { saveBase64Image, getImageExtension } from "../utils/imageUtils";
 import { requireLiffAuth } from "../hooks/requireLiffAuth";
 
@@ -18,6 +18,7 @@ const approvalForm = new Elysia({ prefix: "/api" })
       idCardImage?: string;
       licensePlate?: string;
       visitPurpose?: string;
+      guardId?: string;
     };
 
     const {
@@ -27,10 +28,11 @@ const approvalForm = new Elysia({ prefix: "/api" })
       idCardImage,
       licensePlate,
       visitPurpose,
+      guardId: payloadGuardId,
     } = (body || {}) as ApprovalFormBody;
 
-    // Get guard ID from authenticated user
-    const guardId = currentUser.guard_id;
+    // Get guard ID from payload or authenticated user
+    const guardId = payloadGuardId || currentUser.guard_id || currentUser.id;
 
     const errors: string[] = [];
 
@@ -106,7 +108,7 @@ const approvalForm = new Elysia({ prefix: "/api" })
       const rows = await db
         .select({ address: houses.address, village_name: villages.village_name })
         .from(houses)
-        .innerJoin(villages, eq(houses.village_key, villages.village_key))
+        .innerJoin(villages, eq(houses.village_id, villages.village_id))
         .where(eq(houses.house_id, houseId));
       if (rows && rows[0]?.address) houseAddressForPath = rows[0].address;
       if (rows && rows[0]?.village_name) villageNameForPath = rows[0].village_name;
@@ -188,11 +190,60 @@ const approvalForm = new Elysia({ prefix: "/api" })
         // Use the first resident found as the primary resident for this visitor record
         const primaryResidentId = residents.length > 0 ? residents[0].resident_id : null;
 
+        // Find or create visitor record
+        let visitorId: string | null = null;
+        try {
+          // Get village_id from house
+          const houseWithVillage = await tx
+            .select({ village_id: houses.village_id })
+            .from(houses)
+            .where(eq(houses.house_id, houseId))
+            .limit(1);
+
+          if (houseWithVillage.length > 0 && houseWithVillage[0].village_id) {
+            const villageId = houseWithVillage[0].village_id;
+            
+            // Try to find existing visitor by ID card hash
+            const existingVisitor = await tx.query.visitors.findFirst({
+              where: and(
+                eq(visitors.id_number_hash, visitorIDCard), // Assuming visitorIDCard is already hashed
+                eq(visitors.village_id, villageId)
+              )
+            });
+
+            if (existingVisitor) {
+              visitorId = existingVisitor.visitor_id;
+              console.log(`✅ Found existing visitor: ${existingVisitor.fname} ${existingVisitor.lname}`);
+            } else {
+              // Create new visitor record
+              const [newVisitor] = await tx
+                .insert(visitors)
+                .values({
+                  fname: "ไม่ระบุ", // We don't have visitor name in the form
+                  lname: "ไม่ระบุ",
+                  id_number_hash: visitorIDCard,
+                  village_id: villageId,
+                  risk_status: "clear",
+                  visit_count: 0,
+                  created_at: new Date(),
+                  updated_at: new Date(),
+                })
+                .returning();
+              
+              visitorId = newVisitor.visitor_id;
+              console.log(`✅ Created new visitor: ${newVisitor.visitor_id}`);
+            }
+          }
+        } catch (visitorError) {
+          console.error("Error handling visitor:", visitorError);
+          // Continue without visitor_id if there's an error
+        }
+
         console.log("🚀 Inserting visitor record:", {
+          visitor_id: visitorId,
           resident_id: primaryResidentId,
           guard_id: guardId,
           house_id: houseId,
-          visitor_id_card: visitorIDCard,
           picture_key: savedImageFilename,
           license_plate: licensePlate,
           visit_purpose: visitPurpose,
@@ -201,10 +252,10 @@ const approvalForm = new Elysia({ prefix: "/api" })
         const [inserted] = await tx
           .insert(visitor_records)
           .values({
+            visitor_id: visitorId,
             resident_id: primaryResidentId,
             guard_id: guardId,
             house_id: houseId,
-            visitor_id_card: visitorIDCard,
             picture_key: savedImageFilename,
             license_plate: licensePlate,
             visit_purpose: visitPurpose,
@@ -225,7 +276,7 @@ const approvalForm = new Elysia({ prefix: "/api" })
         
         // Get village name for the flex message
         const villageInfo = await db.query.villages.findFirst({
-          where: eq(villages.village_key, house.village_key || '')
+          where: eq(villages.village_id, house.village_id || '')
         });
         
         const villageName = villageInfo?.village_name || 'หมู่บ้าน';

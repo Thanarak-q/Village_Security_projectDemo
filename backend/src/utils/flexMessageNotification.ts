@@ -45,7 +45,7 @@ export async function sendVisitorApprovalToHouseResidents(
         village_name: villages.village_name,
       })
       .from(houses)
-      .innerJoin(villages, eq(houses.village_key, villages.village_key))
+      .innerJoin(villages, eq(houses.village_id, villages.village_id))
       .where(eq(houses.house_id, houseId))
       .limit(1);
 
@@ -153,7 +153,7 @@ export async function sendVisitorApprovalToResident(
         village_name: villages.village_name,
       })
       .from(houses)
-      .innerJoin(villages, eq(houses.village_key, villages.village_key))
+      .innerJoin(villages, eq(houses.village_id, villages.village_id))
       .where(eq(houses.house_id, residentData.house_id))
       .limit(1);
 

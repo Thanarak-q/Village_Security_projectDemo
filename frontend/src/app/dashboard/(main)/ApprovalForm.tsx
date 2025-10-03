@@ -46,7 +46,7 @@ interface AvailableHouse {
   house_id: string;
   address: string;
   status: string;
-  village_key: string;
+  village_id: string;
 }
 
 // Zod validation schema
@@ -115,16 +115,15 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
       const selectedVillage = sessionStorage.getItem("selectedVillage");
       if (!selectedVillage) return;
 
-      const response = await fetch(`/api/houses?village_key=${encodeURIComponent(selectedVillage)}`, {
+      const response = await fetch(`/api/houses/available?village_id=${encodeURIComponent(selectedVillage)}`, {
         credentials: "include",
       });
 
       if (response.ok) {
         const result = await response.json();
         if (result.success) {
-          // Filter for available houses on the client side
-          const availableOnly = result.data.filter((house: AvailableHouse) => house.status === 'available');
-          setAvailableHouses(availableOnly);
+          // Backend already filters for available houses
+          setAvailableHouses(result.data);
         }
       }
     } catch (error) {

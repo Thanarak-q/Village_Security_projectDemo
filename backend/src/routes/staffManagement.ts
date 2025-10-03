@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
 import db from "../db/drizzle";
 import { admins, villages, admin_villages } from "../db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, isNull } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { hashPassword } from "../utils/passwordUtils";
 import { randomBytes } from "crypto";
@@ -9,7 +9,7 @@ import { randomBytes } from "crypto";
 // Type definitions
 interface AddStaffBody {
   username: string;
-  village_key: string;
+  village_id: string;
 }
 
 
@@ -30,10 +30,10 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
    */
   .post("/add-staff", async ({ body, set, currentUser }: { body: AddStaffBody; set: any; currentUser: any }) => {
     try {
-      const { username, village_key } = body;
+      const { username, village_id } = body;
 
       // Validate required fields
-      if (!username || !village_key) {
+      if (!username || !village_id) {
         set.status = 400;
         return { 
           success: false, 
@@ -48,7 +48,7 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
       const village = await db
         .select()
         .from(villages)
-        .where(eq(villages.village_key, village_key))
+        .where(eq(villages.village_id, village_id))
         .limit(1);
 
       if (village.length === 0) {
@@ -78,41 +78,45 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
       const password = randomBytes(4).toString('hex'); // 8 characters
       const hashedPassword = await hashPassword(password);
 
-      // Create new staff admin
-      const newStaff = await db
-        .insert(admins)
-        .values({
-          username: prefixedUsername,
-          email: null, // No email required
-          phone: null, // No phone required
-          password_hash: hashedPassword,
-          role: "staff",
-          status: "verified",
-          village_key,
-        })
-        .returning();
+      // Use database transaction to ensure data consistency
+      const result = await db.transaction(async (tx) => {
+        // Create new staff admin
+        const newStaff = await tx
+          .insert(admins)
+          .values({
+            username: prefixedUsername,
+            email: null, // No email required
+            phone: null, // No phone required
+            password_hash: hashedPassword,
+            role: "staff",
+            status: "verified",
+          })
+          .returning();
 
-      // Create admin_village relationship
-      await db
-        .insert(admin_villages)
-        .values({
-          admin_id: newStaff[0].admin_id,
-          village_key,
-        });
+        // Create admin_village relationship
+        await tx
+          .insert(admin_villages)
+          .values({
+            admin_id: newStaff[0].admin_id,
+            village_id: village_id,
+          });
+
+        return newStaff[0];
+      });
 
       return {
         success: true,
         message: "เพิ่มนิติบุคคลสำเร็จ",
         data: {
-          admin_id: newStaff[0].admin_id,
+          admin_id: result.admin_id,
           username: prefixedUsername,
           original_username: username, // Keep original for reference
           password,
-          village_key,
+          village_id: village_id,
           village_name: village[0].village_name,
           role: "staff",
           status: "verified",
-          created_at: newStaff[0].createdAt
+          created_at: result.createdAt
         }
       };
     } catch (error) {
@@ -133,20 +137,20 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
    */
   .get("/staff", async ({ query, set, currentUser, request }: { query: any; set: any; currentUser: any; request: any }) => {
     try {
-      // Extract village_key from query parameters
-      let village_key = query?.village_key;
+      // Extract village_id from query parameters
+      let village_id = query?.village_id;
       
       // Fallback: if query parsing fails, try to extract from URL
-      if (!village_key && request?.url) {
+      if (!village_id && request?.url) {
         const url = new URL(request.url);
-        village_key = url.searchParams.get('village_key');
+        village_id = url.searchParams.get('village_id');
       }
 
-      if (!village_key || typeof village_key !== 'string') {
+      if (!village_id || typeof village_id !== 'string') {
         set.status = 400;
         return { 
           success: false, 
-          error: "กรุณาระบุ village_key" 
+          error: "กรุณาระบุ village_id" 
         };
       }
 
@@ -154,7 +158,7 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
       const village = await db
         .select()
         .from(villages)
-        .where(eq(villages.village_key, village_key))
+        .where(eq(villages.village_id, village_id))
         .limit(1);
 
       if (village.length === 0) {
@@ -176,15 +180,17 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
           password_changed_at: admins.password_changed_at,
           created_at: admins.createdAt,
           updated_at: admins.updatedAt,
-          village_key: admins.village_key,
+          village_id: villages.village_id,
           village_name: villages.village_name,
         })
         .from(admins)
-        .innerJoin(villages, eq(admins.village_key, villages.village_key))
+        .innerJoin(admin_villages, eq(admins.admin_id, admin_villages.admin_id))
+        .innerJoin(villages, eq(admin_villages.village_id, villages.village_id))
         .where(
           and(
-            eq(admins.village_key, village_key),
-            eq(admins.role, "staff")
+            eq(admin_villages.village_id, village_id),
+            eq(admins.role, "staff"),
+            isNull(admins.disable_at)
           )
         )
         .orderBy(desc(admins.createdAt));
@@ -221,11 +227,12 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
           role: admins.role,
           created_at: admins.createdAt,
           updated_at: admins.updatedAt,
-          village_key: admins.village_key,
+          village_id: villages.village_id,
           village_name: villages.village_name,
         })
         .from(admins)
-        .innerJoin(villages, eq(admins.village_key, villages.village_key))
+        .innerJoin(admin_villages, eq(admins.admin_id, admin_villages.admin_id))
+        .innerJoin(villages, eq(admin_villages.village_id, villages.village_id))
         .where(
           and(
             eq(admins.admin_id, id),
@@ -292,9 +299,13 @@ export const staffManagementRoutes = new Elysia({ prefix: "/api/staff" })
         .delete(admin_villages)
         .where(eq(admin_villages.admin_id, id));
 
-      // Delete staff member
+      // Soft delete staff member
       await db
-        .delete(admins)
+        .update(admins)
+        .set({ 
+          disable_at: new Date(),
+          status: "disable"
+        })
         .where(eq(admins.admin_id, id));
 
       return {

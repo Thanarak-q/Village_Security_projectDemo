@@ -24,22 +24,29 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
       const { page = 1, limit = 20, type, category } = query;
       const offset = (Number(page) - 1) * Number(limit);
 
-      // Get the admin's village_key from admin_villages table
-      const adminVillage = await db.query.admin_villages.findFirst({
-        where: eq(admin_villages.admin_id, currentUser.admin_id)
-      });
+      // Get the admin's village_id from admin_villages table
+      const adminVillages = await db
+        .select({
+          village_id: admin_villages.village_id,
+        })
+        .from(admin_villages)
+        .where(eq(admin_villages.admin_id, currentUser.admin_id));
 
-      const villageKey = adminVillage?.village_key || currentUser.village_key;
-      
-      if (!villageKey) {
+      if (adminVillages.length === 0) {
         return {
           success: false,
           error: 'Admin not associated with any village'
         };
       }
 
-      // Build where conditions - get notifications for the admin's village
-      const whereConditions = [eq(admin_notifications.village_key, villageKey)];
+      // Get all village_ids for this admin
+      const villageIds = adminVillages.map(av => av.village_id);
+
+      // Build where conditions - get notifications for the admin's villages
+      const whereConditions = [eq(admin_notifications.village_id, villageIds[0])];
+      
+      // If admin has multiple villages, we need to handle this differently
+      // For now, we'll use the first village_id, but this should be updated to handle multiple villages
       
       if (type) {
         whereConditions.push(eq(admin_notifications.type, type as any));
@@ -61,7 +68,7 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
           village_name: villages.village_name,
         })
         .from(admin_notifications)
-        .leftJoin(villages, eq(admin_notifications.village_key, villages.village_key))
+        .leftJoin(villages, eq(admin_notifications.village_id, villages.village_id))
         .where(and(...whereConditions))
         .orderBy(desc(admin_notifications.created_at))
         .limit(Number(limit))
@@ -115,25 +122,29 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
     try {
       const { currentUser } = context;
 
-      // Get the admin's village_key from admin_villages table
-      const adminVillage = await db.query.admin_villages.findFirst({
-        where: eq(admin_villages.admin_id, currentUser.admin_id)
-      });
+      // Get the admin's village_id from admin_villages table
+      const adminVillages = await db
+        .select({
+          village_id: admin_villages.village_id,
+        })
+        .from(admin_villages)
+        .where(eq(admin_villages.admin_id, currentUser.admin_id));
 
-      const villageKey = adminVillage?.village_key || currentUser.village_key;
-      
-      if (!villageKey) {
+      if (adminVillages.length === 0) {
         return {
           success: false,
           error: 'Admin not associated with any village'
         };
       }
 
+      // Get all village_ids for this admin
+      const villageIds = adminVillages.map(av => av.village_id);
+
       // Get total and unread counts
       const [totalResult] = await Promise.all([
         db.select({ count: count() })
           .from(admin_notifications)
-          .where(eq(admin_notifications.village_key, villageKey))
+          .where(eq(admin_notifications.village_id, villageIds[0]))
       ]);
 
       return {
@@ -195,8 +206,25 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
       // Create random test notification
       const randomNotification = testNotifications[Math.floor(Math.random() * testNotifications.length)];
 
+      // Get admin's village_id
+      const adminVillages = await db
+        .select({
+          village_id: admin_villages.village_id,
+        })
+        .from(admin_villages)
+        .where(eq(admin_villages.admin_id, currentUser.admin_id));
+
+      const villageId = adminVillages.length > 0 ? adminVillages[0].village_id : null;
+      
+      if (!villageId) {
+        return {
+          success: false,
+          error: 'Admin not associated with any village'
+        };
+      }
+
       const notification = await notificationService.createNotification({
-        village_key: currentUser.village_key || 'test-village',
+        village_id: villageId,
         ...randomNotification,
         data: {
           test: true,
@@ -246,8 +274,25 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
         message: 'การทดสอบระบบแจ้งเตือนผ่าน webhook - ตรวจสอบการทำงานของระบบ',
       };
 
+      // Get admin's village_id
+      const adminVillages = await db
+        .select({
+          village_id: admin_villages.village_id,
+        })
+        .from(admin_villages)
+        .where(eq(admin_villages.admin_id, currentUser.admin_id));
+
+      const villageId = adminVillages.length > 0 ? adminVillages[0].village_id : null;
+      
+      if (!villageId) {
+        return {
+          success: false,
+          error: 'Admin not associated with any village'
+        };
+      }
+
       const notification = await notificationService.createNotification({
-        village_key: currentUser.village_key || 'test-village',
+        village_id: villageId,
         ...webhookTestNotification,
         data: {
           test: true,
@@ -288,22 +333,29 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
         };
       }
 
-      // Get the admin's village_key from admin_villages table
-      const adminVillage = await db.query.admin_villages.findFirst({
-        where: eq(admin_villages.admin_id, currentUser.admin_id)
-      });
+      // Get the admin's village_id from admin_villages table
+      const adminVillages = await db
+        .select({
+          village_id: admin_villages.village_id,
+        })
+        .from(admin_villages)
+        .where(eq(admin_villages.admin_id, currentUser.admin_id));
 
-      console.log('🔍 Admin village found:', adminVillage);
+      if (adminVillages.length === 0) {
+        return {
+          success: false,
+          error: 'Admin not associated with any village'
+        };
+      }
 
-      // Use admin's village_key or default to 'pha-suk-village-001' for testing
-      const villageKey = adminVillage?.village_key || 'pha-suk-village-001';
-      console.log('🏘️ Using village_key:', villageKey);
+      const villageId = adminVillages[0].village_id;
+      console.log('🏘️ Using village_id:', villageId);
 
       // Create notification in database
       const [newNotification] = await db
         .insert(admin_notifications)
         .values({
-          village_key: villageKey,
+          village_id: villageId,
           title,
           message: message || '',
           type: type as any,
@@ -319,7 +371,7 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
         body: newNotification.message,
         level: level || 'info',
         createdAt: newNotification.created_at ? newNotification.created_at.getTime() : Date.now(),
-        villageKey: villageKey
+        villageId: villageId
       };
 
       let wsSent = false;

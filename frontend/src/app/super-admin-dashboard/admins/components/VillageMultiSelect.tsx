@@ -26,32 +26,31 @@ import { Building, Plus, X } from "lucide-react";
 interface Village {
   village_id: string;
   village_name: string;
-  village_key: string;
 }
 
 interface VillageMultiSelectProps {
   villages: Village[];
-  selectedVillageKeys: string[];
-  onSelectionChange: (villageKeys: string[]) => void;
+  selectedVillageIds: string[];
+  onSelectionChange: (villageIds: string[]) => void;
   role: "admin" | "staff";
   disabled?: boolean;
 }
 
 export default function VillageMultiSelect({
   villages,
-  selectedVillageKeys,
+  selectedVillageIds,
   onSelectionChange,
   role,
   disabled = false,
 }: VillageMultiSelectProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [tempSelection, setTempSelection] = useState<string[]>(selectedVillageKeys);
+  const [tempSelection, setTempSelection] = useState<string[]>(selectedVillageIds);
 
-  const handleVillageToggle = (villageKey: string, checked: boolean) => {
+  const handleVillageToggle = (villageId: string, checked: boolean) => {
     if (checked) {
-      setTempSelection([...tempSelection, villageKey]);
+      setTempSelection([...tempSelection, villageId]);
     } else {
-      setTempSelection(tempSelection.filter(key => key !== villageKey));
+      setTempSelection(tempSelection.filter(id => id !== villageId));
     }
   };
 
@@ -61,16 +60,16 @@ export default function VillageMultiSelect({
   };
 
   const handleCancel = () => {
-    setTempSelection(selectedVillageKeys);
+    setTempSelection(selectedVillageIds);
     setIsDialogOpen(false);
   };
 
   const getSelectedVillages = () => {
-    return villages.filter(village => selectedVillageKeys.includes(village.village_key));
+    return villages.filter(village => selectedVillageIds.includes(village.village_id));
   };
 
-  const isVillageSelected = (villageKey: string) => {
-    return selectedVillageKeys.includes(villageKey);
+  const isVillageSelected = (villageId: string) => {
+    return selectedVillageIds.includes(villageId);
   };
 
   return (
@@ -83,14 +82,14 @@ export default function VillageMultiSelect({
       <div className="flex flex-wrap gap-2 min-h-[40px] p-2 border rounded-md bg-muted/50">
         {getSelectedVillages().length > 0 ? (
           getSelectedVillages().map((village) => (
-            <Badge key={village.village_key} variant="secondary" className="flex items-center gap-1">
+            <Badge key={village.village_id} variant="secondary" className="flex items-center gap-1">
               <Building className="h-3 w-3" />
               {village.village_name}
               {!disabled && (
                 <button
                   type="button"
                   onClick={() => {
-                    const newSelection = selectedVillageKeys.filter(key => key !== village.village_key);
+                    const newSelection = selectedVillageIds.filter(id => id !== village.village_id);
                     onSelectionChange(newSelection);
                   }}
                   className="ml-1 hover:bg-destructive/20 rounded-full p-0.5"
@@ -118,7 +117,7 @@ export default function VillageMultiSelect({
             className="w-full"
           >
             <Plus className="h-4 w-4 mr-2" />
-            {selectedVillageKeys.length > 0 ? "แก้ไขหมู่บ้าน" : "เลือกหมู่บ้าน"}
+            {selectedVillageIds.length > 0 ? "แก้ไขหมู่บ้าน" : "เลือกหมู่บ้าน"}
           </Button>
         </DialogTrigger>
         <DialogContent className="max-w-md">
@@ -134,16 +133,16 @@ export default function VillageMultiSelect({
           
           <div className="space-y-3 max-h-60 overflow-y-auto">
             {villages.map((village) => (
-              <div key={village.village_key} className="flex items-center space-x-2">
+              <div key={village.village_id} className="flex items-center space-x-2">
                 <Checkbox
-                  id={village.village_key}
-                  checked={tempSelection.includes(village.village_key)}
+                  id={village.village_id}
+                  checked={tempSelection.includes(village.village_id)}
                   onCheckedChange={(checked) => 
-                    handleVillageToggle(village.village_key, checked as boolean)
+                    handleVillageToggle(village.village_id, checked as boolean)
                   }
                 />
                 <Label 
-                  htmlFor={village.village_key}
+                  htmlFor={village.village_id}
                   className="flex items-center gap-2 cursor-pointer flex-1"
                 >
                   <Building className="h-4 w-4" />
@@ -169,7 +168,7 @@ export default function VillageMultiSelect({
       </Dialog>
 
       {/* Validation Message */}
-      {role === "staff" && selectedVillageKeys.length === 0 && (
+      {role === "staff" && selectedVillageIds.length === 0 && (
         <p className="text-sm text-red-500">
           Staff ต้องมีหมู่บ้านอย่างน้อย 1 หมู่บ้าน
         </p>

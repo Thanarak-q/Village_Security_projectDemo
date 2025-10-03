@@ -18,9 +18,8 @@ import { useForm } from "react-hook-form";
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
-// @ts-ignore
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Upload, Home, House, User, Search, Shield, Loader2} from "lucide-react";
+import { Upload, Home, House, User, Search, Loader2} from "lucide-react";
 import axios from "axios";
 import { ModeToggle } from "@/components/mode-toggle";
 import { getAuthData, switchUserRole } from "@/lib/liffAuth";
@@ -43,21 +42,23 @@ const visitorSchema = z.object({
 });
 
 interface ApprovalFormProps {
-  userRoles?: Array<{role: string, village_key: string, village_name?: string, status: string}>;
+  userRoles?: Array<{role: string, village_id: string, village_name?: string, status: string}>;
 }
 
 function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   const router = useRouter();
   const [houses, setHouses] = useState<
-    Array<{ house_id: string; address: string; village_key: string }>
+    Array<{ house_id: string; address: string; village_id: string }>
   >([]);
   const [currentUser, setCurrentUser] = useState<{
     id: string;
+    guard_id?: string;
     fname: string;
     lname: string;
     email: string;
-    village_key: string;
+    village_id: string;
   } | null>(null);
+  const [villageName, setVillageName] = useState<string>("");
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [capturedIdCardImage, setCapturedIdCardImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -71,41 +72,48 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
           setCurrentUser(user);
         }
         
-        // Get village_key from user data or sessionStorage
-        let villageKey = user?.village_key;
-        if (!villageKey) {
-          villageKey = sessionStorage.getItem("selectedVillage") || undefined;
+        // Get village_id from user data or sessionStorage
+        let villageId = user?.village_id;
+        if (!villageId) {
+          villageId = sessionStorage.getItem("selectedVillageId") || undefined;
         }
         
-        if (!villageKey) {
-          console.error("No village_key found for guard", {
+        if (!villageId) {
+          console.error("No village_id found for guard", {
             user: user,
-            sessionStorage: sessionStorage.getItem("selectedVillage")
+            sessionStorage: sessionStorage.getItem("selectedVillageId")
           });
           alert("ไม่พบข้อมูลหมู่บ้าน กรุณาติดต่อผู้ดูแลระบบ");
           return;
         }
         
         
-        const housesResponse = await axios.get(`/api/houses/liff?village_key=${encodeURIComponent(villageKey)}`, {
+        const housesResponse = await axios.get(`/api/houses/liff?village_id=${encodeURIComponent(villageId)}`, {
           withCredentials: true,
           headers: {
             "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         });
 
         const houses = housesResponse.data?.data || [];
         setHouses(houses);
+        
+        // Get village name from the response
+        const villageNameFromResponse = housesResponse.data?.village_name;
+        if (villageNameFromResponse) {
+          setVillageName(villageNameFromResponse);
+        }
+        
         console.log("🏠 Houses loaded:", {
           total: houses.length,
-          village_key: villageKey,
+          village_id: villageId,
+          village_name: villageNameFromResponse,
           houses: houses,
           response: housesResponse.data
         });
         
         if (houses.length === 0) {
-          console.warn("No houses found for village:", villageKey);
+          console.warn("No houses found for village:", villageId);
         }
       } catch (err) {
         console.error("Error fetching houses data:", err);
@@ -154,7 +162,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                 console.log("🔍 Fresh roles data:", data);
                 
                 if (data.success && data.roles) {
-                  const freshResidentRole = data.roles.find((role: any) => role.role === 'resident');
+                  const freshResidentRole = data.roles.find((role: {role: string}) => role.role === 'resident');
                   console.log("🔍 Fresh residentRole:", freshResidentRole);
                   
                   if (freshResidentRole) {
@@ -184,7 +192,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
     }
   };
 
-  const handleRoleSwitchWithData = async (residentRole: any) => {
+  const handleRoleSwitchWithData = async (residentRole: {status: string}) => {
     try {
       // Check resident role status and redirect accordingly
       if (residentRole.status === "verified") {
@@ -235,7 +243,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
     resolver: zodResolver(visitorSchema),
     defaultValues: {
       license_image: "",
-      guard_id: currentUser?.id,
+      guard_id: currentUser?.guard_id || currentUser?.id,
       id_card_image: "",
       license_plate: "",
       visitor_id_card: "",
@@ -246,10 +254,10 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   });
 
     useEffect(() => {
-      if (currentUser?.id) {
-        visitorForm.setValue("guard_id", currentUser.id);
+      if (currentUser?.guard_id || currentUser?.id) {
+        visitorForm.setValue("guard_id", currentUser.guard_id || currentUser.id);
       }
-    }, [currentUser?.id, visitorForm]);
+    }, [currentUser?.guard_id, currentUser?.id, visitorForm]);
 
   const [step, setStep] = useState<number>(1);
   const progress = step === 1 ? 25 : step === 2 ? 60 : 100;
@@ -418,7 +426,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
         // Reset form values and UI state for a new submission
         visitorForm.reset({
           license_image: "",
-          guard_id: currentUser?.id ?? "",
+          guard_id: currentUser?.guard_id || currentUser?.id || "",
           id_card_image: "",
           license_plate: "",
           visitor_id_card: "",
@@ -744,9 +752,9 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                       render={() => (
                         <FormItem>
                           <FormLabel>
-                            {currentUser?.village_key && (
+                            {currentUser?.village_id && (
                               <span className="text-base ml-2">
-                                หมู่บ้าน: {currentUser.village_key} <br />
+                                หมู่บ้าน: {villageName || currentUser.village_id} <br />
                                 เลือกบ้านเลขที่
                               </span>
                             )}
@@ -808,9 +816,9 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                                         <p className="text-muted-foreground">
                                           ไม่มีบ้านในหมู่บ้านนี้
                                         </p>
-                                        {currentUser?.village_key && (
+                                        {currentUser?.village_id && (
                                           <p className="text-xs text-muted-foreground">
-                                            หมู่บ้าน: {currentUser.village_key}
+                                            หมู่บ้าน: {currentUser.village_id}
                                           </p>
                                         )}
                                       </div>

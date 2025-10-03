@@ -13,8 +13,8 @@
  */
 
 import db from "../db/drizzle";
-import { admins, admin_villages, guards, residents } from "../db/schema";
-import { eq } from "drizzle-orm";
+import { admins, admin_villages, guards, residents, villages } from "../db/schema";
+import { eq, inArray } from "drizzle-orm";
 
 /**
  * Creates an Elysia hook to enforce role-based access control on a route.
@@ -99,24 +99,45 @@ export const requireRole = (required: string | string[] = "*") => {
       return { error: "Forbidden: You do not have the required role to access this resource." };
     }
 
-    // Get village_keys from admin_villages table
-    let village_keys: string[] = [];
-    if (userRole === 'admin' || userRole === 'superadmin') {
+    // Resolve village associations to IDs and keys
+    let village_ids: string[] = [];
+    if (userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff') {
       if (userRole !== "superadmin" && 'admin_id' in user) {
         const adminVillages = await db.query.admin_villages.findMany({
           where: eq(admin_villages.admin_id, user.admin_id),
         });
-        village_keys = adminVillages.map(av => av.village_key);
+        village_ids = adminVillages
+          .map((av) => av.village_id)
+          .filter((id): id is string => Boolean(id));
+      }
+      if (!village_ids.length && 'village_id' in user && user.village_id) {
+        village_ids = [user.village_id];
       }
     } else {
-      // For guards and residents, use their village_key
-      village_keys = user.village_key ? [user.village_key] : [];
+      // For guards and residents, use their village_id if present
+      if ('village_id' in user && user.village_id) {
+        village_ids = [user.village_id];
+      }
     }
 
-    // Add village_keys to currentUser
+    let village_keys: string[] = [];
+    if (village_ids.length) {
+      const villagesData = await db
+        .select({ id: villages.village_id, key: villages.village_key })
+        .from(villages)
+        .where(inArray(villages.village_id, village_ids));
+
+      const idToKey = new Map(villagesData.map((v) => [v.id, v.key]));
+      village_keys = village_ids
+        .map((id) => idToKey.get(id))
+        .filter((key): key is string => Boolean(key));
+    }
+
+    // Add village data to currentUser
     context.currentUser = {
       ...user,
       role: userRole, // Ensure role is properly set for endpoint access
+      village_ids,
       village_keys,
     };
   };

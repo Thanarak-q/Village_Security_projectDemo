@@ -12,7 +12,7 @@ export default function GuardPendingPage() {
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [userRoles, setUserRoles] = useState<Array<{role: string, village_key: string, village_name?: string, status: string}>>([]);
+  const [userRoles, setUserRoles] = useState<Array<{role: string, village_id: string, village_name?: string, status: string}>>([]);
   const [guardData, setGuardData] = useState<any>(null);
 
   useEffect(() => {
@@ -130,7 +130,7 @@ export default function GuardPendingPage() {
                     lname: guardRole.lname || currentUser.lname,
                     email: guardRole.email || currentUser.email,
                     phone: guardRole.phone || currentUser.phone,
-                    village_key: guardRole.village_key || currentUser.village_key,
+                    village_id: guardRole.village_id || currentUser.village_id,
                     village_name: guardRole.village_name || currentUser.village_name,
                     status: guardRole.status
                   });
@@ -344,7 +344,7 @@ export default function GuardPendingPage() {
                 <p><span className="font-medium">ชื่อ:</span> {guardData.fname} {guardData.lname}</p>
                 <p><span className="font-medium">อีเมล:</span> {guardData.email}</p>
                 <p><span className="font-medium">เบอร์โทร:</span> {guardData.phone}</p>
-                <p><span className="font-medium">หมู่บ้าน:</span> {guardData.village_name || guardData.village_key}</p>
+                <p><span className="font-medium">หมู่บ้าน:</span> {guardData.village_name || guardData.village_id}</p>
                 <p><span className="font-medium">ตำแหน่ง:</span> รปภ.</p>
                 <p><span className="font-medium">สถานะ:</span> <span className="font-bold text-red-600">{guardData.status}</span></p>
               </div>
