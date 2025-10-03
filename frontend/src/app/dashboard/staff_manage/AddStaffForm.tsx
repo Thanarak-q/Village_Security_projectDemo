@@ -19,7 +19,7 @@ const addStaffSchema = z.object({
 type AddStaffFormData = z.infer<typeof addStaffSchema>;
 
 interface AddStaffFormProps {
-  villageKey: string;
+  villageId: string;
   villageName: string;
   onStaffAdded: (staff: StaffMember) => void;
 }
@@ -34,11 +34,11 @@ interface StaffMember {
   password_changed_at: string | null;
   created_at: string;
   updated_at: string;
-  village_key: string;
+  village_id: string;
   village_name: string;
 }
 
-export function AddStaffForm({ villageKey, villageName, onStaffAdded }: AddStaffFormProps) {
+export function AddStaffForm({ villageId, villageName, onStaffAdded }: AddStaffFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedCredentials, setGeneratedCredentials] = useState<{
     username: string;
@@ -68,7 +68,7 @@ export function AddStaffForm({ villageKey, villageName, onStaffAdded }: AddStaff
         credentials: "include",
         body: JSON.stringify({
           username: data.username,
-          village_key: villageKey,
+          village_id: villageId,
         }),
       });
 

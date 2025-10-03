@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
 import db from "../db/drizzle";
 import { villages, admins, admin_villages } from "../db/schema";
-import { eq, count } from "drizzle-orm";
+import { eq, count, and, isNull, isNotNull } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { hashPassword } from "../utils/passwordUtils";
 
@@ -23,18 +23,47 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
         .select({
           village_id: villages.village_id,
           village_name: villages.village_name,
-          village_key: villages.village_key,
+          status: villages.status,
+          disable_at: villages.disable_at,
           admin_count: count(admin_villages.admin_id),
         })
         .from(villages)
-        .leftJoin(admin_villages, eq(villages.village_key, admin_villages.village_key))
-        .groupBy(villages.village_id, villages.village_name, villages.village_key);
+        .leftJoin(admin_villages, eq(villages.village_id, admin_villages.village_id))
+        .where(isNull(villages.disable_at))
+        .groupBy(villages.village_id, villages.village_name, villages.status, villages.disable_at);
 
       return { success: true, data: villagesWithAdminCount };
     } catch (error) {
       console.error("Error fetching villages:", error);
       set.status = 500;
       return { success: false, error: "Failed to fetch villages" };
+    }
+  })
+
+  /**
+   * Get disabled villages with admin count
+   * @returns {Promise<Object>} List of disabled villages with admin count
+   */
+  .get("/villages/disabled", async ({ set }) => {
+    try {
+      const disabledVillagesWithAdminCount = await db
+        .select({
+          village_id: villages.village_id,
+          village_name: villages.village_name,
+          status: villages.status,
+          disable_at: villages.disable_at,
+          admin_count: count(admin_villages.admin_id),
+        })
+        .from(villages)
+        .leftJoin(admin_villages, eq(villages.village_id, admin_villages.village_id))
+        .where(isNotNull(villages.disable_at))
+        .groupBy(villages.village_id, villages.village_name, villages.status, villages.disable_at);
+
+      return { success: true, data: disabledVillagesWithAdminCount };
+    } catch (error) {
+      console.error("Error fetching disabled villages:", error);
+      set.status = 500;
+      return { success: false, error: "Failed to fetch disabled villages" };
     }
   })
 
@@ -46,31 +75,19 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
    */
   .post("/villages", async ({ body, set }) => {
     try {
-      const { village_name, village_key } = body as {
+      const { village_name } = body as {
         village_name: string;
-        village_key: string;
       };
 
       // Validation
-      if (!village_name || !village_key) {
+      if (!village_name) {
         set.status = 400;
-        return { success: false, error: "Village name and village key are required" };
+        return { success: false, error: "Village name is required" };
       }
 
-      if (village_name.trim().length === 0 || village_key.trim().length === 0) {
+      if (village_name.trim().length === 0) {
         set.status = 400;
-        return { success: false, error: "Village name and village key cannot be empty" };
-      }
-
-      // Check if village_key already exists
-      const existingVillage = await db
-        .select()
-        .from(villages)
-        .where(eq(villages.village_key, village_key.trim()));
-
-      if (existingVillage.length > 0) {
-        set.status = 400;
-        return { success: false, error: "Village key already exists" };
+        return { success: false, error: "Village name cannot be empty" };
       }
 
       // Create village
@@ -78,7 +95,7 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
         .insert(villages)
         .values({
           village_name: village_name.trim(),
-          village_key: village_key.trim(),
+          village_key: `village_${Date.now()}`, // Auto-generate village_key
         })
         .returning({
           village_id: villages.village_id,
@@ -104,9 +121,8 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
   .put("/villages/:id", async ({ params, body, set }) => {
     try {
       const { id } = params as { id: string };
-      const { village_name, village_key } = body as {
+      const { village_name } = body as {
         village_name?: string;
-        village_key?: string;
       };
 
       // Check if village exists
@@ -126,28 +142,9 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
         return { success: false, error: "Village name cannot be empty" };
       }
 
-      if (village_key !== undefined && village_key.trim().length === 0) {
-        set.status = 400;
-        return { success: false, error: "Village key cannot be empty" };
-      }
-
-      // Check if new village_key already exists (if being updated)
-      if (village_key && village_key !== existingVillage[0].village_key) {
-        const duplicateVillage = await db
-          .select()
-          .from(villages)
-          .where(eq(villages.village_key, village_key.trim()));
-
-        if (duplicateVillage.length > 0) {
-          set.status = 400;
-          return { success: false, error: "Village key already exists" };
-        }
-      }
-
       // Prepare update data
       const updateData: any = {};
       if (village_name !== undefined) updateData.village_name = village_name.trim();
-      if (village_key !== undefined) updateData.village_key = village_key.trim();
 
       // Update village
       const updatedVillage = await db
@@ -178,22 +175,25 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
     try {
       const { id } = params as { id: string };
 
-      // Check if village exists
+      // Check if village exists and is not already disabled
       const existingVillage = await db
         .select()
         .from(villages)
-        .where(eq(villages.village_id, id));
+        .where(and(
+          eq(villages.village_id, id),
+          isNull(villages.disable_at)
+        ));
 
       if (existingVillage.length === 0) {
         set.status = 404;
-        return { success: false, error: "Village not found" };
+        return { success: false, error: "Village not found or already disabled" };
       }
 
       // Check if village has admins
       const villageAdmins = await db
         .select()
         .from(admin_villages)
-        .where(eq(admin_villages.village_key, existingVillage[0].village_key));
+        .where(eq(admin_villages.village_id, existingVillage[0].village_id));
 
       if (villageAdmins.length > 0) {
         set.status = 400;
@@ -203,15 +203,60 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
         };
       }
 
-      // Delete village
+      // Soft delete village
       await db
-        .delete(villages)
+        .update(villages)
+        .set({ 
+          disable_at: new Date(),
+          status: "disable"
+        })
         .where(eq(villages.village_id, id));
 
-      return { success: true, message: "Village deleted successfully" };
+      return { success: true, message: "Village disabled successfully" };
     } catch (error) {
       console.error("Error deleting village:", error);
       set.status = 500;
       return { success: false, error: "Failed to delete village" };
+    }
+  })
+
+  /**
+   * Restore a disabled village
+   * @param {Object} context - The context for the request.
+   * @param {Object} context.params - The route parameters.
+   * @returns {Promise<Object>} Success message
+   */
+  .patch("/villages/:id/restore", async ({ params, set }) => {
+    try {
+      const { id } = params as { id: string };
+
+      // Check if village exists and is disabled
+      const existingVillage = await db
+        .select()
+        .from(villages)
+        .where(and(
+          eq(villages.village_id, id),
+          isNotNull(villages.disable_at)
+        ));
+
+      if (existingVillage.length === 0) {
+        set.status = 404;
+        return { success: false, error: "Disabled village not found" };
+      }
+
+      // Restore village
+      await db
+        .update(villages)
+        .set({ 
+          disable_at: null,
+          status: "active"
+        })
+        .where(eq(villages.village_id, id));
+
+      return { success: true, message: "Village restored successfully" };
+    } catch (error) {
+      console.error("Error restoring village:", error);
+      set.status = 500;
+      return { success: false, error: "Failed to restore village" };
     }
   });

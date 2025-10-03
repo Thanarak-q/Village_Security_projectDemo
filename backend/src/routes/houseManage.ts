@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import db from "../db/drizzle";
 import { houses, villages, guards, admins } from "../db/schema";
-import { eq, inArray, and, asc } from "drizzle-orm";
+import { eq, inArray, and, isNull } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { houseActivityLogger } from "../utils/activityLogUtils";
 import { notificationService } from "../services/notificationService";
@@ -12,7 +12,7 @@ import { notificationService } from "../services/notificationService";
  */
 interface CreateHouseBody {
   address: string;
-  village_key: string; // Admin must specify which village to create house in
+  village_id?: string; // Admin must specify which village to create house in
 }
 
 /**
@@ -21,7 +21,7 @@ interface CreateHouseBody {
  */
 interface UpdateHouseBody {
   address?: string;
-  // village_key cannot be changed - a house must remain in its original village.
+  // village_id cannot be changed - a house must remain in its original village.
   status?: "available" | "occupied" | "disable";
 }
 
@@ -45,8 +45,8 @@ const validateHouseData = (data: CreateHouseBody) => {
     errors.push("Address is required");
   }
 
-  if (!data.village_key?.trim()) {
-    errors.push("Village is required");
+  if (!data.village_id?.trim()) {
+    errors.push("Village ID is required");
   }
 
   return errors;
@@ -119,47 +119,63 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
     console.log("request URL:", request?.url);
     
     try {
-      // Extract village_key from query parameters
-      let village_key = query?.village_key;
-      
+      // Extract village_id from query parameters
+      let village_id = query?.village_id as string | undefined;
+
       // Fallback: if query parsing fails, try to extract from URL
-      if (!village_key && request?.url) {
+      if (!village_id && request?.url) {
         const url = new URL(request.url);
-        village_key = url.searchParams.get('village_key');
+        village_id = village_id ?? url.searchParams.get('village_id') ?? undefined;
       }
-      
-      const { village_keys, role } = currentUser;
 
-      console.log("Extracted village_key:", village_key);
-      console.log("Available village_keys:", village_keys);
+      const role = currentUser.role;
+      const villageIds: string[] = Array.isArray(currentUser.village_ids)
+        ? currentUser.village_ids
+        : [];
 
-      // Validate village_key parameter
-      if (!village_key || typeof village_key !== 'string') {
+      console.log("Extracted village_id:", village_id);
+      console.log("Available village_ids:", villageIds);
+
+      // Validate village_id parameter
+      if (!village_id || typeof village_id !== 'string') {
         return {
           success: false,
-          error: "Village key is required",
+          error: "Village ID is required",
         };
       }
 
       // Check if admin has access to the specified village
-      if (role !== "superadmin" && !village_keys.includes(village_key)) {
+      if (role !== "superadmin" && !villageIds.includes(village_id)) {
         return {
           success: false,
           error: "You don't have access to this village",
         };
       }
 
-      // Fetch houses for the specific village
+      // Fetch houses for the specific village (only active houses)
       const result = await db
         .select()
         .from(houses)
-        .where(eq(houses.village_key, village_key));
+        .where(and(
+          eq(houses.village_id, village_id),
+          isNull(houses.disable_at)
+        ));
+
+      // Get village name
+      const village = await db
+        .select({
+          village_name: villages.village_name,
+        })
+        .from(villages)
+        .where(eq(villages.village_id, village_id))
+        .limit(1);
 
       return {
         success: true,
         data: result,
         total: result.length,
-        village_key: village_key,
+        village_id,
+        village_name: village[0]?.village_name || null,
       };
     } catch (error) {
       console.error("Error fetching houses:", error);
@@ -173,55 +189,69 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
   // Get available houses for user assignment - accessible by admin and staff
   .get("/houses/available", async ({ query, currentUser, request }: any) => {
     try {
-      // Extract village_key from query parameters
-      let village_key = query?.village_key;
-      
-      // Fallback: if query parsing fails, try to extract from URL
-      if (!village_key && request?.url) {
-        const url = new URL(request.url);
-        village_key = url.searchParams.get('village_key');
-      }
-      
-      const { village_keys, role } = currentUser;
+      // Extract village_id from query parameters
+      let village_id = query?.village_id as string | undefined;
 
-      // Validate village_key parameter
-      if (!village_key || typeof village_key !== 'string') {
+      // Fallback: if query parsing fails, try to extract from URL
+      if (!village_id && request?.url) {
+        const url = new URL(request.url);
+        village_id = village_id ?? url.searchParams.get('village_id') ?? undefined;
+      }
+
+      const role = currentUser.role;
+      const villageIds: string[] = Array.isArray(currentUser.village_ids)
+        ? currentUser.village_ids
+        : [];
+
+      console.log("Extracted village_id:", village_id);
+      console.log("Available village_ids:", villageIds);
+
+      // Validate village_id parameter
+      if (!village_id || typeof village_id !== 'string') {
         return {
           success: false,
-          error: "Village key is required",
+          error: "Village ID is required",
         };
       }
 
       // Check if admin has access to the specified village
-      if (role !== "superadmin" && !village_keys.includes(village_key)) {
+      if (role !== "superadmin" && !villageIds.includes(village_id)) {
         return {
           success: false,
           error: "You don't have access to this village",
         };
       }
 
-      // Fetch available houses (status = "available") for the specific village
+      // Fetch available houses for the specific village (only available and active houses)
       const result = await db
         .select({
           house_id: houses.house_id,
           address: houses.address,
           status: houses.status,
-          village_key: houses.village_key,
+          village_id: houses.village_id,
         })
         .from(houses)
-        .where(
-          and(
-            eq(houses.village_key, village_key),
-            eq(houses.status, "available")
-          )
-        )
-        .orderBy(asc(houses.address));
+        .where(and(
+          eq(houses.village_id, village_id),
+          eq(houses.status, "available"),
+          isNull(houses.disable_at)
+        ));
+
+      // Get village name
+      const village = await db
+        .select({
+          village_name: villages.village_name,
+        })
+        .from(villages)
+        .where(eq(villages.village_id, village_id))
+        .limit(1);
 
       return {
         success: true,
         data: result,
         total: result.length,
-        village_key: village_key,
+        village_id,
+        village_name: village[0]?.village_name || null,
       };
     } catch (error) {
       console.error("Error fetching available houses:", error);
@@ -253,10 +283,21 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
-      const { village_keys, role } = currentUser;
+      const role = currentUser.role;
+      const villageIds: string[] = Array.isArray(currentUser.village_ids)
+        ? currentUser.village_ids
+        : [];
+      let villageId = houseData.village_id?.trim();
+
+      if (!villageId) {
+        return {
+          success: false,
+          error: "Village ID is required",
+        };
+      }
 
       // Check if admin has access to the specified village
-      if (!village_keys.includes(houseData.village_key)) {
+      if (role !== "superadmin" && !villageIds.includes(villageId)) {
         return {
           success: false,
           error: "You don't have access to this village",
@@ -267,7 +308,7 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
       const existingVillage = await db
         .select()
         .from(villages)
-        .where(eq(villages.village_key, houseData.village_key));
+        .where(eq(villages.village_id, villageId));
 
       if (existingVillage.length === 0) {
         return {
@@ -283,7 +324,7 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         .where(
           and(
             eq(houses.address, houseData.address.trim()),
-            eq(houses.village_key, houseData.village_key)
+            eq(houses.village_id, villageId)
           )
         );
 
@@ -299,7 +340,7 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         .insert(houses)
         .values({
           address: houseData.address.trim(),
-          village_key: houseData.village_key, // Use specified village_key
+          village_id: villageId,
         })
         .returning();
 
@@ -308,7 +349,7 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         await houseActivityLogger.logHouseCreated(
           currentUser.admin_id,
           houseData.address.trim(),
-          houseData.village_key
+          villageId
         );
       } catch (logError) {
         console.error("Error logging house creation:", logError);
@@ -373,8 +414,11 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         }
 
         // Check if admin can update this house (same village)
-        const { village_keys, role } = currentUser;
-        if (role !== "superadmin" && !village_keys.includes(existingHouse[0].village_key)) {
+        const role = currentUser.role;
+        const villageIds: string[] = Array.isArray(currentUser.village_ids)
+          ? currentUser.village_ids
+          : [];
+        if (role !== "superadmin" && !villageIds.includes(existingHouse[0].village_id ?? "")) {
           return {
             success: false,
             error: "You can only update houses in your assigned villages!",
@@ -438,7 +482,7 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
               address: updatedHouse.address ?? "",
               old_status: oldStatus ?? "",
               new_status: updateData.status ?? "",
-              village_key: existingHouse[0].village_key ?? "",
+              village_id: existingHouse[0].village_id ?? "",
             });
             console.log(`📢 House status change notification sent: ${updatedHouse.address ?? ""}`);
           } catch (notificationError) {
@@ -513,8 +557,11 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         }
 
         // Check if admin can update this house (same village)
-        const { village_keys, role } = currentUser;
-        if (role !== "superadmin" && !village_keys.includes(existingHouse[0].village_key)) {
+        const role = currentUser.role;
+        const villageIds: string[] = Array.isArray(currentUser.village_ids)
+          ? currentUser.village_ids
+          : [];
+        if (role !== "superadmin" && !villageIds.includes(existingHouse[0].village_id ?? "")) {
           return {
             success: false,
             error: "You can only update houses in your assigned villages!",
@@ -552,7 +599,7 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
               address: updatedHouse.address ?? "",
               old_status: oldStatus ?? "",
               new_status: status,
-              village_key: existingHouse[0].village_key ?? "",
+              village_id: existingHouse[0].village_id ?? "",
             });
             console.log(`📢 House status change notification sent: ${updatedHouse.address ?? ""}`);
           } catch (notificationError) {
@@ -602,22 +649,28 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
-      // Check if house exists
+      // Check if house exists and is not already disabled
       const existingHouse = await db
         .select()
         .from(houses)
-        .where(eq(houses.house_id, house_id));
+        .where(and(
+          eq(houses.house_id, house_id),
+          isNull(houses.disable_at)
+        ));
 
       if (existingHouse.length === 0) {
         return {
           success: false,
-          error: "House not found!",
+          error: "House not found or already disabled!",
         };
         }
 
         // Check if admin can delete this house (same village)
-        const { village_keys, role } = currentUser;
-        if (role !== "superadmin" && !village_keys.includes(existingHouse[0].village_key)) {
+        const role = currentUser.role;
+        const villageIds: string[] = Array.isArray(currentUser.village_ids)
+          ? currentUser.village_ids
+          : [];
+        if (role !== "superadmin" && !villageIds.includes(existingHouse[0].village_id ?? "")) {
           return {
             success: false,
             error: "You can only delete houses in your assigned villages!",
@@ -627,15 +680,20 @@ export const houseManageRoutes = new Elysia({ prefix: "/api" })
         // Store house info for logging before deletion
       const houseInfo = existingHouse[0];
 
-      // Delete house
-      await db.delete(houses).where(eq(houses.house_id, house_id));
+      // Soft delete house
+      await db.update(houses)
+        .set({ 
+          disable_at: new Date(),
+          status: "disable"
+        })
+        .where(eq(houses.house_id, house_id));
 
       // Log the house deletion activity
       try {
         await houseActivityLogger.logHouseDeleted(
           currentUser.admin_id,
           houseInfo.address,
-          houseInfo.village_key || "unknown"
+          houseInfo.village_id
         );
       } catch (logError) {
         console.error("Error logging house deletion:", logError);

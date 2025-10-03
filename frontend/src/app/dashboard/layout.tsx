@@ -26,21 +26,58 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         if (json) {
           setData(json);
           
-          // Check if user is admin/superadmin and needs village selection
-          if ((json.role === "admin" || json.role === "superadmin")) {
-            const selectedVillage = sessionStorage.getItem("selectedVillage");
-            if (!selectedVillage) {
-              // Redirect to village selection if no village is selected
+          // Handle village selection based on user role
+          if (json.role === "admin" || json.role === "superadmin") {
+            const selectedVillageId = sessionStorage.getItem("selectedVillageId") ?? sessionStorage.getItem("selectedVillage");
+
+            const clearSelectionAndRedirect = () => {
+              sessionStorage.removeItem("selectedVillage");
+              sessionStorage.removeItem("selectedVillageId");
+              sessionStorage.removeItem("selectedVillageName");
               window.location.href = "/admin-village-selection";
+            };
+
+            if (!selectedVillageId) {
+              // Redirect to village selection if no village is selected
+              clearSelectionAndRedirect();
               return;
             }
-            
+
             // Verify that the selected village is in the user's accessible villages
-            if (json.village_keys && !json.village_keys.includes(selectedVillage)) {
-              // Clear invalid selected village and redirect to selection
-              sessionStorage.removeItem("selectedVillage");
-              window.location.href = "/admin-village-selection";
+            const accessibleVillageIds: string[] = Array.isArray(json.village_ids)
+              ? json.village_ids
+              : [];
+            if (
+              json.role !== "superadmin" &&
+              accessibleVillageIds.length > 0 &&
+              !accessibleVillageIds.includes(selectedVillageId)
+            ) {
+              clearSelectionAndRedirect();
               return;
+            }
+
+          } else if (json.role === "staff") {
+            // For staff users, auto-select their assigned village
+            const accessibleVillageIds: string[] = Array.isArray(json.village_ids)
+              ? json.village_ids
+              : [];
+            
+            if (accessibleVillageIds.length > 0) {
+              const staffVillageId = accessibleVillageIds[0];
+              const currentSelectedVillage = sessionStorage.getItem("selectedVillageId") ?? sessionStorage.getItem("selectedVillage");
+              
+              // Auto-set village for staff if not already set
+              if (!currentSelectedVillage || currentSelectedVillage !== staffVillageId) {
+                sessionStorage.setItem("selectedVillage", staffVillageId);
+                sessionStorage.setItem("selectedVillageId", staffVillageId);
+                
+                // Set village name if available
+                if (json.village_name) {
+                  sessionStorage.setItem("selectedVillageName", json.village_name);
+                }
+                
+                console.log("Auto-selected village for staff:", staffVillageId);
+              }
             }
           }
         }

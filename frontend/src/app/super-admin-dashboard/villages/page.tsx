@@ -29,7 +29,8 @@ import {
   Edit, 
   Trash2, 
   AlertTriangle,
-  Users
+  Users,
+  Archive
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -38,7 +39,8 @@ import { toast } from "sonner";
 interface Village {
   village_id: string;
   village_name: string;
-  village_key: string;
+  status: string;
+  disable_at: string | null;
   admin_count: number;
 }
 
@@ -52,7 +54,6 @@ export default function VillagesPage() {
   const [selectedVillage, setSelectedVillage] = useState<Village | null>(null);
   const [formData, setFormData] = useState({
     village_name: "",
-    village_key: "",
   });
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
@@ -96,8 +97,8 @@ export default function VillagesPage() {
   };
 
   const handleCreateVillage = async () => {
-    if (!formData.village_name.trim() || !formData.village_key.trim()) {
-      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
+    if (!formData.village_name.trim()) {
+      toast.error("กรุณากรอกชื่อหมู่บ้าน");
       return;
     }
 
@@ -116,7 +117,7 @@ export default function VillagesPage() {
       if (data.success) {
         toast.success("สร้างหมู่บ้านสำเร็จ");
         setIsCreateDialogOpen(false);
-        setFormData({ village_name: "", village_key: "" });
+        setFormData({ village_name: "" });
         fetchVillages();
       } else {
         toast.error(data.error || "Failed to create village");
@@ -130,8 +131,8 @@ export default function VillagesPage() {
   };
 
   const handleEditVillage = async () => {
-    if (!selectedVillage || !formData.village_name.trim() || !formData.village_key.trim()) {
-      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
+    if (!selectedVillage || !formData.village_name.trim()) {
+      toast.error("กรุณากรอกชื่อหมู่บ้าน");
       return;
     }
 
@@ -151,7 +152,7 @@ export default function VillagesPage() {
         toast.success("แก้ไขหมู่บ้านสำเร็จ");
         setIsEditDialogOpen(false);
         setSelectedVillage(null);
-        setFormData({ village_name: "", village_key: "" });
+        setFormData({ village_name: "" });
         fetchVillages();
       } else {
         toast.error(data.error || "Failed to update village");
@@ -195,7 +196,6 @@ export default function VillagesPage() {
     setSelectedVillage(village);
     setFormData({
       village_name: village.village_name,
-      village_key: village.village_key,
     });
     setIsEditDialogOpen(true);
   };
@@ -240,13 +240,20 @@ export default function VillagesPage() {
             สร้าง แก้ไข และลบหมู่บ้านในระบบ
           </p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              สร้างหมู่บ้านใหม่
+        <div className="flex items-center gap-3">
+          <Link href="/super-admin-dashboard/villages/disabled">
+            <Button variant="outline">
+              <Archive className="mr-2 h-4 w-4" />
+              หมู่บ้านที่ถูกระงับ
             </Button>
-          </DialogTrigger>
+          </Link>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                สร้างหมู่บ้านใหม่
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>สร้างหมู่บ้านใหม่</DialogTitle>
@@ -264,15 +271,6 @@ export default function VillagesPage() {
                   placeholder="เช่น หมู่บ้านสุขสันต์"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="village_key">รหัสหมู่บ้าน</Label>
-                <Input
-                  id="village_key"
-                  value={formData.village_key}
-                  onChange={(e) => setFormData({ ...formData, village_key: e.target.value })}
-                  placeholder="เช่น suk-san-village"
-                />
-              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
@@ -284,6 +282,7 @@ export default function VillagesPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Villages Table */}
@@ -315,7 +314,7 @@ export default function VillagesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>ชื่อหมู่บ้าน</TableHead>
-                  <TableHead>รหัสหมู่บ้าน</TableHead>
+                  <TableHead>สถานะ</TableHead>
                   <TableHead>จำนวน Admin</TableHead>
                   <TableHead className="text-right">การดำเนินการ</TableHead>
                 </TableRow>
@@ -327,9 +326,12 @@ export default function VillagesPage() {
                       {village.village_name}
                     </TableCell>
                     <TableCell>
-                      <code className="bg-muted px-2 py-1 rounded text-sm">
-                        {village.village_key}
-                      </code>
+                      <Badge 
+                        variant={village.status === "active" ? "default" : "destructive"}
+                        className="text-xs"
+                      >
+                        {village.status === "active" ? "ใช้งาน" : "ไม่ใช้งาน"}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -383,15 +385,6 @@ export default function VillagesPage() {
                 value={formData.village_name}
                 onChange={(e) => setFormData({ ...formData, village_name: e.target.value })}
                 placeholder="เช่น หมู่บ้านสุขสันต์"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit_village_key">รหัสหมู่บ้าน</Label>
-              <Input
-                id="edit_village_key"
-                value={formData.village_key}
-                onChange={(e) => setFormData({ ...formData, village_key: e.target.value })}
-                placeholder="เช่น suk-san-village"
               />
             </div>
           </div>

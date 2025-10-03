@@ -28,30 +28,30 @@ export const houseLiffRoutes = new Elysia({ prefix: "/api" })
     console.log("request URL:", request?.url);
     
     try {
-      // Extract village_key from query parameters
-      let village_key = query?.village_key;
+      // Extract village_id from query parameters
+      let village_id = query?.village_id;
       
       // Fallback: if query parsing fails, try to extract from URL
-      if (!village_key && request?.url) {
+      if (!village_id && request?.url) {
         const url = new URL(request.url);
-        village_key = url.searchParams.get('village_key');
+        village_id = url.searchParams.get('village_id');
       }
       
-      const { village_keys, role } = currentUser;
+      const { village_ids, role } = currentUser;
 
-      console.log("Extracted village_key:", village_key);
-      console.log("Available village_keys:", village_keys);
+      console.log("Extracted village_id:", village_id);
+      console.log("Available village_ids:", village_ids);
 
-      // Validate village_key parameter
-      if (!village_key || typeof village_key !== 'string') {
+      // Validate village_id parameter
+      if (!village_id || typeof village_id !== 'string') {
         return {
           success: false,
-          error: "Village key is required",
+          error: "Village ID is required",
         };
       }
 
       // Check if user has access to the specified village
-      if (!village_keys.includes(village_key)) {
+      if (!village_ids.includes(village_id)) {
         return {
           success: false,
           error: "You don't have access to this village",
@@ -62,13 +62,23 @@ export const houseLiffRoutes = new Elysia({ prefix: "/api" })
       const result = await db
         .select()
         .from(houses)
-        .where(eq(houses.village_key, village_key));
+        .where(eq(houses.village_id, village_id));
+
+      // Get village name
+      const village = await db
+        .select({
+          village_name: villages.village_name,
+        })
+        .from(villages)
+        .where(eq(villages.village_id, village_id))
+        .limit(1);
 
       return {
         success: true,
         data: result,
         total: result.length,
-        village_key: village_key,
+        village_id: village_id,
+        village_name: village[0]?.village_name || null,
         user_role: role,
       };
     } catch (error) {
@@ -86,9 +96,9 @@ export const houseLiffRoutes = new Elysia({ prefix: "/api" })
     console.log("currentUser", currentUser);
     
     try {
-      const { village_keys, role } = currentUser;
+      const { village_ids, role } = currentUser;
 
-      if (!village_keys || village_keys.length === 0) {
+      if (!village_ids || village_ids.length === 0) {
         return {
           success: false,
           error: "No village assigned to user",
@@ -99,7 +109,7 @@ export const houseLiffRoutes = new Elysia({ prefix: "/api" })
       const result = await db
         .select()
         .from(villages)
-        .where(eq(villages.village_key, village_keys[0]));
+        .where(eq(villages.village_id, village_ids[0]));
 
       if (result.length === 0) {
         return {

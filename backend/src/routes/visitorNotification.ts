@@ -9,12 +9,13 @@ import { type VisitorNotificationData } from './(line)/flexMessage';
 import { requireRole } from '../hooks/requireRole';
 
 export const visitorNotificationRoutes = new Elysia({ prefix: '/api/visitor-notification' })
+  .onBeforeHandle(requireRole(["guard", "admin", "staff"]))
 
   /**
    * Send visitor notification to all residents in a house
    * POST /api/visitor-notification/send-to-residents
    */
-  .post('/send-to-residents', async ({ body, set, currentUser }) => {
+  .post('/send-to-residents', async ({ body, set, currentUser }: any) => {
     try {
       const { 
         visitorName, 
@@ -91,7 +92,7 @@ export const visitorNotificationRoutes = new Elysia({ prefix: '/api/visitor-noti
    * Send visitor details to a specific resident
    * POST /api/visitor-notification/send-details
    */
-  .post('/send-details', async ({ body, set, currentUser }) => {
+  .post('/send-details', async ({ body, set, currentUser }: any) => {
     try {
       const { 
         userId,
@@ -243,7 +244,7 @@ export const visitorNotificationRoutes = new Elysia({ prefix: '/api/visitor-noti
    * Get residents in a specific house
    * GET /api/visitor-notification/residents/:houseNumber/:villageKey
    */
-  .get('/residents/:houseNumber/:villageKey', async ({ params, set, currentUser }) => {
+  .get('/residents/:houseNumber/:villageKey', async ({ params, set, currentUser }: any) => {
     try {
       const { houseNumber, villageKey } = params as { houseNumber: string; villageKey: string };
 

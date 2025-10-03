@@ -45,7 +45,7 @@ interface Resident {
   phone: string;
   status: string;
   role: string;
-  village_key: string;
+  village_id: string;
   house_address: string | null;
   createdAt: string;
   updatedAt: string;
@@ -60,7 +60,7 @@ interface Guard {
   phone: string;
   status: string;
   role: string;
-  village_key: string;
+  village_id: string;
   house_address: string | null;
   createdAt: string;
   updatedAt: string;
@@ -135,7 +135,7 @@ export default function UserManagementTable() {
       
       // Get selected village from sessionStorage (with SSR safety check)
       const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem("selectedVillage") : null;
-      const url = selectedVillage ? `/api/userTable?village_key=${encodeURIComponent(selectedVillage)}` : "/api/userTable";
+      const url = selectedVillage ? `/api/userTable?village_id=${encodeURIComponent(selectedVillage)}` : "/api/userTable";
       
       const response = await fetch(url);
       if (!response.ok) {
@@ -164,7 +164,7 @@ export default function UserManagementTable() {
     try {
       // Get selected village from sessionStorage (with SSR safety check)
       const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem("selectedVillage") : null;
-      const url = selectedVillage ? `/api/pendingUsers?village_key=${encodeURIComponent(selectedVillage)}` : "/api/pendingUsers";
+      const url = selectedVillage ? `/api/pendingUsers?village_id=${encodeURIComponent(selectedVillage)}` : "/api/pendingUsers";
       
       const response = await fetch(url);
       if (!response.ok) {
@@ -286,7 +286,7 @@ export default function UserManagementTable() {
     return filteredResidents.slice(startIndex, endIndex).map(resident => ({
       ...resident,
       username: resident.email.split('@')[0],
-      houseNumber: resident.house_address || resident.village_key,
+      houseNumber: resident.house_address || resident.village_id,
       joinDate: resident.createdAt,
       role: "resident"
     }));

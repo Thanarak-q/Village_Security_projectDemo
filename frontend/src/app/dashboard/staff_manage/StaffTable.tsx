@@ -50,7 +50,7 @@ interface StaffMember {
   password_changed_at: string | null;
   created_at: string;
   updated_at: string;
-  village_key: string;
+  village_id: string;
   village_name: string;
 }
 

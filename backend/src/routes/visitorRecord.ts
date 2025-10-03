@@ -18,6 +18,7 @@ import { requireLiffAuth } from "../hooks/requireLiffAuth";
  * @interface
  */
 interface CreateVisitorRecordBody {
+  visitor_id?: string;
   resident_id?: string;
   guard_id: string;
   house_id: string;
@@ -98,21 +99,21 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
   /**
    * Get visitor records by village.
    * @param {Object} params - The parameters for the request.
-   * @param {string} params.village_key - The village key.
+   * @param {string} params.village_id - The village ID.
    * @returns {Promise<Object>} A promise that resolves to an object containing the visitor records.
    */
-  .get("/visitor-records/village/:village_key", async ({ params }) => {
+  .get("/visitor-records/village/:village_id", async ({ params }) => {
     try {
-      const { village_key } = params;
+      const { village_id } = params;
 
-      if (!village_key?.trim()) {
+      if (!village_id?.trim()) {
         return {
           success: false,
-          error: "Village key is required",
+          error: "Village ID is required",
         };
       }
 
-      const result = await getVisitorRecordsByVillage(village_key);
+      const result = await getVisitorRecordsByVillage(village_id);
       return {
         success: true,
         data: result,

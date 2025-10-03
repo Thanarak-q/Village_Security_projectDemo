@@ -20,17 +20,17 @@ export const villageSelectionRoutes = new Elysia({ prefix: "/api/village-selecti
    */
   .post("/select", async ({ body, set, currentUser }: any) => {
     try {
-      const { village_key } = body as { village_key: string };
-      const { admin_id, role, village_keys } = currentUser;
+      const { village_id } = body as { village_id: string };
+      const { admin_id, role, village_ids } = currentUser;
 
       // Validation
-      if (!village_key) {
+      if (!village_id) {
         set.status = 400;
-        return { success: false, error: "village_key is required" };
+        return { success: false, error: "village_id is required" };
       }
 
       // Check if user has access to this village
-      if (!village_keys.includes(village_key)) {
+      if (!village_ids.includes(village_id)) {
         set.status = 403;
         return { 
           success: false, 
@@ -42,7 +42,7 @@ export const villageSelectionRoutes = new Elysia({ prefix: "/api/village-selecti
       const village = await db
         .select()
         .from(villages)
-        .where(eq(villages.village_key, village_key));
+        .where(eq(villages.village_id, village_id));
 
       if (village.length === 0) {
         set.status = 404;
@@ -55,6 +55,7 @@ export const villageSelectionRoutes = new Elysia({ prefix: "/api/village-selecti
         success: true,
         message: "Village selected successfully",
         data: {
+          village_id: village[0].village_id,
           village_key: village[0].village_key,
           village_name: village[0].village_name,
           user_role: role,
@@ -74,9 +75,9 @@ export const villageSelectionRoutes = new Elysia({ prefix: "/api/village-selecti
    */
   .get("/villages", async ({ currentUser }: any) => {
     try {
-      const { village_keys } = currentUser;
+      const { village_ids } = currentUser;
 
-      if (!village_keys || village_keys.length === 0) {
+      if (!village_ids || village_ids.length === 0) {
         return {
           success: true,
           villages: [],
@@ -87,11 +88,12 @@ export const villageSelectionRoutes = new Elysia({ prefix: "/api/village-selecti
       // Get village details
       const villages_info = await db
         .select({
+          village_id: villages.village_id,
           village_key: villages.village_key,
           village_name: villages.village_name,
         })
         .from(villages)
-        .where(inArray(villages.village_key, village_keys));
+        .where(inArray(villages.village_id, village_ids));
 
       return {
         success: true,
@@ -110,17 +112,18 @@ export const villageSelectionRoutes = new Elysia({ prefix: "/api/village-selecti
    */
   .get("/current", async ({ currentUser }: any) => {
     try {
-      const { village_keys, role } = currentUser;
+      const { village_ids, role } = currentUser;
 
       // For staff, they can only access their assigned village
-      if (role === "staff" && village_keys && village_keys.length === 1) {
+      if (role === "staff" && village_ids && village_ids.length === 1) {
         const village = await db
           .select({
+            village_id: villages.village_id,
             village_key: villages.village_key,
             village_name: villages.village_name,
           })
           .from(villages)
-          .where(eq(villages.village_key, village_keys[0]));
+          .where(eq(villages.village_id, village_ids[0]));
 
         return {
           success: true,
@@ -134,7 +137,7 @@ export const villageSelectionRoutes = new Elysia({ prefix: "/api/village-selecti
         success: true,
         data: null,
         needs_selection: true,
-        available_villages: village_keys || [],
+        available_villages: village_ids || [],
       };
     } catch (error) {
       console.error("Error getting current village:", error);

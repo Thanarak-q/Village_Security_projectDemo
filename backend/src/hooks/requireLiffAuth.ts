@@ -90,13 +90,13 @@ export const requireLiffAuth = (required: string | string[] = "*") => {
       return { error: "Forbidden: You do not have the required role to access this resource." };
     }
 
-    // For guards and residents, use their village_key
-    const village_keys = user.village_key ? [user.village_key] : [];
+    // For guards and residents, use their village_id
+    const village_ids = user.village_id ? [user.village_id] : [];
 
-    // Add village_keys to currentUser
+    // Add village_ids to currentUser
     context.currentUser = {
       ...user,
-      village_keys,
+      village_ids,
       role: userRole,
     };
   };

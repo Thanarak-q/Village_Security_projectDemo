@@ -15,7 +15,7 @@ export const redirectRoutes = new Elysia({ prefix: "/api/redirect" })
    * @returns {Promise<Object>} Redirect URL and user info
    */
   .get("/dashboard", async ({ currentUser }: any) => {
-    const { role, village_keys } = currentUser;
+    const { role, village_ids } = currentUser;
 
     // Super Admin: Redirect to super admin dashboard
     if (role === "superadmin") {
@@ -24,7 +24,7 @@ export const redirectRoutes = new Elysia({ prefix: "/api/redirect" })
         redirect_url: "/super-admin-dashboard",
         user_info: {
           role,
-          village_keys: [], // Super admin has access to all villages
+          village_ids: [], // Super admin has access to all villages
         },
       };
     }
@@ -36,7 +36,7 @@ export const redirectRoutes = new Elysia({ prefix: "/api/redirect" })
         redirect_url: "/admin-village-selection",
         user_info: {
           role,
-          village_keys,
+          village_ids,
           needs_village_selection: true,
         },
       };
@@ -45,17 +45,17 @@ export const redirectRoutes = new Elysia({ prefix: "/api/redirect" })
     // Staff: Redirect to regular dashboard (limited access)
     if (role === "staff") {
       // Staff users should have exactly one village assigned
-      const staffVillageKey = village_keys && village_keys.length > 0 ? village_keys[0] : null;
+      const staffVillageId = village_ids && village_ids.length > 0 ? village_ids[0] : null;
       
       return {
         success: true,
         redirect_url: "/dashboard",
         user_info: {
           role,
-          village_keys,
+          village_ids,
           limited_access: true,
-          // Provide the village key for automatic setting in frontend
-          auto_village_key: staffVillageKey,
+          // Provide the village id for automatic setting in frontend
+          auto_village_id: staffVillageId,
         },
       };
     }
@@ -74,7 +74,7 @@ export const redirectRoutes = new Elysia({ prefix: "/api/redirect" })
    * @returns {Promise<Object>} List of accessible villages
    */
   .get("/villages", async ({ currentUser }: any) => {
-    const { role, village_keys } = currentUser;
+    const { role, village_ids } = currentUser;
 
     // Super Admin: Can access all villages (handled in frontend)
     if (role === "superadmin") {
@@ -88,7 +88,7 @@ export const redirectRoutes = new Elysia({ prefix: "/api/redirect" })
     // Admin and Staff: Return their assigned villages
     return {
       success: true,
-      villages: village_keys || [],
+      villages: village_ids || [],
       role,
     };
   });

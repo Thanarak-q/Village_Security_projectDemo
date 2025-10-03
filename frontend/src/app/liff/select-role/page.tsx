@@ -9,7 +9,7 @@ import { ModeToggle } from "@/components/mode-toggle";
 
 interface UserRole {
   role: string;
-  village_key: string;
+  village_id: string;
   village_name?: string;
   status?: string;
 }
@@ -292,7 +292,7 @@ export default function SelectRolePage() {
                     .filter(role => role.status === 'pending')
                     .map((role, index) => (
                       <div
-                        key={`${role.role}-${role.village_key}-${index}`}
+                        key={`${role.role}-${role.village_id}-${index}`}
                         className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border"
                       >
                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -307,7 +307,7 @@ export default function SelectRolePage() {
                             {role.role === 'resident' ? 'ผู้อยู่อาศัย' : 'ยามรักษาความปลอดภัย'}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {role.village_name || role.village_key}
+                            {role.village_name || role.village_id}
                           </p>
                         </div>
                         <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 ml-auto">

@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
 import db from "../db/drizzle";
-import { admins } from "../db/schema";
+import { admins, villages } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { hashPassword, verifyPassword } from "../utils/passwordUtils";
@@ -32,11 +32,14 @@ export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
           phone: admins.phone,
           role: admins.role,
           status: admins.status,
-          village_key: admins.village_key,
+          village_id: admins.village_id,
+          village_key: villages.village_key,
+          village_name: villages.village_name,
           createdAt: admins.createdAt,
           updatedAt: admins.updatedAt,
         })
         .from(admins)
+        .leftJoin(villages, eq(admins.village_id, villages.village_id))
         .where(eq(admins.admin_id, admin_id));
 
       if (result.length === 0) {

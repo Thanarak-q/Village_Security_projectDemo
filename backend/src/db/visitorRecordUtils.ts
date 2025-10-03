@@ -5,7 +5,7 @@
  */
 
 import db from "./drizzle";
-import { visitor_records, houses, residents, guards, house_members } from "./schema";
+import { visitor_records, houses, residents, guards, house_members, visitors, villages } from "./schema";
 import { eq, sql, and, gte, lte, inArray } from "drizzle-orm";
 
 /**
@@ -16,66 +16,90 @@ export async function getAllVisitorRecords() {
   const result = await db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
+      visitor_id: visitor_records.visitor_id,
       resident_id: visitor_records.resident_id,
       guard_id: visitor_records.guard_id,
       house_id: visitor_records.house_id,
       picture_key: visitor_records.picture_key,
-      visitor_name: visitor_records.visitor_name,
-      visitor_id_card: visitor_records.visitor_id_card,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
       record_status: visitor_records.record_status,
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
       updatedAt: visitor_records.updatedAt,
+      // Visitor information from visitors table
+      visitor_name: sql`${visitors.fname} || ' ' || ${visitors.lname}`,
+      visitor_phone: visitors.phone,
+      visitor_id_doc_type: visitors.id_doc_type,
+      visitor_risk_status: visitors.risk_status,
+      visitor_visit_count: visitors.visit_count,
+      visitor_last_visit_at: visitors.last_visit_at,
+      // Resident information
       resident_name: sql`${residents.fname} || ' ' || ${residents.lname}`,
       resident_email: residents.email,
+      // Guard information
       guard_name: sql`${guards.fname} || ' ' || ${guards.lname}`,
       guard_email: guards.email,
+      // House information
       house_address: houses.address,
-      village_key: houses.village_key,
+      village_id: houses.village_id,
+      village_key: villages.village_key,
     })
     .from(visitor_records)
+    .leftJoin(visitors, eq(visitor_records.visitor_id, visitors.visitor_id))
     .leftJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
     .leftJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
-    .innerJoin(houses, eq(visitor_records.house_id, houses.house_id));
+    .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
+    .leftJoin(villages, eq(houses.village_id, villages.village_id));
 
   return result;
 }
 
 /**
  * Retrieves all visitor records for a specific village.
- * @param {string} villageKey - The unique key of the village.
+ * @param {string} villageId - The UUID of the village.
  * @returns {Promise<Array<Object>>} A promise that resolves to an array of visitor records for the specified village.
  */
-export async function getVisitorRecordsByVillage(villageKey: string) {
+export async function getVisitorRecordsByVillage(villageId: string) {
   const result = await db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
+      visitor_id: visitor_records.visitor_id,
       resident_id: visitor_records.resident_id,
       guard_id: visitor_records.guard_id,
       house_id: visitor_records.house_id,
       picture_key: visitor_records.picture_key,
-      visitor_name: visitor_records.visitor_name,
-      visitor_id_card: visitor_records.visitor_id_card,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
       record_status: visitor_records.record_status,
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
       updatedAt: visitor_records.updatedAt,
+      // Visitor information from visitors table
+      visitor_name: sql`${visitors.fname} || ' ' || ${visitors.lname}`,
+      visitor_phone: visitors.phone,
+      visitor_id_doc_type: visitors.id_doc_type,
+      visitor_risk_status: visitors.risk_status,
+      visitor_visit_count: visitors.visit_count,
+      visitor_last_visit_at: visitors.last_visit_at,
+      // Resident information
       resident_name: sql`${residents.fname} || ' ' || ${residents.lname}`,
       resident_email: residents.email,
+      // Guard information
       guard_name: sql`${guards.fname} || ' ' || ${guards.lname}`,
       guard_email: guards.email,
+      // House information
       house_address: houses.address,
-      village_key: houses.village_key,
+      village_id: houses.village_id,
+      village_key: villages.village_key,
     })
     .from(visitor_records)
+    .leftJoin(visitors, eq(visitor_records.visitor_id, visitors.visitor_id))
     .leftJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
     .leftJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
-    .where(eq(houses.village_key, villageKey));
+    .innerJoin(villages, eq(houses.village_id, villages.village_id))
+    .where(eq(houses.village_id, villageId));
 
   return result;
 }
@@ -89,29 +113,41 @@ export async function getVisitorRecordsByResident(residentId: string) {
   const result = await db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
+      visitor_id: visitor_records.visitor_id,
       resident_id: visitor_records.resident_id,
       guard_id: visitor_records.guard_id,
       house_id: visitor_records.house_id,
       picture_key: visitor_records.picture_key,
-      visitor_name: visitor_records.visitor_name,
-      visitor_id_card: visitor_records.visitor_id_card,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
       record_status: visitor_records.record_status,
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
       updatedAt: visitor_records.updatedAt,
+      // Visitor information from visitors table
+      visitor_name: sql`${visitors.fname} || ' ' || ${visitors.lname}`,
+      visitor_phone: visitors.phone,
+      visitor_id_doc_type: visitors.id_doc_type,
+      visitor_risk_status: visitors.risk_status,
+      visitor_visit_count: visitors.visit_count,
+      visitor_last_visit_at: visitors.last_visit_at,
+      // Resident information
       resident_name: sql`${residents.fname} || ' ' || ${residents.lname}`,
       resident_email: residents.email,
+      // Guard information
       guard_name: sql`${guards.fname} || ' ' || ${guards.lname}`,
       guard_email: guards.email,
+      // House information
       house_address: houses.address,
-      village_key: houses.village_key,
+      village_id: houses.village_id,
+      village_key: villages.village_key,
     })
     .from(visitor_records)
+    .leftJoin(visitors, eq(visitor_records.visitor_id, visitors.visitor_id))
     .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
     .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
+    .leftJoin(villages, eq(houses.village_id, villages.village_id))
     .where(eq(visitor_records.resident_id, residentId));
 
   return result;
@@ -126,29 +162,41 @@ export async function getVisitorRecordsByGuard(guardId: string) {
   const result = await db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
+      visitor_id: visitor_records.visitor_id,
       resident_id: visitor_records.resident_id,
       guard_id: visitor_records.guard_id,
       house_id: visitor_records.house_id,
       picture_key: visitor_records.picture_key,
-      visitor_name: visitor_records.visitor_name,
-      visitor_id_card: visitor_records.visitor_id_card,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
       record_status: visitor_records.record_status,
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
       updatedAt: visitor_records.updatedAt,
+      // Visitor information from visitors table
+      visitor_name: sql`${visitors.fname} || ' ' || ${visitors.lname}`,
+      visitor_phone: visitors.phone,
+      visitor_id_doc_type: visitors.id_doc_type,
+      visitor_risk_status: visitors.risk_status,
+      visitor_visit_count: visitors.visit_count,
+      visitor_last_visit_at: visitors.last_visit_at,
+      // Resident information
       resident_name: sql`${residents.fname} || ' ' || ${residents.lname}`,
       resident_email: residents.email,
+      // Guard information
       guard_name: sql`${guards.fname} || ' ' || ${guards.lname}`,
       guard_email: guards.email,
+      // House information
       house_address: houses.address,
-      village_key: houses.village_key,
+      village_id: houses.village_id,
+      village_key: villages.village_key,
     })
     .from(visitor_records)
+    .leftJoin(visitors, eq(visitor_records.visitor_id, visitors.visitor_id))
     .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
     .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
+    .leftJoin(villages, eq(houses.village_id, villages.village_id))
     .where(eq(visitor_records.guard_id, guardId));
 
   return result;
@@ -163,26 +211,37 @@ export async function getVisitorRecordsByHouse(houseId: string) {
   const result = await db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
+      visitor_id: visitor_records.visitor_id,
       resident_id: visitor_records.resident_id,
       guard_id: visitor_records.guard_id,
       house_id: visitor_records.house_id,
       picture_key: visitor_records.picture_key,
-      visitor_name: visitor_records.visitor_name,
-      visitor_id_card: visitor_records.visitor_id_card,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
       record_status: visitor_records.record_status,
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
       updatedAt: visitor_records.updatedAt,
+      // Visitor information from visitors table
+      visitor_name: sql`${visitors.fname} || ' ' || ${visitors.lname}`,
+      visitor_phone: visitors.phone,
+      visitor_id_doc_type: visitors.id_doc_type,
+      visitor_risk_status: visitors.risk_status,
+      visitor_visit_count: visitors.visit_count,
+      visitor_last_visit_at: visitors.last_visit_at,
+      // Resident information
       resident_name: sql`${residents.fname} || ' ' || ${residents.lname}`,
       resident_email: residents.email,
+      // Guard information
       guard_name: sql`${guards.fname} || ' ' || ${guards.lname}`,
       guard_email: guards.email,
+      // House information
       house_address: houses.address,
-      village_key: houses.village_key,
+      village_id: houses.village_id,
+      village_key: villages.village_key,
     })
     .from(visitor_records)
+    .leftJoin(visitors, eq(visitor_records.visitor_id, visitors.visitor_id))
     .leftJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
     .leftJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
@@ -202,26 +261,37 @@ export async function getVisitorRecordsByStatus(
   const result = await db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
+      visitor_id: visitor_records.visitor_id,
       resident_id: visitor_records.resident_id,
       guard_id: visitor_records.guard_id,
       house_id: visitor_records.house_id,
       picture_key: visitor_records.picture_key,
-      visitor_name: visitor_records.visitor_name,
-      visitor_id_card: visitor_records.visitor_id_card,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
       record_status: visitor_records.record_status,
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
       updatedAt: visitor_records.updatedAt,
+      // Visitor information from visitors table
+      visitor_name: sql`${visitors.fname} || ' ' || ${visitors.lname}`,
+      visitor_phone: visitors.phone,
+      visitor_id_doc_type: visitors.id_doc_type,
+      visitor_risk_status: visitors.risk_status,
+      visitor_visit_count: visitors.visit_count,
+      visitor_last_visit_at: visitors.last_visit_at,
+      // Resident information
       resident_name: sql`${residents.fname} || ' ' || ${residents.lname}`,
       resident_email: residents.email,
+      // Guard information
       guard_name: sql`${guards.fname} || ' ' || ${guards.lname}`,
       guard_email: guards.email,
+      // House information
       house_address: houses.address,
-      village_key: houses.village_key,
+      village_id: houses.village_id,
+      village_key: villages.village_key,
     })
     .from(visitor_records)
+    .leftJoin(visitors, eq(visitor_records.visitor_id, visitors.visitor_id))
     .leftJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
     .leftJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
@@ -254,28 +324,40 @@ export async function getVisitorRecordsByLineId(lineUserId: string) {
   const result = await db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
+      visitor_id: visitor_records.visitor_id,
       resident_id: visitor_records.resident_id,
       guard_id: visitor_records.guard_id,
       house_id: visitor_records.house_id,
       picture_key: visitor_records.picture_key,
-      visitor_name: visitor_records.visitor_name,
-      visitor_id_card: visitor_records.visitor_id_card,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
       record_status: visitor_records.record_status,
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
       updatedAt: visitor_records.updatedAt,
+      // Visitor information from visitors table
+      visitor_name: sql`${visitors.fname} || ' ' || ${visitors.lname}`,
+      visitor_phone: visitors.phone,
+      visitor_id_doc_type: visitors.id_doc_type,
+      visitor_risk_status: visitors.risk_status,
+      visitor_visit_count: visitors.visit_count,
+      visitor_last_visit_at: visitors.last_visit_at,
+      // Resident information
       resident_name: sql`${residents.fname} || ' ' || ${residents.lname}`,
       resident_email: residents.email,
+      // Guard information
       guard_name: sql`${guards.fname} || ' ' || ${guards.lname}`,
       guard_email: guards.email,
+      // House information
       house_address: houses.address,
-      village_key: houses.village_key,
+      village_id: houses.village_id,
+      village_key: villages.village_key,
     })
     .from(visitor_records)
+    .leftJoin(visitors, eq(visitor_records.visitor_id, visitors.visitor_id))
     .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
     .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
+    .leftJoin(villages, eq(houses.village_id, villages.village_id))
     .innerJoin(house_members, eq(visitor_records.house_id, house_members.house_id))
     .innerJoin(residents, eq(house_members.resident_id, residents.resident_id))
     .where(eq(residents.line_user_id, lineUserId));
@@ -298,6 +380,7 @@ export async function getVisitorRecordsByLineId(lineUserId: string) {
  * @returns {Promise<Object>} A promise that resolves to the newly created visitor record.
  */
 export async function createVisitorRecord(data: {
+  visitor_id?: string;
   resident_id?: string;
   guard_id: string;
   house_id: string;
@@ -309,6 +392,7 @@ export async function createVisitorRecord(data: {
   const [newVisitorRecord] = await db
     .insert(visitor_records)
     .values({
+      visitor_id: data.visitor_id || null,
       resident_id: data.resident_id || null,
       guard_id: data.guard_id,
       house_id: data.house_id,
@@ -371,28 +455,41 @@ export async function getVisitorRecordsByResidentName(residentName: string) {
     const allRecords = await db
       .select({
         visitor_record_id: visitor_records.visitor_record_id,
+        visitor_id: visitor_records.visitor_id,
         resident_id: visitor_records.resident_id,
         guard_id: visitor_records.guard_id,
         house_id: visitor_records.house_id,
-      picture_key: visitor_records.picture_key,
+        picture_key: visitor_records.picture_key,
         license_plate: visitor_records.license_plate,
         entry_time: visitor_records.entry_time,
-
         record_status: visitor_records.record_status,
         visit_purpose: visitor_records.visit_purpose,
         createdAt: visitor_records.createdAt,
         updatedAt: visitor_records.updatedAt,
+        // Visitor information from visitors table
+        visitor_name: sql`${visitors.fname} || ' ' || ${visitors.lname}`,
+        visitor_phone: visitors.phone,
+        visitor_id_doc_type: visitors.id_doc_type,
+        visitor_risk_status: visitors.risk_status,
+        visitor_visit_count: visitors.visit_count,
+        visitor_last_visit_at: visitors.last_visit_at,
+        // Resident information
         resident_name: sql`${residents.fname} || ' ' || ${residents.lname}`,
         resident_email: residents.email,
+        // Guard information
         guard_name: sql`${guards.fname} || ' ' || ${guards.lname}`,
         guard_email: guards.email,
-        house_address: houses.address,
-        village_key: houses.village_key,
-      })
-      .from(visitor_records)
-      .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
-      .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
-      .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
+      // House information
+      house_address: houses.address,
+      village_id: houses.village_id,
+      village_key: villages.village_key,
+    })
+    .from(visitor_records)
+    .leftJoin(visitors, eq(visitor_records.visitor_id, visitors.visitor_id))
+    .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
+    .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
+    .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
+    .leftJoin(villages, eq(houses.village_id, villages.village_id))
       .orderBy(visitor_records.createdAt);
 
     console.log(`📊 Total records in database: ${allRecords.length}`);
@@ -425,11 +522,11 @@ export async function getVisitorRecordsByResidentName(residentName: string) {
 
 /**
  * Retrieves and compiles statistics for visitor records for the current week (Sunday to Saturday).
- * @param {string[]} villageKeys - Array of village keys to filter by (optional).
+ * @param {string[]} villageIds - Array of village IDs to filter by (optional).
  * @param {string} role - User role for permission checking.
  * @returns {Promise<Object>} A promise that resolves to an object containing weekly statistics, including counts per day and a summary.
  */
-export async function getWeeklyVisitorRecords(villageKeys?: string[], role?: string) {
+export async function getWeeklyVisitorRecords(villageIds?: string[], role?: string) {
   // Calculate the start and end of current week (Sunday to Saturday)
   const now = new Date();
   const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
@@ -445,26 +542,27 @@ export async function getWeeklyVisitorRecords(villageKeys?: string[], role?: str
   let query = db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
+      visitor_id: visitor_records.visitor_id,
       entry_time: visitor_records.entry_time,
       record_status: visitor_records.record_status,
       createdAt: visitor_records.createdAt,
     })
     .from(visitor_records);
 
-  // Add village filtering if villageKeys provided and user is not superadmin
-  if (villageKeys && villageKeys.length > 0 && role !== "superadmin") {
+  // Add village filtering if villageIds provided and user is not superadmin
+  if (villageIds && villageIds.length > 0 && role !== "superadmin") {
     query = query
       .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
       .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
       .where(
         and(
-          inArray(houses.village_key, villageKeys),
+          inArray(houses.village_id, villageIds),
           gte(visitor_records.entry_time, startOfWeek),
           lte(visitor_records.entry_time, endOfWeek)
         )
       );
   } else {
-    // No village filtering for superadmin or when no villageKeys provided
+    // No village filtering for superadmin or when no villageIds provided
     query = query.where(
       and(
         gte(visitor_records.entry_time, startOfWeek),
@@ -525,11 +623,11 @@ export async function getWeeklyVisitorRecords(villageKeys?: string[], role?: str
 
 /**
  * Retrieves and compiles statistics for visitor records for each month of the current year.
- * @param {string[]} villageKeys - Array of village keys to filter by (optional).
+ * @param {string[]} villageIds - Array of village IDs to filter by (optional).
  * @param {string} role - User role for permission checking.
  * @returns {Promise<Object>} A promise that resolves to an object containing monthly statistics and a summary.
  */
-export async function getMonthlyVisitorRecords(villageKeys?: string[], role?: string) {
+export async function getMonthlyVisitorRecords(villageIds?: string[], role?: string) {
   // Get current year
   const currentYear = new Date().getFullYear();
 
@@ -541,26 +639,27 @@ export async function getMonthlyVisitorRecords(villageKeys?: string[], role?: st
   let query = db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
+      visitor_id: visitor_records.visitor_id,
       entry_time: visitor_records.entry_time,
       record_status: visitor_records.record_status,
       createdAt: visitor_records.createdAt,
     })
     .from(visitor_records);
 
-  // Add village filtering if villageKeys provided and user is not superadmin
-  if (villageKeys && villageKeys.length > 0 && role !== "superadmin") {
+  // Add village filtering if villageIds provided and user is not superadmin
+  if (villageIds && villageIds.length > 0 && role !== "superadmin") {
     query = query
       .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
       .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
       .where(
         and(
-          inArray(houses.village_key, villageKeys),
+          inArray(houses.village_id, villageIds),
           gte(visitor_records.entry_time, startOfYear),
           lte(visitor_records.entry_time, endOfYear)
         )
       );
   } else {
-    // No village filtering for superadmin or when no villageKeys provided
+    // No village filtering for superadmin or when no villageIds provided
     query = query.where(
       and(
         gte(visitor_records.entry_time, startOfYear),
@@ -630,27 +729,28 @@ export async function getMonthlyVisitorRecords(villageKeys?: string[], role?: st
 
 /**
  * Retrieves and compiles statistics for visitor records, aggregated by year.
- * @param {string[]} villageKeys - Array of village keys to filter by (optional).
+ * @param {string[]} villageIds - Array of village IDs to filter by (optional).
  * @param {string} role - User role for permission checking.
  * @returns {Promise<Object>} A promise that resolves to an object containing yearly statistics and a summary.
  */
-export async function getYearlyVisitorRecords(villageKeys?: string[], role?: string) {
+export async function getYearlyVisitorRecords(villageIds?: string[], role?: string) {
   // Build query with village filtering if provided
   let query = db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
+      visitor_id: visitor_records.visitor_id,
       entry_time: visitor_records.entry_time,
       record_status: visitor_records.record_status,
       createdAt: visitor_records.createdAt,
     })
     .from(visitor_records);
 
-  // Add village filtering if villageKeys provided and user is not superadmin
-  if (villageKeys && villageKeys.length > 0 && role !== "superadmin") {
+  // Add village filtering if villageIds provided and user is not superadmin
+  if (villageIds && villageIds.length > 0 && role !== "superadmin") {
     query = query
       .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
       .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
-      .where(inArray(houses.village_key, villageKeys));
+      .where(inArray(houses.village_id, villageIds));
   }
 
   const allRecords = await query;

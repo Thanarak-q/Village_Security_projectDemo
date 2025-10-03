@@ -39,9 +39,11 @@ import {
   Building,
   Shield,
   UserCheck,
-  Eye
+  Eye,
+  Archive
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import VillageMultiSelect from "./components/VillageMultiSelect";
 import AdminDetailDialog from "./components/AdminDetailDialog";
@@ -53,9 +55,9 @@ interface Admin {
   phone: string;
   role: "admin" | "staff";
   status: "verified" | "pending" | "disable";
-  village_keys: string[];
+  village_ids: string[];
   villages: Array<{
-    village_key: string;
+    village_id: string;
     village_name: string;
   }>;
   createdAt: string;
@@ -65,7 +67,6 @@ interface Admin {
 interface Village {
   village_id: string;
   village_name: string;
-  village_key: string;
   admin_count: number;
 }
 
@@ -85,7 +86,7 @@ export default function AdminsPage() {
     password: "",
     phone: "",
     role: "admin" as "admin" | "staff",
-    village_keys: [] as string[],
+    village_ids: [] as string[],
   });
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
@@ -158,8 +159,8 @@ export default function AdminsPage() {
       return;
     }
 
-    // For staff role, village_keys is required
-    if (formData.role === "staff" && formData.village_keys.length === 0) {
+    // For staff role, village_ids is required
+    if (formData.role === "staff" && formData.village_ids.length === 0) {
       toast.error("Staff ต้องมีหมู่บ้านอย่างน้อย 1 หมู่บ้าน");
       return;
     }
@@ -185,7 +186,7 @@ export default function AdminsPage() {
           password: "",
           phone: "",
           role: "admin",
-          village_keys: [],
+          village_ids: [],
         });
         fetchAdmins();
       } else {
@@ -206,8 +207,8 @@ export default function AdminsPage() {
       return;
     }
 
-    // For staff role, village_keys is required
-    if (formData.role === "staff" && formData.village_keys.length === 0) {
+    // For staff role, village_ids is required
+    if (formData.role === "staff" && formData.village_ids.length === 0) {
       toast.error("Staff ต้องมีหมู่บ้านอย่างน้อย 1 หมู่บ้าน");
       return;
     }
@@ -241,7 +242,7 @@ export default function AdminsPage() {
         },
         credentials: "include",
         body: JSON.stringify({
-          village_keys: formData.village_keys,
+          village_ids: formData.village_ids,
         }),
       });
 
@@ -258,7 +259,7 @@ export default function AdminsPage() {
         password: "",
         phone: "",
         role: "admin",
-        village_keys: [],
+        village_ids: [],
       });
       fetchAdmins();
     } catch (err) {
@@ -304,7 +305,7 @@ export default function AdminsPage() {
       password: "",
       phone: admin.phone,
       role: admin.role,
-      village_keys: admin.village_keys || [],
+      village_ids: admin.village_ids || [],
     });
     setIsEditDialogOpen(true);
   };
@@ -376,13 +377,20 @@ export default function AdminsPage() {
             สร้าง แก้ไข และลบ Admin ในระบบ
           </p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              สร้าง Admin ใหม่
+        <div className="flex items-center gap-3">
+          <Link href="/super-admin-dashboard/admins/disabled">
+            <Button variant="outline">
+              <Archive className="mr-2 h-4 w-4" />
+              แอดมินที่ถูกระงับ
             </Button>
-          </DialogTrigger>
+          </Link>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                สร้าง Admin ใหม่
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>สร้าง Admin ใหม่</DialogTitle>
@@ -448,9 +456,9 @@ export default function AdminsPage() {
               </div>
               <VillageMultiSelect
                 villages={villages}
-                selectedVillageKeys={formData.village_keys}
-                onSelectionChange={(villageKeys) => 
-                  setFormData({ ...formData, village_keys: villageKeys })
+                selectedVillageIds={formData.village_ids}
+                onSelectionChange={(villageIds) => 
+                  setFormData({ ...formData, village_ids: villageIds })
                 }
                 role={formData.role}
               />
@@ -465,6 +473,7 @@ export default function AdminsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Admins Table */}
@@ -526,7 +535,7 @@ export default function AdminsPage() {
                         {admin.villages && admin.villages.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
                             {admin.villages.map((village) => (
-                              <Badge key={village.village_key} variant="outline" className="text-xs">
+                              <Badge key={village.village_id} variant="outline" className="text-xs">
                                 <Building className="h-3 w-3 mr-1" />
                                 {village.village_name}
                               </Badge>
@@ -634,9 +643,9 @@ export default function AdminsPage() {
             </div>
             <VillageMultiSelect
               villages={villages}
-              selectedVillageKeys={formData.village_keys}
-              onSelectionChange={(villageKeys) => 
-                setFormData({ ...formData, village_keys: villageKeys })
+              selectedVillageIds={formData.village_ids}
+              onSelectionChange={(villageIds) => 
+                setFormData({ ...formData, village_ids: villageIds })
               }
               role={formData.role}
             />

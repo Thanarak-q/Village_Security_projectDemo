@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import db from "../db/drizzle";
 import { villages, admins } from "../db/schema";
-import { eq, or, inArray } from "drizzle-orm";
+import { eq, or, inArray, and, isNull } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { requireLiffAuth } from "../hooks/requireLiffAuth";
 
@@ -18,7 +18,11 @@ const publicRoutes = new Elysia({ prefix: "/api/villages" })
           village_name: villages.village_name,
         })
         .from(villages)
-        .where(eq(villages.village_key, villageKey))
+        .where(and(
+          eq(villages.village_key, villageKey),
+          isNull(villages.disable_at),
+          eq(villages.status, "active")
+        ))
         .then(results => results[0]);
 
       if (village) {
@@ -38,23 +42,60 @@ const publicRoutes = new Elysia({ prefix: "/api/villages" })
   });
 
 const adminRoutes = new Elysia({ prefix: "/api/villages" })
+  .onBeforeHandle(requireRole("*"))
+  .get("/", async ({ set }) => {
+    try {
+      const allVillages = await db.select({
+        village_key: villages.village_key,
+        village_name: villages.village_name,
+      })
+      .from(villages)
+      .where(and(
+        isNull(villages.disable_at),
+        eq(villages.status, "active")
+      ));
+      
+      return allVillages;
+    } catch (error) {
+      console.error("Error fetching villages:", error);
+      set.status = 500;
+      return { error: "Failed to fetch villages" };
+    }
+  })
   .onBeforeHandle(requireRole(["admin", "superadmin"]))
   .get("/admin", async ({ currentUser, set }: any) => {
     try {
       // Role checking is already handled by requireRole middleware
       const { role, village_keys } = currentUser;
+      // Check if user has admin or superadmin role
+      if (!currentUser || (currentUser.role !== "admin" && currentUser.role !== "superadmin")) {
+        set.status = 403;
+        return { 
+          success: false, 
+          error: "Access denied. Admin role required." 
+        };
+      }
+
+      const { village_ids } = currentUser;
       
       let adminVillages;
       
       if (role === "superadmin") {
         // Superadmin can see all villages
-        adminVillages = await db.select({
-          village_key: villages.village_key,
-          village_name: villages.village_name,
-        }).from(villages);
+        adminVillages = await db
+          .select({
+            village_id: villages.village_id,
+            village_key: villages.village_key,
+            village_name: villages.village_name,
+          })
+          .from(villages);
       } else {
         // Regular admin can only see their assigned villages
-        if (!village_keys || village_keys.length === 0) {
+        const allowedVillageIds: string[] = Array.isArray(village_ids)
+          ? village_ids
+          : [];
+
+        if (!allowedVillageIds.length) {
           return { 
             success: true, 
             data: [], 
@@ -64,11 +105,12 @@ const adminRoutes = new Elysia({ prefix: "/api/villages" })
         
         adminVillages = await db
           .select({
+            village_id: villages.village_id,
             village_key: villages.village_key,
             village_name: villages.village_name,
           })
           .from(villages)
-          .where(inArray(villages.village_key, village_keys));
+          .where(inArray(villages.village_id, allowedVillageIds));
       }
       
       return {

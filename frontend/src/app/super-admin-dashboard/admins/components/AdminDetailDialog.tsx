@@ -38,9 +38,9 @@ interface Admin {
   phone: string;
   role: "admin" | "staff";
   status: "verified" | "pending" | "disable";
-  village_keys: string[];
+  village_ids: string[];
   villages: Array<{
-    village_key: string;
+    village_id: string;
     village_name: string;
   }>;
   createdAt: string;
@@ -50,7 +50,6 @@ interface Admin {
 interface Village {
   village_id: string;
   village_name: string;
-  village_key: string;
   admin_count: number;
 }
 
@@ -124,7 +123,7 @@ export default function AdminDetailDialog({
 
   const getAdminVillages = () => {
     return villages.filter(village => 
-      admin.village_keys.includes(village.village_key)
+      admin.village_ids.includes(village.village_id)
     );
   };
 
@@ -221,7 +220,7 @@ export default function AdminDetailDialog({
                   {/* Village Badges */}
                   <div className="flex flex-wrap gap-2">
                     {admin.villages.map((village) => (
-                      <Badge key={village.village_key} variant="outline" className="flex items-center gap-1">
+                      <Badge key={village.village_id} variant="outline" className="flex items-center gap-1">
                         <Building className="h-3 w-3" />
                         {village.village_name}
                       </Badge>
@@ -241,7 +240,7 @@ export default function AdminDetailDialog({
                       </TableHeader>
                       <TableBody>
                         {getAdminVillages().map((village) => (
-                          <TableRow key={village.village_key}>
+                          <TableRow key={village.village_id}>
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-2">
                                 <Building className="h-4 w-4" />
@@ -250,7 +249,7 @@ export default function AdminDetailDialog({
                             </TableCell>
                             <TableCell>
                               <code className="text-xs bg-muted px-2 py-1 rounded">
-                                {village.village_key}
+                                {village.village_id}
                               </code>
                             </TableCell>
                             <TableCell>

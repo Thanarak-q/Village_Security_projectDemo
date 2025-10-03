@@ -46,7 +46,7 @@ interface VisitorRecordAPI {
   guard_name: string;
   guard_email: string;
   house_address: string;
-  village_key: string;
+  village_id: string;
 }
 
 // Interface for Admin History from API

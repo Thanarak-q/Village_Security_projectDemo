@@ -25,15 +25,15 @@ const defaultOptions: MessageDeduplicationOptions = {
   deduplicationWindow: 300000 // 5 minutes
 };
 
-export function useMessageDeduplication(options: Partial<MessageDeduplicationOptions> & { villageKey?: string } = {}) {
-  const { villageKey: overrideVillageKey, ...dedupOptions } = options;
+export function useMessageDeduplication(options: Partial<MessageDeduplicationOptions> & { villageId?: string } = {}) {
+  const { villageId: overrideVillageId, ...dedupOptions } = options;
   const config = useMemo(() => ({ ...defaultOptions, ...dedupOptions }), [dedupOptions]);
   const { user } = useAuth();
-  const resolvedVillageKey = useMemo(() => {
-    const fromOptions = typeof overrideVillageKey === 'string' ? overrideVillageKey.trim() : '';
-    const fromUser = typeof user?.village_key === 'string' ? user.village_key.trim() : '';
+  const resolvedVillageId = useMemo(() => {
+    const fromOptions = typeof overrideVillageId === 'string' ? overrideVillageId.trim() : '';
+    const fromUser = typeof user?.village_id === 'string' ? user.village_id.trim() : '';
     return fromOptions || fromUser || null;
-  }, [overrideVillageKey, user?.village_key]);
+  }, [overrideVillageId, user?.village_id]);
   const [queueStatus, setQueueStatus] = useState(websocketMessageManager.getQueueStatus());
   const statusUpdateInterval = useRef<NodeJS.Timeout>();
 
@@ -77,12 +77,12 @@ export function useMessageDeduplication(options: Partial<MessageDeduplicationOpt
 
         if (data && typeof data === 'object') {
           payload = {
-            villageKey: resolvedVillageKey,
+            villageId: resolvedVillageId,
             ...(data as Record<string, unknown>)
           };
         } else {
           payload = {
-            villageKey: resolvedVillageKey,
+            villageId: resolvedVillageId,
             value: data
           };
         }
@@ -123,7 +123,7 @@ export function useMessageDeduplication(options: Partial<MessageDeduplicationOpt
       body,
       level: options.level || 'info',
       createdAt: Date.now(),
-      villageKey: resolvedVillageKey,
+      villageId: resolvedVillageId,
       metadata: options.metadata
     };
 
@@ -132,7 +132,7 @@ export function useMessageDeduplication(options: Partial<MessageDeduplicationOpt
       metadata: {
         type: 'notification',
         level: options.level || 'info',
-        villageKey: resolvedVillageKey,
+        villageId: resolvedVillageId,
         ...options.metadata
       }
     });

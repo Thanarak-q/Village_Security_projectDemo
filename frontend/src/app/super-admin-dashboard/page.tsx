@@ -36,7 +36,6 @@ interface SystemStats {
     list: Array<{
       village_id: string;
       village_name: string;
-      village_key: string;
       admin_count: number;
     }>;
   };
@@ -47,8 +46,10 @@ interface SystemStats {
       email: string;
       role: string;
       status: string;
-      village_key: string;
-      village_name: string;
+      villages: Array<{
+        village_id: string;
+        village_name: string;
+      }>;
       createdAt: string;
     }>;
   };
@@ -56,7 +57,6 @@ interface SystemStats {
     villagesWithoutAdmins: Array<{
       village_id: string;
       village_name: string;
-      village_key: string;
       admin_count: number;
     }>;
     pendingAdmins: number;
@@ -289,7 +289,11 @@ export default function SuperAdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {stats.recentActivity.recentAdmins.map((admin) => (
+              {stats.recentActivity.recentAdmins
+                .filter((admin, index, self) => 
+                  index === self.findIndex(a => a.admin_id === admin.admin_id)
+                )
+                .map((admin) => (
                 <div key={admin.admin_id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -313,7 +317,7 @@ export default function SuperAdminDashboard() {
                     </div>
                     <p className="text-sm text-muted-foreground">{admin.email}</p>
                     <p className="text-xs text-muted-foreground">
-                      หมู่บ้าน: {admin.village_name || 'ไม่ระบุ'}
+                      หมู่บ้าน: {admin.villages.length > 0 ? admin.villages.map(v => v.village_name).join(', ') : 'ไม่ระบุ'}
                     </p>
                   </div>
                   <div className="text-xs text-muted-foreground">
@@ -348,7 +352,7 @@ export default function SuperAdminDashboard() {
                   <div className="flex-1">
                     <p className="font-medium">{village.village_name}</p>
                     <p className="text-sm text-muted-foreground">
-                      Key: {village.village_key}
+                      ID: {village.village_id}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
