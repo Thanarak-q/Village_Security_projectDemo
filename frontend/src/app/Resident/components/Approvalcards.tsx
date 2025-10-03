@@ -397,7 +397,10 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
                           {sortedPending[currentIndex].plateNumber}
                         </div>
                         <div className="text-muted-foreground text-sm truncate">
-                          {sortedPending[currentIndex].visitorName} • {sortedPending[currentIndex].destination}
+                          {sortedPending[currentIndex].visitorName ? 
+                            `${sortedPending[currentIndex].visitorName} • ${sortedPending[currentIndex].destination}` : 
+                            sortedPending[currentIndex].destination
+                          }
                         </div>
                         <div className="text-muted-foreground text-xs flex items-center gap-1 mt-1">
                           <Clock className="w-3 h-3 flex-shrink-0" />
@@ -409,7 +412,9 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
                       <div className="w-full h-48 bg-muted rounded-lg flex items-center justify-center overflow-hidden border">
                         {sortedPending[currentIndex].carImage ? (
                           <Image
-                            src={`/${sortedPending[currentIndex].carImage}`}
+                            src={sortedPending[currentIndex].carImage.startsWith('/api/') ? 
+                              sortedPending[currentIndex].carImage : 
+                              `/${sortedPending[currentIndex].carImage}`}
                             alt={`Car ${sortedPending[currentIndex].plateNumber}`}
                             className="object-cover w-full h-full"
                             width={400}
