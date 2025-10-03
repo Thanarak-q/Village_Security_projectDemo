@@ -427,19 +427,19 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
                 {/* Action buttons - not swipeable, always clickable */}
                 <div className="flex gap-2 mt-3">
                   <Button
+                    onClick={() => onApprove(sortedPending[currentIndex].id)}
+                    disabled={isAnimating}
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-6 text-sm rounded-lg flex-1 disabled:opacity-50 dark:bg-green-900/20 dark:text-green-400"
+                  >
+                    อนุมัติ
+                  </Button>
+                  <Button
                     onClick={() => onDeny(sortedPending[currentIndex].id)}
                     disabled={isAnimating}
                     variant="destructive"
                     className="px-4 py-6 text-sm rounded-lg flex-1 disabled:opacity-50 dark:bg-red-600"
                   >
                     ปฏิเสธ
-                  </Button>
-                  <Button
-                    onClick={() => onApprove(sortedPending[currentIndex].id)}
-                    disabled={isAnimating}
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-6 text-sm rounded-lg flex-1 disabled:opacity-50 dark:bg-green-900/20 dark:text-green-400"
-                  >
-                    อนุมัติ
                   </Button>
                 </div>
               </CardContent>
