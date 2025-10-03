@@ -154,143 +154,108 @@ class FlexMessageService {
       altText: `ผู้เยี่ยมใหม่: ${data.visitorName} ต้องการเข้าบ้านเลขที่ ${data.houseNumber}`,
       contents: {
         type: 'bubble',
+        header: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'box',
+              layout: 'vertical',
+              contents: [
+                {
+                  type: 'text',
+                  text: '🔔 แจ้งเตือนการเยี่ยม',
+                  color: '#00B900',
+                  size: 'lg',
+                  weight: 'bold',
+                  align: 'center'
+                },
+                {
+                  type: 'text',
+                  text: 'ผู้เยี่ยม: ' + data.visitorName,
+                  color: '#00B900',
+                  size: 'sm',
+                  margin: 'xs',
+                  align: 'center'
+                }
+              ],
+              backgroundColor: '#90EE90',
+              paddingAll: 'md',
+              cornerRadius: 'md'
+            }
+          ],
+          backgroundColor: '#90EE90',
+          paddingAll: 'none',
+          cornerRadius: 'md'
+        },
         body: {
           type: 'box',
           layout: 'vertical',
           contents: [
             {
               type: 'text',
-              text: `ผู้เยี่ยม: ${data.visitorName}`,
+              text: '📋 รายละเอียดผู้เยี่ยม',
               weight: 'bold',
-              size: 'xl',
-              color: '#333333'
+              size: 'lg',
+              color: '#333333',
+              margin: 'md'
             },
             {
               type: 'box',
               layout: 'vertical',
-              margin: 'lg',
+              margin: 'md',
               spacing: 'sm',
               contents: [
                 {
-                  type: 'box',
-                  layout: 'horizontal',
-                  spacing: 'md',
-                  contents: [
-                    {
-                      type: 'text',
-                      text: 'ป้ายทะเบียน',
-                      color: '#aaaaaa',
-                      size: 'sm',
-                      flex: 2,
-                      margin: 'none',
-                      wrap: true
-                    },
-                    {
-                      type: 'text',
-                      text: data.licensePlate || 'ไม่ระบุ',
-                      wrap: true,
-                      color: '#666666',
-                      size: 'sm',
-                      flex: 5
-                    }
-                  ],
-                  margin: 'xs'
+                  type: 'text',
+                  text: `👤 ผู้เยี่ยม: ${data.visitorName}`,
+                  wrap: true,
+                  color: '#333333',
+                  size: 'sm'
                 },
                 {
-                  type: 'box',
-                  layout: 'baseline',
-                  spacing: 'sm',
-                  contents: [
-                    {
-                      type: 'text',
-                      text: 'เบอร์โทร',
-                      color: '#aaaaaa',
-                      size: 'sm',
-                      flex: 1
-                    },
-                    {
-                      type: 'text',
-                      text: data.visitorPhone || 'ไม่ระบุ',
-                      wrap: true,
-                      color: '#666666',
-                      size: 'sm',
-                      flex: 5
-                    }
-                  ]
+                  type: 'text',
+                  text: `🏠 บ้านเลขที่: ${data.houseNumber}`,
+                  wrap: true,
+                  color: '#333333',
+                  size: 'sm'
                 },
                 {
-                  type: 'box',
-                  layout: 'baseline',
-                  spacing: 'sm',
-                  contents: [
-                    {
-                      type: 'text',
-                      text: 'บ้านเลขที่',
-                      color: '#aaaaaa',
-                      size: 'sm',
-                      flex: 1
-                    },
-                    {
-                      type: 'text',
-                      text: data.houseNumber,
-                      wrap: true,
-                      color: '#666666',
-                      size: 'sm',
-                      flex: 5
-                    }
-                  ]
+                  type: 'text',
+                  text: `👥 ผู้อยู่อาศัย: ${data.residentName}`,
+                  wrap: true,
+                  color: '#333333',
+                  size: 'sm'
                 },
                 {
-                  type: 'box',
-                  layout: 'baseline',
-                  spacing: 'sm',
-                  contents: [
-                    {
-                      type: 'text',
-                      text: 'เวลา',
-                      color: '#aaaaaa',
-                      size: 'sm',
-                      flex: 1
-                    },
-                    {
-                      type: 'text',
-                      text: data.entryTime,
-                      wrap: true,
-                      color: '#666666',
-                      size: 'sm',
-                      flex: 5
-                    }
-                  ]
+                  type: 'text',
+                  text: `🎯 วัตถุประสงค์: ${data.purpose}`,
+                  wrap: true,
+                  color: '#333333',
+                  size: 'sm'
                 },
                 {
-                  type: 'box',
-                  layout: 'baseline',
-                  spacing: 'sm',
-                  contents: [
-                    {
-                      type: 'text',
-                      text: 'วัตถุประสงค์',
-                      color: '#aaaaaa',
-                      size: 'sm',
-                      flex: 1
-                    },
-                    {
-                      type: 'text',
-                      text: data.purpose,
-                      wrap: true,
-                      color: '#666666',
-                      size: 'sm',
-                      flex: 5
-                    }
-                  ]
+                  type: 'text',
+                  text: `⏰ เวลา: ${data.entryTime}`,
+                  wrap: true,
+                  color: '#333333',
+                  size: 'sm'
+                },
+                {
+                  type: 'text',
+                  text: `🏘️ หมู่บ้าน: ${data.villageName}`,
+                  wrap: true,
+                  color: '#333333',
+                  size: 'sm'
                 }
               ]
             }
-          ]
+          ],
+          paddingAll: 'md'
         },
         footer: {
           type: 'box',
-          layout: 'horizontal',
+          layout: 'vertical',
           spacing: 'sm',
           contents: [
             {
@@ -299,11 +264,12 @@ class FlexMessageService {
               height: 'sm',
               action: {
                 type: 'postback',
-                label: 'Accept',
+                label: '✅ อนุมัติ',
                 data: `action=approve&visitorId=${data.visitorId}`,
                 displayText: 'อนุมัติการเยี่ยม'
               },
-              color: '#17C84E'
+              color: '#00B900',
+              margin: 'sm'
             },
             {
               type: 'button',
@@ -311,22 +277,25 @@ class FlexMessageService {
               height: 'sm',
               action: {
                 type: 'postback',
-                label: 'Reject',
+                label: '❌ ปฏิเสธ',
                 data: `action=deny&visitorId=${data.visitorId}`,
                 displayText: 'ปฏิเสธการเยี่ยม'
               },
-              color: '#FF6B6B'
+              color: '#FF0000',
+              margin: 'sm'
             },
             {
               type: 'button',
-              style: 'link',
+              style: 'secondary',
               height: 'sm',
               action: {
                 type: 'postback',
-                label: 'Detail',
+                label: '📋 ดูรายละเอียด',
                 data: `action=detail&visitorId=${data.visitorId}`,
-                displayText: 'ดูรายละเอียด'
-              }
+                displayText: 'ดูรายละเอียดการเยี่ยม'
+              },
+              color: '#6C757D',
+              margin: 'sm'
             }
           ],
           flex: 0
