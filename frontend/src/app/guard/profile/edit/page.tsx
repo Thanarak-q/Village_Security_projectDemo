@@ -59,7 +59,7 @@ const EditGuardProfilePage = () => {
             setCurrentUser(user);
             
             // If localStorage data doesn't have village_name, fetch it from village_id
-            if (user.village_id && !user.village_name) {
+            if (user.village_id) {
               fetchVillageName(user.village_id);
             }
             setFormData({
