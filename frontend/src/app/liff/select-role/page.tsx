@@ -39,8 +39,7 @@ export default function SelectRolePage() {
               return;
             }
 
-            const apiUrl = '';
-            const response = await fetch(`${apiUrl}/api/users/roles?lineUserId=${userId}`, {
+            const response = await fetch(`/api/users/roles?lineUserId=${userId}`, {
               credentials: 'include'
             });
             

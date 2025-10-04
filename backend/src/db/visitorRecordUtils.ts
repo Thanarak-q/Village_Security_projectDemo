@@ -301,6 +301,83 @@ export async function getVisitorRecordsByStatus(
 }
 
 /**
+ * Retrieves a visitor record by visitor ID.
+ * @param {string} visitorId - The UUID of the visitor.
+ * @returns {Promise<Object|null>} A promise that resolves to the visitor record or null if not found.
+ */
+export async function getVisitorRecordByVisitorId(visitorId: string) {
+  const result = await db
+    .select({
+      visitor_record_id: visitor_records.visitor_record_id,
+      visitor_id: visitor_records.visitor_id,
+      resident_id: visitor_records.resident_id,
+      guard_id: visitor_records.guard_id,
+      house_id: visitor_records.house_id,
+      picture_key: visitor_records.picture_key,
+      license_plate: visitor_records.license_plate,
+      entry_time: visitor_records.entry_time,
+      record_status: visitor_records.record_status,
+      visit_purpose: visitor_records.visit_purpose,
+      createdAt: visitor_records.createdAt,
+      updatedAt: visitor_records.updatedAt,
+    })
+    .from(visitor_records)
+    .where(eq(visitor_records.visitor_id, visitorId))
+    .limit(1);
+
+  return result[0] || null;
+}
+
+/**
+ * Gets detailed visitor record with all related information for flex messages
+ */
+export async function getVisitorRecordWithDetails(visitorId: string) {
+  const result = await db
+    .select({
+      visitor_record_id: visitor_records.visitor_record_id,
+      visitor_id: visitor_records.visitor_id,
+      resident_id: visitor_records.resident_id,
+      guard_id: visitor_records.guard_id,
+      house_id: visitor_records.house_id,
+      picture_key: visitor_records.picture_key,
+      license_plate: visitor_records.license_plate,
+      entry_time: visitor_records.entry_time,
+      record_status: visitor_records.record_status,
+      visit_purpose: visitor_records.visit_purpose,
+      createdAt: visitor_records.createdAt,
+      updatedAt: visitor_records.updatedAt,
+      // Visitor information from visitors table
+      visitor_name: sql<string>`${visitors.fname} || ' ' || ${visitors.lname}`,
+      visitor_phone: visitors.phone,
+      visitor_id_doc_type: visitors.id_doc_type,
+      visitor_risk_status: visitors.risk_status,
+      visitor_visit_count: visitors.visit_count,
+      visitor_last_visit_at: visitors.last_visit_at,
+      // Resident information
+      resident_name: sql<string>`${residents.fname} || ' ' || ${residents.lname}`,
+      resident_email: residents.email,
+      // Guard information
+      guard_name: sql<string>`${guards.fname} || ' ' || ${guards.lname}`,
+      guard_email: guards.email,
+      // House information
+      house_address: houses.address,
+      village_id: houses.village_id,
+      village_key: villages.village_key,
+      village_name: villages.village_name,
+    })
+    .from(visitor_records)
+    .leftJoin(visitors, eq(visitor_records.visitor_id, visitors.visitor_id))
+    .leftJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
+    .leftJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
+    .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
+    .leftJoin(villages, eq(houses.village_id, villages.village_id))
+    .where(eq(visitor_records.visitor_id, visitorId))
+    .limit(1);
+
+  return result[0] || null;
+}
+
+/**
  * Retrieves all visitor records associated with a specific LINE user ID.
  * @param {string} lineUserId - The LINE user ID of the resident.
  * @returns {Promise<Array<Object>>} A promise that resolves to an array of visitor records for the resident.
@@ -408,12 +485,12 @@ export async function createVisitorRecord(data: {
 
 /**
  * Updates the status of an existing visitor record.
- * @param {string} visitorRecordId - The UUID of the visitor record to update.
+ * @param {string} visitorId - The UUID of the visitor to update.
  * @param {"approved" | "pending" | "rejected"} status - The new status to set.
  * @returns {Promise<Object>} A promise that resolves to the updated visitor record.
  */
 export async function updateVisitorRecordStatus(
-  visitorRecordId: string,
+  visitorId: string,
   status: "approved" | "pending" | "rejected"
 ) {
   const [updatedVisitorRecord] = await db
@@ -422,7 +499,7 @@ export async function updateVisitorRecordStatus(
       record_status: status,
       updatedAt: new Date(),
     })
-    .where(eq(visitor_records.visitor_record_id, visitorRecordId))
+    .where(eq(visitor_records.visitor_id, visitorId))
     .returning();
 
   return updatedVisitorRecord;

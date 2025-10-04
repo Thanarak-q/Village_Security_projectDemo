@@ -52,8 +52,7 @@ const RoleRegistrationPage = () => {
 
   const checkExistingRoles = async (user: any) => {
     try {
-      const apiUrl = '';
-      const response = await fetch(`${apiUrl}/api/users/roles?lineUserId=${user.lineUserId}`, {
+      const response = await fetch(`/api/users/roles?lineUserId=${user.lineUserId}`, {
         credentials: 'include'
       });
       
@@ -140,8 +139,7 @@ const RoleRegistrationPage = () => {
     setError(null);
 
     try {
-      const apiUrl = '';
-      const response = await fetch(`${apiUrl}/api/users/register-role`, {
+      const response = await fetch(`/api/users/register-role`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

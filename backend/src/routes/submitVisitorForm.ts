@@ -288,6 +288,7 @@ const approvalForm = new Elysia({ prefix: "/api" })
             visitor_phone: 'ไม่ระบุ',
             visit_purpose: visitPurpose || 'ไม่ระบุวัตถุประสงค์',
             entry_time: result.inserted.entry_time,
+            visitor_id: result.inserted.visitor_id,
             visitor_record_id: result.inserted.visitor_record_id,
             picture_key: savedImageFilename,
             resident_name: result.residents.length > 0 ? 
@@ -305,6 +306,7 @@ const approvalForm = new Elysia({ prefix: "/api" })
           console.log(`✅ Flex messages sent successfully: ${flexResult.sentCount} residents notified`);
         } else {
           console.log(`⚠️ Flex message sending had issues: ${flexResult.errors.join(', ')}`);
+          console.log(`📊 Flex result details:`, JSON.stringify(flexResult, null, 2));
         }
         
       } catch (flexError) {

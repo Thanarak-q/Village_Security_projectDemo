@@ -28,7 +28,6 @@ const ResidentPage = () => {
     error,
     isCheckingAuth,
     currentUser,
-    villageName,
     confirmationDialog,
     handleApprove,
     handleDeny,
@@ -92,8 +91,7 @@ const ResidentPage = () => {
       if (userId) {
         try {
           const { token } = getAuthData();
-          const apiUrl = '';
-          const response = await fetch(`${apiUrl}/api/users/roles?lineUserId=${userId}`, {
+          const response = await fetch(`/api/users/roles?lineUserId=${userId}`, {
             credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
@@ -172,8 +170,7 @@ const ResidentPage = () => {
           const { user, token } = getAuthData();
           if (user?.lineUserId || user?.id) {
             const userId = user.lineUserId || user.id;
-            const apiUrl = '';
-            const response = await fetch(`${apiUrl}/api/users/roles?lineUserId=${userId}`, {
+            const response = await fetch(`$/api/users/roles?lineUserId=${userId}`, {
               credentials: 'include',
               headers: {
                 'Content-Type': 'application/json',
@@ -273,7 +270,7 @@ const ResidentPage = () => {
               <div className="flex items-center gap-3">
                 <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2">
                   <Home className="w-6 h-6 sm:w-7 sm:h-7" /> 
-                  {villageName || (currentUser?.village_id ? `หมู่บ้าน${currentUser.village_id.split('-')[0]}` : 'หมู่บ้าน')}
+                  {currentUser?.village_id ? `หมู่บ้าน${currentUser.village_id.split('-')[0]}` : 'หมู่บ้าน'}
                 </h1>
               </div>
               <span className="flex items-center gap-2">

@@ -39,6 +39,10 @@ const GuardProfilePage = () => {
     router.push('/guard/profile/register-role');
   };
 
+  const handleEditProfile = () => {
+    router.push('/guard/profile/edit');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -177,7 +181,10 @@ const GuardProfilePage = () => {
                 ลงทะเบียนบทบาทเพิ่มเติม
               </button>
               
-              <button className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+              <button 
+                onClick={handleEditProfile}
+                className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+              >
                 <Edit className="w-4 h-4" />
                 แก้ไขข้อมูล
               </button>

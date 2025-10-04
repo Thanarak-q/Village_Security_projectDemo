@@ -29,8 +29,7 @@ const ResidentProfilePage = () => {
       try {
         const userId = user.lineUserId || user.id;
         if (userId) {
-          const apiUrl = '';
-          const response = await fetch(`${apiUrl}/api/users/roles?lineUserId=${userId}`, {
+          const response = await fetch(`/api/users/roles?lineUserId=${userId}`, {
             credentials: 'include'
           });
           
@@ -71,8 +70,7 @@ const ResidentProfilePage = () => {
 
   const fetchVillageName = async (villageId: string) => {
     try {
-      const apiUrl = '';
-      const response = await fetch(`${apiUrl}/api/villages/validate?key=${encodeURIComponent(villageId)}`);
+      const response = await fetch(`/api/villages/validate?key=${encodeURIComponent(villageId)}`);
       const data = await response.json();
       
       if (data.success && data.data && data.data.village_name) {
@@ -89,6 +87,10 @@ const ResidentProfilePage = () => {
 
   const handleRegisterRole = () => {
     router.push('/Resident/profile/register-role');
+  };
+
+  const handleEditProfile = () => {
+    router.push('/Resident/profile/edit');
   };
 
   if (loading) {
@@ -229,7 +231,10 @@ const ResidentProfilePage = () => {
                 ลงทะเบียนบทบาทเพิ่มเติม
               </button>
               
-              <button className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+              <button 
+                onClick={handleEditProfile}
+                className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
                 <Edit className="w-4 h-4" />
                 แก้ไขข้อมูล
               </button>
