@@ -93,7 +93,7 @@ export const transformApiData = (apiData: ApiVisitorRequest): VisitorRequest => 
     visitorName: apiData.visit_purpose || apiData.visitor_name || '',
     destination: apiData.house_address ? `บ้านเลขที่ ${apiData.house_address}` : '',
     time: timeWithDate,
-    carImage: apiData.picture_key ? `/api/images/${apiData.picture_key}` : 'car1.jpg', // fallback to default image
+    carImage: apiData.picture_key ? `/api/images/serve/${apiData.picture_key}` : 'car1.jpg', // fallback to default image
     status: apiData.record_status === 'approved' ? 'approved' :
       apiData.record_status === 'rejected' ? 'denied' : undefined,
   };

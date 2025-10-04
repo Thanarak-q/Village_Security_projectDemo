@@ -85,15 +85,15 @@ export const useVisitorData = () => {
         if (!currentUser.lineUserId) {
           console.log("⚠️ No LINE user ID found, trying to fetch all visitor records for testing");
           
-          // For testing, fetch all visitor records
-          const testResponse = await fetch('/api/test-visitor-records');
+          // For testing, fetch all visitor records from the general API
+          const testResponse = await fetch('/api/visitor-records');
           const testData = await testResponse.json();
           
           if (testData.success) {
-            console.log("📋 Test visitor records:", testData.records);
-            // Transform test data to match expected format
-            const transformedRecords = testData.records.map((record: any) => {
-              const entryTime = new Date(record.createdAt);
+            console.log("📋 Visitor records:", testData.data.length, "records found");
+            // Transform API data to match expected format
+            const transformedRecords = testData.data.map((record: any) => {
+              const entryTime = new Date(record.entry_time);
               const timeString = entryTime.toLocaleTimeString('th-TH', {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -106,20 +106,36 @@ export const useVisitorData = () => {
               });
               const timeWithDate = `${timeString} ${dateString}`;
               
+              console.log("🖼️ Record image info:", {
+                id: record.visitor_record_id,
+                picture_key: record.picture_key,
+                license_plate: record.license_plate
+              });
+              
               return {
                 id: record.visitor_record_id,
                 plateNumber: record.license_plate || 'ไม่ระบุ',
-                visitorName: record.visit_purpose || record.visitor_id_card || '',
-                destination: record.house?.address ? `บ้านเลขที่ ${record.house.address}` : '',
+                visitorName: record.visit_purpose || record.visitor_name || '',
+                destination: record.house_address ? `บ้านเลขที่ ${record.house_address}` : '',
                 time: timeWithDate,
-                carImage: record.picture_key ? `/api/images/${record.picture_key}` : 'car1.jpg',
+                carImage: record.picture_key ? `/api/images/serve/${record.picture_key}` : 'car1.jpg',
                 status: record.record_status === 'approved' ? 'approved' : 
                        record.record_status === 'rejected' ? 'denied' : undefined,
               };
             });
             
-            setPendingRequests(transformedRecords.filter((r: any) => !r.status));
-            setHistory(transformedRecords.filter((r: any) => r.status));
+            const pendingRecords = transformedRecords.filter((r: any) => r.status === undefined);
+            const historyRecords = transformedRecords.filter((r: any) => r.status !== undefined);
+            
+            console.log("📊 Data summary:", {
+              totalRecords: transformedRecords.length,
+              pendingCount: pendingRecords.length,
+              historyCount: historyRecords.length,
+              samplePending: pendingRecords[0]
+            });
+            
+            setPendingRequests(pendingRecords);
+            setHistory(historyRecords);
           }
           setLoading(false);
           return;
