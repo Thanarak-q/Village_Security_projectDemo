@@ -39,6 +39,7 @@ import { toast } from "sonner";
 interface Village {
   village_id: string;
   village_name: string;
+  village_key: string;
   status: string;
   disable_at: string | null;
   admin_count: number;
@@ -314,6 +315,7 @@ export default function VillagesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>ชื่อหมู่บ้าน</TableHead>
+                  <TableHead>คีย์หมู่บ้าน</TableHead>
                   <TableHead>สถานะ</TableHead>
                   <TableHead>จำนวน Admin</TableHead>
                   <TableHead className="text-right">การดำเนินการ</TableHead>
@@ -324,6 +326,9 @@ export default function VillagesPage() {
                   <TableRow key={village.village_id}>
                     <TableCell className="font-medium">
                       {village.village_name}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {village.village_key}
                     </TableCell>
                     <TableCell>
                       <Badge 

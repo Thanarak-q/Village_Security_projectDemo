@@ -23,6 +23,7 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
         .select({
           village_id: villages.village_id,
           village_name: villages.village_name,
+          village_key: villages.village_key,
           status: villages.status,
           disable_at: villages.disable_at,
           admin_count: count(admin_villages.admin_id),
@@ -50,6 +51,7 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
         .select({
           village_id: villages.village_id,
           village_name: villages.village_name,
+          village_key: villages.village_key,
           status: villages.status,
           disable_at: villages.disable_at,
           admin_count: count(admin_villages.admin_id),
