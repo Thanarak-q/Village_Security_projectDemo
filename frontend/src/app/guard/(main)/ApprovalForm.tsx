@@ -26,8 +26,15 @@ import { getAuthData, switchUserRole } from "@/lib/liffAuth";
 
 const visitorSchema = z.object({
   license_image: z.string().optional(),
+  province: z.string().optional(),
   guard_id: z.string().min(1, "ต้องการ ID ของผู้รับผิดชอบ"),
   id_card_image: z.string().optional(),
+  fname: z
+    .string()
+    .min(1, "กรุณากรอกชื่อผู้เข้าเยี่ยม"),
+  lname: z
+    .string()
+    .min(1, "กรุณากรอกนามสกุลผู้เข้าเยี่ยม"),
   visitor_id_card: z
     .string()
     .min(1, "กรุณากรอกเลขบัตรประชาชน")
@@ -245,7 +252,10 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
     resolver: zodResolver(visitorSchema),
     defaultValues: {
       license_image: "",
+      province: "",
       guard_id: currentUser?.guard_id || currentUser?.id,
+      fname: "",
+      lname: "",
       id_card_image: "",
       license_plate: "",
       visitor_id_card: "",
@@ -315,6 +325,8 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
         "license_plate",
         "entry_time",
         "visitor_id_card",
+        "fname",
+        "lname",
       ]);
       if (!isValid) {
         return;
@@ -332,8 +344,10 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   const isStep2Valid = () => {
     const licensePlate = visitorForm.watch("license_plate");
     const entryTime = visitorForm.watch("visitor_id_card");
+    const fname = visitorForm.watch("fname");
+    const lname = visitorForm.watch("lname");
 
-    return licensePlate?.trim() !== "" && entryTime?.trim() !== "";
+    return licensePlate?.trim() !== "" && entryTime?.trim() !== "" && fname?.trim() !== "" && lname?.trim() !== "";
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -372,12 +386,26 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
             // Auto-fill the license plate field
             visitorForm.setValue("license_plate", licensePlate);
             
+            // Auto-fill province if available
+            if (vehicleInfo.province) {
+              // Extract Thai province name from format "th-14:Phra Nakhon Si Ayutthaya (พระนครศรีอยุธยา)"
+              const provinceMatch = vehicleInfo.province.match(/\(([^)]+)\)/);
+              const provinceName = provinceMatch ? provinceMatch[1] : vehicleInfo.province;
+              visitorForm.setValue("province", provinceName);
+              console.log("✅ OCR extracted province:", provinceName);
+            }
+            
             // Build vehicle info string
             let infoText = `ระบบอ่านป้ายทะเบียนสำเร็จ!\nทะเบียน: ${licensePlate}`;
             if (vehicleInfo.vehicleBrand || vehicleInfo.vehicleColor) {
               infoText += `\n`;
               if (vehicleInfo.vehicleColor) infoText += `สี: ${vehicleInfo.vehicleColor} `;
               if (vehicleInfo.vehicleBrand) infoText += `ยี่ห้อ: ${vehicleInfo.vehicleBrand}`;
+            }
+            if (vehicleInfo.province) {
+              const provinceMatch = vehicleInfo.province.match(/\(([^)]+)\)/);
+              const provinceName = provinceMatch ? provinceMatch[1] : vehicleInfo.province;
+              infoText += `\nจังหวัด: ${provinceName}`;
             }
             if (vehicleInfo.confidence) {
               infoText += `\nความแม่นยำ: ${Math.round(vehicleInfo.confidence)}%`;
@@ -432,14 +460,31 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
           );
 
           if (response.data?.success && response.data?.data?.idCardNumber) {
-            const idNumber = response.data.data.idCardNumber;
+            const data = response.data.data;
+            const idNumber = data.idCardNumber;
+            const firstName = data.thaiFirstName || "";
+            const lastName = data.thaiLastName || "";
+            
             console.log("✅ OCR extracted ID number:", idNumber);
+            console.log("✅ OCR extracted name:", firstName, lastName);
             
             // Auto-fill the ID card number field
             visitorForm.setValue("visitor_id_card", idNumber);
             
+            // Auto-fill first name and last name if available
+            if (firstName) {
+              visitorForm.setValue("fname", firstName);
+            }
+            if (lastName) {
+              visitorForm.setValue("lname", lastName);
+            }
+            
             // Show success message
-            alert(`ระบบอ่านบัตรสำเร็จ!\nเลขบัตรประชาชน: ${idNumber}`);
+            let message = `ระบบอ่านบัตรสำเร็จ!\nเลขบัตรประชาชน: ${idNumber}`;
+            if (firstName || lastName) {
+              message += `\nชื่อ: ${firstName} ${lastName}`;
+            }
+            alert(message);
           } else {
             console.warn("⚠️ OCR could not extract ID number");
             alert("ไม่สามารถอ่านเลขบัตรประชาชนได้ กรุณากรอกด้วยตนเอง");
@@ -494,8 +539,11 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
       // Send to real API without authentication
       const payload: Record<string, unknown> = {
         visitorIDCard: data.visitor_id_card,
+        fname: data.fname,
+        lname: data.lname,
         houseId: data.house_id,
         licensePlate: data.license_plate,
+        province: data.province?.trim() ? data.province : undefined,
         visitPurpose: data.visit_purpose?.trim() ? data.visit_purpose : undefined,
         guardId: data.guard_id,
       };
@@ -525,8 +573,11 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
         // Reset form values and UI state for a new submission
         visitorForm.reset({
           license_image: "",
+          province: "",
           guard_id: currentUser?.guard_id || currentUser?.id || "",
           id_card_image: "",
+          fname: "",
+          lname: "",
           license_plate: "",
           visitor_id_card: "",
           house_id: "",
@@ -748,25 +799,47 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                 )}
                 {step === 2 && (
                   <div className="space-y-6">
-                    <FormField
-                      control={visitorForm.control}
-                      name="license_plate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-base font-medium select-none pointer-events-nones">
-                            เลขทะเบียน
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="เช่น กข 1234"
-                              {...field}
-                              className="h-12 text-base focus-visible:ring-ring"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    {/* License Plate and Province in the same row */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={visitorForm.control}
+                        name="license_plate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-base font-medium select-none pointer-events-nones">
+                              เลขทะเบียน
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="เช่น กข 1234"
+                                {...field}
+                                className="h-12 text-base focus-visible:ring-ring"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={visitorForm.control}
+                        name="province"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-base font-medium select-none pointer-events-none">
+                              จังหวัด
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="จังหวัด"
+                                {...field}
+                                className="h-12 text-base focus-visible:ring-ring"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                     <FormField
                       control={visitorForm.control}
                       name="visitor_id_card"
@@ -778,6 +851,44 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                           <FormControl>
                             <Input
                               placeholder="เลขบัตรประชาชนผู้เข้าเยี่ยม"
+                              {...field}
+                              className="h-12 text-base focus-visible:ring-ring"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={visitorForm.control}
+                      name="fname"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-base font-medium select-none pointer-events-none">
+                            ชื่อผู้เข้าเยี่ยม
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="ชื่อ"
+                              {...field}
+                              className="h-12 text-base focus-visible:ring-ring"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={visitorForm.control}
+                      name="lname"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-base font-medium select-none pointer-events-none">
+                            นามสกุลผู้เข้าเยี่ยม
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="นามสกุล"
                               {...field}
                               className="h-12 text-base focus-visible:ring-ring"
                             />
