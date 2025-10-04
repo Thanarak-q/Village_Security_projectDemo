@@ -112,7 +112,7 @@ export const useVisitorData = () => {
                 visitorName: record.visit_purpose || record.visitor_id_card || '',
                 destination: record.house?.address ? `บ้านเลขที่ ${record.house.address}` : '',
                 time: timeWithDate,
-                carImage: record.picture_key ? `/api/images/${record.picture_key}` : 'car1.jpg',
+                carImage: record.picture_key ? record.picture_key : 'car1.jpg',
                 status: record.record_status === 'approved' ? 'approved' : 
                        record.record_status === 'rejected' ? 'denied' : undefined,
               };
