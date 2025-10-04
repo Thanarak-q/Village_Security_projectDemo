@@ -290,11 +290,7 @@ export default function StaffManagePage() {
               <CardTitle className="text-xl font-semibold text-foreground">
                 จัดการนิติบุคคล
               </CardTitle>
-              <CardDescription className="text-muted-foreground">
-                {villageName && villageName.trim() !== "" 
-                  ? `หมู่บ้าน: ${villageName}` 
-                  : "จัดการนิติบุคคลในระบบ"}
-              </CardDescription>
+              
             </CardHeader>
             <CardContent className="space-y-6">
                   {/* Add Staff Button and Search Controls */}

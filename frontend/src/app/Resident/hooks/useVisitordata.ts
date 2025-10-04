@@ -92,20 +92,31 @@ export const useVisitorData = () => {
           if (testData.success) {
             console.log("📋 Test visitor records:", testData.records);
             // Transform test data to match expected format
-            const transformedRecords = testData.records.map((record: any) => ({
-              id: record.visitor_record_id,
-              plateNumber: record.license_plate || 'ไม่ระบุ',
-              visitorName: record.visitor_id_card || 'ไม่ระบุ',
-              destination: record.house?.address || 'ไม่ระบุ',
-              time: new Date(record.createdAt).toLocaleTimeString('th-TH', {
+            const transformedRecords = testData.records.map((record: any) => {
+              const entryTime = new Date(record.createdAt);
+              const timeString = entryTime.toLocaleTimeString('th-TH', {
                 hour: '2-digit',
                 minute: '2-digit',
                 hour12: false
-              }),
-              carImage: record.picture_key || 'car1.jpg',
-              status: record.record_status === 'approved' ? 'approved' : 
-                     record.record_status === 'rejected' ? 'denied' : undefined,
-            }));
+              });
+              const dateString = entryTime.toLocaleDateString('th-TH', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+              });
+              const timeWithDate = `${timeString} ${dateString}`;
+              
+              return {
+                id: record.visitor_record_id,
+                plateNumber: record.license_plate || 'ไม่ระบุ',
+                visitorName: record.visit_purpose || record.visitor_id_card || '',
+                destination: record.house?.address ? `บ้านเลขที่ ${record.house.address}` : '',
+                time: timeWithDate,
+                carImage: record.picture_key ? `/api/images/${record.picture_key}` : 'car1.jpg',
+                status: record.record_status === 'approved' ? 'approved' : 
+                       record.record_status === 'rejected' ? 'denied' : undefined,
+              };
+            });
             
             setPendingRequests(transformedRecords.filter((r: any) => !r.status));
             setHistory(transformedRecords.filter((r: any) => r.status));
@@ -148,21 +159,26 @@ export const useVisitorData = () => {
         setError(`ไม่สามารถโหลดข้อมูลได้: ${errorMessage}`);
 
         // Fallback to mock data for development
+        const currentDate = new Date().toLocaleDateString('th-TH', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
         setPendingRequests([
           {
             id: "1",
             plateNumber: "กข 1234",
             visitorName: "ส่งของ",
-            destination: "รปภ. สมชาย",
-            time: "09:12",
+            destination: "บ้านเลขที่ สมชาย",
+            time: `09:12 ${currentDate}`,
             carImage: "car1.jpg",
           },
           {
             id: "2",
             plateNumber: "ขก 5678",
             visitorName: "เยี่ยม",
-            destination: "รปภ. วิทยา",
-            time: "09:45",
+            destination: "บ้านเลขที่ วิทยา",
+            time: `09:45 ${currentDate}`,
             carImage: "car2.jpg",
           },
         ]);
