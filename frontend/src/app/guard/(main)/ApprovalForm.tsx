@@ -61,7 +61,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   const [villageName, setVillageName] = useState<string>("");
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [capturedIdCardImage, setCapturedIdCardImage] = useState<string | null>(null);
-  const [isProcessingOCR, setIsProcessingOCR] = useState(false);
+  const [isProcessingIDCardOCR, setIsProcessingIDCardOCR] = useState(false);
   const [isProcessingLicensePlateOCR, setIsProcessingLicensePlateOCR] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const idCardFileInputRef = useRef<HTMLInputElement>(null);
@@ -415,7 +415,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
         visitorForm.setValue("id_card_image", result);
 
         // Process OCR
-        setIsProcessingOCR(true);
+        setIsProcessingIDCardOCR(true);
         try {
           console.log("🔍 Processing ID card with OCR...");
           const { token } = getAuthData();
@@ -453,7 +453,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
             alert("เกิดข้อผิดพลาดในการอ่านบัตร กรุณากรอกเลขบัตรด้วยตนเอง");
           }
         } finally {
-          setIsProcessingOCR(false);
+          setIsProcessingIDCardOCR(false);
         }
       };
       reader.readAsDataURL(file);
@@ -680,17 +680,17 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                       รูปภาพบัตรประชาชน
                     </FormLabel>
                     <div
-                      onClick={isProcessingOCR ? undefined : openIdCardFileDialog}
-                      className={`w-full max-h-[100%] rounded-lg border border-dashed overflow-hidden relative ${isProcessingOCR ? 'cursor-wait' : 'cursor-pointer hover:bg-muted'} transition-colors`}
+                      onClick={isProcessingIDCardOCR ? undefined : openIdCardFileDialog}
+                      className={`w-full max-h-[100%] rounded-lg border border-dashed overflow-hidden relative ${isProcessingIDCardOCR ? 'cursor-wait' : 'cursor-pointer hover:bg-muted'} transition-colors`}
                     >
                       {capturedIdCardImage ? (
                         <>
                           <img
                             src={capturedIdCardImage}
                             alt="ID Card"
-                            className={`w-full h-full object-cover ${isProcessingOCR ? 'opacity-50' : ''}`}
+                            className={`w-full h-full object-cover ${isProcessingIDCardOCR ? 'opacity-50' : ''}`}
                           />
-                          {isProcessingOCR && (
+                          {isProcessingIDCardOCR && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
                               <div className="text-center text-white">
                                 <Loader2 className="w-12 h-12 animate-spin mx-auto mb-2" />
@@ -705,7 +705,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                                 e.stopPropagation();
                                 clearIdCardImage();
                               }}
-                              disabled={isProcessingOCR}
+                              disabled={isProcessingIDCardOCR}
                               className="bg-red-500/90 hover:bg-red-600 text-white rounded-full p-2 text-sm shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
                               title="ลบรูปบัตรประชาชน"
                             >
