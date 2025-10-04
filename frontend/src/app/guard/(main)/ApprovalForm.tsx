@@ -396,23 +396,23 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
             }
             
             // Build vehicle info string
-            let infoText = `ระบบอ่านป้ายทะเบียนสำเร็จ!\nทะเบียน: ${licensePlate}`;
-            if (vehicleInfo.vehicleBrand || vehicleInfo.vehicleColor) {
-              infoText += `\n`;
-              if (vehicleInfo.vehicleColor) infoText += `สี: ${vehicleInfo.vehicleColor} `;
-              if (vehicleInfo.vehicleBrand) infoText += `ยี่ห้อ: ${vehicleInfo.vehicleBrand}`;
-            }
-            if (vehicleInfo.province) {
-              const provinceMatch = vehicleInfo.province.match(/\(([^)]+)\)/);
-              const provinceName = provinceMatch ? provinceMatch[1] : vehicleInfo.province;
-              infoText += `\nจังหวัด: ${provinceName}`;
-            }
-            if (vehicleInfo.confidence) {
-              infoText += `\nความแม่นยำ: ${Math.round(vehicleInfo.confidence)}%`;
-            }
+            // let infoText = `ระบบอ่านป้ายทะเบียนสำเร็จ!\nทะเบียน: ${licensePlate}`;
+            // if (vehicleInfo.vehicleBrand || vehicleInfo.vehicleColor) {
+            //   infoText += `\n`;
+            //   if (vehicleInfo.vehicleColor) infoText += `สี: ${vehicleInfo.vehicleColor} `;
+            //   if (vehicleInfo.vehicleBrand) infoText += `ยี่ห้อ: ${vehicleInfo.vehicleBrand}`;
+            // }
+            // if (vehicleInfo.province) {
+            //   const provinceMatch = vehicleInfo.province.match(/\(([^)]+)\)/);
+            //   const provinceName = provinceMatch ? provinceMatch[1] : vehicleInfo.province;
+            //   infoText += `\nจังหวัด: ${provinceName}`;
+            // }
+            // if (vehicleInfo.confidence) {
+            //   infoText += `\nความแม่นยำ: ${Math.round(vehicleInfo.confidence)}%`;
+            // }
             
             // Show success message with vehicle info
-            alert(infoText);
+            // alert(infoText);
           } else {
             console.warn("⚠️ OCR could not extract license plate");
             alert("ไม่สามารถอ่านป้ายทะเบียนได้ กรุณากรอกด้วยตนเอง");
@@ -484,7 +484,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
             if (firstName || lastName) {
               message += `\nชื่อ: ${firstName} ${lastName}`;
             }
-            alert(message);
+            // alert(message);
           } else {
             console.warn("⚠️ OCR could not extract ID number");
             alert("ไม่สามารถอ่านเลขบัตรประชาชนได้ กรุณากรอกด้วยตนเอง");
@@ -569,7 +569,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
       console.log("✅ Form submitted successfully:", response.data);
 
       if (response.data?.success) {
-        alert(`ส่งคำขอสำเร็จ! รหัสการเยี่ยม: ${response.data.visitorId}`);
+        // alert(`ส่งคำขอสำเร็จ! รหัสการเยี่ยม: ${response.data.visitorId}`);
         // Reset form values and UI state for a new submission
         visitorForm.reset({
           license_image: "",
