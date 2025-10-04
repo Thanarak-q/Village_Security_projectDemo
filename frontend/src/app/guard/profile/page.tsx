@@ -13,23 +13,82 @@ const GuardProfilePage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadUserData = () => {
+    const loadUserData = async () => {
       if (!isAuthenticated()) {
         router.push('/liff');
         return;
       }
 
-      const { user } = getAuthData();
-      if (user) {
-        setCurrentUser(user);
-        // You can add village name fetching logic here if needed
-        // For now, we'll use the village_id directly
+      try {
+        // Try LIFF authentication first (for guards and residents)
+        let response = await fetch('/api/auth/liff/me', {
+          credentials: 'include',
+        });
+
+        // If LIFF auth fails, try admin authentication
+        if (!response.ok) {
+          response = await fetch('/api/auth/me', {
+            credentials: 'include',
+          });
+        }
+
+        if (response.ok) {
+          const userData = await response.json();
+          setCurrentUser(userData);
+          
+          // Set village name from API response
+          if (userData.village_name) {
+            setVillageName(userData.village_name);
+          }
+        } else {
+          // Fallback to localStorage if API fails
+          const { user } = getAuthData();
+          if (user) {
+            setCurrentUser(user);
+            // Fetch village name from API
+            if (user.village_id) {
+              fetchVillageName(user.village_id);
+            }
+          } else {
+            router.push('/liff');
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        // Fallback to localStorage
+        const { user } = getAuthData();
+        if (user) {
+          setCurrentUser(user);
+          if (user.village_id) {
+            fetchVillageName(user.village_id);
+          }
+        } else {
+          router.push('/liff');
+          return;
+        }
       }
+
       setLoading(false);
     };
 
     loadUserData();
   }, [router]);
+
+  const fetchVillageName = async (villageId: string) => {
+    try {
+      const response = await fetch(`/api/villages/validate?id=${encodeURIComponent(villageId)}`, {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      
+      if (data.success && data.data && data.data.village_name) {
+        setVillageName(data.data.village_name);
+      }
+    } catch (error) {
+      console.error('Error fetching village name:', error);
+    }
+  };
 
   const handleGoBack = () => {
     router.back();

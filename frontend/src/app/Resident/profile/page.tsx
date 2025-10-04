@@ -19,50 +19,57 @@ const ResidentProfilePage = () => {
         return;
       }
 
-      const { user } = getAuthData();
-      if (!user) {
-        router.push('/liff');
-        return;
-      }
-
-      // Check if user has resident role (they might have multiple roles)
       try {
-        const userId = user.lineUserId || user.id;
-        if (userId) {
-          const response = await fetch(`/api/users/roles?lineUserId=${userId}`, {
-            credentials: 'include'
+        // Try LIFF authentication first (for guards and residents)
+        let response = await fetch('/api/auth/liff/me', {
+          credentials: 'include',
+        });
+
+        // If LIFF auth fails, try admin authentication
+        if (!response.ok) {
+          response = await fetch('/api/auth/me', {
+            credentials: 'include',
           });
+        }
+
+        if (response.ok) {
+          const userData = await response.json();
+          setCurrentUser(userData);
           
-          if (response.ok) {
-            const contentType = response.headers.get("content-type");
-            if (contentType && contentType.includes("application/json")) {
-              const data = await response.json();
-              if (data.success && data.roles) {
-                const hasResidentRole = data.roles.some((role: any) => role.role === 'resident');
-                
-                if (!hasResidentRole) {
-                  console.log("❌ User does not have resident role, redirecting to LIFF");
-                  router.push('/liff');
-                  return;
-                }
-                
-                console.log("✅ User has resident role, allowing access to resident profile");
-              }
+          // Set village name from API response
+          if (userData.village_name) {
+            setVillageName(userData.village_name);
+          }
+        } else {
+          // Fallback to localStorage if API fails
+          const { user } = getAuthData();
+          if (user) {
+            setCurrentUser(user);
+            // Fetch village name from API
+            if (user.village_id) {
+              fetchVillageName(user.village_id);
             }
+          } else {
+            router.push('/liff');
+            return;
           }
         }
       } catch (error) {
-        console.error('Error checking user roles:', error);
-        // Allow access if role check fails (fallback)
+        console.error('Error fetching user data:', error);
+        // Fallback to localStorage
+        const { user } = getAuthData();
+        if (user) {
+          setCurrentUser(user);
+          if (user.village_id) {
+            fetchVillageName(user.village_id);
+          }
+        } else {
+          router.push('/liff');
+          return;
+        }
       }
 
-      setCurrentUser(user);
       setLoading(false);
-
-      // Fetch village name
-      if (user.village_id) {
-        fetchVillageName(user.village_id);
-      }
     };
 
     loadUserData();
@@ -70,7 +77,9 @@ const ResidentProfilePage = () => {
 
   const fetchVillageName = async (villageId: string) => {
     try {
-      const response = await fetch(`/api/villages/validate?key=${encodeURIComponent(villageId)}`);
+      const response = await fetch(`/api/villages/validate?id=${encodeURIComponent(villageId)}`, {
+        credentials: 'include'
+      });
       const data = await response.json();
       
       if (data.success && data.data && data.data.village_name) {

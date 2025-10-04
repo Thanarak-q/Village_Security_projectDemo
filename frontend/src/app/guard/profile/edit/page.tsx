@@ -9,6 +9,7 @@ import { ModeToggle } from "@/components/mode-toggle";
 const EditGuardProfilePage = () => {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [villageName, setVillageName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>("");
@@ -23,27 +24,93 @@ const EditGuardProfilePage = () => {
   });
 
   useEffect(() => {
-    const loadUserData = () => {
+    const loadUserData = async () => {
       if (!isAuthenticated()) {
         router.push('/liff');
         return;
       }
 
-      const { user } = getAuthData();
-      if (user) {
-        setCurrentUser(user);
-        setFormData({
-          fname: user.fname || "",
-          lname: user.lname || "",
-          email: user.email || "",
-          phone: user.phone || "",
+      try {
+        // Try LIFF authentication first (for guards and residents)
+        let response = await fetch('/api/auth/liff/me', {
+          credentials: 'include',
         });
+
+        // If LIFF auth fails, try admin authentication
+        if (!response.ok) {
+          response = await fetch('/api/auth/me', {
+            credentials: 'include',
+          });
+        }
+
+        if (response.ok) {
+          const userData = await response.json();
+          setCurrentUser(userData);
+          setFormData({
+            fname: userData.fname || "",
+            lname: userData.lname || "",
+            email: userData.email || "",
+            phone: userData.phone || "",
+          });
+        } else {
+          // Fallback to localStorage if API fails
+          const { user } = getAuthData();
+          if (user) {
+            setCurrentUser(user);
+            
+            // If localStorage data doesn't have village_name, fetch it from village_id
+            if (user.village_id && !user.village_name) {
+              fetchVillageName(user.village_id);
+            }
+            setFormData({
+              fname: user.fname || "",
+              lname: user.lname || "",
+              email: user.email || "",
+              phone: user.phone || "",
+            });
+          } else {
+            router.push('/liff');
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        // Fallback to localStorage
+        const { user } = getAuthData();
+        if (user) {
+          setCurrentUser(user);
+          setFormData({
+            fname: user.fname || "",
+            lname: user.lname || "",
+            email: user.email || "",
+            phone: user.phone || "",
+          });
+        } else {
+          router.push('/liff');
+          return;
+        }
       }
+
       setLoading(false);
     };
 
     loadUserData();
   }, [router]);
+
+  const fetchVillageName = async (villageId: string) => {
+    try {
+      const response = await fetch(`/api/villages/validate?id=${encodeURIComponent(villageId)}`, {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      
+      if (data.success && data.data && data.data.village_name) {
+        setVillageName(data.data.village_name);
+      }
+    } catch (error) {
+      console.error('Error fetching village name:', error);
+    }
+  };
 
   const handleGoBack = () => {
     router.back();
@@ -312,7 +379,7 @@ const EditGuardProfilePage = () => {
                   <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
                     type="text"
-                    value={currentUser.village_id || "ไม่ระบุ"}
+                    value={villageName || currentUser?.village_id || "ไม่ระบุ"}
                     className="w-full pl-10 pr-3 py-2 border border-input rounded-lg bg-muted text-muted-foreground cursor-not-allowed"
                     disabled
                   />

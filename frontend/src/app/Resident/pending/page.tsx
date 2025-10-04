@@ -150,7 +150,7 @@ export default function ResidentPendingPage() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-2 sm:px-4 lg:px-6 py-3 sm:py-6 max-w-full xl:max-w-7xl">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 lg:mb-8">
+        <div className="mb-4 sm:mb-6 lg:mb-8">
           <div className="space-y-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-3">
               <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
@@ -162,28 +162,6 @@ export default function ResidentPendingPage() {
               บัญชีของคุณกำลังรอการตรวจสอบและยืนยันจากผู้ดูแลระบบ
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {hasGuardRole && (
-              <button
-                onClick={handleSwitchToGuard}
-                disabled={isSwitchingRole}
-                className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
-                aria-label="Go to Guard page"
-                title="ไปยังหน้ายามรักษาความปลอดภัย"
-              >
-                <Shield className="w-5 h-5 text-foreground" />
-              </button>
-            )}
-            <button
-              onClick={() => router.push('/Resident/profile')}
-              className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-              aria-label="Go to profile"
-              title="ไปยังโปรไฟล์"
-            >
-              <User className="w-5 h-5 text-foreground" />
-            </button>
-            <ModeToggle />
-          </div>
         </div>
 
         {/* Main Content */}
@@ -192,13 +170,37 @@ export default function ResidentPendingPage() {
           <div className="lg:col-span-2">
             <Card className="h-full">
               <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
+                      <Clock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl">สถานะบัญชี</CardTitle>
+                      <CardDescription>ข้อมูลการยืนยันบัญชีของคุณ</CardDescription>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-xl">สถานะบัญชี</CardTitle>
-                    <CardDescription>ข้อมูลการยืนยันบัญชีของคุณ</CardDescription>
+                  <div className="flex items-center gap-2">
+                    <ModeToggle />
+                    {hasGuardRole && (
+                      <button
+                        onClick={handleSwitchToGuard}
+                        disabled={isSwitchingRole}
+                        className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+                        aria-label="Go to Guard page"
+                        title="ไปยังหน้ายามรักษาความปลอดภัย"
+                      >
+                        <Shield className="w-5 h-5 text-foreground" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => router.push('/Resident/profile')}
+                      className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                      aria-label="Go to profile"
+                      title="ไปยังโปรไฟล์"
+                    >
+                      <User className="w-5 h-5 text-foreground" />
+                    </button>
                   </div>
                 </div>
               </CardHeader>
@@ -270,7 +272,7 @@ export default function ResidentPendingPage() {
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">หมู่บ้าน</p>
-                        <p className="text-sm font-medium text-foreground">{residentData.village_name || residentData.village_id || "ไม่ระบุ"}</p>
+                        <p className="text-sm font-medium text-foreground">{residentData.village_name || "ไม่ระบุ"}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">ตำแหน่ง</p>

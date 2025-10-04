@@ -149,19 +149,23 @@ const liffRoutes = new Elysia({ prefix: "/api/villages" })
   .onBeforeHandle(requireLiffAuth(["guard", "resident"]))
   .get("/validate", async ({ query, currentUser, set }: any) => {
     try {
-      const { key: villageKey } = query as { key: string };
+      const { id: villageId } = query as { id: string };
 
-      if (!villageKey) {
+      if (!villageId) {
         set.status = 400;
         return {
           success: false,
-          error: "Village key is required"
+          error: "Village ID is required"
         };
       }
 
       // Check if the user has access to this village
-      const { village_keys } = currentUser;
-      if (!village_keys.includes(villageKey)) {
+      const { village_ids } = currentUser;
+      
+      // Check if user has access to this village_id
+      const hasAccess = village_ids && village_ids.includes(villageId);
+      
+      if (!hasAccess) {
         set.status = 403;
         return {
           success: false,
@@ -172,11 +176,12 @@ const liffRoutes = new Elysia({ prefix: "/api/villages" })
       // Get village information
       const village = await db
         .select({
+          village_id: villages.village_id,
           village_key: villages.village_key,
           village_name: villages.village_name,
         })
         .from(villages)
-        .where(eq(villages.village_key, villageKey))
+        .where(eq(villages.village_id, villageId))
         .then(results => results[0]);
 
       if (!village) {
@@ -190,6 +195,7 @@ const liffRoutes = new Elysia({ prefix: "/api/villages" })
       return {
         success: true,
         data: {
+          village_id: village.village_id,
           village_key: village.village_key,
           village_name: village.village_name,
           exists: true

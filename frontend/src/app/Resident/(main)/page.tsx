@@ -270,7 +270,7 @@ const ResidentPage = () => {
               <div className="flex items-center gap-3">
                 <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2">
                   <Home className="w-6 h-6 sm:w-7 sm:h-7" /> 
-                  {currentUser?.village_id ? `หมู่บ้าน${currentUser.village_id.split('-')[0]}` : 'หมู่บ้าน'}
+                  {currentUser?.village_name ? `หมู่บ้าน${currentUser.village_name}` : 'หมู่บ้าน'}
                 </h1>
               </div>
               <span className="flex items-center gap-2">

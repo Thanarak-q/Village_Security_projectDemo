@@ -413,7 +413,7 @@ export default function GuardRegisterRolePage() {
                           </p>
                           <p className="text-sm text-muted-foreground flex items-center gap-1">
                             <MapPin className="w-3 h-3" />
-                            {roleInfo.village_name || roleInfo.village_id}
+                            {roleInfo.village_name || "ไม่ระบุ"}
                           </p>
                         </div>
                       </div>
