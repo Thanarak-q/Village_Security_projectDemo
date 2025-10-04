@@ -37,8 +37,8 @@ const visitorSchema = z.object({
     .min(1, "กรุณากรอกนามสกุลผู้เข้าเยี่ยม"),
   visitor_id_card: z
     .string()
-    .min(1, "กรุณากรอกเลขบัตรประชาชน")
-    .regex(/^[0-9]{13}$/, "เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลัก"),
+    .min(1, "กรุณากรอกเลขบัตรประชาชน/ใบขับขี่")
+    .regex(/^[0-9]{8,13}$/, "เลขบัตรต้องเป็นตัวเลข 8-13 หลัก"),
   license_plate: z
     .string()
     .min(1, "กรุณาระบุเลขทะเบียน")
@@ -70,6 +70,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   const [capturedIdCardImage, setCapturedIdCardImage] = useState<string | null>(null);
   const [isProcessingIDCardOCR, setIsProcessingIDCardOCR] = useState(false);
   const [isProcessingLicensePlateOCR, setIsProcessingLicensePlateOCR] = useState(false);
+  const [documentType, setDocumentType] = useState<"id_card" | "driver_license">("id_card");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const idCardFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -442,13 +443,17 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
         setCapturedIdCardImage(result);
         visitorForm.setValue("id_card_image", result);
 
-        // Process OCR
+        // Process OCR based on document type
         setIsProcessingIDCardOCR(true);
         try {
-          console.log("🔍 Processing ID card with OCR...");
           const { token } = getAuthData();
+          const apiEndpoint = documentType === "id_card" 
+            ? "/api/ocr/id-card" 
+            : "/api/ocr/driver-license";
           
-          const response = await axios.post("/api/ocr/id-card", 
+          console.log(`🔍 Processing ${documentType === "id_card" ? "ID card" : "driver license"} with OCR...`);
+          
+          const response = await axios.post(apiEndpoint, 
             { image: result },
             {
               withCredentials: true,
@@ -459,43 +464,63 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
             }
           );
 
-          if (response.data?.success && response.data?.data?.idCardNumber) {
+          if (response.data?.success && response.data?.data) {
             const data = response.data.data;
-            const idNumber = data.idCardNumber;
-            const firstName = data.thaiFirstName || "";
-            const lastName = data.thaiLastName || "";
             
-            console.log("✅ OCR extracted ID number:", idNumber);
-            console.log("✅ OCR extracted name:", firstName, lastName);
-            
-            // Auto-fill the ID card number field
-            visitorForm.setValue("visitor_id_card", idNumber);
-            
-            // Auto-fill first name and last name if available
-            if (firstName) {
-              visitorForm.setValue("fname", firstName);
+            if (documentType === "id_card") {
+              // Handle ID Card response
+              const idNumber = data.idCardNumber;
+              const firstName = data.thaiFirstName || "";
+              const lastName = data.thaiLastName || "";
+              
+              console.log("✅ OCR extracted ID number:", idNumber);
+              console.log("✅ OCR extracted name:", firstName, lastName);
+              
+              // Auto-fill the ID card number field
+              if (idNumber) {
+                visitorForm.setValue("visitor_id_card", idNumber);
+              }
+              
+              // Auto-fill first name and last name if available
+              if (firstName) {
+                visitorForm.setValue("fname", firstName);
+              }
+              if (lastName) {
+                visitorForm.setValue("lname", lastName);
+              }
+            } else {
+              // Handle Driver License response
+              const licenseNumber = data.licenseNumber;
+              const firstName = data.thaiFirstName || "";
+              const lastName = data.thaiLastName || "";
+              
+              console.log("✅ OCR extracted license number:", licenseNumber);
+              console.log("✅ OCR extracted name:", firstName, lastName);
+              
+              // Auto-fill the license number in the ID card field (same field for both)
+              if (licenseNumber) {
+                visitorForm.setValue("visitor_id_card", licenseNumber);
+              }
+              
+              // Auto-fill first name and last name if available
+              if (firstName) {
+                visitorForm.setValue("fname", firstName);
+              }
+              if (lastName) {
+                visitorForm.setValue("lname", lastName);
+              }
             }
-            if (lastName) {
-              visitorForm.setValue("lname", lastName);
-            }
-            
-            // Show success message
-            let message = `ระบบอ่านบัตรสำเร็จ!\nเลขบัตรประชาชน: ${idNumber}`;
-            if (firstName || lastName) {
-              message += `\nชื่อ: ${firstName} ${lastName}`;
-            }
-            // alert(message);
           } else {
-            console.warn("⚠️ OCR could not extract ID number");
-            alert("ไม่สามารถอ่านเลขบัตรประชาชนได้ กรุณากรอกด้วยตนเอง");
+            console.warn("⚠️ OCR could not extract document data");
+            alert(`ไม่สามารถอ่าน${documentType === "id_card" ? "บัตรประชาชน" : "ใบขับขี่"}ได้ กรุณากรอกด้วยตนเอง`);
           }
         } catch (error) {
-          console.error("❌ OCR processing failed:", error);
+          console.error("❌ Document OCR processing failed:", error);
           if (axios.isAxiosError(error)) {
-            const errorMessage = error.response?.data?.error || "ไม่สามารถอ่านบัตรได้";
-            alert(`เกิดข้อผิดพลาดในการอ่านบัตร: ${errorMessage}\nกรุณากรอกเลขบัตรด้วยตนเอง`);
+            const errorMessage = error.response?.data?.error || `ไม่สามารถอ่าน${documentType === "id_card" ? "บัตร" : "ใบขับขี่"}ได้`;
+            alert(`เกิดข้อผิดพลาดในการอ่าน${documentType === "id_card" ? "บัตร" : "ใบขับขี่"}: ${errorMessage}\nกรุณากรอกด้วยตนเอง`);
           } else {
-            alert("เกิดข้อผิดพลาดในการอ่านบัตร กรุณากรอกเลขบัตรด้วยตนเอง");
+            alert(`เกิดข้อผิดพลาดในการอ่าน${documentType === "id_card" ? "บัตร" : "ใบขับขี่"} กรุณากรอกด้วยตนเอง`);
           }
         } finally {
           setIsProcessingIDCardOCR(false);
@@ -546,6 +571,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
         province: data.province?.trim() ? data.province : undefined,
         visitPurpose: data.visit_purpose?.trim() ? data.visit_purpose : undefined,
         guardId: data.guard_id,
+        idDocType: documentType === "id_card" ? "thai_id" : "driver_license",
       };
 
       if (data.license_image && data.license_image.trim()) {
@@ -726,9 +752,52 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                       </div>
                     )}
 
-                    {/* ID card image upload */}
+                    {/* Document type selector */}
+                    <div className="space-y-3">
+                      <FormLabel className="text-base font-medium select-none">
+                        ประเภทเอกสาร
+                      </FormLabel>
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDocumentType("id_card");
+                            // Clear previous image when switching types
+                            setCapturedIdCardImage(null);
+                            visitorForm.setValue("id_card_image", "");
+                            visitorForm.setValue("visitor_id_card", "");
+                          }}
+                          className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all font-medium ${
+                            documentType === "id_card"
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border hover:border-primary/50"
+                          }`}
+                        >
+                          บัตรประชาชน
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDocumentType("driver_license");
+                            // Clear previous image when switching types
+                            setCapturedIdCardImage(null);
+                            visitorForm.setValue("id_card_image", "");
+                            visitorForm.setValue("visitor_id_card", "");
+                          }}
+                          className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all font-medium ${
+                            documentType === "driver_license"
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border hover:border-primary/50"
+                          }`}
+                        >
+                          ใบขับขี่
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* ID card/Driver license image upload */}
                     <FormLabel className="text-base font-medium select-none">
-                      รูปภาพบัตรประชาชน
+                      {documentType === "id_card" ? "รูปภาพบัตรประชาชน" : "รูปภาพใบขับขี่"}
                     </FormLabel>
                     <div
                       onClick={isProcessingIDCardOCR ? undefined : openIdCardFileDialog}
@@ -745,7 +814,9 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                             <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
                               <div className="text-center text-white">
                                 <Loader2 className="w-12 h-12 animate-spin mx-auto mb-2" />
-                                <p className="text-sm font-medium">กำลังอ่านบัตรประชาชน...</p>
+                                <p className="text-sm font-medium">
+                                  {documentType === "id_card" ? "กำลังอ่านบัตรประชาชน..." : "กำลังอ่านใบขับขี่..."}
+                                </p>
                               </div>
                             </div>
                           )}
@@ -758,7 +829,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                               }}
                               disabled={isProcessingIDCardOCR}
                               className="bg-red-500/90 hover:bg-red-600 text-white rounded-full p-2 text-sm shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                              title="ลบรูปบัตรประชาชน"
+                              title={documentType === "id_card" ? "ลบรูปบัตรประชาชน" : "ลบรูปใบขับขี่"}
                             >
                               <svg
                                 className="w-4 h-4"
@@ -779,7 +850,9 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                       ) : (
                         <div className="w-full h-48 flex flex-col items-center justify-center text-muted-foreground">
                           <Upload className="w-16 h-16 mb-2" />
-                          <div className="text-sm">อัปโหลดรูปภาพบัตรประชาชน</div>
+                          <div className="text-sm">
+                            {documentType === "id_card" ? "อัปโหลดรูปภาพบัตรประชาชน" : "อัปโหลดรูปภาพใบขับขี่"}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -846,11 +919,11 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-base font-medium select-none pointer-events-none">
-                            เลขบัตรประชาชน
+                            เลขบัตรประชาชน/ใบขับขี่
                           </FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="เลขบัตรประชาชนผู้เข้าเยี่ยม"
+                              placeholder={documentType === "id_card" ? "เลขบัตรประชาชนผู้เข้าเยี่ยม (13 หลัก)" : "เลขใบขับขี่ผู้เข้าเยี่ยม (8 หลัก)"}
                               {...field}
                               className="h-12 text-base focus-visible:ring-ring"
                             />

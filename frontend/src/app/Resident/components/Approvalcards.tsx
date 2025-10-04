@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useState, useRef, useLayoutEffect } from "react";
+import { useState, useRef, useLayoutEffect, useEffect } from "react";
 import { Car, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { gsap } from "gsap";
 import Image from "next/image";
@@ -27,6 +27,16 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
 
   // Sort by smallest id first
   const sortedPending = [...items].sort((a, b) => Number(a.id) - Number(b.id));
+
+  // Adjust currentIndex when items are removed
+  useEffect(() => {
+    if (sortedPending.length === 0) {
+      setCurrentIndex(0);
+    } else if (currentIndex >= sortedPending.length) {
+      // If current index is out of bounds, set it to the last valid index
+      setCurrentIndex(sortedPending.length - 1);
+    }
+  }, [sortedPending.length, currentIndex]);
 
   const nextCard = (skipCount: number = 1) => {
     const newIndex = Math.min(currentIndex + skipCount, sortedPending.length - 1);
@@ -369,7 +379,7 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
             </div>
           )}
         
-        {sortedPending.length > 0 ? (
+        {sortedPending.length > 0 && sortedPending[currentIndex] ? (
           <div ref={cardRef}>
             <Card className="shadow-sm border-border bg-background/50">
               <CardContent className="p-3">
@@ -412,13 +422,12 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
                       <div className="w-full h-48 bg-muted rounded-lg flex items-center justify-center overflow-hidden border">
                         {sortedPending[currentIndex].carImage ? (
                           <Image
-                            src={sortedPending[currentIndex].carImage.startsWith('/api/') ? 
-                              sortedPending[currentIndex].carImage : 
-                              `/${sortedPending[currentIndex].carImage}`}
+                            src={`/api/images/file/${sortedPending[currentIndex].carImage}`}
                             alt={`Car ${sortedPending[currentIndex].plateNumber}`}
                             className="object-cover w-full h-full"
                             width={400}
                             height={192}
+                            unoptimized
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           />
                         ) : (

@@ -21,6 +21,7 @@ const approvalForm = new Elysia({ prefix: "/api" })
       licensePlate?: string;
       visitPurpose?: string;
       guardId?: string;
+      idDocType?: "thai_id" | "passport" | "driver_license" | "other";
     };
 
     const {
@@ -33,6 +34,7 @@ const approvalForm = new Elysia({ prefix: "/api" })
       licensePlate,
       visitPurpose,
       guardId: payloadGuardId,
+      idDocType,
     } = (body || {}) as ApprovalFormBody;
 
     // Get guard ID from payload or authenticated user
@@ -246,6 +248,11 @@ const approvalForm = new Elysia({ prefix: "/api" })
                 updateData.id_card_image = savedIdCardImageFilename;
               }
               
+              // Update id_doc_type if missing and we have one
+              if (!existingVisitor.id_doc_type && idDocType) {
+                updateData.id_doc_type = idDocType;
+              }
+              
               // Update the visitor
               await tx
                 .update(visitors)
@@ -262,6 +269,7 @@ const approvalForm = new Elysia({ prefix: "/api" })
                   lname: lname && lname.trim() ? lname : "ไม่ระบุ",
                   id_number_hash: visitorIDCard,
                   id_card_image: savedIdCardImageFilename || undefined,
+                  id_doc_type: (idDocType as "thai_id" | "passport" | "driver_license" | "other" | undefined) || undefined,
                   village_id: villageId,
                   risk_status: "clear",
                   visit_count: 1,
