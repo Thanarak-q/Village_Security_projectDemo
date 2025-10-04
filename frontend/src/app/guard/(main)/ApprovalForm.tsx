@@ -61,6 +61,8 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   const [villageName, setVillageName] = useState<string>("");
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [capturedIdCardImage, setCapturedIdCardImage] = useState<string | null>(null);
+  const [isProcessingOCR, setIsProcessingOCR] = useState(false);
+  const [isProcessingLicensePlateOCR, setIsProcessingLicensePlateOCR] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const idCardFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -334,28 +336,125 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
     return licensePlate?.trim() !== "" && entryTime?.trim() !== "";
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         const result = e.target?.result as string;
         setCapturedImage(result);
         visitorForm.setValue("license_image", result);
-        // console.log(visitorForm.getValues("picture_key"));
+
+        // Process License Plate OCR
+        setIsProcessingLicensePlateOCR(true);
+        try {
+          console.log("🚗 Processing license plate with OCR...");
+          const { token } = getAuthData();
+          
+          const response = await axios.post("/api/ocr/license-plate", 
+            { image: result },
+            {
+              withCredentials: true,
+              headers: {
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+            }
+          );
+
+          if (response.data?.success && response.data?.data?.licensePlate) {
+            const licensePlate = response.data.data.licensePlate;
+            const vehicleInfo = response.data.data;
+            
+            console.log("✅ OCR extracted license plate:", licensePlate);
+            console.log("🚗 Vehicle info:", vehicleInfo);
+            
+            // Auto-fill the license plate field
+            visitorForm.setValue("license_plate", licensePlate);
+            
+            // Build vehicle info string
+            let infoText = `ระบบอ่านป้ายทะเบียนสำเร็จ!\nทะเบียน: ${licensePlate}`;
+            if (vehicleInfo.vehicleBrand || vehicleInfo.vehicleColor) {
+              infoText += `\n`;
+              if (vehicleInfo.vehicleColor) infoText += `สี: ${vehicleInfo.vehicleColor} `;
+              if (vehicleInfo.vehicleBrand) infoText += `ยี่ห้อ: ${vehicleInfo.vehicleBrand}`;
+            }
+            if (vehicleInfo.confidence) {
+              infoText += `\nความแม่นยำ: ${Math.round(vehicleInfo.confidence)}%`;
+            }
+            
+            // Show success message with vehicle info
+            alert(infoText);
+          } else {
+            console.warn("⚠️ OCR could not extract license plate");
+            alert("ไม่สามารถอ่านป้ายทะเบียนได้ กรุณากรอกด้วยตนเอง");
+          }
+        } catch (error) {
+          console.error("❌ License plate OCR processing failed:", error);
+          if (axios.isAxiosError(error)) {
+            const errorMessage = error.response?.data?.error || "ไม่สามารถอ่านป้ายทะเบียนได้";
+            alert(`เกิดข้อผิดพลาด: ${errorMessage}\nกรุณากรอกทะเบียนด้วยตนเอง`);
+          } else {
+            alert("เกิดข้อผิดพลาดในการอ่านป้ายทะเบียน กรุณากรอกด้วยตนเอง");
+          }
+        } finally {
+          setIsProcessingLicensePlateOCR(false);
+        }
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleIdCardUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleIdCardUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         const result = e.target?.result as string;
         setCapturedIdCardImage(result);
         visitorForm.setValue("id_card_image", result);
+
+        // Process OCR
+        setIsProcessingOCR(true);
+        try {
+          console.log("🔍 Processing ID card with OCR...");
+          const { token } = getAuthData();
+          
+          const response = await axios.post("/api/ocr/id-card", 
+            { image: result },
+            {
+              withCredentials: true,
+              headers: {
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+            }
+          );
+
+          if (response.data?.success && response.data?.data?.idCardNumber) {
+            const idNumber = response.data.data.idCardNumber;
+            console.log("✅ OCR extracted ID number:", idNumber);
+            
+            // Auto-fill the ID card number field
+            visitorForm.setValue("visitor_id_card", idNumber);
+            
+            // Show success message
+            alert(`ระบบอ่านบัตรสำเร็จ!\nเลขบัตรประชาชน: ${idNumber}`);
+          } else {
+            console.warn("⚠️ OCR could not extract ID number");
+            alert("ไม่สามารถอ่านเลขบัตรประชาชนได้ กรุณากรอกด้วยตนเอง");
+          }
+        } catch (error) {
+          console.error("❌ OCR processing failed:", error);
+          if (axios.isAxiosError(error)) {
+            const errorMessage = error.response?.data?.error || "ไม่สามารถอ่านบัตรได้";
+            alert(`เกิดข้อผิดพลาดในการอ่านบัตร: ${errorMessage}\nกรุณากรอกเลขบัตรด้วยตนเอง`);
+          } else {
+            alert("เกิดข้อผิดพลาดในการอ่านบัตร กรุณากรอกเลขบัตรด้วยตนเอง");
+          }
+        } finally {
+          setIsProcessingOCR(false);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -511,16 +610,24 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                       รูปภาพรถ/ป้ายทะเบียน
                     </FormLabel>
                     <div
-                      onClick={openFileDialog}
-                      className="w-full max-h-[100%] rounded-lg border border-dashed overflow-hidden relative cursor-pointer hover:bg-muted transition-colors"
+                      onClick={isProcessingLicensePlateOCR ? undefined : openFileDialog}
+                      className={`w-full max-h-[100%] rounded-lg border border-dashed overflow-hidden relative ${isProcessingLicensePlateOCR ? 'cursor-wait' : 'cursor-pointer hover:bg-muted'} transition-colors`}
                     >
                       {capturedImage ? (
                         <>
                           <img
                             src={capturedImage}
                             alt="Uploaded"
-                            className="w-full h-full object-cover"
+                            className={`w-full h-full object-cover ${isProcessingLicensePlateOCR ? 'opacity-50' : ''}`}
                           />
+                          {isProcessingLicensePlateOCR && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+                              <div className="text-center text-white">
+                                <Loader2 className="w-12 h-12 animate-spin mx-auto mb-2" />
+                                <p className="text-sm font-medium">กำลังอ่านป้ายทะเบียน...</p>
+                              </div>
+                            </div>
+                          )}
                           <div className="absolute top-3 right-3">
                             <button
                               type="button"
@@ -528,7 +635,8 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                                 e.stopPropagation();
                                 clearImage();
                               }}
-                              className="bg-red-500/90 hover:bg-red-600 text-white rounded-full p-2 text-sm shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 backdrop-blur-sm"
+                              disabled={isProcessingLicensePlateOCR}
+                              className="bg-red-500/90 hover:bg-red-600 text-white rounded-full p-2 text-sm shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
                               title="ลบรูปภาพ"
                             >
                               <svg
@@ -572,16 +680,24 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                       รูปภาพบัตรประชาชน
                     </FormLabel>
                     <div
-                      onClick={openIdCardFileDialog}
-                      className="w-full max-h-[100%] rounded-lg border border-dashed overflow-hidden relative cursor-pointer hover:bg-muted transition-colors"
+                      onClick={isProcessingOCR ? undefined : openIdCardFileDialog}
+                      className={`w-full max-h-[100%] rounded-lg border border-dashed overflow-hidden relative ${isProcessingOCR ? 'cursor-wait' : 'cursor-pointer hover:bg-muted'} transition-colors`}
                     >
                       {capturedIdCardImage ? (
                         <>
                           <img
                             src={capturedIdCardImage}
                             alt="ID Card"
-                            className="w-full h-full object-cover"
+                            className={`w-full h-full object-cover ${isProcessingOCR ? 'opacity-50' : ''}`}
                           />
+                          {isProcessingOCR && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+                              <div className="text-center text-white">
+                                <Loader2 className="w-12 h-12 animate-spin mx-auto mb-2" />
+                                <p className="text-sm font-medium">กำลังอ่านบัตรประชาชน...</p>
+                              </div>
+                            </div>
+                          )}
                           <div className="absolute top-3 right-3">
                             <button
                               type="button"
@@ -589,7 +705,8 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                                 e.stopPropagation();
                                 clearIdCardImage();
                               }}
-                              className="bg-red-500/90 hover:bg-red-600 text-white rounded-full p-2 text-sm shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 backdrop-blur-sm"
+                              disabled={isProcessingOCR}
+                              className="bg-red-500/90 hover:bg-red-600 text-white rounded-full p-2 text-sm shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
                               title="ลบรูปบัตรประชาชน"
                             >
                               <svg

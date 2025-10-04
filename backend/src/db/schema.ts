@@ -325,6 +325,7 @@ export const visitors = pgTable("visitors", {
   visitor_id: uuid("visitor_id").primaryKey().defaultRandom(),
   fname: text("fname").notNull(),
   lname: text("lname").notNull(),
+  id_card_image: text("id_card_image"),
   id_doc_type: text("id_doc_type").$type<"thai_id" | "passport" | "other">(),
   id_number_hash: text("id_number_hash").unique(),
   phone: text("phone"),
