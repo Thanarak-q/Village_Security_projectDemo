@@ -12,13 +12,13 @@ export default function ResidentPendingPage() {
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [userRoles, setUserRoles] = useState<Array<{role: string, village_id: string, village_name?: string, status: string}>>([]);
+  const [userRoles, setUserRoles] = useState<Array<{ role: string, village_id: string, village_name?: string, status: string }>>([]);
   const [residentData, setResidentData] = useState<any>(null);
 
   useEffect(() => {
     const checkAuthAndStatus = () => {
       console.log("🏠 Resident pending page - checking authentication and status");
-      
+
       // Check if user is authenticated
       if (!isAuthenticated()) {
         console.log("❌ User not authenticated, redirecting to LIFF with resident context");
@@ -29,7 +29,7 @@ export default function ResidentPendingPage() {
       // Get user data and check status
       const { user } = getAuthData();
       console.log("🔍 Resident pending - user data:", user);
-      
+
       if (!user) {
         console.log("❌ No user data found, redirecting to LIFF with resident context");
         router.push("/liff?role=resident");
@@ -66,7 +66,7 @@ export default function ResidentPendingPage() {
         const userId = currentUser.lineUserId || currentUser.id;
         console.log("🔍 Attempting to fetch roles for user ID:", userId);
         console.log("🔍 Current user object:", currentUser);
-        
+
         if (userId) {
           try {
             const { token } = getAuthData();
@@ -78,18 +78,18 @@ export default function ResidentPendingPage() {
                 ...(token ? { Authorization: `Bearer ${token}` } : {}),
               },
             });
-            
+
             console.log("🔍 Roles API response status:", response.status);
-            
+
             if (response.ok) {
               const contentType = response.headers.get("content-type");
               if (contentType && contentType.includes("application/json")) {
                 const data = await response.json();
                 console.log("🔍 Roles API response data:", data);
-                
+
                 if (data.success && data.roles) {
                   setUserRoles(data.roles);
-                  
+
                   // Check if user has resident role and its status
                   const residentRole = data.roles.find((role: any) => role.role === 'resident');
                   if (!residentRole) {
@@ -97,24 +97,24 @@ export default function ResidentPendingPage() {
                     router.push("/liff?role=resident");
                     return;
                   }
-                  
+
                   // Check if resident role is verified - if so, redirect to main page
                   if (residentRole.status === "verified") {
                     console.log("✅ Resident role is verified, redirecting to main page");
                     router.push("/Resident");
                     return;
                   }
-                  
+
                   // Check if resident role is disabled
                   if (residentRole.status === "disable") {
                     console.log("❌ Resident role is disabled, redirecting to LIFF with resident context");
                     router.push("/liff?role=resident");
                     return;
                   }
-                  
+
                   // Resident role is pending - show pending page
                   console.log("⏳ Resident role is pending, showing pending page");
-                  
+
                   // Set resident-specific data for display
                   setResidentData({
                     fname: residentRole.fname || currentUser.fname,
@@ -125,7 +125,7 @@ export default function ResidentPendingPage() {
                     village_name: residentRole.village_name || currentUser.village_name,
                     status: residentRole.status
                   });
-                  
+
                   setIsCheckingAuth(false);
                 } else {
                   console.log("❌ No roles found or API error, redirecting to LIFF with resident context");
@@ -159,11 +159,11 @@ export default function ResidentPendingPage() {
     const guardRole = userRoles.find(role => role.role === 'guard');
     console.log("🔍 Current userRoles:", userRoles);
     console.log("🔍 Found guardRole:", guardRole);
-    
+
     // If userRoles is empty or doesn't have guard role, try to fetch fresh data
     if (!guardRole || userRoles.length === 0) {
       console.log("⚠️ No guard role found in userRoles, attempting to fetch fresh roles data...");
-      
+
       try {
         const { user, token } = getAuthData();
         if (user?.lineUserId || user?.id) {
@@ -176,17 +176,17 @@ export default function ResidentPendingPage() {
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
           });
-          
+
           if (response.ok) {
             const contentType = response.headers.get("content-type");
             if (contentType && contentType.includes("application/json")) {
               const data = await response.json();
               console.log("🔍 Fresh roles data:", data);
-              
+
               if (data.success && data.roles) {
                 const freshGuardRole = data.roles.find((role: any) => role.role === 'guard');
                 console.log("🔍 Fresh guardRole:", freshGuardRole);
-                
+
                 if (freshGuardRole) {
                   // Use the fresh data for role switching
                   return handleGuardRoleSwitchWithData(freshGuardRole);
@@ -198,12 +198,12 @@ export default function ResidentPendingPage() {
       } catch (error) {
         console.error("❌ Error fetching fresh roles data:", error);
       }
-      
+
       console.log("❌ User does not have guard role, redirecting to LIFF with guard context");
       router.push("/liff?role=guard");
       return;
     }
-    
+
     // Use the found guard role
     handleGuardRoleSwitchWithData(guardRole);
   };
@@ -235,12 +235,12 @@ export default function ResidentPendingPage() {
   const handleRefresh = async () => {
     try {
       console.log("🔄 Refreshing resident status...");
-      
+
       // Instead of clearing auth data and reloading, just refresh the role status
       if (currentUser?.lineUserId) {
         const userId = currentUser.lineUserId;
         console.log("🔍 Refreshing roles for user ID:", userId);
-        
+
         try {
           const { token } = getAuthData();
           const apiUrl = '';
@@ -251,20 +251,20 @@ export default function ResidentPendingPage() {
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
           });
-          
+
           if (response.ok) {
             const contentType = response.headers.get("content-type");
             if (contentType && contentType.includes("application/json")) {
               const data = await response.json();
               console.log("🔍 Refresh - roles data:", data);
-              
+
               if (data.success && data.roles) {
                 setUserRoles(data.roles);
-                
+
                 // Check if user has resident role and its status
                 const residentRole = data.roles.find((role: any) => role.role === 'resident');
                 console.log("🔍 Refresh - residentRole:", residentRole);
-                
+
                 if (residentRole) {
                   // Update resident data with fresh status
                   setResidentData({
@@ -276,7 +276,7 @@ export default function ResidentPendingPage() {
                     village_name: residentRole.village_name || currentUser.village_name,
                     status: residentRole.status
                   });
-                  
+
                   // Check if resident role is now verified
                   if (residentRole.status === "verified") {
                     console.log("✅ Resident role is now verified, redirecting to main page");
@@ -359,15 +359,15 @@ export default function ResidentPendingPage() {
             บัญชีของคุณกำลังรอการตรวจสอบและยืนยันจากผู้ดูแลระบบ
           </CardDescription>
         </CardHeader>
-        
-        <CardContent className="space-y-6">      
+
+        <CardContent className="space-y-6">
           <div className="bg-blue-100 dark:bg-green-100 border border-blue-300 dark:border-green-300 rounded-lg p-4">
             <div className="flex items-start">
               <AlertCircle className="h-5 w-5 text-blue-700 dark:text-green-700 mt-0.5 mr-3 flex-shrink-0" />
               <div className="text-sm text-blue-900 dark:text-green-900">
                 <p className="font-medium mb-1 text-bold">สถานะบัญชี: <span className="text-red-600 dark:text-red-600 font-bold">กำลังรอการยืนยัน</span></p>
                 <p>
-                  ข้อมูลของคุณจะถูกตรวจสอบโดยผู้ดูแลระบบ 
+                  ข้อมูลของคุณจะถูกตรวจสอบโดยผู้ดูแลระบบ
                   คุณจะได้รับการแจ้งเตือนเมื่อบัญชีได้รับการยืนยันแล้ว
                 </p>
               </div>
@@ -389,7 +389,7 @@ export default function ResidentPendingPage() {
           )}
 
           <div className="space-y-3">
-            <Button 
+            <Button
               onClick={handleRefresh}
               className="w-full"
               variant="outline"
@@ -397,8 +397,8 @@ export default function ResidentPendingPage() {
               <RefreshCw className="h-4 w-4 mr-2" />
               ตรวจสอบสถานะใหม่
             </Button>
-            
-            <Button 
+
+            <Button
               onClick={handleLogout}
               variant="ghost"
               className="w-full text-gray-600 hover:text-gray-800"

@@ -22,7 +22,7 @@ import { CheckCircle, AlertCircle } from "lucide-react";
 
 const profileSchema = z.object({
   email: z.string().min(1, "กรุณากรอกอีเมล").email({ message: "อีเมลไม่ถูกต้อง" }),
-  username: z.string().min(1, "กรุณากรอกชื่อผู้ใช้งาน"),
+  username: z.string().optional(), // Username is read-only, no validation needed
   phone: z.string().min(1, "กรุณากรอกหมายเลขโทรศัพท์"),
 });
 
@@ -54,9 +54,9 @@ function SettingForm() {
           'Content-Type': 'application/json',
         },
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         return result.data;
       } else {
@@ -68,7 +68,7 @@ function SettingForm() {
       return null;
     }
   };
-  
+
   const profileForm = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -83,7 +83,7 @@ function SettingForm() {
     const loadAdminData = async () => {
       setIsDataLoading(true);
       const adminData = await fetchAdminData();
-      
+
       if (adminData) {
         profileForm.reset({
           email: adminData.email || "",
@@ -91,7 +91,7 @@ function SettingForm() {
           phone: adminData.phone || "",
         });
       }
-      
+
       setIsDataLoading(false);
     };
 
@@ -111,19 +111,22 @@ function SettingForm() {
   async function onSubmit(values: z.infer<typeof profileSchema>) {
     setIsProfileLoading(true);
     setProfileMessage("");
-    
+
     try {
+      // Exclude username from the update payload since it should not be changed
+      const { username, ...updateData } = values;
+
       const response = await fetch('/api/admin/profile', {
         method: 'PUT',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify(updateData),
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         setProfileMessage("Profile updated successfully!");
       } else {
@@ -141,7 +144,7 @@ function SettingForm() {
   async function onSubmitPassword(values: z.infer<typeof passwordSchema>) {
     setIsPasswordLoading(true);
     setPasswordMessage("");
-    
+
     try {
       const response = await fetch('/api/admin/password', {
         method: 'PUT',
@@ -154,9 +157,9 @@ function SettingForm() {
           newPassword: values.newPassword,
         }),
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         setPasswordMessage("Password changed successfully!");
         // Clear password form
@@ -228,77 +231,60 @@ function SettingForm() {
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl font-semibold">Profile Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {profileMessage && (
-                <Alert className={`mb-4 ${
-                  profileMessage.includes('Error') 
-                    ? 'border-destructive text-destructive' 
-                    : 'border-green-500 text-green-700 dark:text-green-400'
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl font-semibold">Profile Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {profileMessage && (
+              <Alert className={`mb-4 ${profileMessage.includes('Error')
+                  ? 'border-destructive text-destructive'
+                  : 'border-green-500 text-green-700 dark:text-green-400'
                 }`}>
-                  {profileMessage.includes('Error') ? (
-                    <AlertCircle className="h-4 w-4" />
-                  ) : (
-                    <CheckCircle className="h-4 w-4" />
-                  )}
-                  <AlertDescription>
-                    {profileMessage}
-                  </AlertDescription>
-                </Alert>
-              )}
-              <Form {...profileForm}>
-                <form onSubmit={profileForm.handleSubmit(onSubmit)} className="space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <FormField
-                      control={profileForm.control}
-                      name="username"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-base font-medium">Username</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="ชื่อผู้ใช้งาน" 
-                              {...field}
-                              className="h-14 text-base"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={profileForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-base font-medium">Email</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="email" 
-                              placeholder="อีเมล" 
-                              {...field}
-                              className="h-14 text-base"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                {profileMessage.includes('Error') ? (
+                  <AlertCircle className="h-4 w-4" />
+                ) : (
+                  <CheckCircle className="h-4 w-4" />
+                )}
+                <AlertDescription>
+                  {profileMessage}
+                </AlertDescription>
+              </Alert>
+            )}
+            <Form {...profileForm}>
+              <form onSubmit={profileForm.handleSubmit(onSubmit)} className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <FormField
+                    control={profileForm.control}
+                    name="username"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-base font-medium">Username</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="ชื่อผู้ใช้งาน"
+                            {...field}
+                            className="h-14 text-base bg-muted cursor-not-allowed"
+                            readOnly
+                            disabled
+                          />
+                        </FormControl>
+                       
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <FormField
                     control={profileForm.control}
-                    name="phone"
+                    name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-base font-medium">Phone Number</FormLabel>
+                        <FormLabel className="text-base font-medium">Email</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="หมายเลขโทรศัพท์" 
+                          <Input
+                            type="email"
+                            placeholder="อีเมล"
                             {...field}
                             className="h-14 text-base"
                           />
@@ -307,54 +293,92 @@ function SettingForm() {
                       </FormItem>
                     )}
                   />
+                </div>
 
-                  <div className="pt-6">
-                    <Button 
-                      type="submit" 
-                      className="w-full h-14 text-base font-medium"
-                      disabled={isProfileLoading}
-                    >
-                      {isProfileLoading ? "Updating..." : "Update Profile"}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl font-semibold">Change Password</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {passwordMessage && (
-                <Alert className={`mb-4 ${
-                  passwordMessage.includes('Error') 
-                    ? 'border-destructive text-destructive' 
-                    : 'border-green-500 text-green-700 dark:text-green-400'
-                }`}>
-                  {passwordMessage.includes('Error') ? (
-                    <AlertCircle className="h-4 w-4" />
-                  ) : (
-                    <CheckCircle className="h-4 w-4" />
+                <FormField
+                  control={profileForm.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-base font-medium">Phone Number</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="หมายเลขโทรศัพท์"
+                          {...field}
+                          className="h-14 text-base"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                  <AlertDescription>
-                    {passwordMessage}
-                  </AlertDescription>
-                </Alert>
-              )}
-              <Form {...passwordForm}>
-                <form onSubmit={passwordForm.handleSubmit(onSubmitPassword)} className="space-y-8">
+                />
+
+                <div className="pt-6">
+                  <Button
+                    type="submit"
+                    className="w-full h-14 text-base font-medium"
+                    disabled={isProfileLoading}
+                  >
+                    {isProfileLoading ? "Updating..." : "Update Profile"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl font-semibold">Change Password</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {passwordMessage && (
+              <Alert className={`mb-4 ${passwordMessage.includes('Error')
+                  ? 'border-destructive text-destructive'
+                  : 'border-green-500 text-green-700 dark:text-green-400'
+                }`}>
+                {passwordMessage.includes('Error') ? (
+                  <AlertCircle className="h-4 w-4" />
+                ) : (
+                  <CheckCircle className="h-4 w-4" />
+                )}
+                <AlertDescription>
+                  {passwordMessage}
+                </AlertDescription>
+              </Alert>
+            )}
+            <Form {...passwordForm}>
+              <form onSubmit={passwordForm.handleSubmit(onSubmitPassword)} className="space-y-8">
+                <FormField
+                  control={passwordForm.control}
+                  name="currentPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-base font-medium">Current Password</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="รหัสผ่านปัจจุบัน"
+                          {...field}
+                          className="h-14 text-base"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <FormField
                     control={passwordForm.control}
-                    name="currentPassword"
+                    name="newPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-base font-medium">Current Password</FormLabel>
+                        <FormLabel className="text-base font-medium">New Password</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="password" 
-                            placeholder="รหัสผ่านปัจจุบัน" 
+                          <Input
+                            type="password"
+                            placeholder="รหัสผ่านใหม่"
                             {...field}
                             className="h-14 text-base"
                           />
@@ -364,59 +388,39 @@ function SettingForm() {
                     )}
                   />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <FormField
-                      control={passwordForm.control}
-                      name="newPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-base font-medium">New Password</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="password" 
-                              placeholder="รหัสผ่านใหม่" 
-                              {...field}
-                              className="h-14 text-base"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  <FormField
+                    control={passwordForm.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-base font-medium">Confirm Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="password"
+                            placeholder="ยืนยันรหัสผ่านใหม่"
+                            {...field}
+                            className="h-14 text-base"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-                    <FormField
-                      control={passwordForm.control}
-                      name="confirmPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-base font-medium">Confirm Password</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="password" 
-                              placeholder="ยืนยันรหัสผ่านใหม่" 
-                              {...field}
-                              className="h-14 text-base"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="pt-6">
-                    <Button 
-                      type="submit" 
-                      className="w-full h-14 text-base font-medium"
-                      disabled={isPasswordLoading}
-                    >
-                      {isPasswordLoading ? "Changing..." : "Change Password"}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
+                <div className="pt-6">
+                  <Button
+                    type="submit"
+                    className="w-full h-14 text-base font-medium"
+                    disabled={isPasswordLoading}
+                  >
+                    {isPasswordLoading ? "Changing..." : "Change Password"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

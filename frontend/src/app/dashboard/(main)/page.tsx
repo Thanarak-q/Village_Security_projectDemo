@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useRef, lazy, Suspense } from "react";
 import { gsap } from "gsap";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Copy, Check } from "lucide-react";
 import {
   TotalUsersCard,
   DailyAccessCard,
@@ -19,6 +19,7 @@ export default function Page() {
   const [selectedVillageKey, setSelectedVillageKey] = useState<string>("");
   const [villageKey, setVillageKey] = useState<string>("");
   const [showVillageKey, setShowVillageKey] = useState<boolean>(false);
+  const [copied, setCopied] = useState<boolean>(false);
   const { data: statsData, loading: statsLoading, error: statsError } = useStatsData();
   const villageInfoRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -182,6 +183,34 @@ export default function Page() {
                       <EyeOff className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground hover:text-foreground transition-all duration-300" />
                     ) : (
                       <Eye className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground hover:text-foreground transition-all duration-300" />
+                    )}
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(villageKey);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      } catch (err) {
+                        console.error('Failed to copy village key:', err);
+                        // Fallback for older browsers
+                        const textArea = document.createElement('textarea');
+                        textArea.value = villageKey;
+                        document.body.appendChild(textArea);
+                        textArea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      }
+                    }}
+                    className="p-1.5 hover:bg-muted rounded-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-ring hover:scale-105"
+                    title="คัดลอกรหัสหมู่บ้าน"
+                  >
+                    {copied ? (
+                      <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 transition-all duration-300" />
+                    ) : (
+                      <Copy className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground hover:text-foreground transition-all duration-300" />
                     )}
                   </button>
                 </div>

@@ -599,7 +599,6 @@ export default function HistoryTable() {
                   <TableHeader>
                     <TableRow className="bg-muted">
                       <TableHead className="text-muted-foreground font-medium text-xs sm:text-sm min-w-[200px]">ข้อมูลผู้เข้าเยี่ยม</TableHead>
-                      <TableHead className="text-muted-foreground font-medium text-xs sm:text-sm hidden sm:table-cell min-w-[120px]">ชื่อผู้อยู่อาศัย</TableHead>
                       <TableHead className="text-muted-foreground font-medium text-xs sm:text-sm hidden sm:table-cell min-w-[120px]">วัตถุประสงค์</TableHead>
                       <TableHead className="text-muted-foreground font-medium text-xs sm:text-sm hidden md:table-cell min-w-[150px]">บ้านที่เยี่ยม</TableHead>
                       <TableHead className="text-muted-foreground font-medium text-xs sm:text-sm hidden lg:table-cell min-w-[140px]">เวลาที่เข้า</TableHead>
@@ -634,11 +633,6 @@ export default function HistoryTable() {
                           </div>
                         </TableCell>
                         
-                        {/* Resident name column */}
-                        <TableCell className="hidden sm:table-cell min-w-[120px]">
-                          <div className="text-sm text-foreground truncate">{item.resident_name || 'ไม่ระบุ'}</div>
-                        </TableCell>
-
                         {/* Purpose column */}
                         <TableCell className="hidden sm:table-cell min-w-[120px]">
                           <div className="text-sm text-foreground truncate">{item.visit_purpose || 'ไม่ระบุ'}</div>
