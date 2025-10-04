@@ -727,7 +727,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                         </>
                       ) : (
                         <div className="w-full h-48 flex flex-col items-center justify-center text-muted-foreground">
-                          <Upload className="w-12 h-12 mb-2" />
+                          <Upload className="w-16 h-16 mb-2" />
                           <div className="text-sm">อัปโหลดรูปภาพบัตรประชาชน</div>
                         </div>
                       )}
@@ -856,8 +856,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                       />
                     </div>
                     <div className="text-sm rounded-md bg-muted/50 text-muted-foreground p-3 border border-border">
-                      ระบบจะตรวจเลขทะเบียนอัตโนมัติ หากไม่แน่ใจ
-                      สามารถแก้ไขได้ด้วยตนเอง
+                      ระบบจะตรวจเลขทะเบียน และหมายเลขบัตรประชาชนอัตโนมัติ หากไม่แน่ใจสามารถแก้ไขได้ด้วยตนเอง
                     </div>
                   </div>
                 )}
