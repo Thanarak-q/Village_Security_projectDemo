@@ -13,7 +13,7 @@ export default function ResidentPendingPage() {
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [userRoles, setUserRoles] = useState<Array<{role: string, village_id: string, village_name?: string, status: string}>>([]);
+  const [userRoles, setUserRoles] = useState<Array<{ role: string, village_id: string, village_name?: string, status: string }>>([]);
   const [residentData, setResidentData] = useState<any>(null);
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
 

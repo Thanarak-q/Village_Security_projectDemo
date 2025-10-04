@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Home, User, Shield, RotateCcw, Loader2 } from "lucide-react";
+import { Home, User, Shield, Loader2 } from "lucide-react";
 // import NotificationComponent from "@/app/dashboard/(main)/notification";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
@@ -11,16 +11,17 @@ import { VisitorHistory } from "../components/Visitorhistory";
 import { LoadingState, AuthLoadingState } from "../components/Loadingstate";
 import { ErrorState } from "../components/Errorstate";
 import { useVisitorData } from "../hooks/useVisitordata";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+
 import { switchUserRole, getAuthData } from "@/lib/liffAuth";
 import { LiffService } from "@/lib/liff";
 
 // Main Resident Page Component
 const ResidentPage = () => {
   const router = useRouter();
-  const [userRoles, setUserRoles] = useState<Array<{role: string, village_id: string, village_name?: string, status: string}>>([]);
+  const [userRoles, setUserRoles] = useState<Array<{ role: string, village_id: string, village_name?: string, status: string }>>([]);
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
-  
+  const [villageName, setVillageName] = useState<string>('');
+
   const {
     pendingRequests,
     history,
@@ -44,7 +45,7 @@ const ResidentPage = () => {
     const checkUserAuth = () => {
       if (currentUser) {
         console.log("🔍 Resident main page - checking user authentication:", currentUser);
-        
+
         // Basic check - if user exists, we'll do detailed role checking in the roles fetch
         console.log("✅ User authenticated, will check resident role status");
       }
@@ -59,7 +60,7 @@ const ResidentPage = () => {
       // Check if user has stored auth data but LIFF session is not active
       const { user: storedUser, token: storedToken } = getAuthData();
       const svc = LiffService.getInstance();
-      
+
       if (storedUser && storedToken && !svc.isLoggedIn()) {
         console.log("🔄 User has stored auth data but LIFF session inactive. Redirecting to LIFF...");
         // Redirect to LIFF with role parameter to maintain context
@@ -77,17 +78,17 @@ const ResidentPage = () => {
   useEffect(() => {
     const fetchUserRoles = async () => {
       console.log("🔍 Resident main page - fetchUserRoles called, currentUser:", currentUser);
-      
+
       // If no currentUser yet, wait for it
       if (!currentUser) {
         console.log("⏳ No currentUser yet, waiting...");
         return;
       }
-      
+
       // Try different possible ID fields
       const userId = currentUser.lineUserId || currentUser.id;
       console.log("🔍 Resident main page - trying userId:", userId);
-      
+
       if (userId) {
         try {
           const { token } = getAuthData();
@@ -98,36 +99,41 @@ const ResidentPage = () => {
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
           });
-          
+
           console.log("🔍 Resident main page - API response status:", response.status);
-          
+
           if (response.ok) {
             const contentType = response.headers.get("content-type");
             if (contentType && contentType.includes("application/json")) {
               const data = await response.json();
               console.log("🔍 Resident main page - API response data:", data);
-              
+
               if (data.success && data.roles) {
                 setUserRoles(data.roles);
                 console.log("🔍 Resident main page - roles data:", data.roles);
-                
+
                 // Check if user has resident role and its status
                 const residentRole = data.roles.find((role: any) => role.role === 'resident');
                 console.log("🔍 Resident main page - residentRole:", residentRole);
-                
+
                 if (!residentRole) {
                   console.log("❌ User does not have resident role, redirecting to LIFF");
                   router.push("/liff");
                   return;
                 }
-                
+
                 // Check if resident role is verified
                 if (residentRole.status !== "verified") {
                   console.log("❌ Resident role is not verified (status:", residentRole.status, "), redirecting to pending page");
                   router.push("/Resident/pending");
                   return;
                 }
-                
+
+                // Set village name from resident role data
+                if (residentRole.village_name) {
+                  setVillageName(residentRole.village_name);
+                }
+
                 console.log("✅ User has verified resident role, allowing access to resident main page");
               } else {
                 console.log("❌ API response not successful or no roles:", data);
@@ -152,20 +158,20 @@ const ResidentPage = () => {
 
   const handleSwitchToGuard = async () => {
     if (isSwitchingRole) return; // Prevent multiple clicks
-    
+
     try {
       setIsSwitchingRole(true);
       console.log("🔄 Switching to guard role...");
-      
+
       // First check the guard role status from userRoles
       const guardRole = userRoles.find(role => role.role === 'guard');
       console.log("🔍 Current userRoles:", userRoles);
       console.log("🔍 Found guardRole:", guardRole);
-      
+
       // If userRoles is empty or doesn't have guard role, try to fetch fresh data
       if (!guardRole || userRoles.length === 0) {
         console.log("⚠️ No guard role found in userRoles, attempting to fetch fresh roles data...");
-        
+
         try {
           const { user, token } = getAuthData();
           if (user?.lineUserId || user?.id) {
@@ -177,17 +183,17 @@ const ResidentPage = () => {
                 ...(token ? { Authorization: `Bearer ${token}` } : {}),
               },
             });
-            
+
             if (response.ok) {
               const contentType = response.headers.get("content-type");
               if (contentType && contentType.includes("application/json")) {
                 const data = await response.json();
                 console.log("🔍 Fresh roles data:", data);
-                
+
                 if (data.success && data.roles) {
                   const freshGuardRole = data.roles.find((role: any) => role.role === 'guard');
                   console.log("🔍 Fresh guardRole:", freshGuardRole);
-                  
+
                   if (freshGuardRole) {
                     // Use the fresh data for role switching
                     return handleGuardRoleSwitchWithData(freshGuardRole);
@@ -199,12 +205,12 @@ const ResidentPage = () => {
         } catch (error) {
           console.error("❌ Error fetching fresh roles data:", error);
         }
-        
+
         console.log("❌ User does not have guard role, redirecting to LIFF with guard context");
         router.push("/liff?role=guard");
         return;
       }
-      
+
       // Use the found guard role
       handleGuardRoleSwitchWithData(guardRole);
     } catch (error) {
@@ -221,7 +227,7 @@ const ResidentPage = () => {
       if (guardRole.status === "verified") {
         console.log("✅ Guard role is verified, switching to guard main page");
         const result = await switchUserRole('guard');
-        
+
         if (result.success) {
           console.log("✅ Successfully switched to guard role");
           router.push('/guard');
@@ -305,9 +311,7 @@ const ResidentPage = () => {
                 <p className="text-sm text-muted-foreground">
                   สวัสดี {currentUser.fname} {currentUser.lname} 👋
                 </p>
-                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                  📋 แสดงข้อมูลสำหรับ: {currentUser.fname} {currentUser.lname}
-                </p>
+
               </>
             ) : (
               <p className="text-sm text-muted-foreground">กำลังโหลดข้อมูลผู้ใช้...</p>
