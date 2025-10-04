@@ -7,6 +7,8 @@ import {
   getVisitorRecordsByHouse,
   getVisitorRecordsByStatus,
   getVisitorRecordsByLineId,
+  getVisitorRecordByVisitorId,
+  getVisitorRecordWithDetails,
   createVisitorRecord,
   updateVisitorRecordStatus,
   deleteVisitorRecord,

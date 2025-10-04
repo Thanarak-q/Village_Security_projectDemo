@@ -39,8 +39,7 @@ export default function SelectRolePage() {
               return;
             }
 
-            const apiUrl = '';
-            const response = await fetch(`${apiUrl}/api/users/roles?lineUserId=${userId}`, {
+            const response = await fetch(`/api/users/roles?lineUserId=${userId}`, {
               credentials: 'include'
             });
             
@@ -307,7 +306,7 @@ export default function SelectRolePage() {
                             {role.role === 'resident' ? 'ผู้อยู่อาศัย' : 'ยามรักษาความปลอดภัย'}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {role.village_name || role.village_id}
+                            {role.village_name || "ไม่ระบุ"}
                           </p>
                         </div>
                         <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 ml-auto">

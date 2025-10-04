@@ -156,8 +156,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
           const { user, token } = getAuthData();
           if (user?.lineUserId || user?.id) {
             const userId = user.lineUserId || user.id;
-            const apiUrl = '';
-            const response = await fetch(`${apiUrl}/api/users/roles?lineUserId=${userId}`, {
+            const response = await fetch(`/api/users/roles?lineUserId=${userId}`, {
               credentials: 'include',
               headers: {
                 'Content-Type': 'application/json',

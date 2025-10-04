@@ -52,8 +52,7 @@ const RoleRegistrationPage = () => {
 
   const checkExistingRoles = async (user: any) => {
     try {
-      const apiUrl = '';
-      const response = await fetch(`${apiUrl}/api/users/roles?lineUserId=${user.lineUserId}`, {
+      const response = await fetch(`/api/users/roles?lineUserId=${user.lineUserId}`, {
         credentials: 'include'
       });
       
@@ -140,8 +139,7 @@ const RoleRegistrationPage = () => {
     setError(null);
 
     try {
-      const apiUrl = '';
-      const response = await fetch(`${apiUrl}/api/users/register-role`, {
+      const response = await fetch(`/api/users/register-role`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -460,7 +458,7 @@ const RoleRegistrationPage = () => {
                           </p>
                           <p className="text-sm text-muted-foreground flex items-center gap-1">
                             <MapPin className="w-3 h-3" />
-                            {roleInfo.village_name || roleInfo.village_id}
+                            {roleInfo.village_name || "ไม่ระบุ"}
                           </p>
                         </div>
                       </div>

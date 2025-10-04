@@ -215,7 +215,13 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
     let villages_info: Array<{ village_id: string; village_key: string | null; village_name: string }> = [];
     let village_name: string | null = null;
 
-    const villageIds: string[] = currentUser.village_ids || [];
+    // Get village_ids from currentUser, or from village_id field for residents/guards
+    let villageIds: string[] = currentUser.village_ids || [];
+    
+    // For residents and guards, if village_ids is empty but village_id exists, use it
+    if (villageIds.length === 0 && currentUser.village_id) {
+      villageIds = [currentUser.village_id];
+    }
 
     if (villageIds.length > 0) {
       villages_info = await db
@@ -228,7 +234,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
         .where(inArray(villages.village_id, villageIds));
     }
 
-    if (currentUser.role === "staff" && villages_info.length > 0) {
+    if (villages_info.length > 0) {
       village_name = villages_info[0].village_name;
     }
 

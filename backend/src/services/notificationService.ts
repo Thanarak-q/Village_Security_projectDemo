@@ -331,19 +331,19 @@ class NotificationService {
   }
 
   /**
-   * Send visitor approval request via LINE flex message
+   * Send visitor approval request via LINE flex message (status-aware)
    */
   async sendVisitorApprovalFlexMessage(userId: string, visitorData: VisitorNotificationData) {
     try {
-      const success = await flexMessageService.sendFlexMessage(
-        userId,
-        flexMessageService.createVisitorApprovalMessage(visitorData)
-      );
+      // Get the appropriate flex message based on current status
+      const flexMessage = await flexMessageService.getVisitorFlexMessage(visitorData);
+      
+      const success = await flexMessageService.sendFlexMessage(userId, flexMessage);
       
       if (success) {
-        console.log(`📱 LINE flex message sent for visitor approval: ${visitorData.visitorName}`);
+        console.log(`📱 LINE flex message sent for visitor: ${visitorData.visitorName}`);
       } else {
-        console.error(`❌ Failed to send LINE flex message for visitor approval: ${visitorData.visitorName}`);
+        console.error(`❌ Failed to send LINE flex message for visitor: ${visitorData.visitorName}`);
       }
       
       return success;

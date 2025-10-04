@@ -78,6 +78,14 @@ const notificationData = [
     data: { house_id: "house_6789", member_name: "สมชาย ผาสุก" },
   },
   {
+    type: "member_added",
+    category: "house_management",
+    title: "สมาชิกใหม่เข้าอยู่ในบ้าน",
+    message: "บ้านเลขที่ 67/89 มีสมาชิกใหม่เข้าอยู่: ไท้ทวารัติ ภักดีโต",
+    is_read: false,
+    data: { house_id: "house_6789", member_name: "ไท้ทวารัติ ภักดีโต" },
+  },
+  {
     type: "member_removed",
     category: "house_management",
     title: "สมาชิกย้ายออกจากบ้าน",
@@ -437,6 +445,18 @@ const residentData = [
     line_profile_url: null,
     move_in_date: "2024-02-01",
   },
+  {
+    email: "BoeingGamer@gmail.com",
+    fname: "ไท้ทวารัติ",
+    lname: "ภักดีโต",
+    phone: "0918437624",
+    village_key: "pha-suk-village-001",
+    status: "verified",
+    line_user_id: "U7ad627278ebfe6477fa0bc589ac5e45e",
+    line_display_name: "ไท้ทวารัติ ภักดีโต",
+    line_profile_url: "https://profile.line-scdn.net/0h8yRcwwy9Z1Z_GnZlXeUZKQ9KZDxcaz5EB34hOE5JPjQWInQJUHwgY0MfOG4QKHMDU3ggMxgZbm9zCRAwYUybYngqOmdDIyEGU34vsw",
+    move_in_date: "2024-01-15",
+  },
   // หมู่บ้านรัตนา
   {
     email: "arisa.rat@email.com",
@@ -641,6 +661,17 @@ const guardData = [
     line_display_name: null,
     line_profile_url: null,
     hired_date: "2024-01-01",
+  },{
+    email: "BoeingGamer@gmail.com",
+    fname: "ไท้ทวารัติ",
+    lname: "ภักดีโต",
+    phone: "0918437624",
+    village_key: "pha-suk-village-001",
+    status: "verified",
+    line_user_id: "U7ad627278ebfe6477fa0bc589ac5e45e",
+    line_display_name: "ไท้ทวารัติ ภักดีโต",
+    line_profile_url: "https://profile.line-scdn.net/0h8yRcwwy9Z1Z_GnZlXeUZKQ9KZDxcaz5EB34hOE5JPjQWInQJUHwgY0MfOG4QKHMDU3ggMxgZbm9zCRAwYUybYngqOmdDIyEGU34vsw",
+    hired_date: "2024-01-15",
   },
   // หมู่บ้านรัตนา
   {

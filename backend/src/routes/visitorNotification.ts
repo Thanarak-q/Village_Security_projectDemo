@@ -175,7 +175,7 @@ export const visitorNotificationRoutes = new Elysia({ prefix: '/api/visitor-noti
         houseNumber,
         villageKey
       } = body as {
-        action: 'approve' | 'reject';
+        action: 'approve' | 'reject' | 'deny_confirm' | 'confirm_deny' | 'cancel_deny';
         visitorId: string;
         userId: string;
         reason?: string;
@@ -192,25 +192,103 @@ export const visitorNotificationRoutes = new Elysia({ prefix: '/api/visitor-noti
         };
       }
 
-      // Validate action
-      if (!['approve', 'reject'].includes(action)) {
-        set.status = 400;
-        return { 
-          success: false, 
-          error: 'Invalid action. Must be "approve" or "reject"' 
+      // Import the database utilities
+      const { getVisitorRecordByVisitorId, updateVisitorRecordStatus } = await import('../db/visitorRecordUtils');
+      const { flexMessageService } = await import('./flexMessage');
+
+      // Check current visitor record status
+      const visitorRecord = await getVisitorRecordByVisitorId(visitorId);
+      
+      if (visitorRecord) {
+        // If already processed, return status message
+        if (visitorRecord.record_status === 'approved' || visitorRecord.record_status === 'rejected') {
+          console.log(`⚠️ Visitor ${visitorId} already ${visitorRecord.record_status}, cannot change status`);
+          
+          // Send status message showing current state
+          const statusMessage = await flexMessageService.getVisitorFlexMessage({
+            visitorId,
+            visitorName: 'ผู้เยี่ยม', // You might want to get this from the record
+            houseNumber,
+            residentName: 'ผู้อยู่อาศัย', // You might want to get this from the record
+            purpose: visitorRecord.visit_purpose || 'ไม่ระบุ',
+            entryTime: visitorRecord.entry_time?.toLocaleString('th-TH') || 'ไม่ระบุ',
+            villageName: 'หมู่บ้าน' // You might want to get this from the record
+          });
+          
+          return {
+            success: false,
+            error: `Visitor request already ${visitorRecord.record_status}`,
+            message: 'Status cannot be changed',
+            currentStatus: visitorRecord.record_status,
+            statusMessage
+          };
+        }
+      }
+
+      // Handle different actions
+      if (action === 'deny_confirm') {
+        // Show denial confirmation message
+        const confirmationMessage = flexMessageService.createDenialConfirmationMessage({
+          visitorId,
+          visitorName: 'ผู้เยี่ยม', // You might want to get this from the record
+          houseNumber,
+          residentName: 'ผู้อยู่อาศัย', // You might want to get this from the record
+          purpose: visitorRecord?.visit_purpose || 'ไม่ระบุ',
+          entryTime: visitorRecord?.entry_time?.toLocaleString('th-TH') || 'ไม่ระบุ',
+          villageName: 'หมู่บ้าน' // You might want to get this from the record
+        });
+        
+        return {
+          success: true,
+          message: 'Denial confirmation sent',
+          confirmationMessage
         };
       }
 
-      // Here you would typically update the database with the resident's response
-      // For now, we'll just log it
-      console.log(`Resident ${userId} ${action}d visitor ${visitorId} in house ${houseNumber}${reason ? ` with reason: ${reason}` : ''}`);
+      if (action === 'cancel_deny') {
+        // Show original approval message
+        const approvalMessage = flexMessageService.createVisitorApprovalMessage({
+          visitorId,
+          visitorName: 'ผู้เยี่ยม', // You might want to get this from the record
+          houseNumber,
+          residentName: 'ผู้อยู่อาศัย', // You might want to get this from the record
+          purpose: visitorRecord?.visit_purpose || 'ไม่ระบุ',
+          entryTime: visitorRecord?.entry_time?.toLocaleString('th-TH') || 'ไม่ระบุ',
+          villageName: 'หมู่บ้าน' // You might want to get this from the record
+        });
+        
+        return {
+          success: true,
+          message: 'Denial cancelled, showing approval message',
+          approvalMessage
+        };
+      }
 
-      // TODO: Update visitor record in database
+      // Validate action for approve/reject/confirm_deny
+      if (!['approve', 'reject', 'confirm_deny'].includes(action)) {
+        set.status = 400;
+        return { 
+          success: false, 
+          error: 'Invalid action. Must be "approve", "reject", "deny_confirm", "confirm_deny", or "cancel_deny"' 
+        };
+      }
+
+      // Determine final action
+      const finalAction = action === 'confirm_deny' ? 'reject' : action;
+
+      // Update visitor record in database
+      if (visitorRecord) {
+        await updateVisitorRecordStatus(visitorRecord.visitor_record_id, finalAction);
+        console.log(`✅ Updated visitor record ${visitorRecord.visitor_record_id} status to ${finalAction}`);
+      }
+
+      console.log(`Resident ${userId} ${finalAction}d visitor ${visitorId} in house ${houseNumber}${reason ? ` with reason: ${reason}` : ''}`);
+
       // TODO: Notify guards about the response
       // TODO: Update visitor status
 
       // Send confirmation message back to resident
-      const confirmationMessage = action === 'approve' 
+      const confirmationMessage = finalAction === 'approve' 
         ? `✅ คุณได้ยืนยันการเข้าให้ผู้เยี่ยมแล้ว\n\nผู้เยี่ยมสามารถเข้าบ้านได้แล้ว`
         : `❌ คุณได้ปฏิเสธการเข้าให้ผู้เยี่ยมแล้ว${reason ? `\n\nเหตุผล: ${reason}` : ''}\n\nผู้เยี่ยมจะได้รับแจ้งเตือนและไม่สามารถเข้าบ้านได้`;
 
@@ -227,7 +305,7 @@ export const visitorNotificationRoutes = new Elysia({ prefix: '/api/visitor-noti
       return {
         success: true,
         message: 'Response processed successfully',
-        action,
+        action: finalAction,
         visitorId,
         userId,
         confirmationMessage

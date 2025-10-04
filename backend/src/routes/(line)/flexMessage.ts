@@ -150,9 +150,10 @@ class FlexMessageService {
    * Create visitor approval request flex message
    */
   createVisitorApprovalMessage(data: VisitorNotificationData): FlexMessage {
+    console.log('Creating visitor approval message with data:', data);
     return {
       type: 'flex',
-      altText: `ผู้เยี่ยมใหม่: ${data.visitorName} ต้องการเข้าบ้านเลขที่ ${data.houseNumber}`,
+      altText: `แจ้งเตือนการเยี่ยม - ผู้เยี่ยมต้องการเข้าบ้าน (${data.purpose})`,
       contents: {
         type: 'bubble',
         body: {
@@ -160,177 +161,281 @@ class FlexMessageService {
           layout: 'vertical',
           contents: [
             {
+              type: 'box',
+              layout: 'vertical',
+              contents: [
+                {
+                  type: 'text',
+                  text: '🔔 แจ้งเตือนการเยี่ยม',
+                  weight: 'bold',
+                  size: 'lg',
+                  color: '#ffffff',
+                  align: 'center'
+                },
+                {
+                  type: 'text',
+                  text: `ผู้เยี่ยมต้องการเข้าบ้าน (${data.purpose})`,
+                  size: 'sm',
+                  color: '#ffffff',
+                  align: 'center'
+                }
+              ],
+              backgroundColor: '#2B7BE4',
+              paddingAll: 'lg',
+              cornerRadius: 'md',
+              margin: 'md',
+              spacing: 'sm'
+            },
+            {
+              type: 'box',
+              layout: 'vertical',
+              contents: [
+                {
+                  type: 'text',
+                  text: 'รายละเอียดผู้เยี่ยม',
+                  weight: 'bold',
+                  size: 'md',
+                  margin: 'md'
+                },
+                {
+                  type: 'box',
+                  layout: 'vertical',
+                  contents: [
+                    {
+                      type: 'box',
+                      layout: 'baseline',
+                      contents: [
+                        { type: 'text', text: '🎯 วัตถุประสงค์', flex: 2 },
+                        { type: 'text', text: data.purpose, flex: 3, weight: 'bold' }
+                      ]
+                    },
+                    {
+                      type: 'box',
+                      layout: 'baseline',
+                      contents: [
+                        { type: 'text', text: '👤 ผู้เยี่ยม', flex: 2 },
+                        { type: 'text', text: data.visitorName, flex: 3 }
+                      ]
+                    },
+                    {
+                      type: 'box',
+                      layout: 'baseline',
+                      contents: [
+                        { type: 'text', text: '🏠 บ้านเลขที่', flex: 2 },
+                        { type: 'text', text: data.houseNumber, flex: 3 }
+                      ]
+                    },
+                    {
+                      type: 'box',
+                      layout: 'baseline',
+                      contents: [
+                        { type: 'text', text: '👥 ผู้อาศัย', flex: 2 },
+                        { type: 'text', text: data.residentName, flex: 3 }
+                      ]
+                    },
+                    {
+                      type: 'box',
+                      layout: 'baseline',
+                      contents: [
+                        { type: 'text', text: '🕒 เวลา', flex: 2 },
+                        { type: 'text', text: data.entryTime, flex: 3 }
+                      ]
+                    },
+                    {
+                      type: 'box',
+                      layout: 'baseline',
+                      contents: [
+                        { type: 'text', text: '🏡 หมู่บ้าน', flex: 2 },
+                        { type: 'text', text: data.villageName, flex: 3 }
+                      ]
+                    }
+                  ],
+                  spacing: 'md',
+                  paddingAll: 'lg',
+                  backgroundColor: '#F5F7FA',
+                  cornerRadius: 'md',
+                  margin: 'md'
+                }
+              ]
+            },
+            {
+              type: 'box',
+              layout: 'horizontal',
+              contents: [
+                {
+                  type: 'button',
+                  style: 'primary',
+                  color: '#27AE60',
+                  action: {
+                    type: 'postback',
+                    label: 'อนุมัติ',
+                    data: `action=approve&visitorId=${data.visitorId}`,
+                    displayText: 'อนุมัติการเยี่ยม'
+                  }
+                },
+                {
+                  type: 'button',
+                  style: 'primary',
+                  color: '#E74C3C',
+                  action: {
+                    type: 'postback',
+                    label: 'ปฏิเสธ',
+                    data: `action=deny&visitorId=${data.visitorId}`,
+                    displayText: 'ปฏิเสธการเยี่ยม'
+                  }
+                }
+              ],
+              spacing: 'lg',
+              margin: 'lg'
+            },
+            {
+              type: 'button',
+              style: 'link',
+              action: {
+                type: 'uri',
+                label: '📄 ดูรายละเอียดเพิ่มเติม',
+                uri: `https://viperous-contemptuously-adaline.ngrok-free.dev/Resident`
+              },
+              margin: 'md'
+            }
+          ],
+          paddingAll: 'lg',
+          backgroundColor: '#FFFFFF',
+          cornerRadius: 'md'
+        }
+      }
+    };
+  }
+
+  /**
+   * Create denial confirmation flex message
+   */
+  createDenialConfirmationMessage(data: VisitorNotificationData): FlexMessage {
+    return {
+      type: 'flex',
+      altText: 'ยืนยันการปฏิเสธ',
+      contents: {
+        type: 'bubble',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'box',
+              layout: 'vertical',
+              contents: [
+                {
+                  type: 'text',
+                  text: '⚠️ ยืนยันการปฏิเสธ',
+                  weight: 'bold',
+                  size: 'lg',
+                  color: '#5A4E00',
+                  align: 'center'
+                },
+                {
+                  type: 'text',
+                  text: 'คุณแน่ใจหรือไม่?',
+                  size: 'md',
+                  color: '#5A4E00',
+                  align: 'center'
+                }
+              ],
+              backgroundColor: '#FFF4CC',
+              cornerRadius: 'md',
+              paddingAll: 'lg',
+              margin: 'md',
+              spacing: 'sm'
+            },
+            {
+              type: 'separator'
+            },
+            {
               type: 'text',
-              text: `ผู้เยี่ยม: ${data.visitorName}`,
+              text: '📋 ข้อมูลผู้เยี่ยมที่จะปฏิเสธ',
               weight: 'bold',
-              size: 'xl',
-              color: '#333333'
+              size: 'md',
+              color: '#333333',
+              margin: 'md'
+            },
+            {
+              type: 'box',
+              layout: 'vertical',
+              margin: 'md',
+              paddingAll: 'md',
+              backgroundColor: '#F8F9FA',
+              cornerRadius: 'md',
+              contents: [
+                {
+                  type: 'text',
+                  text: `👤 ผู้เยี่ยม: ${data.visitorName}`,
+                  size: 'sm',
+                  color: '#444444',
+                  margin: 'sm'
+                },
+                {
+                  type: 'text',
+                  text: `🏠 บ้านเลขที่: ${data.houseNumber}`,
+                  size: 'sm',
+                  color: '#444444',
+                  margin: 'sm'
+                },
+                {
+                  type: 'text',
+                  text: `🎯 วัตถุประสงค์: ${data.purpose}`,
+                  size: 'sm',
+                  color: '#444444',
+                  margin: 'sm'
+                }
+              ],
+              spacing: 'sm'
             },
             {
               type: 'box',
               layout: 'vertical',
               margin: 'lg',
-              spacing: 'sm',
+              backgroundColor: '#FFF0F0',
+              cornerRadius: 'md',
+              paddingAll: 'md',
               contents: [
                 {
-                  type: 'box',
-                  layout: 'horizontal',
-                  spacing: 'md',
-                  contents: [
-                    {
-                      type: 'text',
-                      text: 'ป้ายทะเบียน',
-                      color: '#aaaaaa',
-                      size: 'sm',
-                      flex: 2,
-                      margin: 'none',
-                      wrap: true
-                    },
-                    {
-                      type: 'text',
-                      text: data.licensePlate || 'ไม่ระบุ',
-                      wrap: true,
-                      color: '#666666',
-                      size: 'sm',
-                      flex: 5
-                    }
-                  ],
-                  margin: 'xs'
-                },
-                {
-                  type: 'box',
-                  layout: 'baseline',
-                  spacing: 'sm',
-                  contents: [
-                    {
-                      type: 'text',
-                      text: 'เบอร์โทร',
-                      color: '#aaaaaa',
-                      size: 'sm',
-                      flex: 1
-                    },
-                    {
-                      type: 'text',
-                      text: data.visitorPhone || 'ไม่ระบุ',
-                      wrap: true,
-                      color: '#666666',
-                      size: 'sm',
-                      flex: 5
-                    }
-                  ]
-                },
-                {
-                  type: 'box',
-                  layout: 'baseline',
-                  spacing: 'sm',
-                  contents: [
-                    {
-                      type: 'text',
-                      text: 'บ้านเลขที่',
-                      color: '#aaaaaa',
-                      size: 'sm',
-                      flex: 1
-                    },
-                    {
-                      type: 'text',
-                      text: data.houseNumber,
-                      wrap: true,
-                      color: '#666666',
-                      size: 'sm',
-                      flex: 5
-                    }
-                  ]
-                },
-                {
-                  type: 'box',
-                  layout: 'baseline',
-                  spacing: 'sm',
-                  contents: [
-                    {
-                      type: 'text',
-                      text: 'เวลา',
-                      color: '#aaaaaa',
-                      size: 'sm',
-                      flex: 1
-                    },
-                    {
-                      type: 'text',
-                      text: data.entryTime,
-                      wrap: true,
-                      color: '#666666',
-                      size: 'sm',
-                      flex: 5
-                    }
-                  ]
-                },
-                {
-                  type: 'box',
-                  layout: 'baseline',
-                  spacing: 'sm',
-                  contents: [
-                    {
-                      type: 'text',
-                      text: 'วัตถุประสงค์',
-                      color: '#aaaaaa',
-                      size: 'sm',
-                      flex: 1
-                    },
-                    {
-                      type: 'text',
-                      text: data.purpose,
-                      wrap: true,
-                      color: '#666666',
-                      size: 'sm',
-                      flex: 5
-                    }
-                  ]
+                  type: 'text',
+                  text: '⚠️ การปฏิเสธจะไม่สามารถยกเลิกได้ กรุณาตรวจสอบข้อมูลให้แน่ใจก่อนยืนยัน',
+                  wrap: true,
+                  size: 'xs',
+                  color: '#C0392B'
                 }
               ]
-            }
-          ]
-        },
-        footer: {
-          type: 'box',
-          layout: 'horizontal',
-          spacing: 'sm',
-          contents: [
-            {
-              type: 'button',
-              style: 'primary',
-              height: 'sm',
-              action: {
-                type: 'postback',
-                label: 'Accept',
-                data: `action=approve&visitorId=${data.visitorId}`,
-                displayText: 'อนุมัติการเยี่ยม'
-              },
-              color: '#17C84E'
             },
             {
-              type: 'button',
-              style: 'primary',
-              height: 'sm',
-              action: {
-                type: 'postback',
-                label: 'Reject',
-                data: `action=deny&visitorId=${data.visitorId}`,
-                displayText: 'ปฏิเสธการเยี่ยม'
-              },
-              color: '#FF6B6B'
+              type: 'box',
+              layout: 'horizontal',
+              spacing: 'lg',
+              margin: 'lg',
+              contents: [
+                {
+                  type: 'button',
+                  style: 'primary',
+                  color: '#E74C3C',
+                  action: {
+                    type: 'postback',
+                    label: '❌ ปฏิเสธ',
+                    data: `action=reject_confirm&visitorId=${data.visitorId}`,
+                    displayText: 'ยืนยันการปฏิเสธ'
+                  }
+                },
+              ]
             },
             {
               type: 'button',
               style: 'link',
-              height: 'sm',
               action: {
-                type: 'postback',
-                label: 'Detail',
-                data: `action=detail&visitorId=${data.visitorId}`,
-                displayText: 'ดูรายละเอียด'
-              }
+                type: 'uri',
+                label: '📄 ดูรายละเอียดเพิ่มเติม',
+                uri: `https://viperous-contemptuously-adaline.ngrok-free.dev/Resident`
+              },
+              margin: 'md'
             }
-          ],
-          flex: 0
+          ]
         }
       }
     };
@@ -344,6 +449,7 @@ class FlexMessageService {
     const statusColor = isApproved ? '#1DB446' : '#FF6B6B';
     const statusIcon = isApproved ? '✅' : '❌';
     const statusText = isApproved ? 'อนุมัติแล้ว' : 'ปฏิเสธแล้ว';
+    const headerBgColor = isApproved ? '#1DB446' : '#FF6B6B';
     
     return {
       type: 'flex',
@@ -355,111 +461,109 @@ class FlexMessageService {
           layout: 'vertical',
           contents: [
             {
-              type: 'text',
-              text: `${statusIcon} ผลการอนุมัติ`,
-              weight: 'bold',
-              size: 'xl',
-              color: statusColor,
-              align: 'center'
+              type: 'box',
+              layout: 'vertical',
+              contents: [
+                {
+                  type: 'text',
+                  text: `${statusIcon} ผลการอนุมัติ`,
+                  weight: 'bold',
+                  size: 'lg',
+                  color: '#ffffff',
+                  align: 'center'
+                },
+                {
+                  type: 'text',
+                  text: `การเยี่ยมได้รับการ${statusText}`,
+                  size: 'sm',
+                  color: '#ffffff',
+                  align: 'center'
+                }
+              ],
+              backgroundColor: headerBgColor,
+              paddingAll: 'lg',
+              cornerRadius: 'md',
+              margin: 'md',
+              spacing: 'sm'
             },
             {
               type: 'box',
               layout: 'vertical',
-              margin: 'lg',
-              spacing: 'sm',
               contents: [
                 {
-                  type: 'box',
-                  layout: 'baseline',
-                  spacing: 'sm',
-                  contents: [
-                    {
-                      type: 'text',
-                      text: 'ผู้เยี่ยม',
-                      color: '#aaaaaa',
-                      size: 'sm',
-                      flex: 1
-                    },
-                    {
-                      type: 'text',
-                      text: data.visitorName,
-                      wrap: true,
-                      color: '#666666',
-                      size: 'sm',
-                      flex: 5
-                    }
-                  ]
+                  type: 'text',
+                  text: 'รายละเอียดการอนุมัติ',
+                  weight: 'bold',
+                  size: 'md',
+                  margin: 'md'
                 },
                 {
                   type: 'box',
-                  layout: 'baseline',
-                  spacing: 'sm',
+                  layout: 'vertical',
                   contents: [
                     {
-                      type: 'text',
-                      text: 'บ้านเลขที่',
-                      color: '#aaaaaa',
-                      size: 'sm',
-                      flex: 1
+                      type: 'box',
+                      layout: 'baseline',
+                      contents: [
+                        { type: 'text', text: '👤 ผู้เยี่ยม', flex: 2 },
+                        { type: 'text', text: data.visitorName, flex: 3, weight: 'bold' }
+                      ]
                     },
                     {
-                      type: 'text',
-                      text: data.houseNumber,
-                      wrap: true,
-                      color: '#666666',
-                      size: 'sm',
-                      flex: 5
-                    }
-                  ]
-                },
-                {
-                  type: 'box',
-                  layout: 'baseline',
-                  spacing: 'sm',
-                  contents: [
-                    {
-                      type: 'text',
-                      text: 'สถานะ',
-                      color: '#aaaaaa',
-                      size: 'sm',
-                      flex: 1
+                      type: 'box',
+                      layout: 'baseline',
+                      contents: [
+                        { type: 'text', text: '🏠 บ้านเลขที่', flex: 2 },
+                        { type: 'text', text: data.houseNumber, flex: 3 }
+                      ]
                     },
                     {
-                      type: 'text',
-                      text: statusText,
-                      wrap: true,
-                      color: statusColor,
-                      size: 'sm',
-                      weight: 'bold',
-                      flex: 5
-                    }
-                  ]
-                },
-                ...(data.reason ? [{
-                  type: 'box',
-                  layout: 'baseline',
-                  spacing: 'sm',
-                  contents: [
-                    {
-                      type: 'text',
-                      text: 'เหตุผล',
-                      color: '#aaaaaa',
-                      size: 'sm',
-                      flex: 1
+                      type: 'box',
+                      layout: 'baseline',
+                      contents: [
+                        { type: 'text', text: '👥 ผู้อาศัย', flex: 2 },
+                        { type: 'text', text: data.residentName, flex: 3 }
+                      ]
                     },
                     {
-                      type: 'text',
-                      text: data.reason,
-                      wrap: true,
-                      color: '#666666',
-                      size: 'sm',
-                      flex: 5
-                    }
-                  ]
-                }] : [])
+                      type: 'box',
+                      layout: 'baseline',
+                      contents: [
+                        { type: 'text', text: '📊 สถานะ', flex: 2 },
+                        { type: 'text', text: statusText, flex: 3, weight: 'bold', color: statusColor }
+                      ]
+                    },
+                    ...(data.reason ? [{
+                      type: 'box',
+                      layout: 'baseline',
+                      contents: [
+                        { type: 'text', text: '💬 เหตุผล', flex: 2 },
+                        { type: 'text', text: data.reason, flex: 3 }
+                      ]
+                    }] : [])
+                  ],
+                  spacing: 'md',
+                  paddingAll: 'lg',
+                  backgroundColor: '#F5F7FA',
+                  cornerRadius: 'md',
+                  margin: 'md'
+                }
               ]
+            },
+            {
+              type: 'button',
+              style: 'link',
+              action: {
+                type: 'uri',
+                label: '📄 ดูรายละเอียดเพิ่มเติม',
+                uri: `https://viperous-contemptuously-adaline.ngrok-free.dev/Resident`
+              },
+              margin: 'md'
             }
-          ]
+          ],
+          paddingAll: 'lg',
+          backgroundColor: '#FFFFFF',
+          cornerRadius: 'md'
         }
       }
     };
@@ -479,6 +583,38 @@ class FlexMessageService {
    */
   createVisitorDetailsMessage(data: VisitorNotificationData): FlexMessage {
     return this.createVisitorApprovalMessage(data);
+  }
+
+  /**
+   * Get appropriate flex message based on visitor record status
+   */
+  async getVisitorFlexMessage(data: VisitorNotificationData): Promise<FlexMessage> {
+    console.log('getVisitorFlexMessage called with data:', data);
+    try {
+      // Import the database utilities
+      const { getVisitorRecordByVisitorId } = await import('../../db/visitorRecordUtils');
+      
+      // Get the current visitor record status
+      const visitorRecord = await getVisitorRecordByVisitorId(data.visitorId);
+      
+      if (!visitorRecord) {
+        // If no record found, show the approval message
+        return this.createVisitorApprovalMessage(data);
+      }
+      
+      // Check if the record has already been processed
+      if (visitorRecord.record_status === 'approved' || visitorRecord.record_status === 'rejected') {
+        // For processed records, show the approval message (since this is for new notifications)
+        return this.createVisitorApprovalMessage(data);
+      }
+      
+      // If still pending, show the approval message
+      return this.createVisitorApprovalMessage(data);
+    } catch (error) {
+      console.error('Error getting visitor flex message:', error);
+      // Fallback to approval message if there's an error
+      return this.createVisitorApprovalMessage(data);
+    }
   }
 
   /**
@@ -577,48 +713,247 @@ export const flexMessageRoutes = new Elysia({ prefix: '/api/line' })
         const action = params.get('action');
         const visitorId = params.get('visitorId');
         
-        if (action && visitorId) {
-          if (action === 'approve' || action === 'deny') {
-            // Update visitor record status in database
-            const { updateVisitorRecordStatus } = await import('../../db/visitorRecordUtils');
-            const newStatus = action === 'approve' ? 'approved' : 'rejected';
-            
-            try {
-              await updateVisitorRecordStatus(visitorId, newStatus);
+        console.log('Postback data:', data);
+        console.log('Parsed action:', action);
+        console.log('Parsed visitorId:', visitorId);
+        console.log('User ID:', userId);
+        
+          if (action && visitorId) {
+            if (action === 'approve') {
+              // Check current status before processing
+              const { getVisitorRecordByVisitorId, updateVisitorRecordStatus } = await import('../../db/visitorRecordUtils');
               
-              // Send confirmation message to resident
-              const confirmationMessage = action === 'approve' 
-                ? `✅ คุณได้อนุมัติการเข้าให้ผู้เยี่ยมแล้ว\nรหัสการเยี่ยม: ${visitorId}`
-                : `❌ คุณได้ปฏิเสธการเข้าให้ผู้เยี่ยมแล้ว\nรหัสการเยี่ยม: ${visitorId}`;
+              try {
+                console.log('Approving visitorId:', visitorId);
+                const currentRecord = await getVisitorRecordByVisitorId(visitorId);
+                console.log('Approval - Current record found:', currentRecord);
+                
+                if (!currentRecord) {
+                  console.log('Approval - No record found for visitorId:', visitorId);
+                  const errorMessage = `❌ ไม่พบข้อมูลการเยี่ยม\n`;
+                  await flexMessageService.sendFlexMessage(userId, { type: 'text', text: errorMessage } as any);
+                  return;
+                }
+                
+                // Check if already processed
+                console.log('Approval - Current record status:', currentRecord.record_status);
+                if (currentRecord.record_status !== 'pending') {
+                  const statusText = currentRecord.record_status === 'approved' ? 'อนุมัติแล้ว' : 'ปฏิเสธแล้ว';
+                  const statusMessage = `ℹ️ การเยี่ยมนี้ได้รับการ${statusText}\nไม่สามารถเปลี่ยนแปลงสถานะได้อีก`;
+                  console.log('Approval - Status already processed, sending message:', statusMessage);
+                  await flexMessageService.sendFlexMessage(userId, { type: 'text', text: statusMessage } as any);
+                  return;
+                }
+                
+                // Process approval
+                await updateVisitorRecordStatus(visitorId, 'approved');
+                
+                // Send confirmation message to resident
+                const confirmationMessage = `✅ คุณได้อนุมัติการเข้าให้ผู้เยี่ยมแล้ว`;
+                
+                const textMessage = {
+                  type: 'text',
+                  text: confirmationMessage
+                };
+                
+                await flexMessageService.sendFlexMessage(userId, textMessage as any);
+                
+              } catch (dbError) {
+                // Send error message to resident
+                const errorMessage = `❌ เกิดข้อผิดพลาดในการอัปเดตสถานะการเยี่ยม\n`;
+                const textMessage = {
+                  type: 'text',
+                  text: errorMessage
+                };
+                
+                await flexMessageService.sendFlexMessage(userId, textMessage as any);
+              }
+            } else if (action === 'deny') {
+              // Check current status before showing denial confirmation
+              const { getVisitorRecordByVisitorId, getVisitorRecordWithDetails } = await import('../../db/visitorRecordUtils');
+              
+              try {
+                console.log('Denying visitorId:', visitorId);
+                
+                // First check if record exists with basic query
+                const basicRecord = await getVisitorRecordByVisitorId(visitorId);
+                console.log('Deny - Basic record found:', basicRecord);
+                
+                if (!basicRecord) {
+                  console.log('Deny - No record found for visitorId:', visitorId);
+                  const errorMessage = `❌ ไม่พบข้อมูลการเยี่ยม\n`;
+                  await flexMessageService.sendFlexMessage(userId, { type: 'text', text: errorMessage } as any);
+                  return;
+                }
+                
+                // Check if already processed
+                if (basicRecord.record_status !== 'pending') {
+                  const statusText = basicRecord.record_status === 'approved' ? 'อนุมัติแล้ว' : 'ปฏิเสธแล้ว';
+                  const statusMessage = `ℹ️ การเยี่ยมนี้ได้รับการ${statusText}\nไม่สามารถเปลี่ยนแปลงสถานะได้อีก`;
+                  await flexMessageService.sendFlexMessage(userId, { type: 'text', text: statusMessage } as any);
+                  return;
+                }
+                
+                // Get detailed record for the confirmation message
+                const detailedRecord = await getVisitorRecordWithDetails(visitorId);
+                console.log('Deny - Detailed record found:', detailedRecord);
+                
+                if (detailedRecord) {
+                  // Show denial confirmation message using the detailed record data
+                  const confirmationMessage = flexMessageService.createDenialConfirmationMessage({
+                    visitorId,
+                    visitorName: detailedRecord.visitor_name || 'ผู้เยี่ยม',
+                    houseNumber: detailedRecord.house_address || 'บ้านเลขที่',
+                    residentName: detailedRecord.resident_name || 'ผู้อยู่อาศัย',
+                    purpose: detailedRecord.visit_purpose || 'ไม่ระบุ',
+                    entryTime: detailedRecord.entry_time?.toLocaleString('th-TH', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      timeZone: 'Asia/Bangkok'
+                    }) || 'ไม่ระบุ',
+                    villageName: detailedRecord.village_name || 'หมู่บ้าน'
+                  });
+                  
+                  await flexMessageService.sendFlexMessage(userId, confirmationMessage);
+                } else {
+                  // Fallback with basic data from basicRecord
+                  const confirmationMessage = flexMessageService.createDenialConfirmationMessage({
+                    visitorId,
+                    visitorName: 'ผู้เยี่ยม',
+                    houseNumber: 'บ้านเลขที่',
+                    residentName: 'ผู้อยู่อาศัย',
+                    purpose: basicRecord.visit_purpose || 'ไม่ระบุ',
+                    entryTime: basicRecord.entry_time?.toLocaleString('th-TH', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      timeZone: 'Asia/Bangkok'
+                    }) || 'ไม่ระบุ',
+                    villageName: 'หมู่บ้าน'
+                  });
+                  
+                  await flexMessageService.sendFlexMessage(userId, confirmationMessage);
+                }
+              } catch (error) {
+                console.error('Error in deny action:', error);
+                const errorMessage = `❌ เกิดข้อผิดพลาดในการตรวจสอบสถานะ\n`;
+                await flexMessageService.sendFlexMessage(userId, { type: 'text', text: errorMessage } as any);
+              }
+            } else if (action === 'reject_confirm') {
+              // Check current status before processing final denial
+              const { getVisitorRecordByVisitorId, updateVisitorRecordStatus } = await import('../../db/visitorRecordUtils');
+              
+              try {
+                const currentRecord = await getVisitorRecordByVisitorId(visitorId);
+                
+                if (!currentRecord) {
+                  const errorMessage = `❌ ไม่พบข้อมูลการเยี่ยม\n`;
+                  await flexMessageService.sendFlexMessage(userId, { type: 'text', text: errorMessage } as any);
+                  return;
+                }
+                
+                // Check if already processed
+                console.log('Reject confirm - Current record status:', currentRecord.record_status);
+                if (currentRecord.record_status !== 'pending') {
+                  const statusText = currentRecord.record_status === 'approved' ? 'อนุมัติแล้ว' : 'ปฏิเสธแล้ว';
+                  const statusMessage = `ℹ️ การเยี่ยมนี้ได้รับการ${statusText}\nไม่สามารถเปลี่ยนแปลงสถานะได้อีก`;
+                  console.log('Reject confirm - Status already processed, sending message:', statusMessage);
+                  await flexMessageService.sendFlexMessage(userId, { type: 'text', text: statusMessage } as any);
+                  return;
+                }
+                
+                // Process final denial
+                console.log('Reject confirm - Updating status to rejected for visitorId:', visitorId);
+                await updateVisitorRecordStatus(visitorId, 'rejected');
+                
+                // Send confirmation message to resident
+                const confirmationMessage = `❌ คุณได้ปฏิเสธการเข้าให้ผู้เยี่ยมแล้ว`;
+                
+                const textMessage = {
+                  type: 'text',
+                  text: confirmationMessage
+                };
+                
+                await flexMessageService.sendFlexMessage(userId, textMessage as any);
+                
+              } catch (dbError) {
+                // Send error message to resident
+                const errorMessage = `❌ เกิดข้อผิดพลาดในการอัปเดตสถานะการเยี่ยม`;
+                const textMessage = {
+                  type: 'text',
+                  text: errorMessage
+                };
+                
+                await flexMessageService.sendFlexMessage(userId, textMessage as any);
+              }
+            } else if (action === 'cancel') {
+              // Check current status before showing original approval message
+              const { getVisitorRecordByVisitorId, getVisitorRecordWithDetails } = await import('../../db/visitorRecordUtils');
+              
+              try {
+                const currentRecord = await getVisitorRecordByVisitorId(visitorId);
+                
+                if (!currentRecord) {
+                  const errorMessage = `❌ ไม่พบข้อมูลการเยี่ยม\n`;
+                  await flexMessageService.sendFlexMessage(userId, { type: 'text', text: errorMessage } as any);
+                  return;
+                }
+                
+                // Check if already processed
+                if (currentRecord.record_status !== 'pending') {
+                  const statusText = currentRecord.record_status === 'approved' ? 'อนุมัติแล้ว' : 'ปฏิเสธแล้ว';
+                  const statusMessage = `ℹ️ การเยี่ยมนี้ได้รับการ${statusText}\nไม่สามารถเปลี่ยนแปลงสถานะได้อีก`;
+                  await flexMessageService.sendFlexMessage(userId, { type: 'text', text: statusMessage } as any);
+                  return;
+                }
+                
+                // Show original approval message
+                const visitorRecord = await getVisitorRecordWithDetails(visitorId);
+                
+                if (visitorRecord) {
+                  const approvalMessage = flexMessageService.createVisitorApprovalMessage({
+                    visitorId,
+                    visitorName: visitorRecord.visitor_name || 'ผู้เยี่ยม',
+                    houseNumber: visitorRecord.house_address || 'บ้านเลขที่',
+                    residentName: visitorRecord.resident_name || 'ผู้อยู่อาศัย',
+                    purpose: visitorRecord.visit_purpose || 'ไม่ระบุ',
+                    entryTime: visitorRecord.entry_time?.toLocaleString('th-TH', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      timeZone: 'Asia/Bangkok'
+                    }) || 'ไม่ระบุ',
+                    villageName: visitorRecord.village_name || 'หมู่บ้าน'
+                  });
+                  
+                  await flexMessageService.sendFlexMessage(userId, approvalMessage);
+                } else {
+                  // Fallback with basic data
+                  const approvalMessage = flexMessageService.createVisitorApprovalMessage({
+                    visitorId,
+                    visitorName: 'ผู้เยี่ยม',
+                    houseNumber: 'บ้านเลขที่',
+                    residentName: 'ผู้อยู่อาศัย',
+                    purpose: 'ไม่ระบุ',
+                    entryTime: 'ไม่ระบุ',
+                    villageName: 'หมู่บ้าน'
+                  });
+                  
+                  await flexMessageService.sendFlexMessage(userId, approvalMessage);
+                }
+              } catch (error) {
+                const errorMessage = `❌ เกิดข้อผิดพลาดในการตรวจสอบสถานะ\n`;
+                await flexMessageService.sendFlexMessage(userId, { type: 'text', text: errorMessage } as any);
+              }
+            } else if (action === 'detail') {
+              // Handle detail request - redirect to resident page
+              const detailMessage = `📋 กำลังนำคุณไปยังหน้าผู้อยู่อาศัย\nกรุณาเข้าไปดูรายละเอียดในแอปพลิเคชัน`;
               
               const textMessage = {
                 type: 'text',
-                text: confirmationMessage
-              };
-              
-              await flexMessageService.sendFlexMessage(userId, textMessage as any);
-              
-            } catch (dbError) {
-              // Send error message to resident
-              const errorMessage = `❌ เกิดข้อผิดพลาดในการอัปเดตสถานะการเยี่ยม\nรหัสการเยี่ยม: ${visitorId}`;
-              const textMessage = {
-                type: 'text',
-                text: errorMessage
+                text: detailMessage
               };
               
               await flexMessageService.sendFlexMessage(userId, textMessage as any);
             }
-          } else if (action === 'detail') {
-            // Handle detail request - send more detailed information
-            const detailMessage = `📋 รายละเอียดการเยี่ยม\nรหัสการเยี่ยม: ${visitorId}\n\nกรุณาติดต่อยามรักษาความปลอดภัยเพื่อข้อมูลเพิ่มเติม`;
-            
-            const textMessage = {
-              type: 'text',
-              text: detailMessage
-            };
-            
-            await flexMessageService.sendFlexMessage(userId, textMessage as any);
-          }
         }
       }
       
