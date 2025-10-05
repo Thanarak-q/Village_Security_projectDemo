@@ -13,13 +13,21 @@ import { Input } from "@/components/ui/input";
 // import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 
 import { useForm } from "react-hook-form";
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Upload, Home, House, User, Search, Loader2} from "lucide-react";
+import { Upload, Home, House, User, Search, Loader2, Camera, ImageIcon} from "lucide-react";
 import axios from "axios";
 import { ModeToggle } from "@/components/mode-toggle";
 import { getAuthData, switchUserRole } from "@/lib/liffAuth";
@@ -37,7 +45,7 @@ const visitorSchema = z.object({
     .min(1, "กรุณากรอกนามสกุลผู้เข้าเยี่ยม"),
   visitor_id_card: z
     .string()
-    .min(1, "กรุณากรอกเลขบัตรประชาชน/ใบขับขี่")
+    .min(1, "กรุณากรอกเลขบัตรประชาชน")
     .regex(/^[0-9]{8,13}$/, "เลขบัตรต้องเป็นตัวเลข 8-13 หลัก"),
   license_plate: z
     .string()
@@ -71,8 +79,12 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   const [isProcessingIDCardOCR, setIsProcessingIDCardOCR] = useState(false);
   const [isProcessingLicensePlateOCR, setIsProcessingLicensePlateOCR] = useState(false);
   const [documentType, setDocumentType] = useState<"id_card" | "driver_license">("id_card");
+  const [showImageSourceDialog, setShowImageSourceDialog] = useState(false);
+  const [currentImageType, setCurrentImageType] = useState<"car" | "idcard">("car");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const idCardFileInputRef = useRef<HTMLInputElement>(null);
+  const idCardCameraInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -489,16 +501,16 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
               }
             } else {
               // Handle Driver License response
-              const licenseNumber = data.licenseNumber;
+              const idCardNumber = data.idCardNumber; // ID card number from driver's license
               const firstName = data.thaiFirstName || "";
               const lastName = data.thaiLastName || "";
               
-              console.log("✅ OCR extracted license number:", licenseNumber);
+              console.log("✅ OCR extracted ID card number:", idCardNumber);
               console.log("✅ OCR extracted name:", firstName, lastName);
               
-              // Auto-fill the license number in the ID card field (same field for both)
-              if (licenseNumber) {
-                visitorForm.setValue("visitor_id_card", licenseNumber);
+              // Auto-fill the ID card number
+              if (idCardNumber) {
+                visitorForm.setValue("visitor_id_card", idCardNumber);
               }
               
               // Auto-fill first name and last name if available
@@ -530,11 +542,31 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   };
 
   const openFileDialog = () => {
-    fileInputRef.current?.click();
+    setCurrentImageType("car");
+    setShowImageSourceDialog(true);
   };
 
   const openIdCardFileDialog = () => {
-    idCardFileInputRef.current?.click();
+    setCurrentImageType("idcard");
+    setShowImageSourceDialog(true);
+  };
+
+  const handleImageSourceSelection = (source: "camera" | "file") => {
+    setShowImageSourceDialog(false);
+    
+    if (currentImageType === "car") {
+      if (source === "camera") {
+        cameraInputRef.current?.click();
+      } else {
+        fileInputRef.current?.click();
+      }
+    } else {
+      if (source === "camera") {
+        idCardCameraInputRef.current?.click();
+      } else {
+        idCardFileInputRef.current?.click();
+      }
+    }
   };
 
   const clearImage = () => {
@@ -543,6 +575,9 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = "";
+    }
   };
 
   const clearIdCardImage = () => {
@@ -550,6 +585,9 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
     visitorForm.setValue("id_card_image", "");
     if (idCardFileInputRef.current) {
       idCardFileInputRef.current.value = "";
+    }
+    if (idCardCameraInputRef.current) {
+      idCardCameraInputRef.current.value = "";
     }
   };
 
@@ -617,8 +655,14 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
         }
+        if (cameraInputRef.current) {
+          cameraInputRef.current.value = "";
+        }
         if (idCardFileInputRef.current) {
           idCardFileInputRef.current.value = "";
+        }
+        if (idCardCameraInputRef.current) {
+          idCardCameraInputRef.current.value = "";
         }
       } else if (response.data?.error) {
         const err = response.data.error;
@@ -738,10 +782,19 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                         </div>
                       )}
                     </div>
+                    {/* Hidden inputs for car image upload */}
                     <input
                       ref={fileInputRef}
                       type="file"
                       accept="image/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                    <input
+                      ref={cameraInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
                       onChange={handleFileUpload}
                       className="hidden"
                     />
@@ -855,10 +908,19 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                         </div>
                       )}
                     </div>
+                    {/* Hidden inputs for ID card/driver license upload */}
                     <input
                       ref={idCardFileInputRef}
                       type="file"
                       accept="image/*"
+                      onChange={handleIdCardUpload}
+                      className="hidden"
+                    />
+                    <input
+                      ref={idCardCameraInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
                       onChange={handleIdCardUpload}
                       className="hidden"
                     />
@@ -918,7 +980,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-base font-medium select-none pointer-events-none">
-                            เลขบัตรประชาชน/ใบขับขี่
+                            เลขบัตรประชาชน
                           </FormLabel>
                           <FormControl>
                             <Input
@@ -1235,6 +1297,41 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
           </div>
         </div>
       </div>
+
+      {/* Image Source Selection Dialog */}
+      <AlertDialog open={showImageSourceDialog} onOpenChange={setShowImageSourceDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-center">เลือกวิธีการอัปโหลดรูปภาพ</AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
+              {currentImageType === "car" 
+                ? "คุณต้องการอัปโหลดรูปภาพรถ/ป้ายทะเบียนอย่างไร?"
+                : documentType === "id_card"
+                ? "คุณต้องการอัปโหลดรูปบัตรประชาชนอย่างไร?"
+                : "คุณต้องการอัปโหลดรูปใบขับขี่อย่างไร?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex flex-col gap-3 mt-4">
+            <Button
+              onClick={() => handleImageSourceSelection("camera")}
+              className="w-full h-14 text-base flex items-center justify-center gap-3"
+              variant="default"
+            >
+              <Camera className="w-5 h-5" />
+              ถ่ายรูป
+            </Button>
+            <Button
+              onClick={() => handleImageSourceSelection("file")}
+              className="w-full h-14 text-base flex items-center justify-center gap-3"
+              variant="outline"
+            >
+              <ImageIcon className="w-5 h-5" />
+              เลือกจากอุปกรณ์
+            </Button>
+            <AlertDialogCancel className="mt-2">ยกเลิก</AlertDialogCancel>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

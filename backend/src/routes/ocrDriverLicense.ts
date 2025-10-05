@@ -89,11 +89,15 @@ export const ocrDriverLicenseRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
-      // Extract license number from response
+      // Extract license number and ID card number from response
       const licenseNumber = response.data?.th_license_no || response.data?.en_license_no;
+      const idCardNumber = response.data?.id_no || response.data?.th_id_no || response.data?.en_id_no;
       
       if (licenseNumber) {
         console.log("✅ Successfully extracted license number:", licenseNumber);
+        if (idCardNumber) {
+          console.log("✅ Successfully extracted ID card number:", idCardNumber);
+        }
         
         // Extract name from Thai or English fields
         const thaiName = response.data?.th_name;
@@ -137,6 +141,7 @@ export const ocrDriverLicenseRoutes = new Elysia({ prefix: "/api" })
           success: true,
           data: {
             licenseNumber: licenseNumber,
+            idCardNumber: idCardNumber, // ID card number from driver's license
             documentType: "driver_license",
             // Thai information
             thaiName: thaiName,
