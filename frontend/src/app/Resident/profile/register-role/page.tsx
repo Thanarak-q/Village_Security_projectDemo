@@ -10,17 +10,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { LiffUser } from "@/lib/liffAuth";
+import type { UserRole, UserRolesResponse } from "@/types/roles";
+
+type RoleRegistrationUser = LiffUser & { village_name?: string };
 
 const RoleRegistrationPage = () => {
   const router = useRouter();
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<RoleRegistrationUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'resident' | 'guard' | null>(null);
   const [selectedVillage, setSelectedVillage] = useState<string>('');
-  const [existingRoles, setExistingRoles] = useState<Array<{role: string, village_id: string, village_name?: string, status?: string}>>([]);
+  const [existingRoles, setExistingRoles] = useState<UserRole[]>([]);
   const [villageValidation, setVillageValidation] = useState<{
     isValid: boolean;
     isLoading: boolean;
@@ -44,15 +48,18 @@ const RoleRegistrationPage = () => {
       setLoading(false);
 
       // Check existing roles
-      checkExistingRoles(user);
+      const userId = user.lineUserId || user.id;
+      if (userId) {
+        checkExistingRoles(userId);
+      }
     };
 
     loadUserData();
   }, [router]);
 
-  const checkExistingRoles = async (user: any) => {
+  const checkExistingRoles = async (lineUserId: string) => {
     try {
-      const response = await fetch(`/api/users/roles?lineUserId=${user.lineUserId}`, {
+      const response = await fetch(`/api/users/roles?lineUserId=${lineUserId}`, {
         credentials: 'include'
       });
       
@@ -62,7 +69,7 @@ const RoleRegistrationPage = () => {
           console.error("Response is not JSON");
           return;
         }
-        const data = await response.json();
+        const data: UserRolesResponse = await response.json();
         if (data.success && data.roles) {
           setExistingRoles(data.roles);
         }
@@ -92,6 +99,11 @@ const RoleRegistrationPage = () => {
         });
       } else {
         setVillageValidation({ isValid: false, isLoading: false });
+
+        const userId = currentUser.lineUserId || currentUser.id;
+        if (userId) {
+          checkExistingRoles(userId);
+        }
       }
     } catch (error) {
       console.error('Village validation error:', error);
@@ -171,7 +183,8 @@ const RoleRegistrationPage = () => {
         setExistingRoles(prev => [...prev, {
           role: selectedRole,
           village_id: selectedVillage,
-          village_name: villageValidation.villageName
+          village_name: villageValidation.villageName,
+          status: 'pending'
         }]);
         // Reset form
         setSelectedRole(null);

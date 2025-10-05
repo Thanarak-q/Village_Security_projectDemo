@@ -5,10 +5,13 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, User, Mail, Phone, MapPin, Shield, Edit, Plus } from "lucide-react";
 import { getAuthData, isAuthenticated } from "@/lib/liffAuth";
 import { ModeToggle } from "@/components/mode-toggle";
+import type { LiffUser } from "@/lib/liffAuth";
+
+type GuardProfile = LiffUser & { village_name?: string };
 
 const GuardProfilePage = () => {
   const router = useRouter();
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<GuardProfile | null>(null);
   const [villageName, setVillageName] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
@@ -33,7 +36,7 @@ const GuardProfilePage = () => {
         }
 
         if (response.ok) {
-          const userData = await response.json();
+          const userData: GuardProfile = await response.json();
           setCurrentUser(userData);
           
           // Set village name from API response

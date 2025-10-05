@@ -7,17 +7,19 @@ import { isAuthenticated, getAuthData } from "@/lib/liffAuth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import type { LiffUser } from "@/lib/liffAuth";
+import type { UserRole, UserRolesResponse } from "@/types/roles";
 
 export default function GuardRegisterRolePage() {
   const router = useRouter();
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<LiffUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [selectedVillage, setSelectedVillage] = useState<string>("");
-  const [existingRoles, setExistingRoles] = useState<Array<{role: string, village_id: string, village_name?: string, status?: string}>>([]);
+  const [existingRoles, setExistingRoles] = useState<UserRole[]>([]);
   const [villageValidation, setVillageValidation] = useState<{
     isValid: boolean;
     isLoading: boolean;
@@ -55,7 +57,7 @@ export default function GuardRegisterRolePage() {
       if (response.ok) {
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
-          const data = await response.json();
+          const data: UserRolesResponse = await response.json();
           if (data.success && data.roles) {
             setExistingRoles(data.roles);
           }

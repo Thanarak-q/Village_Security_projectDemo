@@ -6,6 +6,7 @@ import { LiffService } from "@/lib/liff";
 import { verifyLiffToken, storeAuthData } from "@/lib/liffAuth";
 import { useTokenRefresh } from "@/hooks/useTokenRefresh";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+import type { UserRole, UserRolesResponse } from "@/types/roles";
 
 // Use relative paths for API calls so Caddy can route them properly
 const API_BASE_URL = '';
@@ -200,15 +201,16 @@ export default function LiffPage() {
                 if (rolesResponse.ok) {
                   const contentType = rolesResponse.headers.get("content-type");
                   if (contentType && contentType.includes("application/json")) {
-                    const rolesData = await rolesResponse.json();
+                    const rolesData: UserRolesResponse = await rolesResponse.json();
                     
                     if (rolesData.success && rolesData.roles) {
-                      const verifiedRoles = rolesData.roles.filter((role: any) => role.status === 'verified');
-                      const pendingRoles = rolesData.roles.filter((role: any) => role.status === 'pending');
-                      const hasResidentRole = verifiedRoles.some((role: any) => role.role === 'resident');
-                      const hasGuardRole = verifiedRoles.some((role: any) => role.role === 'guard');
-                      const hasPendingResidentRole = pendingRoles.some((role: any) => role.role === 'resident');
-                      const hasPendingGuardRole = pendingRoles.some((role: any) => role.role === 'guard');
+                      const roles: UserRole[] = rolesData.roles;
+                      const verifiedRoles = roles.filter((role) => role.status === 'verified');
+                      const pendingRoles = roles.filter((role) => role.status === 'pending');
+                      const hasResidentRole = verifiedRoles.some((role) => role.role === 'resident');
+                      const hasGuardRole = verifiedRoles.some((role) => role.role === 'guard');
+                      const hasPendingResidentRole = pendingRoles.some((role) => role.role === 'resident');
+                      const hasPendingGuardRole = pendingRoles.some((role) => role.role === 'guard');
                       
                       console.log('🔍 User roles:', { 
                         verifiedRoles, 

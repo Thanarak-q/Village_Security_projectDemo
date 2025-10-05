@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { isAuthenticated, getAuthData } from "@/lib/liffAuth";
 import { LiffService } from "@/lib/liff";
 import ApprovalForm from "./ApprovalForm";
+import type { LiffUser } from "@/lib/liffAuth";
+import type { UserRole, UserRolesResponse } from "@/types/roles";
 
 function Page() {
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [userRoles, setUserRoles] = useState<Array<{role: string, village_id: string, village_name?: string, status: string}>>([]);
+  const [currentUser, setCurrentUser] = useState<LiffUser | null>(null);
+  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
 
   useEffect(() => {
     const checkAuthAndStatus = () => {
@@ -102,15 +104,16 @@ function Page() {
             if (response.ok) {
               const contentType = response.headers.get("content-type");
               if (contentType && contentType.includes("application/json")) {
-                const data = await response.json();
+                const data: UserRolesResponse = await response.json();
                 console.log("🔍 Guard main page - roles API response data:", data);
-                
+
                 if (data.success && data.roles) {
-                  setUserRoles(data.roles);
-                  
+                  const roles = data.roles;
+                  setUserRoles(roles);
+
                   // Check if user has guard role and its status
-                  const guardRole = data.roles.find((role: {role: string, village_id: string, village_name?: string, status: string}) => role.role === 'guard');
-                  const hasResidentRole = data.roles.some((role: {role: string, village_id: string, village_name?: string, status: string}) => role.role === 'resident');
+                  const guardRole = roles.find((role) => role.role === 'guard');
+                  const hasResidentRole = roles.some((role) => role.role === 'resident');
                   
                   console.log("🔍 Guard role check - guardRole:", guardRole);
                   console.log("🔍 Guard role check - hasResidentRole:", hasResidentRole);

@@ -39,6 +39,11 @@ interface AvailableHouse {
   village_key: string;
 }
 
+interface HousesResponse {
+  success: boolean;
+  data: AvailableHouse[];
+}
+
 // Zod validation schema
 const userEditFormSchema = z.object({
   status: z.string().min(1, "กรุณาเลือกสถานะ"),
@@ -135,11 +140,11 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
       });
 
       if (response.ok) {
-        const result = await response.json();
+        const result: HousesResponse = await response.json();
         if (result.success) {
           // Filter for available houses only
-          const availableHouses = result.data.filter((house: any) => house.status === "available");
-          setAvailableHouses(availableHouses);
+          const available = result.data.filter((house) => house.status === "available");
+          setAvailableHouses(available);
         }
       }
     } catch (error) {

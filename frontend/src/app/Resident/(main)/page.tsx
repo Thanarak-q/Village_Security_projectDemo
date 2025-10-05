@@ -14,11 +14,12 @@ import { useVisitorData } from "../hooks/useVisitordata";
 
 import { switchUserRole, getAuthData } from "@/lib/liffAuth";
 import { LiffService } from "@/lib/liff";
+import type { UserRole, UserRolesResponse } from "@/types/roles";
 
 // Main Resident Page Component
 const ResidentPage = () => {
   const router = useRouter();
-  const [userRoles, setUserRoles] = useState<Array<{ role: string, village_id: string, village_name?: string, status: string }>>([]);
+  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
   const [villageName, setVillageName] = useState<string>('');
 
@@ -105,15 +106,16 @@ const ResidentPage = () => {
           if (response.ok) {
             const contentType = response.headers.get("content-type");
             if (contentType && contentType.includes("application/json")) {
-              const data = await response.json();
+              const data: UserRolesResponse = await response.json();
               console.log("🔍 Resident main page - API response data:", data);
 
               if (data.success && data.roles) {
-                setUserRoles(data.roles);
-                console.log("🔍 Resident main page - roles data:", data.roles);
+                const roles = data.roles;
+                setUserRoles(roles);
+                console.log("🔍 Resident main page - roles data:", roles);
 
                 // Check if user has resident role and its status
-                const residentRole = data.roles.find((role: any) => role.role === 'resident');
+                const residentRole = roles.find((role) => role.role === 'resident');
                 console.log("🔍 Resident main page - residentRole:", residentRole);
 
                 if (!residentRole) {
@@ -131,7 +133,7 @@ const ResidentPage = () => {
 
                 // Set village name from resident role data
                 if (residentRole.village_name) {
-                  setVillageName(residentRole.village_name);
+                setVillageName(residentRole.village_name);
                 }
 
                 console.log("✅ User has verified resident role, allowing access to resident main page");
@@ -187,11 +189,11 @@ const ResidentPage = () => {
             if (response.ok) {
               const contentType = response.headers.get("content-type");
               if (contentType && contentType.includes("application/json")) {
-                const data = await response.json();
+                const data: UserRolesResponse = await response.json();
                 console.log("🔍 Fresh roles data:", data);
 
                 if (data.success && data.roles) {
-                  const freshGuardRole = data.roles.find((role: any) => role.role === 'guard');
+                  const freshGuardRole = data.roles.find((role) => role.role === 'guard');
                   console.log("🔍 Fresh guardRole:", freshGuardRole);
 
                   if (freshGuardRole) {
@@ -221,7 +223,7 @@ const ResidentPage = () => {
     }
   };
 
-  const handleGuardRoleSwitchWithData = async (guardRole: any) => {
+  const handleGuardRoleSwitchWithData = async (guardRole: UserRole) => {
     try {
       // Check guard role status and redirect accordingly
       if (guardRole.status === "verified") {
@@ -259,6 +261,7 @@ const ResidentPage = () => {
 
   // Check if user has guard role
   const hasGuardRole = userRoles.some(role => role.role === 'guard');
+  const displayVillageName = currentUser?.village_name ?? villageName;
 
   // Show loading state while checking authentication
   if (isCheckingAuth) {
@@ -276,7 +279,7 @@ const ResidentPage = () => {
               <div className="flex items-center gap-3">
                 <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2">
                   <Home className="w-6 h-6 sm:w-7 sm:h-7" /> 
-                  {currentUser?.village_name ? `หมู่บ้าน${currentUser.village_name}` : 'หมู่บ้าน'}
+                  {displayVillageName ? `หมู่บ้าน${displayVillageName}` : 'หมู่บ้าน'}
                 </h1>
               </div>
               <span className="flex items-center gap-2">

@@ -13,8 +13,19 @@ import {
 // Lazy load heavy components
 const WeeklyAccessBarChart = lazy(() => import("./chart"));
 
+interface DashboardVillage {
+  village_id: string;
+  village_name: string;
+  village_key: string;
+}
+
+interface DashboardUser {
+  villages?: DashboardVillage[];
+  [key: string]: unknown;
+}
+
 export default function Page() {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<DashboardUser | null>(null);
   const [selectedVillageName, setSelectedVillageName] = useState<string>("");
   const [selectedVillageKey, setSelectedVillageKey] = useState<string>("");
   const [villageKey, setVillageKey] = useState<string>("");
@@ -41,7 +52,7 @@ export default function Page() {
           throw new Error("Response is not JSON");
         }
 
-        return res.json();
+        return res.json() as Promise<DashboardUser>;
       })
       .then((json) => {
         if (json) {
@@ -50,7 +61,7 @@ export default function Page() {
           if (json.villages && json.villages.length > 0) {
             const selectedVillageId = sessionStorage.getItem("selectedVillage");
             if (selectedVillageId) {
-              const selectedVillage = json.villages.find((v: any) => v.village_id === selectedVillageId);
+              const selectedVillage = json.villages.find((v) => v.village_id === selectedVillageId);
               if (selectedVillage) {
                 setSelectedVillageName(selectedVillage.village_name);
                 setVillageKey(selectedVillage.village_key);
@@ -123,8 +134,8 @@ export default function Page() {
       const villageId = sessionStorage.getItem("selectedVillageId");
       console.log('🏘️ Dashboard: Selected village id:', villageId);
 
-      if (villageId && data && data.villages) {
-        const selectedVillage = data.villages.find((v: any) => v.village_id === villageId);
+      if (villageId && data?.villages) {
+        const selectedVillage = data.villages.find((v) => v.village_id === villageId);
         if (selectedVillage) {
           console.log('✅ Dashboard: Village updated:', selectedVillage.village_name);
           setSelectedVillageName(selectedVillage.village_name);
@@ -248,4 +259,3 @@ export default function Page() {
     </div>
   );
 }
-

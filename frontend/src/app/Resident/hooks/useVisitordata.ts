@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getAuthData, isAuthenticated } from "@/lib/liffAuth";
+import type { LiffUser } from "@/lib/liffAuth";
 import { 
   fetchPendingVisitorRequests, 
   fetchVisitorHistory, 
@@ -15,6 +16,24 @@ import {
   ConfirmationDialogState 
 } from "../types/visitor";
 
+interface TestVisitorRecord {
+  visitor_record_id: string;
+  createdAt: string;
+  license_plate?: string;
+  visit_purpose?: string;
+  visitor_id_card?: string;
+  house?: {
+    address?: string;
+  } | null;
+  picture_key?: string;
+  record_status?: string;
+}
+
+interface TestVisitorResponse {
+  success: boolean;
+  records: TestVisitorRecord[];
+}
+
 export const useVisitorData = () => {
   const router = useRouter();
   const [pendingRequests, setPendingRequests] = useState<VisitorRequest[]>([]);
@@ -22,7 +41,7 @@ export const useVisitorData = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<LiffUser | null>(null);
   
   // Confirmation dialog state
   const [confirmationDialog, setConfirmationDialog] = useState<ConfirmationDialogState>({
@@ -87,12 +106,12 @@ export const useVisitorData = () => {
           
           // For testing, fetch all visitor records
           const testResponse = await fetch('/api/test-visitor-records');
-          const testData = await testResponse.json();
+          const testData: TestVisitorResponse = await testResponse.json();
           
           if (testData.success) {
             console.log("📋 Test visitor records:", testData.records);
             // Transform test data to match expected format
-            const transformedRecords = testData.records.map((record: any) => {
+            const transformedRecords: VisitorRequest[] = testData.records.map((record) => {
               const entryTime = new Date(record.createdAt);
               const timeString = entryTime.toLocaleTimeString('th-TH', {
                 hour: '2-digit',
@@ -118,8 +137,11 @@ export const useVisitorData = () => {
               };
             });
             
-            setPendingRequests(transformedRecords.filter((r: any) => !r.status));
-            setHistory(transformedRecords.filter((r: any) => r.status));
+            const pending = transformedRecords.filter((record) => !record.status);
+            const historyRecords = transformedRecords.filter((record) => Boolean(record.status));
+
+            setPendingRequests(pending);
+            setHistory(historyRecords);
           }
           setLoading(false);
           return;

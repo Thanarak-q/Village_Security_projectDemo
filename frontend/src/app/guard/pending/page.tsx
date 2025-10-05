@@ -8,13 +8,16 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle, Clock, RefreshCw, Shield, Home, User } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { switchUserRole } from "@/lib/liffAuth";
+import type { LiffUser } from "@/lib/liffAuth";
+import type { UserRole, UserRolesResponse } from "@/types/roles";
+
+type GuardUser = LiffUser & { village_name?: string };
 
 export default function GuardPendingPage() {
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [userRoles, setUserRoles] = useState<Array<{role: string, village_id: string, village_name?: string, status: string}>>([]);
-  const [guardData, setGuardData] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<GuardUser | null>(null);
+  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
 
   useEffect(() => {
@@ -27,7 +30,6 @@ export default function GuardPendingPage() {
       const { user } = getAuthData();
       if (user) {
         setCurrentUser(user);
-        setGuardData(user);
         
         // Check user roles
         try {
@@ -40,7 +42,7 @@ export default function GuardPendingPage() {
             if (response.ok) {
               const contentType = response.headers.get("content-type");
               if (contentType && contentType.includes("application/json")) {
-                const data = await response.json();
+                const data: UserRolesResponse = await response.json();
                 if (data.success && data.roles) {
                   setUserRoles(data.roles);
                 }
@@ -99,7 +101,7 @@ export default function GuardPendingPage() {
     }
   };
 
-  const handleRoleSwitchWithData = async (residentRole: {status: string}) => {
+  const handleRoleSwitchWithData = async (residentRole: UserRole) => {
     try {
       // Check resident role status and redirect accordingly
       if (residentRole.status === "verified") {
@@ -255,24 +257,24 @@ export default function GuardPendingPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                {guardData ? (
+                {currentUser ? (
                   <div className="space-y-4">
                     <div className="space-y-3">
                       <div>
                         <p className="text-sm text-muted-foreground">ชื่อ-นามสกุล</p>
-                        <p className="text-sm font-medium text-foreground">{guardData.fname} {guardData.lname}</p>
+                        <p className="text-sm font-medium text-foreground">{currentUser.fname} {currentUser.lname}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">อีเมล</p>
-                        <p className="text-sm font-medium text-foreground">{guardData.email}</p>
+                        <p className="text-sm font-medium text-foreground">{currentUser.email}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">เบอร์โทรศัพท์</p>
-                        <p className="text-sm font-medium text-foreground">{guardData.phone}</p>
+                        <p className="text-sm font-medium text-foreground">{currentUser.phone}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">หมู่บ้าน</p>
-                        <p className="text-sm font-medium text-foreground">{guardData.village_name || "ไม่ระบุ"}</p>
+                        <p className="text-sm font-medium text-foreground">{currentUser.village_name || "ไม่ระบุ"}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">ตำแหน่ง</p>
@@ -283,7 +285,7 @@ export default function GuardPendingPage() {
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full bg-orange-500"></div>
                           <span className="text-sm font-medium text-orange-600 dark:text-orange-400 capitalize">
-                            {guardData.status === 'pending' ? 'รอการยืนยัน' : guardData.status}
+                            {currentUser.status === 'pending' ? 'รอการยืนยัน' : currentUser.status}
                           </span>
                         </div>
                       </div>

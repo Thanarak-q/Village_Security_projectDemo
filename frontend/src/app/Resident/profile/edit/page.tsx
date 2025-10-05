@@ -5,10 +5,13 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, User, Mail, Phone, MapPin, Save, X } from "lucide-react";
 import { getAuthData, isAuthenticated } from "@/lib/liffAuth";
 import { ModeToggle } from "@/components/mode-toggle";
+import type { LiffUser } from "@/lib/liffAuth";
+
+type ResidentProfile = LiffUser & { village_name?: string };
 
 const EditResidentProfilePage = () => {
   const router = useRouter();
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<ResidentProfile | null>(null);
   const [villageName, setVillageName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,7 +47,7 @@ const EditResidentProfilePage = () => {
         }
 
         if (response.ok) {
-          const userData = await response.json();
+          const userData: ResidentProfile = await response.json();
           setCurrentUser(userData);
           setFormData({
             fname: userData.fname || "",
@@ -187,10 +190,7 @@ const EditResidentProfilePage = () => {
       if (result.success) {
         setSuccess("บันทึกข้อมูลสำเร็จ");
         // Update the current user data
-        setCurrentUser((prev: any) => ({
-          ...prev,
-          ...formData
-        }));
+        setCurrentUser((prev) => (prev ? { ...prev, ...formData } : prev));
         // Redirect back to profile page after 1.5 seconds
         setTimeout(() => {
           router.push('/Resident/profile');

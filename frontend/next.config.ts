@@ -1,4 +1,7 @@
+
 import type { NextConfig } from "next";
+
+const backendUrl = process.env.BACKEND_URL;
 
 const nextConfig: NextConfig = {
   // Performance optimizations
@@ -19,7 +22,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Caddy handles API routing, no need for Next.js rewrites
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${backendUrl}/api/:path*`, // backend from env
+      },
+    ];
+  },
 };
 
 export default nextConfig;
