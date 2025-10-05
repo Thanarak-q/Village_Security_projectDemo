@@ -231,7 +231,7 @@ export function formatVisitorDataForFlexMessage(
     villageName: villageName,
     visitorId: visitorRecord.visitor_id,
     imageUrl: visitorRecord.picture_key ? 
-      `${process.env.FRONTEND_URL || 'http://localhost:3000'}/api/images/${visitorRecord.picture_key}` : 
+      `/api/images/${visitorRecord.picture_key}` : 
       undefined
   };
 }
