@@ -1,4 +1,4 @@
 #!/bin/sh
 
 # รันแอป
-bun run dev 
+bun run dev

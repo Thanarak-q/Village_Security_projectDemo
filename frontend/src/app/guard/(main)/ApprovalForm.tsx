@@ -287,6 +287,19 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   const progress = step === 1 ? 25 : step === 2 ? 60 : 100;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
+  const [isMobileDevice, setIsMobileDevice] = useState(true);
+  useEffect(() => {
+    const checkDevice = () => {
+      const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+      setIsMobileDevice(isMobile || (typeof window !== 'undefined' && window.innerWidth < 1024));
+    };
+    checkDevice();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkDevice);
+      return () => window.removeEventListener('resize', checkDevice);
+    }
+  }, []);
 
   const [houseQuery, setHouseQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -1312,14 +1325,16 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex flex-col gap-3 mt-4">
-            <Button
-              onClick={() => handleImageSourceSelection("camera")}
-              className="w-full h-14 text-base flex items-center justify-center gap-3"
-              variant="default"
-            >
-              <Camera className="w-5 h-5" />
-              ถ่ายรูป
-            </Button>
+            {isMobileDevice && (
+              <Button
+                onClick={() => handleImageSourceSelection("camera")}
+                className="w-full h-14 text-base flex items-center justify-center gap-3"
+                variant="default"
+              >
+                <Camera className="w-5 h-5" />
+                ถ่ายรูป
+              </Button>
+            )}
             <Button
               onClick={() => handleImageSourceSelection("file")}
               className="w-full h-14 text-base flex items-center justify-center gap-3"

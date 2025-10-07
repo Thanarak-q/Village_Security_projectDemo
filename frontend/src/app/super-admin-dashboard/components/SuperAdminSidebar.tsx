@@ -41,11 +41,11 @@ const items = [
     url: "/super-admin-dashboard/admins",
     icon: Users,
   },
-  {
-    title: "สถิติระบบ",
-    url: "/super-admin-dashboard/stats",
-    icon: BarChart3,
-  },
+  // {
+  //   title: "สถิติระบบ",
+  //   url: "/super-admin-dashboard/stats",
+  //   icon: BarChart3,
+  // },
 ];
 
 const AppSidebar = memo(function AppSidebar() {

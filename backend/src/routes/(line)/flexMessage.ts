@@ -294,7 +294,7 @@ class FlexMessageService {
               action: {
                 type: 'uri',
                 label: '📄 ดูรายละเอียดเพิ่มเติม',
-                uri: `https://viperous-contemptuously-adaline.ngrok-free.dev/Resident`
+                uri: `https://shad-unlumped-nonobediently.ngrok-free.dev/Resident`
               },
               margin: 'md'
             }
@@ -431,7 +431,7 @@ class FlexMessageService {
               action: {
                 type: 'uri',
                 label: '📄 ดูรายละเอียดเพิ่มเติม',
-                uri: `https://viperous-contemptuously-adaline.ngrok-free.dev/Resident`
+                uri: `https://shad-unlumped-nonobediently.ngrok-free.dev/Resident`
               },
               margin: 'md'
             }
@@ -556,7 +556,7 @@ class FlexMessageService {
               action: {
                 type: 'uri',
                 label: '📄 ดูรายละเอียดเพิ่มเติม',
-                uri: `https://viperous-contemptuously-adaline.ngrok-free.dev/Resident`
+                uri: `https://shad-unlumped-nonobediently.ngrok-free.dev/Resident`
               },
               margin: 'md'
             }

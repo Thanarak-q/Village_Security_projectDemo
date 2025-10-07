@@ -4,6 +4,7 @@ import type { NextConfig } from "next";
 const backendUrl = process.env.BACKEND_URL;
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   // Performance optimizations
   experimental: {
     optimizePackageImports: ['lucide-react', 'recharts'],
