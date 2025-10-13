@@ -217,7 +217,7 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
 
     // Get village_ids from currentUser, or from village_id field for residents/guards
     let villageIds: string[] = currentUser.village_ids || [];
-    
+
     // For residents and guards, if village_ids is empty but village_id exists, use it
     if (villageIds.length === 0 && currentUser.village_id) {
       villageIds = [currentUser.village_id];
@@ -279,9 +279,9 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
     if (authResult) {
       return authResult;
     }
-    
+
     const { currentUser } = context;
-    
+
     // Get village information for all assigned villages
     let villages_info: Array<{ village_id: string; village_key: string | null; village_name: string }> = [];
     let village_name: string | null = null;
@@ -333,4 +333,4 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
   })
 
 
- 
+

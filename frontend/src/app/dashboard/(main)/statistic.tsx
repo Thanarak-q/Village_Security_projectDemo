@@ -38,12 +38,12 @@ export const TotalUsersCard = memo(function TotalUsersCard({ data, loading, erro
             <div className="text-2xl sm:text-3xl font-bold text-foreground">
               {data?.residentCount?.toLocaleString() || 0}
             </div>
-            <div className="flex items-center mt-2">
+            {/* <div className="flex items-center mt-2">
               <Users className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500 mr-1" />
               <span className="text-xs sm:text-sm text-blue-600 font-medium">
                 รออนุมัติ: {data?.residentPendingCount || 0}
               </span>
-            </div>
+            </div> */}
           </>
         )}
       </CardContent>
@@ -94,12 +94,12 @@ export function DailyAccessCard({ data, loading, error }: { data: StatsData | nu
                   ปฏิเสธ: {rejectedCount}
                 </span>
               </div>
-              <div className="flex items-center">
+              {/* <div className="flex items-center">
                 <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500 mr-1" />
                 <span className="text-xs sm:text-sm text-yellow-600 font-medium">
                   รอตรวจสอบ: {pendingCount}
                 </span>
-              </div>
+              </div> */}
             </div>
           </>
         )}
@@ -203,12 +203,12 @@ export function useStatsData() {
     try {
       // Get selected village from sessionStorage (with SSR safety check)
       const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem('selectedVillage') : null;
-      const url = selectedVillage 
+      const url = selectedVillage
         ? `/api/statsCard?village_id=${encodeURIComponent(selectedVillage)}`
         : '/api/statsCard';
-        
+
       console.log('🔍 Fetching stats for village:', selectedVillage, 'URL:', url);
-        
+
       const response = await fetch(url, {
         method: 'GET',
         credentials: 'include',
@@ -267,12 +267,12 @@ export function useStatsData() {
       console.log('🔄 Village changed, refetching stats...');
       fetchStats()
     }
-    
+
     window.addEventListener('storage', handleVillageChange)
-    
+
     // Also listen for custom event when village changes in same tab
     window.addEventListener('villageChanged', handleVillageChange)
-    
+
     return () => {
       window.removeEventListener('storage', handleVillageChange)
       window.removeEventListener('villageChanged', handleVillageChange)

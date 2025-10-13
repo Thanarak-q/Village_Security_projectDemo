@@ -651,7 +651,6 @@ export async function getWeeklyVisitorRecords(villageIds?: string[], role?: stri
   // Add village filtering if villageIds provided and user is not superadmin
   if (villageIds && villageIds.length > 0 && role !== "superadmin") {
     query = query
-      .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
       .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
       .where(
         and(
@@ -748,7 +747,6 @@ export async function getMonthlyVisitorRecords(villageIds?: string[], role?: str
   // Add village filtering if villageIds provided and user is not superadmin
   if (villageIds && villageIds.length > 0 && role !== "superadmin") {
     query = query
-      .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
       .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
       .where(
         and(
@@ -847,7 +845,6 @@ export async function getYearlyVisitorRecords(villageIds?: string[], role?: stri
   // Add village filtering if villageIds provided and user is not superadmin
   if (villageIds && villageIds.length > 0 && role !== "superadmin") {
     query = query
-      .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
       .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
       .where(inArray(houses.village_id, villageIds));
   }

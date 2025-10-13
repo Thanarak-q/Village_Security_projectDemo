@@ -72,10 +72,13 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
         countGuardsPending,
         visitorStats
       ] = await Promise.all([
-        // Total residents
+        // Total verified residents only
         db.select({ count: count() })
           .from(residents)
-          .where(eq(residents.village_id, village_id)),
+          .where(and(
+            eq(residents.village_id, village_id),
+            eq(residents.status, "verified")
+          )),
 
         // Pending residents
         db.select({ count: count() })
