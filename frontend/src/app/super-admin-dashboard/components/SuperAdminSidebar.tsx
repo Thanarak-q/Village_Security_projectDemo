@@ -27,11 +27,6 @@ import { type AdminRole } from "@/lib/roleUtils";
 
 const items = [
   {
-    title: "ภาพรวมระบบ",
-    url: "/super-admin-dashboard",
-    icon: Home,
-  },
-  {
     title: "จัดการ Admin",
     url: "/super-admin-dashboard/admins",
     icon: Users,
