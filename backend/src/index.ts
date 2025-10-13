@@ -2,7 +2,7 @@ import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import jwt from "@elysiajs/jwt";
 import cookie from "@elysiajs/cookie";
-import "dotenv/config";
+import "./config/env";
 import { houseManageRoutes } from "./routes/houseManage";
 import { houseLiffRoutes } from "./routes/houseLiff";
 import { visitorRecordRoutes } from "./routes/visitorRecord";

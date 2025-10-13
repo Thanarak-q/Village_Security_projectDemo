@@ -1,4 +1,5 @@
 
+import "./config/env";
 import type { NextConfig } from "next";
 
 const backendUrl = process.env.BACKEND_URL;
