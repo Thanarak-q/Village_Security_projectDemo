@@ -15,6 +15,7 @@ import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
+  AlertDialogAction,
   AlertDialogContent,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -27,7 +28,7 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Upload, Home, House, User, Search, Loader2, Camera, ImageIcon} from "lucide-react";
+import { Upload, Home, House, User, Search, Loader2, Camera, ImageIcon, CheckCircle, Shield} from "lucide-react";
 import axios from "axios";
 import { ModeToggle } from "@/components/mode-toggle";
 import { getAuthData, switchUserRole } from "@/lib/liffAuth";
@@ -288,6 +289,12 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
   const [isMobileDevice, setIsMobileDevice] = useState(true);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [successData, setSuccessData] = useState<{
+    visitorId: string;
+    visitorName: string;
+    licensePlate: string;
+  } | null>(null);
   useEffect(() => {
     const checkDevice = () => {
       const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
@@ -645,7 +652,14 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
       console.log("✅ Form submitted successfully:", response.data);
 
       if (response.data?.success) {
-        // alert(`ส่งคำขอสำเร็จ! รหัสการเยี่ยม: ${response.data.visitorId}`);
+        // Store success data for the dialog
+        setSuccessData({
+          visitorId: response.data.visitorId || 'N/A',
+          visitorName: `${data.fname} ${data.lname}`,
+          licensePlate: data.license_plate
+        });
+        setShowSuccessDialog(true);
+        
         // Reset form values and UI state for a new submission
         visitorForm.reset({
           license_image: "",
@@ -1344,6 +1358,50 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
               เลือกจากอุปกรณ์
             </Button>
             <AlertDialogCancel className="mt-2">ยกเลิก</AlertDialogCancel>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Success Notification Dialog */}
+      <AlertDialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader className="text-center">
+            <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+              <CheckCircle className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            </div>
+            <AlertDialogTitle className="text-xl font-semibold text-blue-800 dark:text-blue-200">
+              ส่งคำขอสำเร็จ!
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base text-muted-foreground">
+              คำขอได้ถูกส่งไปยังผู้อยู่อาศัยเรียบร้อยแล้ว
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          {/* Visitor Information */}
+          <div className="space-y-3 px-6 pb-2">
+            <div className="text-sm">
+              <span className="font-medium text-foreground">ผู้เยี่ยม:</span> 
+              <span className="ml-2">{successData?.visitorName}</span>
+            </div>
+            <div className="text-sm">
+              <span className="font-medium text-foreground">ทะเบียน:</span> 
+              <span className="ml-2">{successData?.licensePlate}</span>
+            </div>
+            <div className="text-sm">
+              <span className="font-medium text-foreground">รหัสการเยี่ยม:</span> 
+              <span className="font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded ml-2 text-xs">
+                {successData?.visitorId}
+              </span>
+            </div>
+          </div>
+          
+          <div className="flex justify-center pt-2 px-6">
+            <AlertDialogAction 
+              onClick={() => setShowSuccessDialog(false)}
+              className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
+            >
+              เข้าใจแล้ว
+            </AlertDialogAction>
           </div>
         </AlertDialogContent>
       </AlertDialog>

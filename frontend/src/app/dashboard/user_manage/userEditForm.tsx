@@ -13,6 +13,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Form,
   FormControl,
   FormField,
@@ -29,7 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Edit, Home, Shield, Search } from "lucide-react";
+import { Edit, Home, Shield, Search, CheckCircle } from "lucide-react";
 
 // Interface for available house
 interface AvailableHouse {
@@ -91,6 +101,15 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
   const [houseQuery, setHouseQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const housesPerPage = 5;
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<UserEditFormData | null>(null);
+  const [successData, setSuccessData] = useState<{
+    type: 'role_change' | 'user_update';
+    userName: string;
+    action: string;
+    formData: UserEditFormData;
+  } | null>(null);
 
   // Filter houses based on search query
   const filteredHouses = useMemo(
@@ -221,6 +240,20 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
       return;
     }
 
+    // Store form data and show confirmation dialog
+    setPendingFormData(data);
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmUpdate = async () => {
+    if (!user || !pendingFormData) return;
+
+    const data = pendingFormData;
+    setShowConfirmDialog(false);
+    setPendingFormData(null);
+
+    const roleChanged = user.role !== data.role;
+
     try {
       const apiEndpoint = roleChanged ? '/api/changeUserRole' : '/api/updateUser';
       
@@ -287,10 +320,15 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
 
       if (result.success) {
         console.log(roleChanged ? 'User role changed successfully:' : 'User updated successfully:', result);
-        alert(roleChanged ? 'เปลี่ยนบทบาทผู้ใช้สำเร็จแล้ว!' : 'อัปเดตข้อมูลผู้ใช้สำเร็จแล้ว!');
         
-        // Refresh the data and close the form
-        onSubmit(data);
+        // Show success notification dialog
+        setSuccessData({
+          type: roleChanged ? 'role_change' : 'user_update',
+          userName: `${user.fname} ${user.lname}`,
+          action: roleChanged ? 'เปลี่ยนบทบาทผู้ใช้สำเร็จแล้ว' : 'อัปเดตข้อมูลผู้ใช้สำเร็จแล้ว',
+          formData: data // Store form data to call onSubmit later
+        });
+        setShowSuccessDialog(true);
         
         // Reset form to clean state
         form.reset({
@@ -311,11 +349,55 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
     }
   };
 
+  const handleCancelConfirm = () => {
+    setShowConfirmDialog(false);
+    setPendingFormData(null);
+  };
+
+  const getChangesSummary = () => {
+    if (!user || !pendingFormData) return [];
+    
+    const changes = [];
+    
+    if (user.status !== pendingFormData.status) {
+      const statusText = pendingFormData.status === 'verified' ? 'ยืนยันแล้ว' : 'ระงับการใช้งาน';
+      const oldStatusText = user.status === 'verified' ? 'ยืนยันแล้ว' : 'ระงับการใช้งาน';
+      changes.push(`สถานะ: ${oldStatusText} → ${statusText}`);
+    }
+    
+    if (user.role !== pendingFormData.role) {
+      const roleText = pendingFormData.role === 'resident' ? 'ลูกบ้าน' : 'ยาม';
+      const oldRoleText = user.role === 'resident' ? 'ลูกบ้าน' : 'ยาม';
+      changes.push(`บทบาท: ${oldRoleText} → ${roleText}`);
+    }
+    
+    // Check house changes for residents
+    if (user.role === 'resident' && pendingFormData.role === 'resident' && pendingFormData.houseId) {
+      let currentHouseId = null;
+      if (user.houseNumber && availableHouses.length > 0) {
+        const currentHouse = availableHouses.find(house => house.address === user.houseNumber);
+        currentHouseId = currentHouse?.house_id;
+      }
+      
+      if (currentHouseId !== pendingFormData.houseId) {
+        const newHouse = availableHouses.find(house => house.house_id === pendingFormData.houseId);
+        changes.push(`บ้าน: ${user.houseNumber || 'ไม่ระบุ'} → ${newHouse?.address || 'ไม่ระบุ'}`);
+      }
+    }
+    
+    if (pendingFormData.notes?.trim()) {
+      changes.push(`หมายเหตุ: ${pendingFormData.notes}`);
+    }
+    
+    return changes;
+  };
+
   const isResident = user?.role === 'resident';
 
   if (!user) return null;
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg max-w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -574,5 +656,84 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
         </Form>
       </DialogContent>
     </Dialog>
+
+    {/* Confirmation Dialog */}
+    <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+      <AlertDialogContent className="sm:max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2">
+            <Edit className="h-5 w-5 text-blue-600" />
+            ยืนยันการอัปเดตข้อมูลผู้ใช้
+          </AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-3">
+              <p>
+                คุณต้องการอัปเดตข้อมูลของผู้ใช้ <strong>{user?.fname} {user?.lname}</strong> ใช่หรือไม่?
+              </p>
+              
+              {getChangesSummary().length > 0 && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">การเปลี่ยนแปลงที่จะดำเนินการ:</p>
+                  <ul className="space-y-1 text-sm text-blue-800 dark:text-blue-200">
+                    {getChangesSummary().map((change, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <span className="text-blue-600 dark:text-blue-400">•</span>
+                        <span>{change}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              <p className="text-amber-600 dark:text-amber-400 text-sm font-medium">
+                ⚠️ การเปลี่ยนแปลงนี้จะมีผลทันทีและไม่สามารถยกเลิกได้
+              </p>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={handleCancelConfirm}>ยกเลิก</AlertDialogCancel>
+          <AlertDialogAction 
+            onClick={handleConfirmUpdate}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            ยืนยันการอัปเดต
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    {/* Success Notification Dialog */}
+    <AlertDialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+      <AlertDialogContent className="sm:max-w-md">
+        <AlertDialogHeader className="text-center">
+          <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
+            <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+          </div>
+          <AlertDialogTitle className="text-xl font-semibold text-green-800 dark:text-green-200">
+            {successData?.action}
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-base text-muted-foreground">
+            ผู้ใช้ <span className="font-medium text-foreground">{successData?.userName}</span> 
+            {successData?.type === 'role_change' ? ' ได้รับการเปลี่ยนบทบาทเรียบร้อยแล้ว' : ' ได้รับการอัปเดตข้อมูลเรียบร้อยแล้ว'}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="flex justify-center pt-2">
+          <AlertDialogAction 
+            onClick={() => {
+              setShowSuccessDialog(false);
+              // Call onSubmit to refresh data and close the edit dialog
+              if (successData?.formData) {
+                onSubmit(successData.formData);
+              }
+            }}
+            className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
+          >
+            ตกลง
+          </AlertDialogAction>
+        </div>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 } 

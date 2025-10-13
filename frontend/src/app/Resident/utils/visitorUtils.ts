@@ -87,13 +87,20 @@ export const transformApiData = (apiData: ApiVisitorRequest): VisitorRequest => 
   });
   const timeWithDate = `${timeString} ${dateString}`;
 
+  // Construct proper image URL from picture_key
+  let carImageUrl = 'car1.jpg'; // fallback to default image
+  if (apiData.picture_key) {
+    // Use the backend image serving endpoint
+    carImageUrl = `/api/images/file/${apiData.picture_key}`;
+  }
+
   return {
     id: apiData.visitor_record_id,  
-    plateNumber: apiData.license_plate || 'ไม่ระบุ',
+    plateNumber: apiData.license_plate || 'ไม่ระبุ',
     visitorName: apiData.visit_purpose || apiData.visitor_name || '',
     destination: apiData.house_address ? `บ้านเลขที่ ${apiData.house_address}` : '',
     time: timeWithDate,
-    carImage: apiData.picture_key ? apiData.picture_key : 'car1.jpg', // fallback to default image
+    carImage: carImageUrl,
     status: apiData.record_status === 'approved' ? 'approved' :
       apiData.record_status === 'rejected' ? 'denied' : undefined,
   };

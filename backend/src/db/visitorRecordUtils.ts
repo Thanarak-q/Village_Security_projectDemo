@@ -506,6 +506,28 @@ export async function updateVisitorRecordStatus(
 }
 
 /**
+ * Updates the status of a visitor record by visitor_record_id.
+ * @param {string} visitorRecordId - The UUID of the visitor record.
+ * @param {"approved" | "pending" | "rejected"} status - The new status of the visitor record.
+ * @returns {Promise<Object>} A promise that resolves to the updated visitor record.
+ */
+export async function updateVisitorRecordStatusById(
+  visitorRecordId: string,
+  status: "approved" | "pending" | "rejected"
+) {
+  const [updatedVisitorRecord] = await db
+    .update(visitor_records)
+    .set({
+      record_status: status,
+      updatedAt: new Date(),
+    })
+    .where(eq(visitor_records.visitor_record_id, visitorRecordId))
+    .returning();
+
+  return updatedVisitorRecord;
+}
+
+/**
  * Deletes a visitor record from the database.
  * @param {string} visitorRecordId - The UUID of the visitor record to delete.
  * @returns {Promise<Object>} A promise that resolves to the deleted visitor record.

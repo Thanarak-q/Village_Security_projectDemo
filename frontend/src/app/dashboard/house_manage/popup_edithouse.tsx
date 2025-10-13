@@ -15,6 +15,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   Form,
   FormControl,
   FormField,
@@ -31,7 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Home } from "lucide-react"
+import { Home, CheckCircle, MapPin, Settings } from "lucide-react"
 
 // Form schema
 const formSchema = z.object({
@@ -59,6 +67,12 @@ interface EditHouseDialogProps {
 
 export default function EditHouseDialog({ house, children, onUpdate }: EditHouseDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false)
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [successData, setSuccessData] = useState<{
+    houseAddress: string;
+    status: string;
+  } | null>(null)
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -91,7 +105,13 @@ export default function EditHouseDialog({ house, children, onUpdate }: EditHouse
       const result = await response.json()
 
       if (result.success) {
-        alert("บันทึกข้อมูลบ้านเรียบร้อย")
+        // Show success notification dialog
+        setSuccessData({
+          houseAddress: data.address,
+          status: data.status
+        })
+        setShowSuccessDialog(true)
+        
         // Close dialog and refresh data
         if (onUpdate) {
           onUpdate()
@@ -108,7 +128,8 @@ export default function EditHouseDialog({ house, children, onUpdate }: EditHouse
   }
 
   return (
-    <Dialog>
+    <>
+    <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
       <DialogTrigger asChild>
         {children || <Button variant="outline">แก้ไข</Button>}
       </DialogTrigger>
@@ -257,5 +278,54 @@ export default function EditHouseDialog({ house, children, onUpdate }: EditHouse
         </Form>
       </DialogContent>
     </Dialog>
+
+    {/* Success Notification Dialog */}
+    <AlertDialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+      <AlertDialogContent className="sm:max-w-md">
+        <AlertDialogHeader className="text-center">
+          <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
+            <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+          </div>
+          <AlertDialogTitle className="text-xl font-semibold text-green-800 dark:text-green-200">
+            บันทึกข้อมูลบ้านเรียบร้อย
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-base text-muted-foreground">
+            ข้อมูลบ้านได้รับการอัปเดตเรียบร้อยแล้ว
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        
+        {/* House Information */}
+        <div className="space-y-3 px-6 pb-2">
+          <div className="text-sm flex items-center">
+            <MapPin className="h-4 w-4 text-muted-foreground mr-2" />
+            <span className="font-medium text-foreground">บ้านเลขที่:</span> 
+            <span className="ml-2">{successData?.houseAddress}</span>
+          </div>
+          <div className="text-sm flex items-center">
+            <Settings className="h-4 w-4 text-muted-foreground mr-2" />
+            <span className="font-medium text-foreground">สถานะ:</span> 
+            <span className="ml-2">{
+              successData?.status === 'available' ? 'ว่าง' :
+              successData?.status === 'occupied' ? 'มีผู้อยู่อาศัย' :
+              successData?.status === 'disable' ? 'ไม่ใช้งาน' :
+              successData?.status
+            }</span>
+          </div>
+        </div>
+        
+        <div className="flex justify-center pt-2 px-6">
+          <AlertDialogAction 
+            onClick={() => {
+              setShowSuccessDialog(false)
+              setShowEditDialog(false)
+            }}
+            className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
+          >
+            ตกลง
+          </AlertDialogAction>
+        </div>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   )
 } 

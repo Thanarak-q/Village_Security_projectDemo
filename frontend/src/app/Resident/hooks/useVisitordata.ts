@@ -22,9 +22,11 @@ interface TestVisitorRecord {
   license_plate?: string;
   visit_purpose?: string;
   visitor_id_card?: string;
+  visitor_name?: string;
   house?: {
     address?: string;
   } | null;
+  house_address?: string;
   picture_key?: string;
   record_status?: string;
 }
@@ -131,13 +133,20 @@ export const useVisitorData = () => {
                 license_plate: record.license_plate
               });
               
+              // Construct proper image URL from picture_key
+              let carImageUrl = 'car1.jpg'; // fallback to default image
+              if (record.picture_key) {
+                // Use the backend image serving endpoint
+                carImageUrl = `/api/images/file/${record.picture_key}`;
+              }
+
               return {
                 id: record.visitor_record_id,
                 plateNumber: record.license_plate || 'ไม่ระบุ',
                 visitorName: record.visit_purpose || record.visitor_name || '',
-                destination: record.house_address ? `บ้านเลขที่ ${record.house_address}` : '',
+                destination: record.house?.address ? `บ้านเลขที่ ${record.house.address}` : '',
                 time: timeWithDate,
-                carImage: record.picture_key ? record.picture_key : 'car1.jpg',
+                carImage: carImageUrl,
                 status: record.record_status === 'approved' ? 'approved' : 
                        record.record_status === 'rejected' ? 'denied' : undefined,
               };
