@@ -6,6 +6,7 @@ import {
   villages,
 } from "../db/schema";
 import { eq, and } from "drizzle-orm";
+import { notificationService } from "../services/notificationService";
 
 // LIFF Authentication middleware for cookie-based sessions
 const requireLiffAuth = async (context: any) => {
@@ -265,7 +266,7 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
 
       // Create new role entry
       if (role === "resident") {
-        const newResident = await db
+        const [newResident] = await db
           .insert(residents)
           .values({
             line_user_id: lineUserId,
@@ -281,13 +282,27 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
           })
           .returning();
 
+        // 🔔 Send notification to village staff
+        try {
+          await notificationService.notifyNewResidentRegistration({
+            resident_id: newResident.resident_id,
+            fname: newResident.fname,
+            lname: newResident.lname,
+            village_id: newResident.village_id!,
+          });
+          console.log(`📢 Notification sent for new resident: ${newResident.fname} ${newResident.lname}`);
+        } catch (notificationError) {
+          console.error('❌ Error creating registration notification:', notificationError);
+          // Don't fail the registration if notification fails
+        }
+
         return {
           success: true,
           message: "Resident role registered successfully",
-          data: newResident[0],
+          data: newResident,
         };
       } else if (role === "guard") {
-        const newGuard = await db
+        const [newGuard] = await db
           .insert(guards)
           .values({
             line_user_id: lineUserId,
@@ -303,10 +318,24 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
           })
           .returning();
 
+        // 🔔 Send notification to village staff
+        try {
+          await notificationService.notifyNewGuardRegistration({
+            guard_id: newGuard.guard_id,
+            fname: newGuard.fname,
+            lname: newGuard.lname,
+            village_id: newGuard.village_id!,
+          });
+          console.log(`📢 Notification sent for new guard: ${newGuard.fname} ${newGuard.lname}`);
+        } catch (notificationError) {
+          console.error('❌ Error creating registration notification:', notificationError);
+          // Don't fail the registration if notification fails
+        }
+
         return {
           success: true,
           message: "Guard role registered successfully",
-          data: newGuard[0],
+          data: newGuard,
         };
       } else {
         set.status = 400;
