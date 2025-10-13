@@ -371,7 +371,10 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
         body: newNotification.message,
         level: level || 'info',
         createdAt: newNotification.created_at ? newNotification.created_at.getTime() : Date.now(),
-        villageId: villageId
+        villageKey: villageId, // WebSocket client expects villageKey
+        type: newNotification.type,
+        category: newNotification.category,
+        data: newNotification.data
       };
 
       let wsSent = false;

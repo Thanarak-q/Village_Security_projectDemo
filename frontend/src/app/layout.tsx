@@ -17,6 +17,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Village Security - ระบบรักษาความปลอดภัยหมู่บ้าน",
   description: "ระบบจัดการการเข้าออกของบุคคลภายนอกในหมู่บ้าน เพื่อความปลอดภัยและความเป็นระเบียบของชุมชน",
+  icons: {
+    icon: "/web_favicon.png",
+  },
 };
 
 export default function RootLayout({

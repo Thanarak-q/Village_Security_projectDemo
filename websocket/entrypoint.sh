@@ -4,7 +4,6 @@ set -e
 MODE=${NODE_ENV:-development}
 
 if [ "$MODE" = "production" ]; then
-  bun run build
   exec bun run start
 else
   exec bun run dev

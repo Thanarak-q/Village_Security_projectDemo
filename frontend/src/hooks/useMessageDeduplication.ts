@@ -35,7 +35,7 @@ export function useMessageDeduplication(options: Partial<MessageDeduplicationOpt
     return fromOptions || fromUser || null;
   }, [overrideVillageId, user?.village_id]);
   const [queueStatus, setQueueStatus] = useState(websocketMessageManager.getQueueStatus());
-  const statusUpdateInterval = useRef<NodeJS.Timeout>();
+  const statusUpdateInterval = useRef<NodeJS.Timeout | null>(null);
 
   // Update queue status periodically
   useEffect(() => {
@@ -71,7 +71,7 @@ export function useMessageDeduplication(options: Partial<MessageDeduplicationOpt
       let payload = data;
 
       if (type === 'ADMIN_NOTIFICATION') {
-        if (!resolvedVillageKey) {
+        if (!resolvedVillageId) {
           throw new Error('Village key is required to send admin notifications');
         }
 
@@ -101,7 +101,7 @@ export function useMessageDeduplication(options: Partial<MessageDeduplicationOpt
       console.error('❌ Failed to send message:', error);
       throw error;
     }
-  }, [config, resolvedVillageKey]);
+  }, [config, resolvedVillageId]);
 
   // Send notification with deduplication
   const sendNotification = useCallback((
@@ -113,7 +113,7 @@ export function useMessageDeduplication(options: Partial<MessageDeduplicationOpt
       metadata?: Record<string, unknown>;
     } = {}
   ) => {
-    if (!resolvedVillageKey) {
+    if (!resolvedVillageId) {
       throw new Error('Village key is required to send notifications');
     }
 
@@ -136,7 +136,7 @@ export function useMessageDeduplication(options: Partial<MessageDeduplicationOpt
         ...options.metadata
       }
     });
-  }, [sendMessage, resolvedVillageKey]);
+  }, [sendMessage, resolvedVillageId]);
 
   // Send ping message
   const sendPing = useCallback(() => {

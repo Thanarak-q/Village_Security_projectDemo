@@ -35,6 +35,7 @@ export class WebSocketMessageManager {
   private ws: WebSocket | null = null;
   private isConnected = false;
   private messageHandlers = new Map<string, (data: unknown) => void>();
+  private defaultHandler: ((message: WebSocketMessage) => void) | null = null;
   private connectionHandlers = new Set<(connected: boolean) => void>();
   private messageQueue = messageQueue;
 
@@ -156,7 +157,7 @@ export class WebSocketMessageManager {
   }
 
   public onMessage(handler: (message: WebSocketMessage) => void): void {
-    this.messageHandlers.set('default', handler);
+    this.defaultHandler = handler;
   }
 
   public onMessageType(type: string, handler: (data: unknown) => void): void {
@@ -183,9 +184,8 @@ export class WebSocketMessageManager {
       }
       
       // Call default handler
-      const defaultHandler = this.messageHandlers.get('default');
-      if (defaultHandler) {
-        defaultHandler(message);
+      if (this.defaultHandler) {
+        this.defaultHandler(message);
         return;
       }
       
@@ -214,6 +214,7 @@ export class WebSocketMessageManager {
   public destroy(): void {
     this.messageQueue.destroy();
     this.messageHandlers.clear();
+    this.defaultHandler = null;
     this.connectionHandlers.clear();
   }
 }
