@@ -84,7 +84,16 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
 
   const resolvedVillageId = useSafeMemo(() => {
     const fromOptions = typeof overrideVillageId === 'string' ? overrideVillageId.trim() : '';
-    const fromUser = typeof user?.village_id === 'string' ? user.village_id.trim() : '';
+    
+    // Check for village_id (singular) for guards/residents, or village_ids (array) for admins/staff
+    let fromUser = '';
+    if (typeof user?.village_id === 'string') {
+      fromUser = user.village_id.trim();
+    } else if (Array.isArray(user?.village_ids) && user.village_ids.length > 0) {
+      // For admins/staff with multiple villages, use the first one
+      fromUser = user.village_ids[0].trim();
+    }
+    
     const fromSession = typeof window !== 'undefined'
       ? (() => {
           try {
@@ -99,11 +108,18 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
     const resolved = fromOptions || fromUser || fromSession || null;
 
     if (!resolved) {
-      console.warn('⚠️ No village id available for WebSocket subscription');
+      console.warn('⚠️ No village id available for WebSocket subscription', {
+        user: user ? { role: user.role, village_id: user.village_id, village_ids: user.village_ids } : null
+      });
+    } else {
+      console.log('✅ Resolved village ID for WebSocket:', resolved, {
+        source: fromOptions ? 'options' : fromUser ? 'user' : fromSession ? 'session' : 'unknown',
+        userRole: user?.role
+      });
     }
 
     return resolved;
-  }, [overrideVillageId, user?.village_id]);
+  }, [overrideVillageId, user?.village_id, user?.village_ids, user?.role]);
 
   const calculateHealthStatus = useCallback((stats: ErrorStats): HealthStatus => {
     const criticalCount = stats.bySeverity['CRITICAL'] || 0;
