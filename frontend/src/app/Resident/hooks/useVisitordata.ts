@@ -21,6 +21,8 @@ interface TestVisitorRecord {
   createdAt: string;
   license_plate?: string;
   visit_purpose?: string;
+  visitor_name?: string;
+  house_address?: string;
   visitor_id_card?: string;
   house?: {
     address?: string;

@@ -126,13 +126,13 @@ const AppSidebar = memo(function AppSidebar() {
         if (json) {
           setUserData(json);
           
-          const { key, name } = getSelectedVillage();
+          const { id, name } = getSelectedVillage();
 
           if (json.role === "admin" || json.role === "superadmin") {
             if (name) {
               setSelectedVillageName(name);
-            } else if (key) {
-              fetchVillageNameByKey(key);
+            } else if (id) {
+              fetchVillageNameById(id);
             }
           } else if (json.role === "staff") {
             // For staff users, use their assigned village name
@@ -170,11 +170,11 @@ const AppSidebar = memo(function AppSidebar() {
         return;
       }
 
-      const { key, name } = getSelectedVillage();
+      const { id, name } = getSelectedVillage();
       if (name) {
         setSelectedVillageName(name);
-      } else if (key) {
-        fetchVillageNameByKey(key);
+      } else if (id) {
+        fetchVillageNameById(id);
       }
     };
 
