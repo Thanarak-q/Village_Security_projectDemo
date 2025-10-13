@@ -5,31 +5,93 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, User, Mail, Phone, MapPin, Shield, Edit, Plus } from "lucide-react";
 import { getAuthData, isAuthenticated } from "@/lib/liffAuth";
 import { ModeToggle } from "@/components/mode-toggle";
+import type { LiffUser } from "@/lib/liffAuth";
+
+type GuardProfile = LiffUser & { village_name?: string };
 
 const GuardProfilePage = () => {
   const router = useRouter();
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<GuardProfile | null>(null);
   const [villageName, setVillageName] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadUserData = () => {
+    const loadUserData = async () => {
       if (!isAuthenticated()) {
         router.push('/liff');
         return;
       }
 
-      const { user } = getAuthData();
-      if (user) {
-        setCurrentUser(user);
-        // You can add village name fetching logic here if needed
-        // For now, we'll use the village_id directly
+      try {
+        // Try LIFF authentication first (for guards and residents)
+        let response = await fetch('/api/auth/liff/me', {
+          credentials: 'include',
+        });
+
+        // If LIFF auth fails, try admin authentication
+        if (!response.ok) {
+          response = await fetch('/api/auth/me', {
+            credentials: 'include',
+          });
+        }
+
+        if (response.ok) {
+          const userData: GuardProfile = await response.json();
+          setCurrentUser(userData);
+          
+          // Set village name from API response
+          if (userData.village_name) {
+            setVillageName(userData.village_name);
+          }
+        } else {
+          // Fallback to localStorage if API fails
+          const { user } = getAuthData();
+          if (user) {
+            setCurrentUser(user);
+            // Fetch village name from API
+            if (user.village_id) {
+              fetchVillageName(user.village_id);
+            }
+          } else {
+            router.push('/liff');
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        // Fallback to localStorage
+        const { user } = getAuthData();
+        if (user) {
+          setCurrentUser(user);
+          if (user.village_id) {
+            fetchVillageName(user.village_id);
+          }
+        } else {
+          router.push('/liff');
+          return;
+        }
       }
+
       setLoading(false);
     };
 
     loadUserData();
   }, [router]);
+
+  const fetchVillageName = async (villageId: string) => {
+    try {
+      const response = await fetch(`/api/villages/validate?id=${encodeURIComponent(villageId)}`, {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      
+      if (data.success && data.data && data.data.village_name) {
+        setVillageName(data.data.village_name);
+      }
+    } catch (error) {
+      console.error('Error fetching village name:', error);
+    }
+  };
 
   const handleGoBack = () => {
     router.back();
@@ -37,6 +99,10 @@ const GuardProfilePage = () => {
 
   const handleRegisterRole = () => {
     router.push('/guard/profile/register-role');
+  };
+
+  const handleEditProfile = () => {
+    router.push('/guard/profile/edit');
   };
 
   if (loading) {
@@ -177,7 +243,10 @@ const GuardProfilePage = () => {
                 ลงทะเบียนบทบาทเพิ่มเติม
               </button>
               
-              <button className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+              <button 
+                onClick={handleEditProfile}
+                className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+              >
                 <Edit className="w-4 h-4" />
                 แก้ไขข้อมูล
               </button>

@@ -76,6 +76,20 @@ interface VisitorHistory {
   exit_time?: string;
 }
 
+interface AdminActivityLogApi {
+  log_id: string;
+  admin_username?: string;
+  action_type: string;
+  description: string;
+  created_at: string;
+}
+
+interface AdminLogsResponse {
+  success: boolean;
+  data: AdminActivityLogApi[];
+  error?: string;
+}
+
 // Interface for History data structure
 
 // Main history table component
@@ -154,11 +168,11 @@ export default function HistoryTable() {
         });
         
         if (adminLogsResponse.ok) {
-          const adminLogsData = await adminLogsResponse.json();
+          const adminLogsData: AdminLogsResponse = await adminLogsResponse.json();
           
           if (adminLogsData.success) {
             // Transform API data to match our interface
-            const transformedAdminHistory: AdminHistory[] = adminLogsData.data.map((log: any) => ({
+            const transformedAdminHistory: AdminHistory[] = adminLogsData.data.map((log) => ({
               id: log.log_id,
               name: log.admin_username || "Unknown Admin",
               action: log.action_type,

@@ -6,6 +6,7 @@ import { LiffService } from "@/lib/liff";
 import { verifyLiffToken, storeAuthData } from "@/lib/liffAuth";
 import { useTokenRefresh } from "@/hooks/useTokenRefresh";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+import type { UserRole, UserRolesResponse } from "@/types/roles";
 
 // Use relative paths for API calls so Caddy can route them properly
 const API_BASE_URL = '';
@@ -200,15 +201,16 @@ export default function LiffPage() {
                 if (rolesResponse.ok) {
                   const contentType = rolesResponse.headers.get("content-type");
                   if (contentType && contentType.includes("application/json")) {
-                    const rolesData = await rolesResponse.json();
+                    const rolesData: UserRolesResponse = await rolesResponse.json();
                     
                     if (rolesData.success && rolesData.roles) {
-                      const verifiedRoles = rolesData.roles.filter((role: any) => role.status === 'verified');
-                      const pendingRoles = rolesData.roles.filter((role: any) => role.status === 'pending');
-                      const hasResidentRole = verifiedRoles.some((role: any) => role.role === 'resident');
-                      const hasGuardRole = verifiedRoles.some((role: any) => role.role === 'guard');
-                      const hasPendingResidentRole = pendingRoles.some((role: any) => role.role === 'resident');
-                      const hasPendingGuardRole = pendingRoles.some((role: any) => role.role === 'guard');
+                      const roles: UserRole[] = rolesData.roles;
+                      const verifiedRoles = roles.filter((role) => role.status === 'verified');
+                      const pendingRoles = roles.filter((role) => role.status === 'pending');
+                      const hasResidentRole = verifiedRoles.some((role) => role.role === 'resident');
+                      const hasGuardRole = verifiedRoles.some((role) => role.role === 'guard');
+                      const hasPendingResidentRole = pendingRoles.some((role) => role.role === 'resident');
+                      const hasPendingGuardRole = pendingRoles.some((role) => role.role === 'guard');
                       
                       console.log('🔍 User roles:', { 
                         verifiedRoles, 
@@ -219,31 +221,31 @@ export default function LiffPage() {
                         hasPendingGuardRole
                       });
                       
-                      // Check for pending roles first
-                      if (hasPendingResidentRole && hasPendingGuardRole) {
-                        // User has both roles pending, redirect to role selection
-                        console.log('⏳ User has both roles pending, redirecting to role selection');
-                        setTimeout(() => router.replace('/liff/select-role'), 1000);
-                      } else if (hasPendingResidentRole) {
-                        // User has pending resident role
-                        console.log('⏳ User has pending resident role, redirecting to Resident pending page');
-                        setTimeout(() => router.replace('/Resident/pending'), 1000);
-                      } else if (hasPendingGuardRole) {
-                        // User has pending guard role
-                        console.log('⏳ User has pending guard role, redirecting to Guard pending page');
-                        setTimeout(() => router.replace('/guard/pending'), 1000);
-                      } else if (hasResidentRole && hasGuardRole) {
+                      // Prioritize verified roles over pending roles
+                      if (hasResidentRole && hasGuardRole) {
                         // User has both verified roles, redirect to role selection
                         console.log('🔄 User has both verified roles, redirecting to role selection');
                         setTimeout(() => router.replace('/liff/select-role'), 1000);
                       } else if (hasResidentRole) {
-                        // User only has verified resident role
-                        console.log('🏠 User has verified resident role only, redirecting to Resident page');
+                        // User has verified resident role (and possibly pending guard role)
+                        console.log('🏠 User has verified resident role, redirecting to Resident page');
                         setTimeout(() => router.replace('/Resident'), 1000);
                       } else if (hasGuardRole) {
-                        // User only has verified guard role
-                        console.log('🛡️ User has verified guard role only, redirecting to Guard page');
+                        // User has verified guard role (and possibly pending resident role)
+                        console.log('🛡️ User has verified guard role, redirecting to Guard page');
                         setTimeout(() => router.replace('/guard'), 1000);
+                      } else if (hasPendingResidentRole && hasPendingGuardRole) {
+                        // User has both roles pending, redirect to role selection
+                        console.log('⏳ User has both roles pending, redirecting to role selection');
+                        setTimeout(() => router.replace('/liff/select-role'), 1000);
+                      } else if (hasPendingResidentRole) {
+                        // User has pending resident role only
+                        console.log('⏳ User has pending resident role only, redirecting to Resident pending page');
+                        setTimeout(() => router.replace('/Resident/pending'), 1000);
+                      } else if (hasPendingGuardRole) {
+                        // User has pending guard role only
+                        console.log('⏳ User has pending guard role only, redirecting to Guard pending page');
+                        setTimeout(() => router.replace('/guard/pending'), 1000);
                       } else {
                         // User has no verified or pending roles, redirect to role selection
                         console.log('⏳ User has no roles, redirecting to role selection');

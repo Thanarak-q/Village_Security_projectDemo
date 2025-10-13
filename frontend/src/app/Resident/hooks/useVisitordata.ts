@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getAuthData, isAuthenticated } from "@/lib/liffAuth";
+import type { LiffUser } from "@/lib/liffAuth";
 import { 
   fetchPendingVisitorRequests, 
   fetchVisitorHistory, 
@@ -15,6 +16,24 @@ import {
   ConfirmationDialogState 
 } from "../types/visitor";
 
+interface TestVisitorRecord {
+  visitor_record_id: string;
+  createdAt: string;
+  license_plate?: string;
+  visit_purpose?: string;
+  visitor_id_card?: string;
+  house?: {
+    address?: string;
+  } | null;
+  picture_key?: string;
+  record_status?: string;
+}
+
+interface TestVisitorResponse {
+  success: boolean;
+  records: TestVisitorRecord[];
+}
+
 export const useVisitorData = () => {
   const router = useRouter();
   const [pendingRequests, setPendingRequests] = useState<VisitorRequest[]>([]);
@@ -22,7 +41,7 @@ export const useVisitorData = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<LiffUser | null>(null);
   
   // Confirmation dialog state
   const [confirmationDialog, setConfirmationDialog] = useState<ConfirmationDialogState>({
@@ -85,15 +104,15 @@ export const useVisitorData = () => {
         if (!currentUser.lineUserId) {
           console.log("⚠️ No LINE user ID found, trying to fetch all visitor records for testing");
           
-          // For testing, fetch all visitor records from the general API
-          const testResponse = await fetch('/api/visitor-records');
-          const testData = await testResponse.json();
+          // For testing, fetch all visitor records
+          const testResponse = await fetch('/api/test-visitor-records');
+          const testData: TestVisitorResponse = await testResponse.json();
           
           if (testData.success) {
-            console.log("📋 Visitor records:", testData.data.length, "records found");
-            // Transform API data to match expected format
-            const transformedRecords = testData.data.map((record: any) => {
-              const entryTime = new Date(record.entry_time);
+            console.log("📋 Test visitor records:", testData.records);
+            // Transform test data to match expected format
+            const transformedRecords: VisitorRequest[] = testData.records.map((record) => {
+              const entryTime = new Date(record.createdAt);
               const timeString = entryTime.toLocaleTimeString('th-TH', {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -118,23 +137,16 @@ export const useVisitorData = () => {
                 visitorName: record.visit_purpose || record.visitor_name || '',
                 destination: record.house_address ? `บ้านเลขที่ ${record.house_address}` : '',
                 time: timeWithDate,
-                carImage: record.picture_key ? `/api/images/serve/${record.picture_key}` : 'car1.jpg',
+                carImage: record.picture_key ? record.picture_key : 'car1.jpg',
                 status: record.record_status === 'approved' ? 'approved' : 
                        record.record_status === 'rejected' ? 'denied' : undefined,
               };
             });
             
-            const pendingRecords = transformedRecords.filter((r: any) => r.status === undefined);
-            const historyRecords = transformedRecords.filter((r: any) => r.status !== undefined);
-            
-            console.log("📊 Data summary:", {
-              totalRecords: transformedRecords.length,
-              pendingCount: pendingRecords.length,
-              historyCount: historyRecords.length,
-              samplePending: pendingRecords[0]
-            });
-            
-            setPendingRequests(pendingRecords);
+            const pending = transformedRecords.filter((record) => !record.status);
+            const historyRecords = transformedRecords.filter((record) => Boolean(record.status));
+
+            setPendingRequests(pending);
             setHistory(historyRecords);
           }
           setLoading(false);

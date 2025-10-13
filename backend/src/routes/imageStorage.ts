@@ -1,167 +1,211 @@
-import { Elysia } from 'elysia';
-import { createReadStream } from 'fs';
-import { join } from 'path';
+// src/routes/image-storage.ts
+import { Elysia, t } from 'elysia';
+import { createReadStream, statSync } from 'fs';
+import { join, resolve, sep } from 'path';
+
+// (เล็ก ๆ น้อย ๆ) เดา mime แบบเบา ๆ ถ้าไม่มีไลบรารี
+const guessMime = (filename: string) => {
+  const ext = filename.toLowerCase().split('.').pop() || '';
+  switch (ext) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'webp':
+      return 'image/webp';
+    case 'gif':
+      return 'image/gif';
+    case 'svg':
+      return 'image/svg+xml';
+    default:
+      return 'application/octet-stream';
+  }
+};
+
+// แปลง env เป็นพารามิเตอร์ของ MinIO client ที่ถูกต้อง แม้จะส่งมาเป็น URL
+const parseMinioEnv = () => {
+  const raw = process.env.MINIO_ENDPOINT || '';
+  let endPoint = raw;
+  let port = process.env.MINIO_PORT ? Number(process.env.MINIO_PORT) : undefined;
+  let useSSL = process.env.MINIO_USE_SSL === 'true';
+
+  try {
+    // ถ้า MINIO_ENDPOINT เป็น URL เช่น http://127.0.0.1:9000 หรือ https://minio.local
+    const u = new URL(raw);
+    endPoint = u.hostname;
+    port = Number(u.port) || (u.protocol === 'https:' ? 443 : 80);
+    useSSL = u.protocol === 'https:';
+  } catch {
+    // ไม่ใช่ URL -> ให้ถือว่าเป็น hostname ธรรมดา
+    // ถ้าไม่กำหนด port ให้ใช้ 9000 เป็นดีฟอลต์
+    if (!port) port = 9000;
+  }
+
+  return { endPoint, port, useSSL };
+};
+
+const imagesRootDir = resolve(process.cwd(), 'src', 'db', 'image'); // ปรับตามโปรเจกต์
 
 export const imageStorageRoutes = new Elysia({ prefix: '/api/images' })
-  // GET /api/images/debug - Debug MinIO connection and list objects
-  .get('/debug', async ({ set }) => {
-    try {
-      if (process.env.MINIO_ENDPOINT && process.env.MINIO_ACCESS_KEY && process.env.MINIO_SECRET_KEY) {
-        const { Client: MinioClient } = await import('minio');
-        const minio = new MinioClient({
-          endPoint: process.env.MINIO_ENDPOINT as string,
-          port: process.env.MINIO_PORT ? Number(process.env.MINIO_PORT) : 9000,
-          useSSL: process.env.MINIO_USE_SSL === 'true',
-          accessKey: process.env.MINIO_ACCESS_KEY as string,
-          secretKey: process.env.MINIO_SECRET_KEY as string,
-        });
-        const bucket = process.env.MINIO_BUCKET || 'images';
 
-        // List objects in bucket
-        const objects: any[] = [];
-        const stream = minio.listObjects(bucket, '', true);
-
-        return new Promise((resolve) => {
-          stream.on('data', (obj) => objects.push(obj));
-          stream.on('end', () => {
-            resolve({
-              success: true,
-              bucket: bucket,
-              objectCount: objects.length,
-              objects: objects.slice(0, 10), // First 10 objects
-              minioConfig: {
-                endpoint: process.env.MINIO_ENDPOINT,
-                port: process.env.MINIO_PORT,
-                useSSL: process.env.MINIO_USE_SSL
-              }
-            });
-          });
-          stream.on('error', (err) => {
-            resolve({
-              success: false,
-              error: err.message,
-              bucket: bucket
-            });
-          });
-        });
-      } else {
-        return {
-          success: false,
-          error: 'MinIO not configured'
-        };
-      }
-    } catch (e) {
-      return {
-        success: false,
-        error: e instanceof Error ? e.message : 'Unknown error'
-      };
-    }
-  })
-  // GET /api/images/serve/<path> - Direct image serving (handles both MinIO and local)
-  .get('/serve/*', async ({ request, set }) => {
-    try {
-      const url = new URL(request.url);
-      const pathname = url.pathname;
-      // Remove /api/images/serve/ prefix to get the key
-      const key = pathname.replace('/api/images/serve/', '');
-
-      console.log('🖼️ Image request - Original key:', key);
-
-      if (!key || key === '') {
-        set.status = 400;
-        return 'Missing key';
-      }
-
-      // Decode the key in case it's URL encoded
-      const decodedKey = decodeURIComponent(key);
-      console.log('🖼️ Image request - Decoded key:', decodedKey);
-
-      if (process.env.MINIO_ENDPOINT && process.env.MINIO_ACCESS_KEY && process.env.MINIO_SECRET_KEY) {
-        console.log('🪣 Using MinIO for image serving');
-        const { Client: MinioClient } = await import('minio');
-        const minio = new MinioClient({
-          endPoint: process.env.MINIO_ENDPOINT as string,
-          port: process.env.MINIO_PORT ? Number(process.env.MINIO_PORT) : 9000,
-          useSSL: process.env.MINIO_USE_SSL === 'true',
-          accessKey: process.env.MINIO_ACCESS_KEY as string,
-          secretKey: process.env.MINIO_SECRET_KEY as string,
-        });
-        const bucket = process.env.MINIO_BUCKET || 'images';
-
-        try {
-          console.log(`🔍 Fetching from MinIO - Bucket: ${bucket}, Key: ${decodedKey}`);
-          // Get the object from MinIO
-          const stream = await minio.getObject(bucket, decodedKey);
-          set.headers['Content-Type'] = 'image/jpeg';
-          set.headers['Cache-Control'] = 'public, max-age=3600';
-          console.log('✅ Image found in MinIO');
-          return stream;
-        } catch (minioError) {
-          console.error('❌ MinIO object not found:', decodedKey, minioError);
-          set.status = 404;
-          return 'Image not found in MinIO';
+  // 1) GET /api/images/presigned?key=<objectKey>
+  //    คืน pre-signed URL จาก MinIO (หมดอายุ 10 นาที)
+  .get(
+    '/presigned',
+    async ({ query, set }) => {
+      try {
+        const key = (query as any)?.key as string;
+        if (!key || typeof key !== 'string') {
+          set.status = 400;
+          return { error: 'Missing key' };
         }
-      } else {
-        console.log('📁 Using local file serving');
-        // Fallback to local file serving
-        const imagesRootDir = join(process.cwd(), 'src', 'db', 'image');
-        const filePath = join(imagesRootDir, decodedKey);
-        console.log('📁 Local file path:', filePath);
-        set.headers['Content-Type'] = 'image/jpeg';
-        set.headers['Cache-Control'] = 'public, max-age=3600';
-        return createReadStream(filePath);
+
+        if (
+          process.env.MINIO_ACCESS_KEY &&
+          process.env.MINIO_SECRET_KEY &&
+          (process.env.MINIO_ENDPOINT || process.env.MINIO_PORT)
+        ) {
+          const { Client: MinioClient } = await import('minio');
+          const { endPoint, port, useSSL } = parseMinioEnv();
+
+          const minio = new MinioClient({
+            endPoint,
+            port: port ?? 9000,
+            useSSL,
+            accessKey: process.env.MINIO_ACCESS_KEY!,
+            secretKey: process.env.MINIO_SECRET_KEY!,
+          });
+
+          const bucket = process.env.MINIO_BUCKET || 'images';
+
+          // เพิ่ม response headers (เช่น content-type) ผ่าน query ของ presign ก็ได้
+          const reqParams = { 'response-content-type': 'image/*' };
+          const url = await minio.presignedGetObject(bucket, key, 60 * 10, reqParams);
+
+          return { url, expiresInSeconds: 600 };
+        }
+
+        // Fallback: ใช้ local path
+        return { path: `/api/images/local/${encodeURIComponent(key)}` };
+      } catch (e) {
+        console.error('Failed to create presigned url', e);
+        set.status = 500;
+        return { error: 'Failed to create presigned url' };
       }
-    } catch (e) {
-      console.error('❌ Error serving image:', e);
-      set.status = 404;
-      return 'Image not found';
+    },
+    {
+      query: t.Object({ key: t.String() }),
     }
-  })
-  // GET /api/images/presigned?key=<objectKey>
-  .get('/presigned', async ({ query, set }) => {
+  )
+
+  // 2) GET /api/images/file/<...key> — proxy/stream ไฟล์จาก MinIO ออกมา
+  //    เหมาะกับ Next.js ที่อยากให้โหลดจากแบ็กเอนด์เราเอง (หลบ CORS + ซ่อนโดเมน MinIO)
+  .get('/file/*', async ({ params, set }) => {
     try {
-      const key = (query as any)?.key as string;
-      if (!key || typeof key !== 'string') {
+      // ✅ decode key ที่มาจาก URL เช่น .../%E0%B8%AB%E0%...
+      const raw = (params['*'] as string) || '';
+      const key = decodeURIComponent(raw);
+      
+      if (!key) {
         set.status = 400;
-        return { error: 'Missing key' };
+        set.headers['Content-Type'] = 'image/svg+xml; charset=utf-8';
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>`;
+        return svg;
       }
-
-      if (process.env.MINIO_ENDPOINT && process.env.MINIO_ACCESS_KEY && process.env.MINIO_SECRET_KEY) {
+  
+      // Check if MinIO is configured
+      if (
+        process.env.MINIO_ACCESS_KEY &&
+        process.env.MINIO_SECRET_KEY &&
+        (process.env.MINIO_ENDPOINT || process.env.MINIO_PORT)
+      ) {
+        // Use MinIO
         const { Client: MinioClient } = await import('minio');
-        const minio = new MinioClient({
-          endPoint: process.env.MINIO_ENDPOINT as string,
-          port: process.env.MINIO_PORT ? Number(process.env.MINIO_PORT) : 9000,
-          useSSL: process.env.MINIO_USE_SSL === 'true',
-          accessKey: process.env.MINIO_ACCESS_KEY as string,
-          secretKey: process.env.MINIO_SECRET_KEY as string,
-        });
-        const bucket = process.env.MINIO_BUCKET || 'images';
-        const url = await minio.presignedGetObject(bucket, key, 60 * 10);
-        return { url };
-      }
+        const { endPoint, port, useSSL } = parseMinioEnv();
 
-      // Fallback: return local-serving path
-      return { path: `/api/images/local/${encodeURIComponent(key)}` };
+        const minio = new MinioClient({
+          endPoint,
+          port: port ?? 9000,
+          useSSL,
+          accessKey: process.env.MINIO_ACCESS_KEY!,
+          secretKey: process.env.MINIO_SECRET_KEY!,
+        });
+
+        const bucket = process.env.MINIO_BUCKET || 'images';
+
+        // Check if file exists
+        await minio.statObject(bucket, key);
+
+        // Get the object stream
+        const stream = await minio.getObject(bucket, key);
+
+        set.status = 200;
+        set.headers['Content-Type'] = guessMime(key);
+        set.headers['Cache-Control'] = 'public, max-age=300';
+        // @ts-ignore
+        return stream;
+      } else {
+        // Fallback to local file system
+        const resolved = resolve(imagesRootDir, key);
+        if (!resolved.startsWith(imagesRootDir + sep)) {
+          set.status = 403;
+          set.headers['Content-Type'] = 'image/svg+xml; charset=utf-8';
+          const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>`;
+          return svg;
+        }
+
+        const st = statSync(resolved);
+        if (!st.isFile()) {
+          throw new Error('Not a file');
+        }
+
+        set.status = 200;
+        set.headers['Content-Type'] = guessMime(key);
+        set.headers['Cache-Control'] = 'public, max-age=300';
+        return createReadStream(resolved);
+      }
     } catch (e) {
-      console.error('Failed to create presigned url', e);
-      set.status = 500;
-      return { error: 'Failed to create presigned url' };
+      console.error('Error serving file:', e);
+      // ❗อย่าส่ง HTML/JSON ให้ <Image> — ส่งรูป placeholder เล็ก ๆ แทน
+      set.status = 404;
+      set.headers['Content-Type'] = 'image/svg+xml; charset=utf-8';
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>`;
+      return svg;
     }
   })
-  // GET /api/images/local/<subfolder>/<filename> - serve local files when MinIO is disabled
-  .get('/local/:subfolder/:filename', async ({ params, set }) => {
+  
+
+  // 3) GET /api/images/local/<...path> — เสิร์ฟไฟล์โลคัล (เมื่อยังไม่ตั้งค่า MinIO)
+  //    ป้องกัน path traversal และเดา MIME ให้
+  .get('/local/*', async ({ params, set }) => {
     try {
-      const { subfolder, filename } = params as unknown as { subfolder: string; filename: string };
-      const imagesRootDir = join(process.cwd(), 'src', 'db', 'image');
-      const filePath = join(imagesRootDir, subfolder, filename);
-      set.headers['Content-Type'] = 'image/jpeg';
-      return createReadStream(filePath);
+      const rel = (params['*'] as string) || '';
+      if (!rel) {
+        set.status = 400;
+        return { error: 'Missing path' };
+      }
+
+      // sanitize path
+      const resolved = resolve(imagesRootDir, rel);
+      if (!resolved.startsWith(imagesRootDir + sep)) {
+        set.status = 403;
+        return { error: 'Forbidden' };
+      }
+
+      const st = statSync(resolved);
+      if (!st.isFile()) {
+        set.status = 404;
+        return { error: 'Not found' };
+      }
+
+      set.headers['Content-Type'] = guessMime(resolved);
+      set.headers['Cache-Control'] = 'public, max-age=300';
+      return createReadStream(resolved);
     } catch (e) {
       set.status = 404;
-      return 'Not found';
+      return { error: 'Not found' };
     }
   });
 
 export default imageStorageRoutes;
-
-

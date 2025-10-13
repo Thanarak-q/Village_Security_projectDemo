@@ -5,10 +5,13 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, User, Mail, Phone, MapPin, Shield, Edit, Plus } from "lucide-react";
 import { getAuthData, isAuthenticated } from "@/lib/liffAuth";
 import { ModeToggle } from "@/components/mode-toggle";
+import type { LiffUser } from "@/lib/liffAuth";
+
+type ResidentProfile = LiffUser & { village_name?: string };
 
 const ResidentProfilePage = () => {
   const router = useRouter();
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<ResidentProfile | null>(null);
   const [villageName, setVillageName] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
@@ -19,51 +22,57 @@ const ResidentProfilePage = () => {
         return;
       }
 
-      const { user } = getAuthData();
-      if (!user) {
-        router.push('/liff');
-        return;
-      }
-
-      // Check if user has resident role (they might have multiple roles)
       try {
-        const userId = user.lineUserId || user.id;
-        if (userId) {
-          const apiUrl = '';
-          const response = await fetch(`${apiUrl}/api/users/roles?lineUserId=${userId}`, {
-            credentials: 'include'
+        // Try LIFF authentication first (for guards and residents)
+        let response = await fetch('/api/auth/liff/me', {
+          credentials: 'include',
+        });
+
+        // If LIFF auth fails, try admin authentication
+        if (!response.ok) {
+          response = await fetch('/api/auth/me', {
+            credentials: 'include',
           });
+        }
+
+        if (response.ok) {
+          const userData: ResidentProfile = await response.json();
+          setCurrentUser(userData);
           
-          if (response.ok) {
-            const contentType = response.headers.get("content-type");
-            if (contentType && contentType.includes("application/json")) {
-              const data = await response.json();
-              if (data.success && data.roles) {
-                const hasResidentRole = data.roles.some((role: any) => role.role === 'resident');
-                
-                if (!hasResidentRole) {
-                  console.log("❌ User does not have resident role, redirecting to LIFF");
-                  router.push('/liff');
-                  return;
-                }
-                
-                console.log("✅ User has resident role, allowing access to resident profile");
-              }
+          // Set village name from API response
+          if (userData.village_name) {
+            setVillageName(userData.village_name);
+          }
+        } else {
+          // Fallback to localStorage if API fails
+          const { user } = getAuthData();
+          if (user) {
+            setCurrentUser(user);
+            // Fetch village name from API
+            if (user.village_id) {
+              fetchVillageName(user.village_id);
             }
+          } else {
+            router.push('/liff');
+            return;
           }
         }
       } catch (error) {
-        console.error('Error checking user roles:', error);
-        // Allow access if role check fails (fallback)
+        console.error('Error fetching user data:', error);
+        // Fallback to localStorage
+        const { user } = getAuthData();
+        if (user) {
+          setCurrentUser(user);
+          if (user.village_id) {
+            fetchVillageName(user.village_id);
+          }
+        } else {
+          router.push('/liff');
+          return;
+        }
       }
 
-      setCurrentUser(user);
       setLoading(false);
-
-      // Fetch village name
-      if (user.village_id) {
-        fetchVillageName(user.village_id);
-      }
     };
 
     loadUserData();
@@ -71,8 +80,9 @@ const ResidentProfilePage = () => {
 
   const fetchVillageName = async (villageId: string) => {
     try {
-      const apiUrl = '';
-      const response = await fetch(`${apiUrl}/api/villages/validate?key=${encodeURIComponent(villageId)}`);
+      const response = await fetch(`/api/villages/validate?id=${encodeURIComponent(villageId)}`, {
+        credentials: 'include'
+      });
       const data = await response.json();
       
       if (data.success && data.data && data.data.village_name) {
@@ -89,6 +99,10 @@ const ResidentProfilePage = () => {
 
   const handleRegisterRole = () => {
     router.push('/Resident/profile/register-role');
+  };
+
+  const handleEditProfile = () => {
+    router.push('/Resident/profile/edit');
   };
 
   if (loading) {
@@ -229,7 +243,10 @@ const ResidentProfilePage = () => {
                 ลงทะเบียนบทบาทเพิ่มเติม
               </button>
               
-              <button className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+              <button 
+                onClick={handleEditProfile}
+                className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
                 <Edit className="w-4 h-4" />
                 แก้ไขข้อมูล
               </button>

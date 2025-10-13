@@ -13,22 +13,28 @@ const approvalForm = new Elysia({ prefix: "/api" })
   async ({ body, currentUser }: any) => {
     type ApprovalFormBody = {
       visitorIDCard: string;
+      fname: string;
+      lname: string;
       houseId: string;
       licenseImage?: string;
       idCardImage?: string;
       licensePlate?: string;
       visitPurpose?: string;
       guardId?: string;
+      idDocType?: "thai_id" | "passport" | "driver_license" | "other";
     };
 
     const {
       visitorIDCard,
       houseId,
+      fname,
+      lname,
       licenseImage,
       idCardImage,
       licensePlate,
       visitPurpose,
       guardId: payloadGuardId,
+      idDocType,
     } = (body || {}) as ApprovalFormBody;
 
     // Get guard ID from payload or authenticated user
@@ -206,32 +212,75 @@ const approvalForm = new Elysia({ prefix: "/api" })
             // Try to find existing visitor by ID card hash
             const existingVisitor = await tx.query.visitors.findFirst({
               where: and(
-                eq(visitors.id_number_hash, visitorIDCard), // Assuming visitorIDCard is already hashed
+                eq(visitors.id_number_hash, visitorIDCard),
                 eq(visitors.village_id, villageId)
               )
             });
 
             if (existingVisitor) {
+              // Visitor exists - update visit_count, last_visit_at, and missing data
               visitorId = existingVisitor.visitor_id;
-              console.log(`✅ Found existing visitor: ${existingVisitor.fname} ${existingVisitor.lname}`);
+              console.log(`✅ Found existing visitor: ${existingVisitor.fname} ${existingVisitor.lname} (visit #${existingVisitor.visit_count + 1})`);
+              
+              // Prepare update data - only update fields that are missing
+              const updateData: any = {
+                visit_count: existingVisitor.visit_count + 1,
+                last_visit_at: new Date(),
+                updated_at: new Date(),
+              };
+              
+              // Update fname if it's missing or generic
+              if (!existingVisitor.fname || existingVisitor.fname === "ไม่ระบุ") {
+                if (fname && fname.trim()) {
+                  updateData.fname = fname;
+                }
+              }
+              
+              // Update lname if it's missing or generic
+              if (!existingVisitor.lname || existingVisitor.lname === "ไม่ระบุ") {
+                if (lname && lname.trim()) {
+                  updateData.lname = lname;
+                }
+              }
+              
+              // Update ID card image if missing and we have one
+              if (!existingVisitor.id_card_image && savedIdCardImageFilename) {
+                updateData.id_card_image = savedIdCardImageFilename;
+              }
+              
+              // Update id_doc_type if missing and we have one
+              if (!existingVisitor.id_doc_type && idDocType) {
+                updateData.id_doc_type = idDocType;
+              }
+              
+              // Update the visitor
+              await tx
+                .update(visitors)
+                .set(updateData)
+                .where(eq(visitors.visitor_id, existingVisitor.visitor_id));
+              
+              console.log(`✅ Updated visitor with new data:`, updateData);
             } else {
-              // Create new visitor record
+              // Create new visitor record with OCR data
               const [newVisitor] = await tx
                 .insert(visitors)
                 .values({
-                  fname: "ไม่ระบุ", // We don't have visitor name in the form
-                  lname: "ไม่ระบุ",
+                  fname: fname && fname.trim() ? fname : "ไม่ระบุ",
+                  lname: lname && lname.trim() ? lname : "ไม่ระบุ",
                   id_number_hash: visitorIDCard,
+                  id_card_image: savedIdCardImageFilename || undefined,
+                  id_doc_type: (idDocType as "thai_id" | "passport" | "driver_license" | "other" | undefined) || undefined,
                   village_id: villageId,
                   risk_status: "clear",
-                  visit_count: 0,
+                  visit_count: 1,
+                  last_visit_at: new Date(),
                   created_at: new Date(),
                   updated_at: new Date(),
                 })
                 .returning();
               
               visitorId = newVisitor.visitor_id;
-              console.log(`✅ Created new visitor: ${newVisitor.visitor_id}`);
+              console.log(`✅ Created new visitor: ${newVisitor.fname} ${newVisitor.lname} (${newVisitor.visitor_id})`);
             }
           }
         } catch (visitorError) {
@@ -288,6 +337,7 @@ const approvalForm = new Elysia({ prefix: "/api" })
             visitor_phone: 'ไม่ระบุ',
             visit_purpose: visitPurpose || 'ไม่ระบุวัตถุประสงค์',
             entry_time: result.inserted.entry_time,
+            visitor_id: result.inserted.visitor_id,
             visitor_record_id: result.inserted.visitor_record_id,
             picture_key: savedImageFilename,
             resident_name: result.residents.length > 0 ? 
@@ -305,6 +355,7 @@ const approvalForm = new Elysia({ prefix: "/api" })
           console.log(`✅ Flex messages sent successfully: ${flexResult.sentCount} residents notified`);
         } else {
           console.log(`⚠️ Flex message sending had issues: ${flexResult.errors.join(', ')}`);
+          console.log(`📊 Flex result details:`, JSON.stringify(flexResult, null, 2));
         }
         
       } catch (flexError) {

@@ -161,7 +161,7 @@ export default function SuperAdminDashboard() {
         </div>
       </div>
 
-      {/* Overview Cards */}
+            {/* Overview Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -229,6 +229,86 @@ export default function SuperAdminDashboard() {
         </Card>
       </div>
 
+      {/* Admin Status Breakdown */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              สถิติ Admin ตามบทบาท
+            </CardTitle>
+            <CardDescription>
+              จำนวน Admin แยกตามบทบาท
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <span className="font-medium">เจ้าของโครงการ</span>
+                </div>
+                <Badge variant="default">
+                  {stats.adminBreakdown.byRole.admin || 0}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="font-medium">นิติ</span>
+                </div>
+                <Badge variant="secondary">
+                  {stats.adminBreakdown.byRole.staff || 0}
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              สถิติ Admin ตามสถานะ
+            </CardTitle>
+            <CardDescription>
+              จำนวน Admin แยกตามสถานะ
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="font-medium">ยืนยันแล้ว</span>
+                </div>
+                <Badge variant="default">
+                  {stats.adminBreakdown.byStatus.verified || 0}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                  <span className="font-medium">รอการอนุมัติ</span>
+                </div>
+                <Badge variant="secondary">
+                  {stats.adminBreakdown.byStatus.pending || 0}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span className="font-medium">ปิดใช้งาน</span>
+                </div>
+                <Badge variant="destructive">
+                  {stats.adminBreakdown.byStatus.disable || 0}
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Alerts */}
       {(stats.alerts.villagesWithoutAdmins.length > 0 || 
         stats.alerts.pendingAdmins > 0 || 
@@ -289,11 +369,7 @@ export default function SuperAdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {stats.recentActivity.recentAdmins
-                .filter((admin, index, self) => 
-                  index === self.findIndex(a => a.admin_id === admin.admin_id)
-                )
-                .map((admin) => (
+              {stats.recentActivity.recentAdmins.map((admin) => (
                 <div key={admin.admin_id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -317,7 +393,7 @@ export default function SuperAdminDashboard() {
                     </div>
                     <p className="text-sm text-muted-foreground">{admin.email}</p>
                     <p className="text-xs text-muted-foreground">
-                      หมู่บ้าน: {admin.villages.length > 0 ? admin.villages.map(v => v.village_name).join(', ') : 'ไม่ระบุ'}
+                      หมู่บ้าน: {admin.village_name || 'ไม่ระบุ'}
                     </p>
                   </div>
                   <div className="text-xs text-muted-foreground">

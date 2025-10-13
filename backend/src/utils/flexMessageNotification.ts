@@ -4,7 +4,7 @@
  * via LINE flex messages when visitor records are created
  */
 
-import { flexMessageService, type VisitorNotificationData } from '../routes/(line)/flexMessage';
+import { flexMessageService, type VisitorNotificationData } from '../routes/(line)/flexMessage.js';
 import { getHouseResidentsWithLineId, type ResidentWithLineId } from '../db/houseResidentUtils';
 import { houses, villages } from '../db/schema';
 import db from '../db/drizzle';
@@ -61,10 +61,11 @@ export async function sendVisitorApprovalToHouseResidents(
     
     if (residents.length === 0) {
       console.log(`ℹ️ No residents with LINE IDs found for house: ${houseId}`);
-      return { success: true, sentCount: 0, errors: [] };
+      return { success: false, sentCount: 0, errors: [`No residents with LINE IDs found for house: ${houseId}`] };
     }
 
     console.log(`📱 Found ${residents.length} residents with LINE IDs for house: ${houseId}`);
+    console.log(`👥 Residents:`, residents.map(r => `${r.fname} ${r.lname} (${r.line_user_id})`));
 
     const errors: string[] = [];
     let sentCount = 0;
@@ -83,10 +84,11 @@ export async function sendVisitorApprovalToHouseResidents(
           visitorId: visitorData.visitorId,
           imageUrl: visitorData.imageUrl || 'https://via.placeholder.com/300x200/1DB446/FFFFFF?text=Visitor+Photo'
         };
+        
+        console.log('Flex message data being sent:', flexMessageData);
 
-        const success = await flexMessageService.sendFlexMessage(resident.line_user_id, 
-          flexMessageService.createVisitorApprovalMessage(flexMessageData)
-        );
+        const flexMessage = await flexMessageService.getVisitorFlexMessage(flexMessageData);
+        const success = await flexMessageService.sendFlexMessage(resident.line_user_id, flexMessage);
 
         if (success) {
           console.log(`✅ Flex message sent to resident: ${resident.fname} ${resident.lname} (${resident.line_user_id})`);
@@ -227,9 +229,9 @@ export function formatVisitorDataForFlexMessage(
         timeZone: 'Asia/Bangkok'
       }) + ' น.',
     villageName: villageName,
-    visitorId: visitorRecord.visitor_record_id,
+    visitorId: visitorRecord.visitor_id,
     imageUrl: visitorRecord.picture_key ? 
-      `${process.env.FRONTEND_URL || 'http://localhost:3000'}/api/images/${visitorRecord.picture_key}` : 
+      `/api/images/${visitorRecord.picture_key}` : 
       undefined
   };
 }

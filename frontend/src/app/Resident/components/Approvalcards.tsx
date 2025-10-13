@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useState, useRef, useLayoutEffect } from "react";
+import { useState, useRef, useLayoutEffect, useEffect } from "react";
 import { Car, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { gsap } from "gsap";
 
@@ -28,6 +28,16 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
 
   // Sort by smallest id first
   const sortedPending = [...items].sort((a, b) => Number(a.id) - Number(b.id));
+
+  // Adjust currentIndex when items are removed
+  useEffect(() => {
+    if (sortedPending.length === 0) {
+      setCurrentIndex(0);
+    } else if (currentIndex >= sortedPending.length) {
+      // If current index is out of bounds, set it to the last valid index
+      setCurrentIndex(sortedPending.length - 1);
+    }
+  }, [sortedPending.length, currentIndex]);
 
   const nextCard = (skipCount: number = 1) => {
     const newIndex = Math.min(currentIndex + skipCount, sortedPending.length - 1);

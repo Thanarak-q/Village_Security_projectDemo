@@ -77,6 +77,7 @@ const notificationData = [
     is_read: false,
     data: { house_id: "house_6789", member_name: "สมชาย ผาสุก" },
   },
+  // ...removed member_added event for ไท้ทวารัติ ภักดีโต
   {
     type: "member_removed",
     category: "house_management",
@@ -437,6 +438,7 @@ const residentData = [
     line_profile_url: null,
     move_in_date: "2024-02-01",
   },
+  
   // หมู่บ้านรัตนา
   {
     email: "arisa.rat@email.com",

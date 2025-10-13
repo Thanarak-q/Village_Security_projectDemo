@@ -96,9 +96,10 @@ services:
 
   ngrok:
     image: ngrok/ngrok:latest
-    command: ["http", "caddy:80", "--log=stdout"]
+    command: ["http", "caddy:80", "--log=stdout", "--url=${URL}"]
     environment:
       NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+      URL: ${URL}
     ports:
       - "4040:4040"
     depends_on:
