@@ -482,14 +482,14 @@ export default function AdminsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            รายการ Admin ({admins.length})
+            รายการ Admin ({admins.filter(admin => admin.role === "admin").length})
           </CardTitle>
           <CardDescription>
             Admin ทั้งหมดในระบบ
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {admins.length === 0 ? (
+          {admins.filter(admin => admin.role === "admin").length === 0 ? (
             <div className="text-center py-8">
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">ยังไม่มี Admin ในระบบ</p>
@@ -508,14 +508,13 @@ export default function AdminsPage() {
                   <TableHead>ชื่อผู้ใช้</TableHead>
                   <TableHead>อีเมล</TableHead>
                   <TableHead>บทบาท</TableHead>
-                  <TableHead>สถานะ</TableHead>
                   <TableHead>หมู่บ้าน</TableHead>
                   <TableHead>วันที่สร้าง</TableHead>
                   <TableHead className="text-right">การดำเนินการ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {admins.map((admin) => (
+                {admins.filter(admin => admin.role === "admin").map((admin) => (
                   <TableRow key={admin.admin_id}>
                     <TableCell className="font-medium">
                       {admin.username}
@@ -524,11 +523,6 @@ export default function AdminsPage() {
                     <TableCell>
                       <Badge variant={admin.role === "admin" ? "default" : "secondary"}>
                         {getRoleDisplayName(admin.role)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusBadgeVariant(admin.status)}>
-                        {getStatusDisplayName(admin.status)}
                       </Badge>
                     </TableCell>
                     <TableCell>

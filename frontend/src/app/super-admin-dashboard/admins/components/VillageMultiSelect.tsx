@@ -28,6 +28,7 @@ import { toast } from "sonner";
 interface Village {
   village_id: string;
   village_name: string;
+  admin_count: number;
   address?: string;
 }
 

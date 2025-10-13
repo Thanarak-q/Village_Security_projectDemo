@@ -32,14 +32,14 @@ const items = [
     icon: Home,
   },
   {
-    title: "จัดการหมู่บ้าน",
-    url: "/super-admin-dashboard/villages",
-    icon: Building,
-  },
-  {
     title: "จัดการ Admin",
     url: "/super-admin-dashboard/admins",
     icon: Users,
+  },
+  {
+    title: "จัดการหมู่บ้าน",
+    url: "/super-admin-dashboard/villages",
+    icon: Building,
   },
   // {
   //   title: "สถิติระบบ",
@@ -99,7 +99,7 @@ const AppSidebar = memo(function AppSidebar() {
                   Super Admin
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  ระบบจัดการระบบ
+                  จัดการระบบ
                 </p>
               </div>
             </div>
