@@ -49,29 +49,14 @@ export default function VillageMultiSelect({
   disabled = false,
 }: VillageMultiSelectProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [tempSelection, setTempSelection] = useState<string[]>(selectedVillageIds);
   const [newVillage, setNewVillage] = useState({
     village_name: "",
     address: "",
   });
   const [creating, setCreating] = useState(false);
 
-  const handleVillageToggle = (villageId: string, checked: boolean) => {
-    if (checked) {
-      setTempSelection([...tempSelection, villageId]);
-    } else {
-      setTempSelection(tempSelection.filter(id => id !== villageId));
-    }
-  };
-
-  const handleSave = () => {
-    onSelectionChange(tempSelection);
-    setIsDialogOpen(false);
-  };
-
   const handleCancel = () => {
-    setTempSelection(selectedVillageIds);
+    setNewVillage({ village_name: "", address: "" });
     setIsDialogOpen(false);
   };
 
@@ -99,13 +84,13 @@ export default function VillageMultiSelect({
         const updatedVillages = [...villages, data.data];
         onVillagesChange(updatedVillages);
         
-        // Auto-select the new village
-        const newSelection = [...tempSelection, data.data.village_id];
-        setTempSelection(newSelection);
+        // Auto-select the new village and update the selection
+        const newSelection = [...selectedVillageIds, data.data.village_id];
+        onSelectionChange(newSelection);
         
-        // Reset form
+        // Reset form and close dialog
         setNewVillage({ village_name: "", address: "" });
-        setIsCreateDialogOpen(false);
+        setIsDialogOpen(false);
       } else {
         toast.error(data.error || "Failed to create village");
       }
@@ -170,85 +155,14 @@ export default function VillageMultiSelect({
             className="w-full"
           >
             <Plus className="h-4 w-4 mr-2" />
-            {selectedVillageIds.length > 0 ? "แก้ไขหมู่บ้าน" : "เลือกหมู่บ้าน"}
+            เพิ่มหมู่บ้าน
           </Button>
         </DialogTrigger>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>เลือกหมู่บ้าน</DialogTitle>
-            <DialogDescription>
-              {role === "staff" 
-                ? "Staff ต้องมีหมู่บ้านอย่างน้อย 1 หมู่บ้าน"
-                : "Admin สามารถมีหลายหมู่บ้านได้"
-              }
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-3 max-h-60 overflow-y-auto">
-            {villages.map((village) => (
-              <div key={village.village_id} className="flex items-center space-x-2">
-                <Checkbox
-                  id={village.village_id}
-                  checked={tempSelection.includes(village.village_id)}
-                  onCheckedChange={(checked) => 
-                    handleVillageToggle(village.village_id, checked as boolean)
-                  }
-                />
-                <Label 
-                  htmlFor={village.village_id}
-                  className="flex items-center gap-2 cursor-pointer flex-1"
-                >
-                  <Building className="h-4 w-4" />
-                  <div className="flex flex-col">
-                    <span>{village.village_name}</span>
-                    {village.address && (
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {village.address}
-                      </span>
-                    )}
-                  </div>
-                </Label>
-              </div>
-            ))}
-          </div>
-
-          {/* Create New Village Button */}
-          <div className="border-t pt-3">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIsCreateDialogOpen(true)}
-              className="w-full"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              สร้างหมู่บ้านใหม่
-            </Button>
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleCancel}>
-              ยกเลิก
-            </Button>
-            <Button 
-              type="button" 
-              onClick={handleSave}
-              disabled={role === "staff" && tempSelection.length === 0}
-            >
-              บันทึก
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Create Village Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
             <DialogTitle>สร้างหมู่บ้านใหม่</DialogTitle>
             <DialogDescription>
-              เพิ่มหมู่บ้านใหม่เข้าไปในระบบ
+              เพิ่มหมู่บ้านใหม่เข้าไปในระบบและมอบหมายให้ Admin คนนี้
             </DialogDescription>
           </DialogHeader>
           
@@ -274,15 +188,20 @@ export default function VillageMultiSelect({
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+            <Button type="button" variant="outline" onClick={handleCancel}>
               ยกเลิก
             </Button>
-            <Button onClick={handleCreateVillage} disabled={creating}>
+            <Button 
+              type="button" 
+              onClick={handleCreateVillage}
+              disabled={creating || !newVillage.village_name.trim()}
+            >
               {creating ? "กำลังสร้าง..." : "สร้างหมู่บ้าน"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
 
       {/* Validation Message */}
       {role === "staff" && selectedVillageIds.length === 0 && (
