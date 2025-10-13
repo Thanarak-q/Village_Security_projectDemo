@@ -24,7 +24,7 @@ export function useSafeState<T>(
   const [state, setState] = useState(initialState);
   const updateCountRef = useRef(0);
   const lastUpdateTimeRef = useRef(Date.now());
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Reset update count periodically
   useEffect(() => {
@@ -151,7 +151,7 @@ export function useSafeMemo<T>(
   const factoryRef = useRef(factory);
   const computeCountRef = useRef(0);
   const lastComputeTimeRef = useRef(Date.now());
-  const resultRef = useRef<T>();
+  const resultRef = useRef<T | null>(null);
 
   // Update factory ref when dependencies change
   useEffect(() => {
@@ -178,9 +178,9 @@ export function useSafeMemo<T>(
     return true;
   }, deps);
 
-  if (shouldCompute) {
+  if (shouldCompute || resultRef.current === null) {
     resultRef.current = factoryRef.current();
   }
 
-  return resultRef.current!;
+  return resultRef.current as T;
 }

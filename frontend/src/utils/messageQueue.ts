@@ -154,10 +154,8 @@ export class MessageQueue {
 
     console.log(`📥 Message queued: ${messageId} (priority: ${message.priority})`);
     
-    // Start processing if not already running
-    if (!this.processing) {
-      this.processQueue();
-    }
+    // Start processing if not already running.
+    // The queue cannot process without a processor, which must be registered externally.
 
     return messageId;
   }

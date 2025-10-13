@@ -10,6 +10,7 @@ export interface LiffUser {
   lname: string;
   phone: string;
   village_id: string;
+  village_name?: string;
   status: 'verified' | 'pending' | 'disable';
   line_profile_url?: string;
   role: 'resident' | 'guard';

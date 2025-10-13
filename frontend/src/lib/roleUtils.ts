@@ -10,7 +10,7 @@ export type AdminRole = 'admin' | 'staff' | 'superadmin';
 export const getAdminRoleDisplayName = (role: AdminRole): string => {
   const roleNames: Record<AdminRole, string> = {
     admin: 'เจ้าของโครงการ',
-    staff: 'นิติ',
+    staff: 'นิติบุคคล',
     superadmin: 'เจ้าของ SE'
   };
   

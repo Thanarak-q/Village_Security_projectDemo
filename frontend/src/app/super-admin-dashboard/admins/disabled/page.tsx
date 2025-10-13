@@ -289,7 +289,7 @@ export default function DisabledAdminsPage() {
           <DialogHeader>
             <DialogTitle>ยืนยันการคืนสถานะแอดมิน</DialogTitle>
             <DialogDescription>
-              คุณแน่ใจหรือไม่ที่จะคืนสถานะแอดมิน "{selectedAdmin?.username}" ให้สามารถใช้งานได้อีกครั้ง?
+              คุณแน่ใจหรือไม่ที่จะคืนสถานะแอดมิน &quot;{selectedAdmin?.username}&quot; ให้สามารถใช้งานได้อีกครั้ง?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

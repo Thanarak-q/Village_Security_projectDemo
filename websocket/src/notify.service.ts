@@ -162,7 +162,8 @@ export type NotifyService = {
                   return;
                 }
 
-                const targetVillageId = sanitizeVillageId(payload.data.villageId);
+                // Backend sends villageKey, but we need to check both for compatibility
+                const targetVillageId = sanitizeVillageId(payload.data.villageKey || payload.data.villageId);
 
                 if (!targetVillageId) {
                   console.warn('⚠️ ADMIN_NOTIFICATION missing valid village ID:', payload);

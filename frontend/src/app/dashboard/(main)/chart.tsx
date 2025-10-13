@@ -373,7 +373,7 @@ const WeeklyAccessBarChart = memo(function WeeklyAccessBarChart() {
                   <span className="text-xs sm:text-sm text-muted-foreground">รวม: {(totalApproved + totalRejected).toLocaleString()} คน</span>
                 </div>
               </div>
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 dark:bg-primary/20 dark:text-primary-foreground dark:border-primary/30 text-xs sm:text-sm w-fit">
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 dark:bg-primary/20 dark:text-green dark:border-primary/30 text-xs sm:text-sm w-fit">
                 {getAverageText()}
               </Badge>
             </>

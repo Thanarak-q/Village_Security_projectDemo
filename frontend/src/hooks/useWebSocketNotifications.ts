@@ -39,6 +39,8 @@ interface UseWebSocketNotificationsReturn {
   connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error';
   sendMessage: (message: unknown) => void;
   clearNotifications: () => void;
+  reconnect: () => void;
+  retryConnection: () => void;
   errorStats: ErrorStats;
   healthStatus: HealthStatus;
   queueStatus: {
@@ -84,7 +86,13 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
 
   const resolvedVillageId = useSafeMemo(() => {
     const fromOptions = typeof overrideVillageId === 'string' ? overrideVillageId.trim() : '';
-    const fromUser = typeof user?.village_id === 'string' ? user.village_id.trim() : '';
+    
+    // Check for village_id for all user types
+    let fromUser = '';
+    if (typeof user?.village_id === 'string') {
+      fromUser = user.village_id.trim();
+    }
+    
     const fromSession = typeof window !== 'undefined'
       ? (() => {
           try {
@@ -99,11 +107,18 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
     const resolved = fromOptions || fromUser || fromSession || null;
 
     if (!resolved) {
-      console.warn('⚠️ No village id available for WebSocket subscription');
+      console.warn('⚠️ No village id available for WebSocket subscription', {
+        user: user ? { role: user.role, village_id: user.village_id } : null
+      });
+    } else {
+      console.log('✅ Resolved village ID for WebSocket:', resolved, {
+        source: fromOptions ? 'options' : fromUser ? 'user' : fromSession ? 'session' : 'unknown',
+        userRole: user?.role
+      });
     }
 
     return resolved;
-  }, [overrideVillageId, user?.village_id]);
+  }, [overrideVillageId, user?.village_id, user?.role]);
 
   const calculateHealthStatus = useCallback((stats: ErrorStats): HealthStatus => {
     const criticalCount = stats.bySeverity['CRITICAL'] || 0;
@@ -502,6 +517,27 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
     setNotifications([]);
   }, []);
 
+  const reconnect = useSafeCallback(() => {
+    console.log('🔄 Manual reconnect requested');
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    reconnectAttempts.current = 0;
+    disconnect();
+    connect();
+  }, [connect, disconnect]);
+
+  const retryConnection = useSafeCallback(() => {
+    console.log('🔁 Manual retry requested');
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    reconnectAttempts.current = 0;
+    connect();
+  }, [connect]);
+
   // Connect on mount with a small delay to avoid race conditions
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -551,6 +587,8 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
     connectionStatus,
     sendMessage,
     clearNotifications,
+    reconnect,
+    retryConnection,
     errorStats,
     healthStatus,
     queueStatus

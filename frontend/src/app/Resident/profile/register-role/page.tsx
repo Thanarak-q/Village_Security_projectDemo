@@ -100,7 +100,7 @@ const RoleRegistrationPage = () => {
       } else {
         setVillageValidation({ isValid: false, isLoading: false });
 
-        const userId = currentUser.lineUserId || currentUser.id;
+        const userId = currentUser?.lineUserId || currentUser?.id;
         if (userId) {
           checkExistingRoles(userId);
         }

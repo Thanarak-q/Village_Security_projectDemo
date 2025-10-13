@@ -286,7 +286,7 @@ export default function DisabledVillagesPage() {
           <DialogHeader>
             <DialogTitle>ยืนยันการคืนสถานะหมู่บ้าน</DialogTitle>
             <DialogDescription>
-              คุณแน่ใจหรือไม่ที่จะคืนสถานะหมู่บ้าน "{selectedVillage?.village_name}" ให้สามารถใช้งานได้อีกครั้ง?
+              คุณแน่ใจหรือไม่ที่จะคืนสถานะหมู่บ้าน &quot;{selectedVillage?.village_name}&quot; ให้สามารถใช้งานได้อีกครั้ง?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

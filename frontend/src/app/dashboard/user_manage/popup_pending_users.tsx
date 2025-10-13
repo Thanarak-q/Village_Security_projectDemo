@@ -86,6 +86,7 @@ interface PendingUser {
   requestDate: string;  // วันที่สมัคร
   status: string;       // สถานะ
   profile_image_url?: string | null;  // รูปโปรไฟล์
+  village_id?: string;
 }
 
 // Interface สำหรับข้อมูลฟอร์มการอนุมัติ

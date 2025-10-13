@@ -1,7 +1,7 @@
-
+import "./config/env";
 import type { NextConfig } from "next";
 
-const backendUrl = process.env.BACKEND_URL;
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 const nextConfig: NextConfig = {
   devIndicators: false,
@@ -27,7 +27,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: `${backendUrl}/api/:path*`, // backend from env
+        destination: `${apiBaseUrl}/api/:path*`, // backend from env
       },
     ];
   },

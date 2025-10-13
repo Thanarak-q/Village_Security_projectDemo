@@ -387,7 +387,9 @@ export default function StatsPage() {
                     </div>
                     <p className="text-sm text-muted-foreground">{admin.email}</p>
                     <p className="text-xs text-muted-foreground">
-                      หมู่บ้าน: {admin.village_name || 'ไม่ระบุ'}
+                      หมู่บ้าน: {admin.villages?.length
+                        ? admin.villages.map((village) => village.village_name).join(", ")
+                        : "ไม่ระบุ"}
                     </p>
                   </div>
                   <div className="text-xs text-muted-foreground">

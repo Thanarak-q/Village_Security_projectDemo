@@ -21,6 +21,8 @@ interface TestVisitorRecord {
   createdAt: string;
   license_plate?: string;
   visit_purpose?: string;
+  visitor_name?: string;
+  house_address?: string;
   visitor_id_card?: string;
   house?: {
     address?: string;
@@ -125,11 +127,17 @@ export const useVisitorData = () => {
               });
               const timeWithDate = `${timeString} ${dateString}`;
               
+              console.log("🖼️ Record image info:", {
+                id: record.visitor_record_id,
+                picture_key: record.picture_key,
+                license_plate: record.license_plate
+              });
+              
               return {
                 id: record.visitor_record_id,
                 plateNumber: record.license_plate || 'ไม่ระบุ',
-                visitorName: record.visit_purpose || record.visitor_id_card || '',
-                destination: record.house?.address ? `บ้านเลขที่ ${record.house.address}` : '',
+                visitorName: record.visit_purpose || record.visitor_name || '',
+                destination: record.house_address ? `บ้านเลขที่ ${record.house_address}` : '',
                 time: timeWithDate,
                 carImage: record.picture_key ? record.picture_key : 'car1.jpg',
                 status: record.record_status === 'approved' ? 'approved' : 

@@ -633,7 +633,7 @@ export default function AdminsPage() {
           <DialogHeader>
             <DialogTitle>ยืนยันการลบ Admin</DialogTitle>
             <DialogDescription>
-              คุณแน่ใจหรือไม่ที่จะลบ Admin "{selectedAdmin?.username}"? 
+              คุณแน่ใจหรือไม่ที่จะลบ Admin &quot;{selectedAdmin?.username}&quot;? 
               การดำเนินการนี้ไม่สามารถย้อนกลับได้
             </DialogDescription>
           </DialogHeader>

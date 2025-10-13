@@ -59,7 +59,7 @@ export function AddStaffDialog({ villageId, villageName, onStaffAdded, onRefresh
             เพิ่มนิติบุคคลใหม่
           </DialogTitle>
           <DialogDescription>
-            เพิ่มนิติบุคคลใหม่เข้าสู่ระบบสำหรับหมู่บ้าน {villageName}
+            เพิ่มนิติบุคคลใหม่เข้าสู่ระบบสำหรับ {villageName}
           </DialogDescription>
         </DialogHeader>
         <div className="mt-4">
