@@ -165,11 +165,33 @@ export const isValidPhone = (phone: string): boolean => {
   return cleanPhone.length >= 9 && cleanPhone.length <= 15;
 };
 
+// Generate village key with format: 3G7K-PW9X
+export const generateVillageKey = (): string => {
+  const chars = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+  const segments = [];
+  
+  // Generate 2 segments of 4 characters each
+  for (let i = 0; i < 2; i++) {
+    let segment = '';
+    for (let j = 0; j < 4; j++) {
+      segment += chars[Math.floor(Math.random() * chars.length)];
+    }
+    segments.push(segment);
+  }
+  
+  return segments.join('-');
+};
+
 // Validate village key format
 export const isValidVillageKey = (villageKey: string): boolean => {
   if (typeof villageKey !== 'string') return false;
   
-  return /^[a-zA-Z0-9\-]+$/.test(villageKey) && 
-         villageKey.length >= 3 && 
-         villageKey.length <= 20;
+  // Accept both old format (a-zA-Z0-9\-) and new format (XXXX-XXXX)
+  const oldFormat = /^[a-zA-Z0-9\-]+$/.test(villageKey) && 
+                   villageKey.length >= 3 && 
+                   villageKey.length <= 20;
+  
+  const newFormat = /^[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(villageKey);
+  
+  return oldFormat || newFormat;
 };

@@ -4,6 +4,7 @@ import { villages, admins, admin_villages } from "../db/schema";
 import { eq, count, and, isNull, isNotNull } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { hashPassword } from "../utils/passwordUtils";
+import { generateVillageKey } from "../utils/zodValidation";
 
 /**
  * Super Admin Village Management Routes
@@ -97,7 +98,7 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
         .insert(villages)
         .values({
           village_name: village_name.trim(),
-          village_key: `village_${Date.now()}`, // Auto-generate village_key
+          village_key: generateVillageKey(), // Auto-generate village_key with new format
         })
         .returning({
           village_id: villages.village_id,
