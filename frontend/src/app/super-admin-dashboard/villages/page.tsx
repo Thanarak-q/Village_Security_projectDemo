@@ -410,7 +410,7 @@ export default function VillagesPage() {
           <DialogHeader>
             <DialogTitle>ยืนยันการลบหมู่บ้าน</DialogTitle>
             <DialogDescription>
-              คุณแน่ใจหรือไม่ที่จะลบหมู่บ้าน "{selectedVillage?.village_name}"? 
+              คุณแน่ใจหรือไม่ที่จะลบหมู่บ้าน &quot;{selectedVillage?.village_name}&quot;? 
               การดำเนินการนี้ไม่สามารถย้อนกลับได้
             </DialogDescription>
           </DialogHeader>

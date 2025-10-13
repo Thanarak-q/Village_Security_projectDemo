@@ -14,6 +14,6 @@ COPY . .
 # 4. Make entrypoint executable (ถ้า script อยู่ใน repo)
 RUN chmod +x entrypoint.sh
 
-EXPOSE 3001
+EXPOSE 3000
 
 ENTRYPOINT ["./entrypoint.sh"]

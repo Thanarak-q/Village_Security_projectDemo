@@ -1,4 +1,7 @@
 #!/bin/sh
+set -e
+
+MODE=${NODE_ENV:-development}
 
 # รอให้ฐานข้อมูลพร้อม (ปรับเวลาตามความจำเป็น)
 sleep 10
@@ -7,7 +10,13 @@ sleep 10
 bunx drizzle-kit push
 
 # seed ข้อมูล (เฉพาะเมื่อจำเป็น)
-bun run src/db/seed.ts
+if [ "$MODE" != "production" ]; then
+  bun run src/db/seed.ts
+fi
 
-# รันแอป
-bun run dev 
+# รันแอปตามโหมด
+if [ "$MODE" = "production" ]; then
+  exec bun run start
+else
+  exec bun run dev
+fi

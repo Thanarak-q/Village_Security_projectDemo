@@ -6,7 +6,7 @@ services:
     volumes:
       - ./backend:/app
     env_file:
-      - ./backend/.env
+      - ${ENV_FILE_PATH:-./.env}
     depends_on:
       - websocket
       - minio
@@ -19,7 +19,7 @@ services:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
-      # Must match MINIO_ACCESS_KEY / MINIO_SECRET_KEY in backend/.env
+      # Must match MINIO_ACCESS_KEY / MINIO_SECRET_KEY in .env
       - MINIO_ROOT_USER=minioadmin
       - MINIO_ROOT_PASSWORD=minioadmin123
     ports:
@@ -43,7 +43,6 @@ services:
       - WS_PATH=${WS_PATH}
       - WS_IDLE_TIMEOUT=${WS_IDLE_TIMEOUT}
       - NODE_ENV=${NODE_ENV}
-    command: bun run dev
     restart: unless-stopped
     networks:
       - default
@@ -59,7 +58,9 @@ services:
     environment:
       - WATCHPACK_POLLING=${CHOKIDAR_USEPOLLING}
       - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING}
-      - NEXT_PUBLIC_API_URL=http://localhost:3001
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - NEXT_PUBLIC_LIFF_ID=${NEXT_PUBLIC_LIFF_ID}
+      - NODE_ENV=${NODE_ENV}
     depends_on:
       - backend
     restart: unless-stopped

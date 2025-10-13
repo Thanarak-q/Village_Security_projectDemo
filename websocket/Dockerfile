@@ -8,8 +8,10 @@ RUN bun install --frozen-lockfile
 # Copy source code
 COPY . .
 
+# Make entrypoint executable
+RUN chmod +x entrypoint.sh
+
 # Expose port
 EXPOSE 3002
 
-# Start the application in development mode with hot reload
-CMD ["bun", "run", "dev"]
+ENTRYPOINT ["./entrypoint.sh"]
