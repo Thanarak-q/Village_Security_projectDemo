@@ -5,14 +5,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useState, useRef, useLayoutEffect, useEffect } from "react";
 import { Car, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { gsap } from "gsap";
-import Image from "next/image";
+
 import { ApprovalCardsProps } from "../types/visitor";
 
 export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, onDeny }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [showFullImage, setShowFullImage] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
-  
+
   // Touch/swipe state
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -108,7 +109,7 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
     const currentTouch = e.targetTouches[0].clientX;
     const now = Date.now();
     const diff = currentTouch - touchStart;
-    
+
     // Calculate velocity based on recent movement
     if (lastTouchTime && lastTouchX !== null) {
       const timeDiff = now - lastTouchTime;
@@ -118,12 +119,12 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
         setVelocity(currentVelocity);
       }
     }
-    
+
     setDragOffset(diff);
     setTouchEnd(currentTouch);
     setLastTouchTime(now);
     setLastTouchX(currentTouch);
-    
+
     // Apply visual feedback that follows finger movement
     if (cardRef.current) {
       gsap.set(cardRef.current, { x: diff * 0.4 });
@@ -132,18 +133,18 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
 
   const handleTouchEnd = () => {
     if (!touchStart || !touchEnd || isAnimating || !touchStartTime) return;
-    
+
     const now = Date.now();
     const totalTime = now - touchStartTime;
     const diff = touchStart - touchEnd;
-    
+
     // Calculate final velocity
     const finalVelocity = Math.abs(diff) / totalTime;
-    
+
     // Calculate how many cards to skip based on velocity and distance
     let skipCount = 1;
     const absDiff = Math.abs(diff);
-    
+
     if (finalVelocity > 1.5) {
       // Very fast swipe - skip multiple cards
       skipCount = Math.min(Math.floor(absDiff / 80) + 1, 5); // Max 5 cards
@@ -160,10 +161,10 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
       // Slow swipe - normal single card
       skipCount = 1;
     }
-    
+
     // Dynamic thresholds based on velocity and distance
     let minDistance = 30; // Base minimum distance
-    
+
     if (finalVelocity > 1.0) {
       // Very fast swipe - very low threshold
       minDistance = 15;
@@ -177,14 +178,14 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
       // Slow swipe - higher threshold
       minDistance = 60;
     }
-    
+
     const isLeftSwipe = diff > minDistance;
     const isRightSwipe = diff < -minDistance;
-    
+
     // Reset drag state
     setIsDragging(false);
     setDragOffset(0);
-    
+
     if (isLeftSwipe && currentIndex < sortedPending.length - 1) {
       nextCard(skipCount);
     } else if (isRightSwipe && currentIndex > 0) {
@@ -200,7 +201,7 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
         });
       }
     }
-    
+
     setTouchStart(null);
     setTouchEnd(null);
     setTouchStartTime(null);
@@ -226,7 +227,7 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
     if (!touchStart || isAnimating) return;
     const now = Date.now();
     const diff = e.clientX - touchStart;
-    
+
     // Calculate velocity based on recent movement
     if (lastTouchTime && lastTouchX !== null) {
       const timeDiff = now - lastTouchTime;
@@ -236,12 +237,12 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
         setVelocity(currentVelocity);
       }
     }
-    
+
     setDragOffset(diff);
     setTouchEnd(e.clientX);
     setLastTouchTime(now);
     setLastTouchX(e.clientX);
-    
+
     if (cardRef.current) {
       gsap.set(cardRef.current, { x: diff * 0.4 });
     }
@@ -249,18 +250,18 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
 
   const handleMouseUp = () => {
     if (!touchStart || isAnimating || !touchStartTime) return;
-    
+
     const now = Date.now();
     const totalTime = now - touchStartTime;
     const diff = touchStart - (touchEnd || touchStart);
-    
+
     // Calculate final velocity
     const finalVelocity = Math.abs(diff) / totalTime;
-    
+
     // Calculate how many cards to skip based on velocity and distance
     let skipCount = 1;
     const absDiff = Math.abs(diff);
-    
+
     if (finalVelocity > 1.5) {
       // Very fast swipe - skip multiple cards
       skipCount = Math.min(Math.floor(absDiff / 80) + 1, 5); // Max 5 cards
@@ -277,10 +278,10 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
       // Slow swipe - normal single card
       skipCount = 1;
     }
-    
+
     // Dynamic thresholds based on velocity and distance
     let minDistance = 30; // Base minimum distance
-    
+
     if (finalVelocity > 1.0) {
       // Very fast swipe - very low threshold
       minDistance = 15;
@@ -294,13 +295,13 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
       // Slow swipe - higher threshold
       minDistance = 60;
     }
-    
+
     const isLeftSwipe = diff > minDistance;
     const isRightSwipe = diff < -minDistance;
-    
+
     setIsDragging(false);
     setDragOffset(0);
-    
+
     if (isLeftSwipe && currentIndex < sortedPending.length - 1) {
       nextCard(skipCount);
     } else if (isRightSwipe && currentIndex > 0) {
@@ -316,7 +317,7 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
         });
       }
     }
-    
+
     setTouchStart(null);
     setTouchEnd(null);
     setTouchStartTime(null);
@@ -373,18 +374,18 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
       <div className="min-h-[350px] relative overflow-hidden">
         {/* Swipe indicators */}
         {/* Simple swipe hint */}
-          {sortedPending.length > 1 && (
-            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 bg-black/10 backdrop-blur-sm rounded-full px-2 py-1 text-xs text-muted-foreground opacity-50">
-              ปัดแรงๆ เพื่อข้ามหลายการ์ด
-            </div>
-          )}
-        
-        {sortedPending.length > 0 && sortedPending[currentIndex] ? (
+        {sortedPending.length > 1 && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 bg-black/10 backdrop-blur-sm rounded-full px-2 py-1 text-xs text-muted-foreground opacity-50">
+            ปัดแรงๆ เพื่อข้ามหลายการ์ด
+          </div>
+        )}
+
+        {sortedPending.length > 0 ? (
           <div ref={cardRef}>
             <Card className="shadow-sm border-border bg-background/50">
               <CardContent className="p-3">
                 {/* Swipeable area - only the top part with info */}
-                <div 
+                <div
                   className="touch-none select-none"
                   onTouchStart={handleTouchStart}
                   onTouchMove={handleTouchMove}
@@ -395,9 +396,8 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
                   onMouseLeave={handleMouseUp}
                   style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
                 >
-                  <div className={`transition-all duration-200 ${
-                    isDragging ? 'scale-102' : 'scale-100'
-                  }`}>
+                  <div className={`transition-all duration-200 ${isDragging ? 'scale-102' : 'scale-100'
+                    }`}>
                     <div className="flex items-start gap-2 mb-3">
                       <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
                         <Car className="w-4 h-4 text-muted-foreground" />
@@ -407,8 +407,8 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
                           {sortedPending[currentIndex].plateNumber}
                         </div>
                         <div className="text-muted-foreground text-sm truncate">
-                          {sortedPending[currentIndex].visitorName ? 
-                            `${sortedPending[currentIndex].visitorName} • ${sortedPending[currentIndex].destination}` : 
+                          {sortedPending[currentIndex].visitorName ?
+                            `${sortedPending[currentIndex].visitorName} • ${sortedPending[currentIndex].destination}` :
                             sortedPending[currentIndex].destination
                           }
                         </div>
@@ -419,25 +419,54 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
                       </div>
                     </div>
                     <div className="mb-3">
-                      <div className="w-full h-48 bg-muted rounded-lg flex items-center justify-center overflow-hidden border">
-                        {sortedPending[currentIndex].carImage ? (
-                          <Image
-                            src={`/api/images/file/${sortedPending[currentIndex].carImage}`}
+                      <div
+                        className="w-full h-48 bg-muted rounded-lg flex items-center justify-center overflow-hidden border cursor-pointer relative"
+                        onClick={() => sortedPending[currentIndex].carImage && !isAnimating && setShowFullImage(true)}
+                      >
+                        {isAnimating ? (
+                          // Show loading state during animation
+                          <div className="flex flex-col items-center justify-center text-muted-foreground">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                            <span className="text-xs">กำลังโหลด...</span>
+                          </div>
+                        ) : sortedPending[currentIndex].carImage ? (
+                          <img
+                            src={sortedPending[currentIndex].carImage.startsWith('/api/') ?
+                              sortedPending[currentIndex].carImage :
+                              `/${sortedPending[currentIndex].carImage}`}
                             alt={`Car ${sortedPending[currentIndex].plateNumber}`}
                             className="object-cover w-full h-full"
-                            width={400}
-                            height={192}
-                            unoptimized
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            onError={(e) => {
+                              console.error('🖼️ Image failed to load:', {
+                                src: sortedPending[currentIndex].carImage,
+                                plateNumber: sortedPending[currentIndex].plateNumber,
+                                actualSrc: e.currentTarget.src
+                              });
+                            }}
+                            onLoad={(e) => {
+                              console.log('✅ Image loaded successfully:', {
+                                src: sortedPending[currentIndex].carImage,
+                                plateNumber: sortedPending[currentIndex].plateNumber,
+                                actualSrc: e.currentTarget.src
+                              });
+                            }}
                           />
                         ) : (
                           <Car className="w-12 h-12 text-muted-foreground" />
+                        )}
+                        {/* Click indicator - always visible when not animating */}
+                        {!isAnimating && sortedPending[currentIndex].carImage && (
+                          <div className="absolute bottom-2 right-2">
+                            <div className="bg-black/70 text-white rounded-full px-3 py-1 text-xs font-medium">
+                              คลิกเพื่อดูรูปภาพ
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Action buttons - not swipeable, always clickable */}
                 <div className="flex gap-2 mt-3">
                   <Button
@@ -465,6 +494,40 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
           </div>
         )}
       </div>
+
+      {/* Full-size image modal */}
+      {showFullImage && sortedPending[currentIndex].carImage && (
+        <div
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowFullImage(false)}
+        >
+          <div className="relative max-w-4xl max-h-full">
+            {/* Close button */}
+            <button
+              onClick={() => setShowFullImage(false)}
+              className="absolute -top-12 right-0 text-white hover:text-gray-300 text-xl font-bold z-10"
+            >
+              ✕ ปิด
+            </button>
+
+            {/* Full-size image */}
+            <img
+              src={sortedPending[currentIndex].carImage.startsWith('/api/') ?
+                sortedPending[currentIndex].carImage :
+                `/${sortedPending[currentIndex].carImage}`}
+              alt={`Full size - Car ${sortedPending[currentIndex].plateNumber}`}
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()} // Prevent closing when clicking on image
+            />
+
+            {/* Image info */}
+            <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-4 rounded-b-lg">
+              <p className="text-lg font-semibold">ทะเบียน: {sortedPending[currentIndex].plateNumber}</p>
+              <p className="text-sm opacity-90">คลิกที่พื้นหลังเพื่อปิด</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
