@@ -14,7 +14,8 @@
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
     "hash-passwords": "tsx scripts/hash-passwords.ts",
-    "seed": "tsx src/db/seed.ts"
+    "seed": "tsx src/db/seed.ts",
+    "seed:superadmin": "bun run src/db/seed-superadmin.ts"
   },
   "dependencies": {
     "@elysiajs/cookie": "^0.8.0",
