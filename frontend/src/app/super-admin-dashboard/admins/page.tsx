@@ -460,6 +460,7 @@ export default function AdminsPage() {
                 onSelectionChange={(villageIds) => 
                   setFormData({ ...formData, village_ids: villageIds })
                 }
+                onVillagesChange={setVillages}
                 role={formData.role}
               />
             </div>
@@ -647,6 +648,7 @@ export default function AdminsPage() {
               onSelectionChange={(villageIds) => 
                 setFormData({ ...formData, village_ids: villageIds })
               }
+              onVillagesChange={setVillages}
               role={formData.role}
             />
           </div>

@@ -16,6 +16,7 @@ export const villages = pgTable("villages", {
   village_id: uuid("village_id").primaryKey().defaultRandom(),
   village_name: text("village_name").notNull(),
   village_key: text("village_key").notNull().unique(),
+  address: text("address"),
   status: text("status")
     .$type<"active" | "disable">()
     .default("active"),

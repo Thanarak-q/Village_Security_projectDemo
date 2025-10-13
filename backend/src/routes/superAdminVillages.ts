@@ -78,8 +78,9 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
    */
   .post("/villages", async ({ body, set }) => {
     try {
-      const { village_name } = body as {
+      const { village_name, address } = body as {
         village_name: string;
+        address?: string;
       };
 
       // Validation
@@ -98,12 +99,14 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
         .insert(villages)
         .values({
           village_name: village_name.trim(),
+          address: address?.trim() || null,
           village_key: generateVillageKey(), // Auto-generate village_key with new format
         })
         .returning({
           village_id: villages.village_id,
           village_name: villages.village_name,
           village_key: villages.village_key,
+          address: villages.address,
         });
 
       return { success: true, data: newVillage[0] };
