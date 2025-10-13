@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
 import db from "../db/drizzle";
 import { villages, admins, admin_villages } from "../db/schema";
-import { eq, count, and, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, isNull, isNotNull } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { hashPassword } from "../utils/passwordUtils";
 import { generateVillageKey } from "../utils/zodValidation";
@@ -20,21 +20,68 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
    */
   .get("/villages", async ({ set }) => {
     try {
-      const villagesWithAdminCount = await db
+      const villageRows = await db
         .select({
           village_id: villages.village_id,
           village_name: villages.village_name,
           village_key: villages.village_key,
+          address: villages.address,
           status: villages.status,
           disable_at: villages.disable_at,
-          admin_count: count(admin_villages.admin_id),
+          admin_id: admins.admin_id,
+          admin_username: admins.username,
         })
         .from(villages)
         .leftJoin(admin_villages, eq(villages.village_id, admin_villages.village_id))
-        .where(isNull(villages.disable_at))
-        .groupBy(villages.village_id, villages.village_name, villages.status, villages.disable_at);
+        .leftJoin(admins, eq(admin_villages.admin_id, admins.admin_id))
+        .where(isNull(villages.disable_at));
 
-      return { success: true, data: villagesWithAdminCount };
+      const villageMap = new Map<
+        string,
+        {
+          village_id: string;
+          village_name: string;
+          village_key: string;
+          address: string | null;
+          status: string;
+          disable_at: Date | null;
+          admins: Array<{ admin_id: string; username: string }>;
+        }
+      >();
+
+      villageRows.forEach((row) => {
+        if (!villageMap.has(row.village_id)) {
+          villageMap.set(row.village_id, {
+            village_id: row.village_id,
+            village_name: row.village_name,
+            village_key: row.village_key,
+            address: row.address,
+            status: row.status,
+            disable_at: row.disable_at,
+            admins: [],
+          });
+        }
+
+        const villageEntry = villageMap.get(row.village_id)!;
+
+        if (
+          row.admin_id &&
+          row.admin_username &&
+          !villageEntry.admins.some((admin) => admin.admin_id === row.admin_id)
+        ) {
+          villageEntry.admins.push({
+            admin_id: row.admin_id,
+            username: row.admin_username,
+          });
+        }
+      });
+
+      const villagesWithAdmins = Array.from(villageMap.values()).map((village) => ({
+        ...village,
+        admin_count: village.admins.length,
+      }));
+
+      return { success: true, data: villagesWithAdmins };
     } catch (error) {
       console.error("Error fetching villages:", error);
       set.status = 500;
@@ -48,21 +95,70 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
    */
   .get("/villages/disabled", async ({ set }) => {
     try {
-      const disabledVillagesWithAdminCount = await db
+      const disabledVillageRows = await db
         .select({
           village_id: villages.village_id,
           village_name: villages.village_name,
           village_key: villages.village_key,
+          address: villages.address,
           status: villages.status,
           disable_at: villages.disable_at,
-          admin_count: count(admin_villages.admin_id),
+          admin_id: admins.admin_id,
+          admin_username: admins.username,
         })
         .from(villages)
         .leftJoin(admin_villages, eq(villages.village_id, admin_villages.village_id))
-        .where(isNotNull(villages.disable_at))
-        .groupBy(villages.village_id, villages.village_name, villages.status, villages.disable_at);
+        .leftJoin(admins, eq(admin_villages.admin_id, admins.admin_id))
+        .where(isNotNull(villages.disable_at));
 
-      return { success: true, data: disabledVillagesWithAdminCount };
+      const disabledVillageMap = new Map<
+        string,
+        {
+          village_id: string;
+          village_name: string;
+          village_key: string;
+          address: string | null;
+          status: string;
+          disable_at: Date | null;
+          admins: Array<{ admin_id: string; username: string }>;
+        }
+      >();
+
+      disabledVillageRows.forEach((row) => {
+        if (!disabledVillageMap.has(row.village_id)) {
+          disabledVillageMap.set(row.village_id, {
+            village_id: row.village_id,
+            village_name: row.village_name,
+            village_key: row.village_key,
+            address: row.address,
+            status: row.status,
+            disable_at: row.disable_at,
+            admins: [],
+          });
+        }
+
+        const villageEntry = disabledVillageMap.get(row.village_id)!;
+
+        if (
+          row.admin_id &&
+          row.admin_username &&
+          !villageEntry.admins.some((admin) => admin.admin_id === row.admin_id)
+        ) {
+          villageEntry.admins.push({
+            admin_id: row.admin_id,
+            username: row.admin_username,
+          });
+        }
+      });
+
+      const disabledVillagesWithAdmins = Array.from(disabledVillageMap.values()).map(
+        (village) => ({
+          ...village,
+          admin_count: village.admins.length,
+        })
+      );
+
+      return { success: true, data: disabledVillagesWithAdmins };
     } catch (error) {
       console.error("Error fetching disabled villages:", error);
       set.status = 500;
@@ -127,8 +223,9 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
   .put("/villages/:id", async ({ params, body, set }) => {
     try {
       const { id } = params as { id: string };
-      const { village_name } = body as {
+      const { village_name, address } = body as {
         village_name?: string;
+        address?: string;
       };
 
       // Check if village exists
@@ -151,6 +248,7 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
       // Prepare update data
       const updateData: any = {};
       if (village_name !== undefined) updateData.village_name = village_name.trim();
+      if (address !== undefined) updateData.address = address.trim();
 
       // Update village
       const updatedVillage = await db
@@ -161,6 +259,7 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
           village_id: villages.village_id,
           village_name: villages.village_name,
           village_key: villages.village_key,
+          address: villages.address,
         });
 
       return { success: true, data: updatedVillage[0] };

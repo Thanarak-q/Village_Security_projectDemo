@@ -19,18 +19,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  Building, 
-  Plus, 
-  Edit, 
-  Trash2, 
+import {
+  Building,
+  Edit,
+  Trash2,
   AlertTriangle,
-  Users,
-  Archive
+  Archive,
+  MapPin,
+  User,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -43,18 +42,23 @@ interface Village {
   status: string;
   disable_at: string | null;
   admin_count: number;
+  address?: string | null;
+  admins: Array<{
+    admin_id: string;
+    username: string;
+  }>;
 }
 
 export default function VillagesPage() {
   const [villages, setVillages] = useState<Village[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedVillage, setSelectedVillage] = useState<Village | null>(null);
   const [formData, setFormData] = useState({
     village_name: "",
+    address: "",
   });
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
@@ -97,40 +101,6 @@ export default function VillagesPage() {
     }
   };
 
-  const handleCreateVillage = async () => {
-    if (!formData.village_name.trim()) {
-      toast.error("กรุณากรอกชื่อหมู่บ้าน");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const response = await fetch("/api/superadmin/villages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        toast.success("สร้างหมู่บ้านสำเร็จ");
-        setIsCreateDialogOpen(false);
-        setFormData({ village_name: "" });
-        fetchVillages();
-      } else {
-        toast.error(data.error || "Failed to create village");
-      }
-    } catch (err) {
-      toast.error("Failed to create village");
-      console.error("Error creating village:", err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const handleEditVillage = async () => {
     if (!selectedVillage || !formData.village_name.trim()) {
       toast.error("กรุณากรอกชื่อหมู่บ้าน");
@@ -153,7 +123,7 @@ export default function VillagesPage() {
         toast.success("แก้ไขหมู่บ้านสำเร็จ");
         setIsEditDialogOpen(false);
         setSelectedVillage(null);
-        setFormData({ village_name: "" });
+        setFormData({ village_name: "", address: "" });
         fetchVillages();
       } else {
         toast.error(data.error || "Failed to update village");
@@ -197,6 +167,7 @@ export default function VillagesPage() {
     setSelectedVillage(village);
     setFormData({
       village_name: village.village_name,
+      address: village.address || "",
     });
     setIsEditDialogOpen(true);
   };
@@ -248,41 +219,6 @@ export default function VillagesPage() {
               หมู่บ้านที่ถูกระงับ
             </Button>
           </Link>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                สร้างหมู่บ้านใหม่
-              </Button>
-            </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>สร้างหมู่บ้านใหม่</DialogTitle>
-              <DialogDescription>
-                เพิ่มหมู่บ้านใหม่เข้าไปในระบบ
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="village_name">ชื่อหมู่บ้าน</Label>
-                <Input
-                  id="village_name"
-                  value={formData.village_name}
-                  onChange={(e) => setFormData({ ...formData, village_name: e.target.value })}
-                  placeholder="เช่น หมู่บ้านสุขสันต์"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                ยกเลิก
-              </Button>
-              <Button onClick={handleCreateVillage} disabled={submitting}>
-                {submitting ? "กำลังสร้าง..." : "สร้างหมู่บ้าน"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
         </div>
       </div>
 
@@ -294,7 +230,7 @@ export default function VillagesPage() {
             รายการหมู่บ้าน ({villages.length})
           </CardTitle>
           <CardDescription>
-            หมู่บ้านทั้งหมดในระบบและจำนวน Admin
+            หมู่บ้านทั้งหมดในระบบและผู้ดูแลที่รับผิดชอบ
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -302,13 +238,6 @@ export default function VillagesPage() {
             <div className="text-center py-8">
               <Building className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">ยังไม่มีหมู่บ้านในระบบ</p>
-              <Button 
-                className="mt-2" 
-                onClick={() => setIsCreateDialogOpen(true)}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                สร้างหมู่บ้านแรก
-              </Button>
             </div>
           ) : (
             <Table>
@@ -316,8 +245,9 @@ export default function VillagesPage() {
                 <TableRow>
                   <TableHead>ชื่อหมู่บ้าน</TableHead>
                   <TableHead>คีย์หมู่บ้าน</TableHead>
+                  <TableHead>ที่อยู่</TableHead>
                   <TableHead>สถานะ</TableHead>
-                  <TableHead>จำนวน Admin</TableHead>
+                  <TableHead>จัดการโดย</TableHead>
                   <TableHead className="text-right">การดำเนินการ</TableHead>
                 </TableRow>
               </TableHeader>
@@ -331,6 +261,16 @@ export default function VillagesPage() {
                       {village.village_key}
                     </TableCell>
                     <TableCell>
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <span className="text-sm leading-5">
+                          {village.address && village.address.trim().length > 0
+                            ? village.address.trim()
+                            : "—"}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
                       <Badge 
                         variant={village.status === "active" ? "default" : "destructive"}
                         className="text-xs"
@@ -339,12 +279,24 @@ export default function VillagesPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4" />
-                        <Badge variant={village.admin_count > 0 ? "default" : "destructive"}>
-                          {village.admin_count}
-                        </Badge>
-                      </div>
+                      {village.admins.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {village.admins.map((admin) => (
+                            <Badge
+                              key={admin.admin_id}
+                              variant="outline"
+                              className="flex items-center gap-2 px-3 py-1 text-xs"
+                            >
+                              <User className="h-3.5 w-3.5" />
+                              {admin.username}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">
+                          ยังไม่มอบหมาย
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -359,7 +311,7 @@ export default function VillagesPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => openDeleteDialog(village)}
-                          disabled={village.admin_count > 0}
+                          disabled={village.admins.length > 0}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -390,6 +342,15 @@ export default function VillagesPage() {
                 value={formData.village_name}
                 onChange={(e) => setFormData({ ...formData, village_name: e.target.value })}
                 placeholder="เช่น หมู่บ้านสุขสันต์"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit_village_address">ที่อยู่ (ไม่บังคับ)</Label>
+              <Input
+                id="edit_village_address"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="เช่น 123 ถนนสุขุมวิท เขตวัฒนา กรุงเทพฯ"
               />
             </div>
           </div>

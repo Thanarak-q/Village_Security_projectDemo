@@ -68,6 +68,11 @@ interface Village {
   village_id: string;
   village_name: string;
   admin_count: number;
+  address?: string | null;
+  admins: Array<{
+    admin_id: string;
+    username: string;
+  }>;
 }
 
 export default function AdminsPage() {

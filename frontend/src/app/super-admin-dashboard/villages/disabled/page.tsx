@@ -20,13 +20,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { 
-  Archive, 
+import {
+  Archive,
   ArrowLeft,
   AlertTriangle,
-  Users,
   Calendar,
-  RotateCcw
+  RotateCcw,
+  User,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -38,6 +38,11 @@ interface Village {
   status: string;
   disable_at: string | null;
   admin_count: number;
+  address?: string | null;
+  admins: Array<{
+    admin_id: string;
+    username: string;
+  }>;
 }
 
 export default function DisabledVillagesPage() {
@@ -205,7 +210,7 @@ export default function DisabledVillagesPage() {
                   <TableHead>ชื่อหมู่บ้าน</TableHead>
                   <TableHead>รหัสหมู่บ้าน</TableHead>
                   <TableHead>สถานะ</TableHead>
-                  <TableHead>จำนวน Admin</TableHead>
+                  <TableHead>จัดการโดย</TableHead>
                   <TableHead>วันที่ระงับ</TableHead>
                   <TableHead className="text-right">การดำเนินการ</TableHead>
                 </TableRow>
@@ -230,12 +235,24 @@ export default function DisabledVillagesPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4" />
-                        <Badge variant={village.admin_count > 0 ? "default" : "destructive"}>
-                          {village.admin_count}
-                        </Badge>
-                      </div>
+                      {village.admins.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {village.admins.map((admin) => (
+                            <Badge
+                              key={admin.admin_id}
+                              variant="outline"
+                              className="flex items-center gap-2 px-3 py-1 text-xs"
+                            >
+                              <User className="h-3.5 w-3.5" />
+                              {admin.username}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">
+                          ยังไม่มอบหมาย
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
