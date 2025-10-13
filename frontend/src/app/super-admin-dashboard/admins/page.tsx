@@ -21,32 +21,23 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  Users, 
-  Plus, 
-  Edit, 
-  Trash2, 
+import {
+  Users,
+  Plus,
+  Edit,
+  Trash2,
   AlertTriangle,
   Building,
   Shield,
   UserCheck,
-  Eye,
-  Archive
+  Archive,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import VillageMultiSelect from "./components/VillageMultiSelect";
-import AdminDetailDialog from "./components/AdminDetailDialog";
 
 interface Admin {
   admin_id: string;
@@ -83,7 +74,6 @@ export default function AdminsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState<Admin | null>(null);
   const [formData, setFormData] = useState({
     username: "",
@@ -320,11 +310,6 @@ export default function AdminsPage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const openDetailDialog = (admin: Admin) => {
-    setSelectedAdmin(admin);
-    setIsDetailDialogOpen(true);
-  };
-
   const getRoleDisplayName = (role: string) => {
     return role === "admin" ? "เจ้าของโครงการ" : "นิติ";
   };
@@ -442,23 +427,6 @@ export default function AdminsPage() {
                   placeholder="เช่น 0812345678"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="role">บทบาท</Label>
-                <Select
-                  value={formData.role}
-                  onValueChange={(value: "admin" | "staff") => 
-                    setFormData({ ...formData, role: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">เจ้าของโครงการ</SelectItem>
-                    <SelectItem value="staff">นิติ</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
               <VillageMultiSelect
                 villages={villages}
                 selectedVillageIds={formData.village_ids}
@@ -513,7 +481,7 @@ export default function AdminsPage() {
                   <TableHead>ชื่อผู้ใช้</TableHead>
                   <TableHead>อีเมล</TableHead>
                   <TableHead>บทบาท</TableHead>
-                  <TableHead>หมู่บ้าน</TableHead>
+                  {/* <TableHead>หมู่บ้าน</TableHead> */}
                   <TableHead>วันที่สร้าง</TableHead>
                   <TableHead className="text-right">การดำเนินการ</TableHead>
                 </TableRow>
@@ -530,35 +498,12 @@ export default function AdminsPage() {
                         {getRoleDisplayName(admin.role)}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        {admin.villages && admin.villages.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {admin.villages.map((village) => (
-                              <Badge key={village.village_id} variant="outline" className="text-xs">
-                                <Building className="h-3 w-3 mr-1" />
-                                {village.village_name}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">ไม่ระบุหมู่บ้าน</span>
-                        )}
-                      </div>
-                    </TableCell>
+             
                     <TableCell>
                       {new Date(admin.createdAt).toLocaleDateString('th-TH')}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openDetailDialog(admin)}
-                          title="ดูรายละเอียด"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
@@ -588,77 +533,97 @@ export default function AdminsPage() {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>แก้ไข Admin</DialogTitle>
-            <DialogDescription>
-              แก้ไขข้อมูล Admin
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit_username">ชื่อผู้ใช้</Label>
-              <Input
-                id="edit_username"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                placeholder="เช่น admin01"
-              />
+        <DialogContent className="w-full max-w-[95vw] sm:max-w-3xl lg:max-w-5xl xl:max-w-6xl max-h-[90vh] p-0 overflow-hidden rounded-lg md:rounded-xl">
+          <div className="flex flex-col h-full max-h-[90vh]">
+            {/* Header */}
+            <div className="flex-shrink-0 px-4 py-6 sm:px-8 border-b bg-background">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-3 text-2xl">
+                  <Users className="h-6 w-6" />
+                  แก้ไข Admin: {formData.username}
+                </DialogTitle>
+                <DialogDescription className="text-lg mt-2">
+                  ตรวจสอบข้อมูลและปรับหมู่บ้านที่ Admin คนนี้รับผิดชอบ
+                </DialogDescription>
+              </DialogHeader>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit_email">อีเมล</Label>
-              <Input
-                id="edit_email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="เช่น admin@example.com"
-              />
+
+            {/* Content */}
+            <div className="flex-1 px-4 py-6 sm:px-6 overflow-y-auto">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 h-full w-full">
+                {/* Basic Info */}
+                <Card className="h-fit w-full">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Shield className="h-5 w-5" />
+                      ข้อมูลพื้นฐาน
+                    </CardTitle>
+                    <CardDescription className="text-sm">
+                      ข้อมูลติดต่อและรายละเอียดบัญชีจะแสดงเพื่ออ้างอิง
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-sm text-muted-foreground">ชื่อผู้ใช้</Label>
+                        <div className="px-3 py-2 bg-muted rounded-md border text-base font-medium">
+                          {formData.username}
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-sm text-muted-foreground">อีเมล</Label>
+                        <div className="px-3 py-2 bg-muted rounded-md border text-base break-words">
+                          {formData.email}
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-sm text-muted-foreground">เบอร์โทรศัพท์</Label>
+                        <div className="px-3 py-2 bg-muted rounded-md border text-base">
+                          {formData.phone}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Village assignment */}
+                <Card className="h-fit w-full">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Building className="h-5 w-5" />
+                      หมู่บ้านที่จัดการ
+                    </CardTitle>
+                    <CardDescription className="text-sm">
+                      เลือกหมู่บ้านที่ Admin คนนี้มีสิทธิ์จัดการ
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <VillageMultiSelect
+                      villages={villages}
+                      selectedVillageIds={formData.village_ids}
+                      onSelectionChange={(villageIds) => 
+                        setFormData({ ...formData, village_ids: villageIds })
+                      }
+                      onVillagesChange={setVillages}
+                      role={formData.role}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit_phone">เบอร์โทรศัพท์</Label>
-              <Input
-                id="edit_phone"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="เช่น 0812345678"
-              />
+
+            {/* Footer */}
+            <div className="flex-shrink-0 px-4 py-6 sm:px-8 border-t bg-muted/30">
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  ยกเลิก
+                </Button>
+                <Button onClick={handleEditAdmin} disabled={submitting}>
+                  {submitting ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
+                </Button>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit_role">บทบาท</Label>
-              <Select
-                value={formData.role}
-                onValueChange={(value: "admin" | "staff") => 
-                  setFormData({ ...formData, role: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">เจ้าของโครงการ</SelectItem>
-                  <SelectItem value="staff">นิติ</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <VillageMultiSelect
-              villages={villages}
-              selectedVillageIds={formData.village_ids}
-              onSelectionChange={(villageIds) => 
-                setFormData({ ...formData, village_ids: villageIds })
-              }
-              onVillagesChange={setVillages}
-              role={formData.role}
-            />
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              ยกเลิก
-            </Button>
-            <Button onClick={handleEditAdmin} disabled={submitting}>
-              {submitting ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -687,12 +652,6 @@ export default function AdminsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Admin Detail Dialog */}
-      <AdminDetailDialog
-        admin={selectedAdmin}
-        isOpen={isDetailDialogOpen}
-        onClose={() => setIsDetailDialogOpen(false)}
-      />
     </div>
   );
 }

@@ -239,46 +239,48 @@ export default function AdminDetailDialog({
                       </div>
 
                       {/* Village Details Table */}
-                      <div className="border rounded-lg w-full">
+                      <div className="border rounded-lg w-full overflow-hidden">
                         <div className="overflow-x-auto">
-                          <Table className="w-full min-w-[560px]">
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="text-base font-semibold w-[35%]">หมู่บ้าน</TableHead>
-                                <TableHead className="text-base font-semibold w-[45%]">ที่อยู่</TableHead>
-                                <TableHead className="text-base font-semibold w-[20%]">สถานะ</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {getAdminVillages().map((village) => {
-                                const trimmedAddress = village.address?.trim();
+                          <div className="max-h-[360px] overflow-y-auto">
+                            <Table className="w-full min-w-[560px]">
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="text-base font-semibold w-[35%]">หมู่บ้าน</TableHead>
+                                  <TableHead className="text-base font-semibold w-[45%]">ที่อยู่</TableHead>
+                                  <TableHead className="text-base font-semibold w-[20%]">สถานะ</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {getAdminVillages().map((village) => {
+                                  const trimmedAddress = village.address?.trim();
 
-                                return (
-                                  <TableRow key={village.village_id}>
-                                    <TableCell className="font-medium text-base">
-                                      <div className="flex items-center gap-2">
-                                        <Building className="h-5 w-5" />
-                                        {village.village_name}
-                                      </div>
-                                    </TableCell>
-                                    <TableCell className="text-base">
-                                      <div className="flex items-start gap-2">
-                                        <MapPin className="h-5 w-5 text-muted-foreground mt-1" />
-                                        <span className="leading-6">
-                                          {trimmedAddress ? trimmedAddress : "—"}
-                                        </span>
-                                      </div>
-                                    </TableCell>
-                                    <TableCell>
-                                      <Badge variant="default" className="text-sm px-3 py-1">
-                                        ใช้งานอยู่
-                                      </Badge>
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                            </TableBody>
-                          </Table>
+                                  return (
+                                    <TableRow key={village.village_id}>
+                                      <TableCell className="font-medium text-base">
+                                        <div className="flex items-center gap-2">
+                                          <Building className="h-5 w-5" />
+                                          {village.village_name}
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="text-base">
+                                        <div className="flex items-start gap-2">
+                                          <MapPin className="h-5 w-5 text-muted-foreground mt-1" />
+                                          <span className="leading-6">
+                                            {trimmedAddress ? trimmedAddress : "—"}
+                                          </span>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>
+                                        <Badge variant="default" className="text-sm px-3 py-1">
+                                          ใช้งานอยู่
+                                        </Badge>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                              </TableBody>
+                            </Table>
+                          </div>
                         </div>
                       </div>
                     </div>
