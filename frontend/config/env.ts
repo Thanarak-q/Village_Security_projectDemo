@@ -3,6 +3,16 @@ import path from "path";
 
 let loaded = false;
 
+const searchRoots = [process.cwd(), path.resolve(process.cwd(), "../")];
+
+function resolveCandidate(fileName: string) {
+  if (path.isAbsolute(fileName)) {
+    return [fileName];
+  }
+
+  return searchRoots.map((root) => path.resolve(root, fileName));
+}
+
 function applyEnv(envPath: string) {
   const contents = fs.readFileSync(envPath, "utf8");
   const lines = contents.split(/\r?\n/);
@@ -43,16 +53,32 @@ export function loadEnv() {
     return;
   }
 
-  const candidates = [
-    path.resolve(process.cwd(), ".env"),
-    path.resolve(process.cwd(), "../.env"),
-  ];
+  const candidates: string[] = [];
+  const explicitFile = process.env.ENV_FILE;
+  if (explicitFile) {
+    candidates.push(explicitFile);
+  }
 
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) {
-      applyEnv(candidate);
-      loaded = true;
-      return;
+  if (process.env.NODE_ENV === "production") {
+    candidates.push(".env.production");
+  }
+
+  candidates.push(".env");
+
+  const visited = new Set<string>();
+
+  for (const file of candidates) {
+    for (const candidate of resolveCandidate(file)) {
+      if (visited.has(candidate)) {
+        continue;
+      }
+      visited.add(candidate);
+
+      if (fs.existsSync(candidate)) {
+        applyEnv(candidate);
+        loaded = true;
+        return;
+      }
     }
   }
 

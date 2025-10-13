@@ -38,7 +38,9 @@ export default function WebSocketTestPage() {
     notifications: wsNotifications,
     isConnected,
     connectionStatus,
-    clearNotifications
+    clearNotifications,
+    reconnect,
+    retryConnection
   } = useWebSocketNotifications()
 
   // Hybrid notifications hook (includes both HTTP and WebSocket)

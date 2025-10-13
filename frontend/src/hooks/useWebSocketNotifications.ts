@@ -39,6 +39,8 @@ interface UseWebSocketNotificationsReturn {
   connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error';
   sendMessage: (message: unknown) => void;
   clearNotifications: () => void;
+  reconnect: () => void;
+  retryConnection: () => void;
   errorStats: ErrorStats;
   healthStatus: HealthStatus;
   queueStatus: {
@@ -502,6 +504,27 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
     setNotifications([]);
   }, []);
 
+  const reconnect = useSafeCallback(() => {
+    console.log('🔄 Manual reconnect requested');
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    reconnectAttempts.current = 0;
+    disconnect();
+    connect();
+  }, [connect, disconnect]);
+
+  const retryConnection = useSafeCallback(() => {
+    console.log('🔁 Manual retry requested');
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    reconnectAttempts.current = 0;
+    connect();
+  }, [connect]);
+
   // Connect on mount with a small delay to avoid race conditions
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -551,6 +574,8 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
     connectionStatus,
     sendMessage,
     clearNotifications,
+    reconnect,
+    retryConnection,
     errorStats,
     healthStatus,
     queueStatus

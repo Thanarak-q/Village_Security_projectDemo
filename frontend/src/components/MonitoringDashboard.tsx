@@ -81,7 +81,8 @@ interface MonitoringDashboardProps {
 export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({
   className = ''
 }) => {
-  const { isAuthenticated, hasRole } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const isAdminUser = Boolean(user && (user.role === 'admin' || user.role === 'superadmin'));
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [health, setHealth] = useState<SystemHealth | null>(null);
   const [performance, setPerformance] = useState<PerformanceStats | null>(null);
@@ -139,16 +140,40 @@ export const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({
   };
 
   useEffect(() => {
+    if (!isAdminUser) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
     fetchMonitoringData();
 
+    let interval: NodeJS.Timeout | null = null;
+
     if (autoRefresh) {
-      const interval = setInterval(fetchMonitoringData, 30000); // 30 seconds
-      return () => clearInterval(interval);
+      interval = setInterval(fetchMonitoringData, 30000); // 30 seconds
     }
-  }, [autoRefresh]);
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [autoRefresh, isAdminUser]);
+
+  if (authLoading) {
+    return (
+      <div className={`bg-white rounded-lg shadow-md p-6 ${className}`}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Checking permissions...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Check if user has admin role
-  if (!isAuthenticated || !hasRole('admin')) {
+  if (!isAdminUser) {
     return (
       <div className={`bg-white rounded-lg shadow-md p-6 ${className}`}>
         <div className="text-center text-gray-500">
