@@ -70,6 +70,7 @@ const healthCheck = new Elysia().get("/api/health", async () => {
 });
 
 const jwtSecret = process.env.JWT_SECRET;
+const jwtExpiresIn = process.env.JWT_EXPIRES_IN || "7d";
 
 if (!jwtSecret) {
   throw new Error("JWT_SECRET is required but not set");
@@ -85,7 +86,7 @@ const app = new Elysia()
       maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
     })
   )
-  .use(jwt({ name: "jwt", secret: jwtSecret, exp: "7d" }))
+  .use(jwt({ name: "jwt", secret: jwtSecret, exp: jwtExpiresIn }))
   .use(healthCheck)
   .use(houseManageRoutes)
   .use(houseLiffRoutes)
