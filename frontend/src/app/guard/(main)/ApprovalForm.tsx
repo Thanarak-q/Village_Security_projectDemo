@@ -720,7 +720,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
               </h1>
               <span className="flex items-center gap-2">
                 <ModeToggle />
-                {userRoles.some(role => role.role === 'resident') && (
+                {userRoles.some(role => role.role === 'resident' && (role.status === 'verified' || role.status === 'pending')) && (
                   <button
                     onClick={handleSwitchToResident}
                     className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"

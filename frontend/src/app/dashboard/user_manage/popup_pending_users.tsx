@@ -269,7 +269,7 @@ export default function PendingUsersDialog({
           type: 'success',
           title: action === 'approve' ? 'อนุมัติผู้ใช้สำเร็จ' : 'ปฏิเสธผู้ใช้สำเร็จ',
           message: action === 'approve'
-            ? `ได้ทำการอนุมัติผู้ใช้เรียบร้อยแล้ว ผู้ใช้สามารถเข้าสู่ระบบได้แล้ว`
+            ? `ได้ทำการอนุมัติผู้ใช้เรียบร้อยแล้ว`
             : `ได้ทำการปฏิเสธผู้ใช้เรียบร้อยแล้ว`,
           userName: `${selectedUser.fname} ${selectedUser.lname}`
         });
