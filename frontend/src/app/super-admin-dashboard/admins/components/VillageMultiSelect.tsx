@@ -30,7 +30,7 @@ interface Village {
   village_name: string;
   admin_count: number;
   address?: string | null;
-  admins?: Array<{
+  admins: Array<{
     admin_id: string;
     username: string;
   }>;
