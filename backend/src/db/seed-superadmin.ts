@@ -9,9 +9,9 @@ import { admins } from "./schema";
 import { eq } from "drizzle-orm";
 import { hashPassword, isPasswordHashed } from "../utils/passwordUtils";
 
-const DEFAULT_USERNAME = "superadmin";
-const DEFAULT_EMAIL = "superadmin@village-security.local";
-const DEFAULT_PASSWORD = "SuperSecureAdmin123!";
+const DEFAULT_USERNAME = process.env.SUPERADMIN_USERNAME || "superadmin";
+const DEFAULT_EMAIL = process.env.SUPERADMIN_EMAIL || "superadmin@village-security.local";
+const DEFAULT_PASSWORD = process.env.SUPERADMIN_PASSWORD || "SuperSecureAdmin123!";
 
 async function ensureSuperAdmin() {
   const username = process.env.SUPERADMIN_USERNAME ?? DEFAULT_USERNAME;
