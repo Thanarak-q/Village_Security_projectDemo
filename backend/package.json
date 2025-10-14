@@ -8,13 +8,13 @@
     "test:flex:watch": "vitest watch src/tests/flexMessage.test.ts",
     "test:visitor": "vitest run src/tests/visitorNotification.test.ts",
     "test:visitor:watch": "vitest watch src/tests/visitorNotification.test.ts",
-    "test:manual": "tsx src/tests/manualFlexMessageTest.ts",
-    "test:manual:visitor": "tsx src/tests/manualVisitorNotificationTest.ts",
+    "test:manual": "bun run src/tests/manualFlexMessageTest.ts",
+    "test:manual:visitor": "bun run src/tests/manualVisitorNotificationTest.ts",
     "test:all": "./scripts/test-flex-messages.sh",
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
-    "hash-passwords": "tsx scripts/hash-passwords.ts",
-    "seed": "tsx src/db/seed.ts",
+    "hash-passwords": "bun run scripts/hash-passwords.ts",
+    "seed": "bun run src/db/seed.ts",
     "seed:superadmin": "bun run src/db/seed-superadmin.ts"
   },
   "dependencies": {
