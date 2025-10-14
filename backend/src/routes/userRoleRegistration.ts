@@ -4,8 +4,10 @@ import {
   residents,
   guards,
   villages,
+  house_members,
+  houses,
 } from "../db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { notificationService } from "../services/notificationService";
 
 // LIFF Authentication middleware for cookie-based sessions
@@ -98,18 +100,59 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
-      const roles: Array<{role: string, village_id: string, village_name?: string, status?: string}> = [];
+      const roles: Array<{
+        role: string;
+        village_id: string;
+        village_name?: string;
+        status?: string;
+        resident_id?: string;
+        guard_id?: string;
+        houses?: Array<{ house_id: string; house_address: string | null }>;
+      }> = [];
 
       // Check if user exists as resident
-      const resident = await db
+      const residentRecords = await db
         .select({
+          resident_id: residents.resident_id,
           status: residents.status,
           village_id: residents.village_id,
         })
         .from(residents)
         .where(eq(residents.line_user_id, lineUserId));
 
-      for (const res of resident) {
+      const residentIds = residentRecords
+        .map((res) => res.resident_id)
+        .filter((id): id is string => Boolean(id));
+
+      const residentHousesMap = new Map<
+        string,
+        Array<{ house_id: string; house_address: string | null }>
+      >();
+
+      if (residentIds.length > 0) {
+        const residentHouses = await db
+          .select({
+            resident_id: house_members.resident_id,
+            house_id: houses.house_id,
+            house_address: houses.address,
+          })
+          .from(house_members)
+          .innerJoin(houses, eq(house_members.house_id, houses.house_id))
+          .where(inArray(house_members.resident_id, residentIds));
+
+        for (const entry of residentHouses) {
+          if (!entry.resident_id) continue;
+          if (!residentHousesMap.has(entry.resident_id)) {
+            residentHousesMap.set(entry.resident_id, []);
+          }
+          residentHousesMap.get(entry.resident_id)!.push({
+            house_id: entry.house_id,
+            house_address: entry.house_address,
+          });
+        }
+      }
+
+      for (const res of residentRecords) {
         if (res.village_id) {
           // Get village name and key
           const village = await db
@@ -123,23 +166,26 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
 
           roles.push({
             role: "resident",
+            resident_id: res.resident_id,
             village_id: res.village_id || '',
             village_name: village[0]?.village_name || '',
-            status: res.status || undefined
+            status: res.status || undefined,
+            houses: residentHousesMap.get(res.resident_id) || [],
           });
         }
       }
 
       // Check if user exists as guard
-      const guard = await db
+      const guardRecords = await db
         .select({
+          guard_id: guards.guard_id,
           status: guards.status,
           village_id: guards.village_id,
         })
         .from(guards)
         .where(eq(guards.line_user_id, lineUserId));
 
-      for (const g of guard) {
+      for (const g of guardRecords) {
         if (g.village_id) {
           // Get village name and key
           const village = await db
@@ -153,9 +199,10 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
 
           roles.push({
             role: "guard",
+            guard_id: g.guard_id,
             village_id: g.village_id || '',
             village_name: village[0]?.village_name || '',
-            status: g.status || undefined
+            status: g.status || undefined,
           });
         }
       }
@@ -265,6 +312,10 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
       }
 
       // Create new role entry
+      const moveInDateValue = body?.move_in_date
+        ? new Date(body.move_in_date)
+        : new Date();
+
       if (role === "resident") {
         const [newResident] = await db
           .insert(residents)
@@ -277,6 +328,7 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
             village_id: village[0].village_id,
             line_profile_url: profile_image_url || null,
             status: "pending", // New role registrations start as pending
+            move_in_date: moveInDateValue.toISOString().split('T')[0],
             createdAt: new Date(),
             updatedAt: new Date(),
           })

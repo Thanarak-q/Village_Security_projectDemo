@@ -507,9 +507,10 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
    * @returns {Promise<Object>} A promise that resolves to pending visitor requests.
    */
   .onBeforeHandle(requireLiffAuth(["resident"]))
-  .get("/visitor-requests/pending/line/:line_user_id", async ({ params, currentUser }: any) => {
+  .get("/visitor-requests/pending/line/:line_user_id", async ({ params, query, currentUser }: any) => {
     try {
       const { line_user_id } = params;
+      const { village_id, house_id } = query ?? {};
 
       if (!line_user_id?.trim()) {
         return {
@@ -526,7 +527,17 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
-      const result = await getVisitorRecordsByLineId(line_user_id);
+      if (village_id && Array.isArray(currentUser.village_ids) && !currentUser.village_ids.includes(village_id)) {
+        return {
+          success: false,
+          error: "Access denied: You don't have permission for this village",
+        };
+      }
+
+      const result = await getVisitorRecordsByLineId(line_user_id, {
+        villageId: typeof village_id === "string" ? village_id : undefined,
+        houseId: typeof house_id === "string" ? house_id : undefined,
+      });
       // Filter only pending requests
       const pendingRequests = result.filter(record => record.record_status === 'pending');
       
@@ -551,9 +562,10 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
    * @returns {Promise<Object>} A promise that resolves to visitor request history.
    */
   .onBeforeHandle(requireLiffAuth(["resident"]))
-  .get("/visitor-requests/history/line/:line_user_id", async ({ params, currentUser }: any) => {
+  .get("/visitor-requests/history/line/:line_user_id", async ({ params, query, currentUser }: any) => {
     try {
       const { line_user_id } = params;
+      const { village_id, house_id } = query ?? {};
 
       if (!line_user_id?.trim()) {
         return {
@@ -570,8 +582,18 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
+      if (village_id && Array.isArray(currentUser.village_ids) && !currentUser.village_ids.includes(village_id)) {
+        return {
+          success: false,
+          error: "Access denied: You don't have permission for this village",
+        };
+      }
+
       console.log(`🔍 Fetching visitor records for LINE user ID: ${line_user_id}`);
-      const result = await getVisitorRecordsByLineId(line_user_id);
+      const result = await getVisitorRecordsByLineId(line_user_id, {
+        villageId: typeof village_id === "string" ? village_id : undefined,
+        houseId: typeof house_id === "string" ? house_id : undefined,
+      });
       console.log(`📊 Total records found: ${result.length}`);
       console.log(`📋 Record statuses:`, result.map(r => r.record_status));
       

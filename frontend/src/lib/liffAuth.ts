@@ -14,6 +14,8 @@ export interface LiffUser {
   status: 'verified' | 'pending' | 'disable';
   line_profile_url?: string;
   role: 'resident' | 'guard';
+  selected_house_id?: string | null;
+  selected_house_address?: string | null;
 }
 
 export interface LiffAuthResponse {
@@ -33,22 +35,44 @@ export interface LiffAuthResponse {
 
 // Use relative paths for API calls so Caddy can route them properly
 const API_BASE_URL = '';
+const RESIDENT_SELECTION_STORAGE_KEY = 'residentRoleSelection';
+const GUARD_SELECTION_STORAGE_KEY = 'guardRoleSelection';
 
 // Import LiffService for role switching
 import { LiffService } from './liff';
 
 // Verify LINE ID token with backend
-export const verifyLiffToken = async (idToken: string, role?: 'resident' | 'guard'): Promise<LiffAuthResponse> => {
+export const verifyLiffToken = async (
+  idToken: string,
+  role?: 'resident' | 'guard',
+  context?: {
+    residentId?: string;
+    guardId?: string;
+    villageId?: string;
+    houseId?: string | null;
+  }
+): Promise<LiffAuthResponse> => {
   try {
     const apiUrl = `${API_BASE_URL}/api/liff/verify`;
     
+    const payload: Record<string, unknown> = { idToken };
+    if (role) {
+      payload.role = role;
+    }
+    if (context) {
+      if (context.residentId) payload.residentId = context.residentId;
+      if (context.guardId) payload.guardId = context.guardId;
+      if (context.villageId) payload.villageId = context.villageId;
+      if (context.houseId !== undefined) payload.houseId = context.houseId;
+    }
+
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       credentials: 'include', // This is crucial for cookies to be sent and received
-      body: JSON.stringify({ idToken, role }),
+      body: JSON.stringify(payload),
     });
 
 
@@ -138,9 +162,72 @@ export const verifyLiffToken = async (idToken: string, role?: 'resident' | 'guar
 };
 
 // Switch user role by re-authenticating with specific role
-export const switchUserRole = async (targetRole: 'resident' | 'guard'): Promise<LiffAuthResponse> => {
+export const switchUserRole = async (
+  targetRole: 'resident' | 'guard',
+  options: {
+    residentId?: string;
+    guardId?: string;
+    villageId?: string;
+    houseId?: string | null;
+    houseAddress?: string | null;
+    villageName?: string | null;
+  } = {}
+): Promise<LiffAuthResponse> => {
   try {
     const svc = LiffService.getInstance();
+    const selectionOptions: {
+      residentId?: string;
+      guardId?: string;
+      villageId?: string;
+      houseId?: string | null;
+      houseAddress?: string | null;
+      villageName?: string | null;
+    } = { ...options };
+
+    if (targetRole === 'resident' && typeof window !== 'undefined') {
+      try {
+        const storedSelectionRaw = localStorage.getItem(RESIDENT_SELECTION_STORAGE_KEY);
+        if (storedSelectionRaw) {
+          const storedSelection = JSON.parse(storedSelectionRaw);
+          if (!selectionOptions.residentId && storedSelection.residentId) {
+            selectionOptions.residentId = storedSelection.residentId;
+          }
+          if (!selectionOptions.villageId && storedSelection.villageId) {
+            selectionOptions.villageId = storedSelection.villageId;
+          }
+          if (selectionOptions.houseId === undefined && storedSelection.houseId !== undefined) {
+            selectionOptions.houseId = storedSelection.houseId;
+          }
+          if (!selectionOptions.houseAddress && storedSelection.houseAddress) {
+            selectionOptions.houseAddress = storedSelection.houseAddress;
+          }
+          if (!selectionOptions.villageName && storedSelection.villageName) {
+            selectionOptions.villageName = storedSelection.villageName;
+          }
+        }
+      } catch (storageError) {
+        console.warn('⚠️ Unable to read stored resident selection:', storageError);
+      }
+    }
+    if (targetRole === 'guard' && typeof window !== 'undefined') {
+      try {
+        const storedSelectionRaw = localStorage.getItem(GUARD_SELECTION_STORAGE_KEY);
+        if (storedSelectionRaw) {
+          const storedSelection = JSON.parse(storedSelectionRaw);
+          if (!selectionOptions.guardId && storedSelection.guardId) {
+            selectionOptions.guardId = storedSelection.guardId;
+          }
+          if (!selectionOptions.villageId && storedSelection.villageId) {
+            selectionOptions.villageId = storedSelection.villageId;
+          }
+          if (!selectionOptions.villageName && storedSelection.villageName) {
+            selectionOptions.villageName = storedSelection.villageName;
+          }
+        }
+      } catch (storageError) {
+        console.warn('⚠️ Unable to read stored guard selection:', storageError);
+      }
+    }
     
     // Check if user has stored authentication data first
     const { user: storedUser, token: storedToken } = getAuthData();
@@ -179,12 +266,43 @@ export const switchUserRole = async (targetRole: 'resident' | 'guard'): Promise<
     console.log(`🔄 Switching to ${targetRole} role...`);
     
     // Re-authenticate with the specific role
-    const authResult = await verifyLiffToken(idToken, targetRole);
+    const authResult = await verifyLiffToken(idToken, targetRole, selectionOptions);
     
     if (authResult.success && authResult.user && authResult.token) {
       // Store the new authentication data
       localStorage.setItem('liffUser', JSON.stringify(authResult.user));
       localStorage.setItem('liffToken', authResult.token);
+
+      if (targetRole === 'resident') {
+        if (typeof window !== 'undefined') {
+          const selectionToPersist = {
+            residentId: selectionOptions.residentId ?? authResult.user.resident_id ?? null,
+            villageId: selectionOptions.villageId ?? authResult.user.village_id ?? null,
+            houseId: selectionOptions.houseId ?? authResult.user.selected_house_id ?? null,
+            houseAddress: selectionOptions.houseAddress ?? authResult.user.selected_house_address ?? null,
+            villageName: selectionOptions.villageName ?? authResult.user.village_name ?? null,
+          };
+          try {
+            localStorage.setItem(RESIDENT_SELECTION_STORAGE_KEY, JSON.stringify(selectionToPersist));
+          } catch (storageError) {
+            console.warn('⚠️ Unable to persist resident selection:', storageError);
+          }
+        }
+      }
+      if (targetRole === 'guard') {
+        if (typeof window !== 'undefined') {
+          const selectionToPersist = {
+            guardId: selectionOptions.guardId ?? authResult.user.guard_id ?? null,
+            villageId: selectionOptions.villageId ?? authResult.user.village_id ?? null,
+            villageName: selectionOptions.villageName ?? authResult.user.village_name ?? null,
+          };
+          try {
+            localStorage.setItem(GUARD_SELECTION_STORAGE_KEY, JSON.stringify(selectionToPersist));
+          } catch (storageError) {
+            console.warn('⚠️ Unable to persist guard selection:', storageError);
+          }
+        }
+      }
       
       console.log(`✅ Successfully switched to ${targetRole} role:`, authResult.user);
       

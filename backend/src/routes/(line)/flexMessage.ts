@@ -5,7 +5,17 @@
 
 import { Elysia } from 'elysia';
 
-const residentPortalUrl = process.env.URL ;
+const rawResidentPortalUrl = process.env.URL || process.env.NEXT_PUBLIC_RESIDENT_PORTAL_URL || '';
+
+const normalizedPortalUrl = rawResidentPortalUrl
+  ? /^https?:\/\//i.test(rawResidentPortalUrl)
+    ? rawResidentPortalUrl
+    : `https://${rawResidentPortalUrl}`
+  : undefined;
+
+const residentPortalUrl = normalizedPortalUrl
+  ? normalizedPortalUrl.replace(/\/?$/, '') + '/liff'
+  : undefined;
 
 // LINE Flex Message Types
 interface FlexMessage {
@@ -296,7 +306,7 @@ class FlexMessageService {
               action: {
                 type: 'uri',
                 label: '📄 ดูรายละเอียดเพิ่มเติม',
-                uri: residentPortalUrl
+                uri: residentPortalUrl ?? 'https://line.me'
               },
               margin: 'md'
             }
@@ -433,7 +443,7 @@ class FlexMessageService {
               action: {
                 type: 'uri',
                 label: '📄 ดูรายละเอียดเพิ่มเติม',
-                uri: residentPortalUrl
+                uri: residentPortalUrl ?? 'https://line.me'
               },
               margin: 'md'
             }
@@ -558,7 +568,7 @@ class FlexMessageService {
               action: {
                 type: 'uri',
                 label: '📄 ดูรายละเอียดเพิ่มเติม',
-                uri: residentPortalUrl
+                uri: residentPortalUrl ?? 'https://line.me'
               },
               margin: 'md'
             }

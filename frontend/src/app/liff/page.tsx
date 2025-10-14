@@ -207,10 +207,26 @@ export default function LiffPage() {
                       const roles: UserRole[] = rolesData.roles;
                       const verifiedRoles = roles.filter((role) => role.status === 'verified');
                       const pendingRoles = roles.filter((role) => role.status === 'pending');
-                      const hasResidentRole = verifiedRoles.some((role) => role.role === 'resident');
-                      const hasGuardRole = verifiedRoles.some((role) => role.role === 'guard');
+
+                      const verifiedResidentRoles = verifiedRoles.filter((role) => role.role === 'resident');
+                      const verifiedGuardRoles = verifiedRoles.filter((role) => role.role === 'guard');
+
+                      const hasResidentRole = verifiedResidentRoles.length > 0;
+                      const hasGuardRole = verifiedGuardRoles.length > 0;
                       const hasPendingResidentRole = pendingRoles.some((role) => role.role === 'resident');
                       const hasPendingGuardRole = pendingRoles.some((role) => role.role === 'guard');
+
+                      const residentVillageCount = new Set(
+                        verifiedResidentRoles
+                          .map((role) => role.village_id)
+                          .filter((id): id is string => Boolean(id))
+                      ).size;
+
+                      const guardVillageCount = new Set(
+                        verifiedGuardRoles
+                          .map((role) => role.village_id)
+                          .filter((id): id is string => Boolean(id))
+                      ).size;
                       
                       console.log('🔍 User roles:', { 
                         verifiedRoles, 
@@ -222,7 +238,14 @@ export default function LiffPage() {
                       });
                       
                       // Prioritize verified roles over pending roles
-                      if (hasResidentRole && hasGuardRole) {
+                      const needsResidentSelection = residentVillageCount >= 2;
+                      const needsGuardSelection = guardVillageCount >= 2;
+
+                      if (
+                        (hasResidentRole && needsResidentSelection) ||
+                        (hasGuardRole && needsGuardSelection) ||
+                        (hasResidentRole && hasGuardRole)
+                      ) {
                         // User has both verified roles, redirect to role selection
                         console.log('🔄 User has both verified roles, redirecting to role selection');
                         setTimeout(() => router.replace('/liff/select-role'), 1000);

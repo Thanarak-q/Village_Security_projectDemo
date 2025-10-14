@@ -1,25 +1,37 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { User, Shield, ArrowLeft, Home, Loader2, Clock } from "lucide-react";
 import { getAuthData, switchUserRole } from "@/lib/liffAuth";
 import { LiffService } from "@/lib/liff";
 import { ModeToggle } from "@/components/mode-toggle";
-
-interface UserRole {
-  role: string;
-  village_id: string;
-  village_name?: string;
-  status?: string;
-}
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import type { UserRole } from "@/types/roles";
+const RESIDENT_SELECTION_STORAGE_KEY = 'residentRoleSelection';
+const GUARD_SELECTION_STORAGE_KEY = 'guardRoleSelection';
 
 export default function SelectRolePage() {
   const router = useRouter();
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [switchingRole, setSwitchingRole] = useState<string | null>(null);
+  const [switchingRole, setSwitchingRole] = useState<'resident' | 'guard' | null>(null);
+  const [residentSelectionOpen, setResidentSelectionOpen] = useState(false);
+  const [selectedResidentOption, setSelectedResidentOption] = useState<UserRole | null>(null);
+  const [selectedResidentHouseId, setSelectedResidentHouseId] = useState<string | null>(null);
+  const [guardSelectionOpen, setGuardSelectionOpen] = useState(false);
+  const [selectedGuardOption, setSelectedGuardOption] = useState<UserRole | null>(null);
+
+  const residentRoles = useMemo(
+    () => userRoles.filter((role) => role.role === 'resident'),
+    [userRoles]
+  );
+  const guardRoles = useMemo(
+    () => userRoles.filter((role) => role.role === 'guard'),
+    [userRoles]
+  );
 
   useEffect(() => {
     const fetchUserRoles = async () => {
@@ -76,7 +88,153 @@ export default function SelectRolePage() {
     fetchUserRoles();
   }, []);
 
-  const handleRoleSelection = async (role: string) => {
+  useEffect(() => {
+    if (residentSelectionOpen && typeof window !== 'undefined') {
+      try {
+        const storedSelectionRaw = localStorage.getItem(RESIDENT_SELECTION_STORAGE_KEY);
+        if (storedSelectionRaw) {
+          const storedSelection = JSON.parse(storedSelectionRaw);
+          const preferred = residentRoles
+            .filter((role) => role.role === 'resident')
+            .find((role) => {
+              if (storedSelection.residentId && role.resident_id === storedSelection.residentId) {
+                return true;
+              }
+              if (storedSelection.villageId && role.village_id === storedSelection.villageId) {
+                return true;
+              }
+              return false;
+            });
+          if (preferred) {
+            setSelectedResidentOption(preferred);
+            const houses = preferred.houses ?? [];
+            if (storedSelection.houseId && houses.some((house: any) => house.house_id === storedSelection.houseId)) {
+              setSelectedResidentHouseId(storedSelection.houseId);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Unable to read stored resident selection for modal:', error);
+      }
+    }
+  }, [residentSelectionOpen, residentRoles]);
+
+  useEffect(() => {
+    if (guardSelectionOpen && typeof window !== 'undefined') {
+      try {
+        const storedSelectionRaw = localStorage.getItem(GUARD_SELECTION_STORAGE_KEY);
+        if (storedSelectionRaw) {
+          const storedSelection = JSON.parse(storedSelectionRaw);
+          const preferred = guardRoles
+            .filter((role) => role.role === 'guard')
+            .find((role) => {
+              if (storedSelection.guardId && role.guard_id === storedSelection.guardId) {
+                return true;
+              }
+              if (storedSelection.villageId && role.village_id === storedSelection.villageId) {
+                return true;
+              }
+              return false;
+            });
+          if (preferred) {
+            setSelectedGuardOption(preferred);
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Unable to read stored guard selection for modal:', error);
+      }
+    }
+  }, [guardSelectionOpen, guardRoles]);
+
+  const handleResidentClick = () => {
+    if (residentRoles.length === 0) {
+      return;
+    }
+
+    if (residentRoles.length === 1) {
+      const [onlyResident] = residentRoles;
+      const houses = onlyResident.houses ?? [];
+      if (houses.length <= 1) {
+        const houseInfo =
+          houses.length === 1
+            ? {
+                house_id: houses[0].house_id,
+                house_address: houses[0].house_address ?? null,
+              }
+            : { house_id: null, house_address: null };
+
+        void handleRoleSelection('resident', {
+          selectedRoleEntry: onlyResident,
+          selectedHouse: houseInfo,
+        });
+      } else {
+        setResidentSelectionOpen(true);
+        setSelectedResidentOption(onlyResident);
+        setSelectedResidentHouseId(null);
+      }
+      return;
+    }
+
+    setResidentSelectionOpen(true);
+    setSelectedResidentOption(null);
+    setSelectedResidentHouseId(null);
+  };
+
+  const handleResidentSelectionChange = (roleEntry: UserRole) => {
+    setSelectedResidentOption(roleEntry);
+    const houses = roleEntry.houses ?? [];
+    if (houses.length === 1) {
+      setSelectedResidentHouseId(houses[0].house_id);
+    } else {
+      setSelectedResidentHouseId(null);
+    }
+  };
+
+  const handleResidentSelectionConfirm = () => {
+    if (!selectedResidentOption) {
+      return;
+    }
+
+    const houses = selectedResidentOption.houses ?? [];
+    if (houses.length > 0) {
+      const selectedHouse = houses.find(
+        (house) => house.house_id === selectedResidentHouseId
+      );
+      if (!selectedHouse) {
+        return;
+      }
+
+      void handleRoleSelection('resident', {
+        selectedRoleEntry: selectedResidentOption,
+        selectedHouse: {
+          house_id: selectedHouse.house_id,
+          house_address: selectedHouse.house_address ?? null,
+        },
+      });
+      return;
+    }
+
+    void handleRoleSelection('resident', {
+      selectedRoleEntry: selectedResidentOption,
+      selectedHouse: { house_id: null, house_address: null },
+    });
+  };
+
+  const handleResidentSelectionOpenChange = (open: boolean) => {
+    setResidentSelectionOpen(open);
+    if (!open) {
+      setSelectedResidentOption(null);
+      setSelectedResidentHouseId(null);
+    }
+  };
+
+  const handleRoleSelection = async (
+    role: 'resident' | 'guard',
+    options?: {
+      selectedRoleEntry?: UserRole;
+      selectedHouse?: { house_id: string | null; house_address: string | null };
+    }
+  ) => {
     if (switchingRole) return; // Prevent multiple clicks
     
     try {
@@ -84,15 +242,72 @@ export default function SelectRolePage() {
       console.log(`🔄 Switching to ${role} role...`);
       
       // Check if the selected role is pending
-      const selectedRoleData = userRoles.find(r => r.role === role);
+      const selectedRoleData = options?.selectedRoleEntry ?? userRoles.find(r => r.role === role);
       const isPending = selectedRoleData?.status === 'pending';
       
       console.log(`🔍 Selected role data:`, selectedRoleData, `isPending:`, isPending);
       
-      const result = await switchUserRole(role as 'resident' | 'guard');
+      const switchOptions =
+        role === 'resident'
+          ? {
+              residentId: options?.selectedRoleEntry?.resident_id,
+              villageId: options?.selectedRoleEntry?.village_id,
+              houseId: options?.selectedHouse?.house_id ?? null,
+              houseAddress: options?.selectedHouse?.house_address ?? null,
+              villageName: options?.selectedRoleEntry?.village_name ?? null,
+            }
+          : {
+              guardId: options?.selectedRoleEntry?.guard_id,
+              villageId: options?.selectedRoleEntry?.village_id,
+              villageName: options?.selectedRoleEntry?.village_name ?? null,
+            };
+
+      const result = await switchUserRole(role, switchOptions);
       
       if (result.success) {
         console.log(`✅ Successfully switched to ${role} role`);
+
+        if (role === 'resident') {
+          setResidentSelectionOpen(false);
+          setSelectedResidentOption(null);
+          setSelectedResidentHouseId(null);
+          if (typeof window !== 'undefined') {
+            if (options?.selectedRoleEntry?.village_id) {
+              sessionStorage.setItem("selectedVillage", options.selectedRoleEntry.village_id);
+              sessionStorage.setItem("selectedVillageId", options.selectedRoleEntry.village_id);
+            }
+            if (options?.selectedRoleEntry?.village_name) {
+              sessionStorage.setItem("selectedVillageName", options.selectedRoleEntry.village_name);
+            }
+            if (options?.selectedHouse?.house_id) {
+              sessionStorage.setItem("selectedHouseId", options.selectedHouse.house_id);
+            } else {
+              sessionStorage.removeItem("selectedHouseId");
+            }
+            if (options?.selectedHouse?.house_address) {
+              sessionStorage.setItem("selectedHouseAddress", options.selectedHouse.house_address);
+            } else {
+              sessionStorage.removeItem("selectedHouseAddress");
+            }
+            window.dispatchEvent(new CustomEvent('villageChanged'));
+          }
+        }
+        if (role === 'guard') {
+          setGuardSelectionOpen(false);
+          setSelectedGuardOption(null);
+          if (typeof window !== 'undefined') {
+            if (options?.selectedRoleEntry?.village_id) {
+              sessionStorage.setItem("selectedVillage", options.selectedRoleEntry.village_id);
+              sessionStorage.setItem("selectedVillageId", options.selectedRoleEntry.village_id);
+            }
+            if (options?.selectedRoleEntry?.village_name) {
+              sessionStorage.setItem("selectedVillageName", options.selectedRoleEntry.village_name);
+            }
+            sessionStorage.removeItem("selectedHouseId");
+            sessionStorage.removeItem("selectedHouseAddress");
+            window.dispatchEvent(new CustomEvent('villageChanged'));
+          }
+        }
         
         // Redirect based on role status
         if (isPending) {
@@ -127,6 +342,39 @@ export default function SelectRolePage() {
       alert("เกิดข้อผิดพลาดในการสลับบทบาท");
     } finally {
       setSwitchingRole(null);
+    }
+  };
+
+  const handleGuardClick = () => {
+    if (guardRoles.length === 0) {
+      return;
+    }
+
+    if (guardRoles.length === 1) {
+      const [onlyGuard] = guardRoles;
+      void handleRoleSelection('guard', {
+        selectedRoleEntry: onlyGuard,
+      });
+      return;
+    }
+
+    setSelectedGuardOption(null);
+    setGuardSelectionOpen(true);
+  };
+
+  const handleGuardSelectionConfirm = () => {
+    if (!selectedGuardOption) {
+      return;
+    }
+    void handleRoleSelection('guard', {
+      selectedRoleEntry: selectedGuardOption,
+    });
+  };
+
+  const handleGuardSelectionOpenChange = (open: boolean) => {
+    setGuardSelectionOpen(open);
+    if (!open) {
+      setSelectedGuardOption(null);
     }
   };
 
@@ -170,8 +418,14 @@ export default function SelectRolePage() {
   }
 
   // Show all roles regardless of status - let the main pages handle status checking
-  const hasResidentRole = userRoles.some(role => role.role === 'resident');
-  const hasGuardRole = userRoles.some(role => role.role === 'guard');
+  const hasResidentRole = residentRoles.length > 0;
+  const hasGuardRole = guardRoles.length > 0;
+  const residentHasPending = residentRoles.some((role) => role.status === 'pending');
+  const guardHasPending = guardRoles.some((role) => role.status === 'pending');
+  const residentConfirmDisabled =
+    switchingRole === 'resident' ||
+    !selectedResidentOption ||
+    ((selectedResidentOption?.houses?.length ?? 0) > 0 && !selectedResidentHouseId);
 
   if (!hasResidentRole && !hasGuardRole) {
     return (
@@ -228,7 +482,7 @@ export default function SelectRolePage() {
           <div className="px-4 py-6 space-y-4">
             {hasResidentRole && (
               <button
-                onClick={() => handleRoleSelection('resident')}
+                onClick={handleResidentClick}
                 disabled={switchingRole !== null}
                 className="w-full flex items-center gap-4 p-4 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -242,7 +496,7 @@ export default function SelectRolePage() {
                 <div className="text-left flex-1">
                   <div className="flex items-center gap-2">
                     <h3 className="text-lg font-semibold text-foreground">ผู้อยู่อาศัย</h3>
-                    {userRoles.find(r => r.role === 'resident')?.status === 'pending' && (
+                    {residentHasPending && (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                         <Clock className="w-3 h-3 mr-1" />
                         รอการยืนยัน
@@ -256,7 +510,7 @@ export default function SelectRolePage() {
 
             {hasGuardRole && (
               <button
-                onClick={() => handleRoleSelection('guard')}
+                onClick={handleGuardClick}
                 disabled={switchingRole !== null}
                 className="w-full flex items-center gap-4 p-4 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -270,14 +524,18 @@ export default function SelectRolePage() {
                 <div className="text-left flex-1">
                   <div className="flex items-center gap-2">
                     <h3 className="text-lg font-semibold text-foreground">ยามรักษาความปลอดภัย</h3>
-                    {userRoles.find(r => r.role === 'guard')?.status === 'pending' && (
+                    {guardHasPending && (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                         <Clock className="w-3 h-3 mr-1" />
                         รอการยืนยัน
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground">สำหรับเจ้าหน้าที่รักษาความปลอดภัย</p>
+                  <p className="text-sm text-muted-foreground">
+                    {guardRoles.length > 1
+                      ? "เลือกหมู่บ้านที่ต้องการปฏิบัติงาน"
+                      : "สำหรับเจ้าหน้าที่รักษาความปลอดภัย"}
+                  </p>
                 </div>
               </button>
             )}
@@ -320,6 +578,160 @@ export default function SelectRolePage() {
           </div>
         </div>
       </div>
+      <Dialog open={residentSelectionOpen} onOpenChange={handleResidentSelectionOpenChange}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>เลือกหมู่บ้านที่ต้องการใช้งาน</DialogTitle>
+            <DialogDescription>
+              คุณมีหลายหมู่บ้านในบทบาทผู้อยู่อาศัย กรุณาเลือกหมู่บ้านและบ้านเลขที่ก่อนเข้าสู่ระบบ
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+            {residentRoles.map((role) => {
+              const houses = role.houses ?? [];
+              const isActive = selectedResidentOption?.resident_id === role.resident_id;
+
+              return (
+                <div
+                  key={role.resident_id ?? role.village_id}
+                  className={`rounded-lg border ${
+                    isActive ? "border-primary bg-primary/5" : "border-border"
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleResidentSelectionChange(role)}
+                    className="w-full text-left p-4 flex items-center justify-between gap-3"
+                  >
+                    <div>
+                      <p className="text-base font-semibold text-foreground">
+                        {role.village_name || "ไม่ระบุหมู่บ้าน"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {houses.length > 0
+                          ? `${houses.length} บ้านที่เกี่ยวข้อง`
+                          : "ไม่มีข้อมูลบ้านในหมู่บ้านนี้"}
+                      </p>
+                    </div>
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        isActive
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {role.status === "pending" ? "รอการยืนยัน" : "พร้อมใช้งาน"}
+                    </span>
+                  </button>
+                  {isActive && houses.length > 0 && (
+                    <div className="border-t px-4 pb-4">
+                      <p className="text-sm font-medium text-foreground mt-3 mb-2">
+                        เลือกบ้านเลขที่
+                      </p>
+                      <div className="space-y-2">
+                        {houses.map((house) => {
+                          const isHouseSelected = selectedResidentHouseId === house.house_id;
+                          return (
+                            <Button
+                              key={house.house_id}
+                              type="button"
+                              variant={isHouseSelected ? "secondary" : "outline"}
+                              className="w-full justify-start"
+                              onClick={() => setSelectedResidentHouseId(house.house_id)}
+                            >
+                              {house.house_address || "ไม่ระบุเลขที่บ้าน"}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {isActive && houses.length === 0 && (
+                    <div className="border-t px-4 py-3 text-sm text-muted-foreground">
+                      ไม่พบข้อมูลบ้านสำหรับหมู่บ้านนี้ คุณสามารถเลือกบทบาทนี้เพื่อดำเนินการต่อได้
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {residentRoles.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                ไม่พบบทบาทผู้อยู่อาศัยที่พร้อมใช้งาน
+              </p>
+            )}
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleResidentSelectionOpenChange(false)}
+            >
+              ยกเลิก
+            </Button>
+            <Button
+              type="button"
+              onClick={handleResidentSelectionConfirm}
+              disabled={residentConfirmDisabled}
+            >
+              ยืนยันการเลือก
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={guardSelectionOpen} onOpenChange={handleGuardSelectionOpenChange}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>เลือกหมู่บ้านสำหรับบทบาทยาม</DialogTitle>
+            <DialogDescription>
+              คุณมีหลายหมู่บ้านที่ต้องดูแล กรุณาเลือกหมู่บ้านที่ต้องการใช้งานในขณะนี้
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+            {guardRoles.map((role) => {
+              const isActive = selectedGuardOption?.guard_id === role.guard_id;
+              return (
+                <button
+                  key={role.guard_id ?? role.village_id}
+                  type="button"
+                  onClick={() => setSelectedGuardOption(role)}
+                  className={`w-full text-left p-4 rounded-lg border transition-colors ${
+                    isActive ? "border-primary bg-primary/5" : "border-border hover:border-primary"
+                  }`}
+                >
+                  <p className="text-base font-semibold text-foreground">
+                    {role.village_name || "ไม่ระบุหมู่บ้าน"}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {role.status === "pending" ? "รอการยืนยัน" : "พร้อมใช้งาน"}
+                  </p>
+                </button>
+              );
+            })}
+            {guardRoles.length === 0 && (
+              <p className="text-sm text-muted-foreground">ไม่พบบทบาทยามที่พร้อมใช้งาน</p>
+            )}
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleGuardSelectionOpenChange(false)}
+            >
+              ยกเลิก
+            </Button>
+            <Button
+              type="button"
+              onClick={handleGuardSelectionConfirm}
+              disabled={switchingRole === 'guard' || !selectedGuardOption}
+            >
+              {switchingRole === 'guard' ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              ยืนยันการเลือก
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
