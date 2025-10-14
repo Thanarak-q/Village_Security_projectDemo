@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getAuthData, isAuthenticated } from "@/lib/liffAuth";
 import type { LiffUser } from "@/lib/liffAuth";
@@ -83,151 +83,173 @@ export const useVisitorData = () => {
   }, [router]);
 
 
-  // Fetch data on component mount
-  useEffect(() => {
-    const loadData = async () => {
-      if (!currentUser) {
-        console.log("No current user, skipping data load");
+  const loadData = useCallback(async () => {
+    if (!currentUser) {
+      console.log("No current user, skipping data load");
+      return;
+    }
+
+    const selectedVillageIdRaw = typeof window !== 'undefined'
+      ? sessionStorage.getItem('selectedVillageId')
+      : null;
+
+    const selectedHouseIdRaw = typeof window !== 'undefined'
+      ? sessionStorage.getItem('selectedHouseId')
+      : null;
+
+    const selectedVillageId = selectedVillageIdRaw || currentUser.village_id || null;
+    const selectedHouseId = selectedHouseIdRaw || null;
+
+    console.log("🔄 Starting data load for user:", currentUser, {
+      selectedVillageId,
+      selectedHouseId,
+    });
+
+    try {
+      setLoading(true);
+      setError(null);
+      console.log("🚀 Starting API calls...");
+
+      console.log("🔍 Testing backend connection...");
+      const healthResponse = await fetch('/api/health');
+      console.log("🏥 Backend health check:", healthResponse.status);
+
+      if (!currentUser.lineUserId) {
+        console.log("⚠️ No LINE user ID found, trying to fetch all visitor records for testing");
+
+        const testResponse = await fetch('/api/test-visitor-records');
+        const testData: TestVisitorResponse = await testResponse.json();
+
+        if (testData.success) {
+          console.log("📋 Test visitor records:", testData.records);
+          const transformedRecords: VisitorRequest[] = testData.records.map((record) => {
+            const entryTime = new Date(record.createdAt);
+            const timeString = entryTime.toLocaleTimeString('th-TH', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false,
+            });
+            const dateString = entryTime.toLocaleDateString('th-TH', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+            });
+            const timeWithDate = `${timeString} ${dateString}`;
+
+            let carImageUrl = 'car1.jpg';
+            if (record.picture_key) {
+              carImageUrl = `/api/images/file/${record.picture_key}`;
+            }
+
+            return {
+              id: record.visitor_record_id,
+              plateNumber: record.license_plate || 'ไม่ระบุ',
+              visitorName: record.visit_purpose || record.visitor_name || '',
+              destination: record.house?.address ? `บ้านเลขที่ ${record.house.address}` : '',
+              time: timeWithDate,
+              carImage: carImageUrl,
+              status: record.record_status === 'approved'
+                ? 'approved'
+                : record.record_status === 'rejected'
+                  ? 'denied'
+                  : undefined,
+            };
+          });
+
+          const pending = transformedRecords.filter((record) => !record.status);
+          const historyRecords = transformedRecords.filter((record) => Boolean(record.status));
+
+          setPendingRequests(pending);
+          setHistory(historyRecords);
+        }
+
+        setLoading(false);
         return;
       }
 
-      console.log("🔄 Starting data load for user:", currentUser);
-      try {
-        setLoading(true);
-        setError(null);
-        console.log("🚀 Starting API calls...");
+      const filters = {
+        villageId: selectedVillageId,
+        houseId: selectedHouseId,
+      };
 
-        // Test backend connection first
-        console.log("🔍 Testing backend connection...");
-        const healthResponse = await fetch('/api/health');
-        console.log("🏥 Backend health check:", healthResponse.status);
+      const pendingData = await fetchPendingVisitorRequests(currentUser.lineUserId, filters);
+      const historyData = await fetchVisitorHistory(currentUser.lineUserId, filters);
 
-        // Check if user has LINE user ID
-        if (!currentUser.lineUserId) {
-          console.log("⚠️ No LINE user ID found, trying to fetch all visitor records for testing");
-          
-          // For testing, fetch all visitor records
-          const testResponse = await fetch('/api/test-visitor-records');
-          const testData: TestVisitorResponse = await testResponse.json();
-          
-          if (testData.success) {
-            console.log("📋 Test visitor records:", testData.records);
-            // Transform test data to match expected format
-            const transformedRecords: VisitorRequest[] = testData.records.map((record) => {
-              const entryTime = new Date(record.createdAt);
-              const timeString = entryTime.toLocaleTimeString('th-TH', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-              });
-              const dateString = entryTime.toLocaleDateString('th-TH', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric'
-              });
-              const timeWithDate = `${timeString} ${dateString}`;
-              
-              console.log("🖼️ Record image info:", {
-                id: record.visitor_record_id,
-                picture_key: record.picture_key,
-                license_plate: record.license_plate
-              });
-              
-              // Construct proper image URL from picture_key
-              let carImageUrl = 'car1.jpg'; // fallback to default image
-              if (record.picture_key) {
-                // Use the backend image serving endpoint
-                carImageUrl = `/api/images/file/${record.picture_key}`;
-              }
+      console.log("Raw API data:", {
+        pendingData,
+        historyData,
+        pendingCount: pendingData?.length || 0,
+        historyCount: historyData?.length || 0,
+      });
 
-              return {
-                id: record.visitor_record_id,
-                plateNumber: record.license_plate || 'ไม่ระบุ',
-                visitorName: record.visit_purpose || record.visitor_name || '',
-                destination: record.house?.address ? `บ้านเลขที่ ${record.house.address}` : '',
-                time: timeWithDate,
-                carImage: carImageUrl,
-                status: record.record_status === 'approved' ? 'approved' : 
-                       record.record_status === 'rejected' ? 'denied' : undefined,
-              };
-            });
-            
-            const pending = transformedRecords.filter((record) => !record.status);
-            const historyRecords = transformedRecords.filter((record) => Boolean(record.status));
+      const transformedPending = pendingData.map(transformApiData);
+      const transformedHistory = historyData.map(transformApiData);
 
-            setPendingRequests(pending);
-            setHistory(historyRecords);
-          }
-          setLoading(false);
-          return;
-        }
+      setPendingRequests(transformedPending);
+      setHistory(transformedHistory);
 
-        // Fetch pending visitor requests and history separately
-        console.log(`🔍 Fetching pending visitor requests for LINE user ID: ${currentUser.lineUserId}`);
-        const pendingData = await fetchPendingVisitorRequests(currentUser.lineUserId);
-        
-        console.log(`🔍 Fetching visitor history for LINE user ID: ${currentUser.lineUserId}`);
-        const historyData = await fetchVisitorHistory(currentUser.lineUserId);
+      console.log("Transformed data:", {
+        pending: transformedPending.length,
+        history: transformedHistory.length,
+        historyItems: transformedHistory,
+      });
+    } catch (err) {
+      console.error('❌ Error loading visitor data:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`ไม่สามารถโหลดข้อมูลได้: ${errorMessage}`);
 
-        // Debug: Log raw data before transformation
-        console.log("Raw API data:", {
-          pendingData: pendingData,
-          historyData: historyData,
-          pendingCount: pendingData?.length || 0,
-          historyCount: historyData?.length || 0
-        });
+      const currentDate = new Date().toLocaleDateString('th-TH', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
 
-        // Transform API data to component format
-        const transformedPending = pendingData.map(transformApiData);
-        const transformedHistory = historyData.map(transformApiData);
+      setPendingRequests([
+        {
+          id: "1",
+          plateNumber: "กข 1234",
+          visitorName: "ส่งของ",
+          destination: "บ้านเลขที่ สมชาย",
+          time: `09:12 ${currentDate}`,
+          carImage: "car1.jpg",
+        },
+        {
+          id: "2",
+          plateNumber: "ขก 5678",
+          visitorName: "เยี่ยม",
+          destination: "บ้านเลขที่ วิทยา",
+          time: `09:45 ${currentDate}`,
+          carImage: "car2.jpg",
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser]);
 
-        setPendingRequests(transformedPending);
-        setHistory(transformedHistory);
-
-        console.log("Transformed data:", { 
-          pending: transformedPending.length, 
-          history: transformedHistory.length,
-          historyItems: transformedHistory
-        });
-
-      } catch (err) {
-        console.error('❌ Error loading visitor data:', err);
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        setError(`ไม่สามารถโหลดข้อมูลได้: ${errorMessage}`);
-
-        // Fallback to mock data for development
-        const currentDate = new Date().toLocaleDateString('th-TH', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric'
-        });
-        setPendingRequests([
-          {
-            id: "1",
-            plateNumber: "กข 1234",
-            visitorName: "ส่งของ",
-            destination: "บ้านเลขที่ สมชาย",
-            time: `09:12 ${currentDate}`,
-            carImage: "car1.jpg",
-          },
-          {
-            id: "2",
-            plateNumber: "ขก 5678",
-            visitorName: "เยี่ยม",
-            destination: "บ้านเลขที่ วิทยา",
-            time: `09:45 ${currentDate}`,
-            carImage: "car2.jpg",
-          },
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
+  useEffect(() => {
     if (!isCheckingAuth && currentUser) {
       loadData();
     }
-  }, [currentUser, isCheckingAuth]);
+  }, [currentUser, isCheckingAuth, loadData]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleSelectionChange = () => {
+      if (!isCheckingAuth && currentUser) {
+        loadData();
+      }
+    };
+
+    window.addEventListener('villageChanged', handleSelectionChange);
+    window.addEventListener('storage', handleSelectionChange);
+
+    return () => {
+      window.removeEventListener('villageChanged', handleSelectionChange);
+      window.removeEventListener('storage', handleSelectionChange);
+    };
+  }, [loadData, currentUser, isCheckingAuth]);
 
   const handleApprove = (id: string) => {
     const request = pendingRequests.find((req) => req.id === id);

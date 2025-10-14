@@ -1,17 +1,40 @@
 import { ApiVisitorRequest, VisitorRequest } from '../types/visitor';
 import { getAuthData } from '@/lib/liffAuth';
 
+type VisitorFilters = {
+  villageId?: string | null;
+  houseId?: string | null;
+};
+
+const buildQuery = (filters?: VisitorFilters) => {
+  const params = new URLSearchParams();
+  if (filters?.villageId) {
+    params.set('village_id', filters.villageId);
+  }
+  if (filters?.houseId) {
+    params.set('house_id', filters.houseId);
+  }
+  const query = params.toString();
+  return query ? `?${query}` : '';
+};
+
 // API functions for fetching visitor records by LINE user ID
-export const fetchPendingVisitorRequests = async (lineUserId: string): Promise<ApiVisitorRequest[]> => {
+export const fetchPendingVisitorRequests = async (
+  lineUserId: string,
+  filters?: VisitorFilters
+): Promise<ApiVisitorRequest[]> => {
   const { token } = getAuthData();
 
-  const response = await fetch(`/api/visitor-requests/pending/line/${encodeURIComponent(lineUserId)}`, {
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
+  const response = await fetch(
+    `/api/visitor-requests/pending/line/${encodeURIComponent(lineUserId)}${buildQuery(filters)}`,
+    {
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    }
+  );
 
   if (!response.ok) {
     throw new Error(`Failed to fetch pending visitor requests: ${response.statusText}`);
@@ -20,16 +43,22 @@ export const fetchPendingVisitorRequests = async (lineUserId: string): Promise<A
   return result.success ? result.data : [];
 };
 
-export const fetchVisitorHistory = async (lineUserId: string): Promise<ApiVisitorRequest[]> => {
+export const fetchVisitorHistory = async (
+  lineUserId: string,
+  filters?: VisitorFilters
+): Promise<ApiVisitorRequest[]> => {
   const { token } = getAuthData();
 
-  const response = await fetch(`/api/visitor-requests/history/line/${encodeURIComponent(lineUserId)}`, {
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
+  const response = await fetch(
+    `/api/visitor-requests/history/line/${encodeURIComponent(lineUserId)}${buildQuery(filters)}`,
+    {
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    }
+  );
 
   if (!response.ok) {
     throw new Error(`Failed to fetch visitor history: ${response.statusText}`);

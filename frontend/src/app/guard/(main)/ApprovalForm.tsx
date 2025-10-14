@@ -28,10 +28,17 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Upload, Home, House, User, Search, Loader2, Camera, ImageIcon, CheckCircle, Shield} from "lucide-react";
+import { Upload, House, User, Search, Loader2, Camera, ImageIcon, CheckCircle, Shuffle, Home } from "lucide-react";
 import axios from "axios";
 import { ModeToggle } from "@/components/mode-toggle";
-import { getAuthData, switchUserRole } from "@/lib/liffAuth";
+import { getAuthData } from "@/lib/liffAuth";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const visitorSchema = z.object({
   license_image: z.string().optional(),
@@ -54,8 +61,29 @@ const visitorSchema = z.object({
     .regex(/^[ก-๙A-Za-z0-9\s-]+$/, "เลขทะเบียนไม่สามารถใช้อักษรพิเศษได้"),
   house_id: z.string().min(1, "กรุณาเลือกบ้าน"),
   entry_time: z.string().min(1, "กรุณาระบุเวลาเข้า"),
-  visit_purpose: z.string().optional(),
-});
+  visit_purpose: z.string().min(1, "กรุณาเลือกวัตถุประสงค์"),
+  visit_purpose_note: z.string().optional(),
+}).refine(
+  (data) =>
+    data.visit_purpose !== "other" ||
+    (data.visit_purpose_note && data.visit_purpose_note.trim().length > 0),
+  {
+    message: "กรุณาระบุวัตถุประสงค์เพิ่มเติม",
+    path: ["visit_purpose_note"],
+  }
+);
+
+const visitPurposeOptions = [
+  { value: "deliver_package", label: "ส่งของ" },
+  { value: "installation", label: "ติดตั้ง" },
+  { value: "repair", label: "ซ่อมแซม" },
+  { value: "family_visit", label: "เยี่ยมเยียนครอบครัว / เพื่อน" },
+  { value: "service_provider", label: "ช่างหรือผู้ให้บริการตามนัด" },
+  { value: "admin_task", label: "ติดต่อสำนักงาน / งานเอกสาร" },
+  { value: "transport", label: "บริการรับ-ส่ง / แท็กซี่" },
+  { value: "cleaning", label: "ทำความสะอาด / แม่บ้าน" },
+  { value: "other", label: "อื่นๆ (โปรดระบุ)" },
+] as const;
 
 interface ApprovalFormProps {
   userRoles?: Array<{role: string, village_id: string, village_name?: string, status: string}>;
@@ -93,6 +121,10 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
         const { user, token } = getAuthData();
         if (user) {
           setCurrentUser(user);
+        }
+        const storedVillageName = sessionStorage.getItem("selectedVillageName");
+        if (storedVillageName) {
+          setVillageName(storedVillageName);
         }
         
         // Get village_id from user data or sessionStorage
@@ -148,110 +180,30 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (!currentUser) return;
+    const matchingRole = userRoles
+      .filter((role) => role.role === 'guard')
+      .find((role) => role.guard_id === currentUser.guard_id);
 
-  const handleSwitchToResident = async () => {
-    if (isSwitchingRole) return; // Prevent multiple clicks
-    
-    try {
-      setIsSwitchingRole(true);
-      console.log("🔄 Switching to resident role...");
-      
-      // First check the resident role status from userRoles
-      const residentRole = userRoles.find(role => role.role === 'resident');
-      console.log("🔍 Current userRoles:", userRoles);
-      console.log("🔍 Found residentRole:", residentRole);
-      
-      // If userRoles is empty or doesn't have resident role, try to fetch fresh data
-      if (!residentRole || userRoles.length === 0) {
-        console.log("⚠️ No resident role found in userRoles, attempting to fetch fresh roles data...");
-        
-        try {
-          const { user, token } = getAuthData();
-          if (user?.lineUserId || user?.id) {
-            const userId = user.lineUserId || user.id;
-            const response = await fetch(`/api/users/roles?lineUserId=${userId}`, {
-              credentials: 'include',
-              headers: {
-                'Content-Type': 'application/json',
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-              },
-            });
-            
-            if (response.ok) {
-              const contentType = response.headers.get("content-type");
-              if (contentType && contentType.includes("application/json")) {
-                const data = await response.json();
-                console.log("🔍 Fresh roles data:", data);
-                
-                if (data.success && data.roles) {
-                  const freshResidentRole = data.roles.find((role: {role: string}) => role.role === 'resident');
-                  console.log("🔍 Fresh residentRole:", freshResidentRole);
-                  
-                  if (freshResidentRole) {
-                    // Use the fresh data for role switching
-                    return handleRoleSwitchWithData(freshResidentRole);
-                  }
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.error("❌ Error fetching fresh roles data:", error);
-        }
-        
-        console.log("❌ User does not have resident role, redirecting to LIFF with resident context");
-        router.push("/liff?role=resident");
-        return;
-      }
-      
-      // Use the found resident role
-      handleRoleSwitchWithData(residentRole);
-    } catch (error) {
-      console.error("❌ Error switching to resident role:", error);
-      alert("เกิดข้อผิดพลาดในการสลับบทบาท");
-    } finally {
-      setIsSwitchingRole(false);
+    if (matchingRole?.village_name) {
+      setVillageName(matchingRole.village_name);
     }
-  };
-
-  const handleRoleSwitchWithData = async (residentRole: {status: string}) => {
-    try {
-      // Check resident role status and redirect accordingly
-      if (residentRole.status === "verified") {
-        console.log("✅ Resident role is verified, switching to resident main page");
-        const result = await switchUserRole('resident');
-        
-        if (result.success) {
-          console.log("✅ Successfully switched to resident role");
-          router.push('/Resident');
-        } else if (result.needsRedirect && result.redirectTo) {
-          // Handle the special case where user needs to go to the role page first
-          console.log(`🔄 Redirecting to ${result.redirectTo} first, then will redirect to LIFF`);
-          router.push(result.redirectTo);
-        } else {
-          console.error("❌ Failed to switch to resident role:", result.error);
-          alert(`ไม่สามารถสลับบทบาทได้: ${result.error}`);
-        }
-      } else if (residentRole.status === "pending") {
-        console.log("⏳ Resident role is pending, redirecting to resident pending page");
-        router.push('/Resident/pending');
-      } else if (residentRole.status === "disable") {
-        console.log("❌ Resident role is disabled, redirecting to LIFF with resident context");
-        router.push("/liff?role=resident");
-      } else {
-        console.log("❌ Unknown resident role status, redirecting to LIFF with resident context");
-        router.push("/liff?role=resident");
-      }
-    } catch (error) {
-      console.error("❌ Error in handleRoleSwitchWithData:", error);
-      alert("เกิดข้อผิดพลาดในการสลับบทบาท");
-    } finally {
-      setIsSwitchingRole(false);
+    if (matchingRole?.village_id) {
+      sessionStorage.setItem("selectedVillage", matchingRole.village_id);
+      sessionStorage.setItem("selectedVillageId", matchingRole.village_id);
     }
-  };
+    if (matchingRole?.village_name) {
+      sessionStorage.setItem("selectedVillageName", matchingRole.village_name);
+    }
+  }, [userRoles, currentUser]);
 
   const handleNavigateToProfile = () => {
     router.push('/guard/profile');
+  };
+
+  const handleGoToRoleSelect = () => {
+    router.push('/liff/select-role');
   };
 
 
@@ -274,9 +226,18 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
       visitor_id_card: "",
       house_id: "",
       entry_time: getLocalDateTimeForInput(),
-      visit_purpose: "",
+      visit_purpose: visitPurposeOptions[0].value,
+      visit_purpose_note: "",
     },
   });
+
+  const selectedPurpose = visitorForm.watch("visit_purpose");
+
+  useEffect(() => {
+    if (selectedPurpose !== "other") {
+      visitorForm.setValue("visit_purpose_note", "");
+    }
+  }, [selectedPurpose, visitorForm]);
 
     useEffect(() => {
       if (currentUser?.guard_id || currentUser?.id) {
@@ -287,7 +248,6 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   const [step, setStep] = useState<number>(1);
   const progress = step === 1 ? 25 : step === 2 ? 60 : 100;
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSwitchingRole, setIsSwitchingRole] = useState(false);
   const [isMobileDevice, setIsMobileDevice] = useState(true);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [successData, setSuccessData] = useState<{
@@ -618,6 +578,16 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
       console.log("🚀 Submitting form data:", data);
       console.log("🔍 Guard ID being sent:", data.guard_id);
 
+      const selectedPurposeOption = visitPurposeOptions.find(
+        (option) => option.value === data.visit_purpose
+      );
+
+      const visitPurposeText = selectedPurposeOption
+        ? selectedPurposeOption.value === "other"
+          ? `อื่นๆ: ${data.visit_purpose_note?.trim() ?? ""}`.trim()
+          : selectedPurposeOption.label
+        : data.visit_purpose;
+
       // Send to real API without authentication
       const payload: Record<string, unknown> = {
         visitorIDCard: data.visitor_id_card,
@@ -626,10 +596,15 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
         houseId: data.house_id,
         licensePlate: data.license_plate,
         province: data.province?.trim() ? data.province : undefined,
-        visitPurpose: data.visit_purpose?.trim() ? data.visit_purpose : undefined,
+        visitPurpose: visitPurposeText,
         guardId: data.guard_id,
         idDocType: documentType === "id_card" ? "thai_id" : "driver_license",
       };
+
+      if (selectedPurposeOption?.value === "other" && data.visit_purpose_note?.trim()) {
+        payload.visitPurposeNote = data.visit_purpose_note.trim();
+      }
+      payload.visitPurposeCode = selectedPurposeOption?.value || data.visit_purpose;
 
       if (data.license_image && data.license_image.trim()) {
         payload.licenseImage = data.license_image;
@@ -672,7 +647,8 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
           visitor_id_card: "",
           house_id: "",
           entry_time: getLocalDateTimeForInput(),
-          visit_purpose: "",
+          visit_purpose: visitPurposeOptions[0].value,
+          visit_purpose_note: "",
         });
         setStep(1);
         setCapturedImage(null);
@@ -720,16 +696,14 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
               </h1>
               <span className="flex items-center gap-2">
                 <ModeToggle />
-                {userRoles.some(role => role.role === 'resident' && (role.status === 'verified' || role.status === 'pending')) && (
-                  <button
-                    onClick={handleSwitchToResident}
-                    className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-                    aria-label="Go to Resident page"
-                    title="ไปยังหน้าผู้อยู่อาศัย"
-                  >
-                    <Home className="w-5 h-5 text-foreground" />
-                  </button>
-                )}
+                <button
+                  onClick={handleGoToRoleSelect}
+                  className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                  aria-label="Go to role selection"
+                  title="กลับไปเลือกบทบาท"
+                >
+                  <Shuffle className="w-5 h-5 text-foreground" />
+                </button>
                 <button
                   onClick={handleNavigateToProfile}
                   className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
@@ -739,6 +713,12 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                 </button>
               </span>
             </div>
+            <p className="text-sm text-muted-foreground mb-3">
+              กำลังปฏิบัติหน้าที่ดูแลหมู่บ้าน:{" "}
+              <span className="font-medium text-foreground">
+                {villageName || currentUser?.village_id || "ไม่พบข้อมูลหมู่บ้าน"}
+              </span>
+            </p>
             <div className="text-sm text-muted-foreground">{progress}%</div>
             <div className="mb-4 mt-2">
               <Progress value={progress} className="h-2 bg-muted" />
@@ -1094,17 +1074,48 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                           <FormLabel className="text-base font-medium select-none pointer-events-none">
                             วัตถุประสงค์
                           </FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="ส่งของ / ติดตั้ง / ซ่อม"
-                              {...field}
-                              className="min-h-[90px] text-base focus-visible:ring-ring"
-                            />
-                          </FormControl>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="h-12 text-base">
+                                <SelectValue placeholder="เลือกวัตถุประสงค์" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {visitPurposeOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                    {selectedPurpose === "other" && (
+                      <FormField
+                        control={visitorForm.control}
+                        name="visit_purpose_note"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-base font-medium select-none pointer-events-none">
+                              โปรดระบุวัตถุประสงค์เพิ่มเติม
+                            </FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="กรุณาระบุรายละเอียดวัตถุประสงค์"
+                                {...field}
+                                className="min-h-[90px] text-base focus-visible:ring-ring"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                     <div className="space-y-6">
                       <FormField
                         control={visitorForm.control}

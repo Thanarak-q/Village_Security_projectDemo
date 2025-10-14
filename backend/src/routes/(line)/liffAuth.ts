@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia";
-import { residents, guards, admins, villages } from "../../db/schema";
+import { residents, guards, admins, villages, house_members, houses } from "../../db/schema";
 import db from "../../db/drizzle";
 import { eq } from "drizzle-orm";
 import { validateLiffRegistration, sanitizeString, isValidEmail, isValidPhone, isValidVillageKey } from "../../utils/zodValidation";
@@ -38,7 +38,21 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
       const limited = await limiter({ set, request });
       if (limited) return limited;
 
-      const { idToken, role: requestRole } = body as { idToken: string; role?: 'resident' | 'guard' };
+      const { 
+        idToken, 
+        role: requestRole,
+        residentId,
+        guardId,
+        villageId,
+        houseId
+      } = body as { 
+        idToken: string; 
+        role?: 'resident' | 'guard';
+        residentId?: string;
+        guardId?: string;
+        villageId?: string;
+        houseId?: string;
+      };
 
       // Validate input
       if (!idToken || typeof idToken !== 'string') {
@@ -108,18 +122,18 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
       }
 
       // Check both tables to find the user and determine their role
-      const resident = await db.query.residents.findFirst({
+      const residentRecords = await db.query.residents.findMany({
         where: eq(residents.line_user_id, lineUserId),
       });
 
-      const guard = await db.query.guards.findFirst({
+      const guardRecords = await db.query.guards.findMany({
         where: eq(guards.line_user_id, lineUserId),
       });
 
       // Determine user's actual role(s)
       const existingRoles: string[] = [];
-      if (guard) existingRoles.push('guard');
-      if (resident) existingRoles.push('resident');
+      if (guardRecords.length > 0) existingRoles.push('guard');
+      if (residentRecords.length > 0) existingRoles.push('resident');
 
       if (existingRoles.length === 0) {
         // User not found in any table
@@ -132,43 +146,116 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
       }
 
       // If user has multiple roles, determine which one to use based on request context
+      const selectResident = () => {
+        if (residentRecords.length === 0) return null;
+        if (residentId) {
+          const match = residentRecords.find((r) => r.resident_id === residentId);
+          if (match) return match;
+        }
+        if (villageId) {
+          const match = residentRecords.find((r) => r.village_id === villageId);
+          if (match) return match;
+        }
+        return residentRecords[0];
+      };
+
+      const selectGuard = () => {
+        if (guardRecords.length === 0) return null;
+        if (guardId) {
+          const match = guardRecords.find((g) => g.guard_id === guardId);
+          if (match) return match;
+        }
+        if (villageId) {
+          const match = guardRecords.find((g) => g.village_id === villageId);
+          if (match) return match;
+        }
+        return guardRecords[0];
+      };
+
       let userRole: 'resident' | 'guard';
       let user: any;
 
       if (requestRole && existingRoles.includes(requestRole)) {
-        // Use the requested role if user has it
         userRole = requestRole;
-        user = requestRole === 'guard' ? guard : resident;
+        user = requestRole === 'guard' ? selectGuard() : selectResident();
       } else if (isGuardRequest && existingRoles.includes('guard')) {
-        // Use guard role if request is from guard context
         userRole = 'guard';
-        user = guard;
+        user = selectGuard();
       } else if (isResidentRequest && existingRoles.includes('resident')) {
-        // Use resident role if request is from resident context
         userRole = 'resident';
-        user = resident;
+        user = selectResident();
       } else {
-        // Default to guard role if user has both roles (guard has higher priority)
-        // This ensures guards can access their functionality even when they have both roles
         if (existingRoles.includes('guard')) {
           userRole = 'guard';
-          user = guard;
+          user = selectGuard();
         } else {
           userRole = existingRoles[0] as 'resident' | 'guard';
-          user = userRole === 'guard' ? guard : resident;
+          user = userRole === 'guard' ? selectGuard() : selectResident();
+        }
+      }
+
+      if (!user) {
+        set.status = 400;
+        return {
+          success: false,
+          error: "Unable to determine user for the selected role",
+        };
+      }
+
+      let selectedHouse: { house_id: string; address: string | null } | null = null;
+      if (userRole === 'resident') {
+        const residentIdForSelection = user.resident_id;
+        if (!residentIdForSelection) {
+          set.status = 400;
+          return {
+            success: false,
+            error: "Resident record is missing required identifier",
+          };
+        }
+
+        const residentHouseRows = await db
+          .select({
+            house_id: houses.house_id,
+            address: houses.address,
+          })
+          .from(house_members)
+          .innerJoin(houses, eq(house_members.house_id, houses.house_id))
+          .where(eq(house_members.resident_id, residentIdForSelection));
+
+        if (houseId) {
+          selectedHouse = residentHouseRows.find((row) => row.house_id === houseId) || null;
+          if (!selectedHouse) {
+            set.status = 400;
+            return {
+              success: false,
+              error: "Selected house is not associated with this resident",
+            };
+          }
+        } else if (residentHouseRows.length === 1) {
+          selectedHouse = residentHouseRows[0];
         }
       }
 
       // User found, create token and return user data
       const id = userRole === 'guard' ? (user as any).guard_id : (user as any).resident_id;
-      const token = await jwt.sign({
+      const now = Math.floor(Date.now() / 1000);
+      const tokenPayload: Record<string, any> = {
         id,
         lineUserId: user.line_user_id,
         role: userRole,
         village_id: user.village_id,
-        iat: Math.floor(Date.now() / 1000),
-        exp: Math.floor(Date.now() / 1000) + (60 * 60), // 1 hour expiration
-      });
+        iat: now,
+        exp: now + 60 * 60, // 1 hour expiration
+      };
+
+      if (userRole === 'resident') {
+        tokenPayload.resident_id = user.resident_id;
+        tokenPayload.selected_house_id = selectedHouse?.house_id ?? null;
+      } else if (userRole === 'guard') {
+        tokenPayload.guard_id = user.guard_id;
+      }
+
+      const token = await jwt.sign(tokenPayload);
 
       // Set HttpOnly cookie for session
       const isProd = process.env.NODE_ENV === 'production';
@@ -177,22 +264,30 @@ export const liffAuthRoutes = new Elysia({ prefix: "/api/liff" })
         .join('; ');
       set.headers = { ...(set.headers || {}), 'Set-Cookie': cookie };
 
+      const userResponse: Record<string, any> = {
+        id,
+        lineUserId: user.line_user_id,
+        email: user.email,
+        fname: user.fname,
+        lname: user.lname,
+        phone: user.phone,
+        village_id: user.village_id,
+        status: user.status,
+        line_profile_url: user.line_profile_url,
+        role: userRole,
+      };
+
+      if (userRole === 'resident') {
+        userResponse.resident_id = id;
+        userResponse.selected_house_id = selectedHouse?.house_id ?? null;
+        userResponse.selected_house_address = selectedHouse?.address ?? null;
+      } else if (userRole === 'guard') {
+        userResponse.guard_id = id;
+      }
+
       return {
         success: true,
-        user: {
-          id: id,
-          ...(userRole === 'guard' && { guard_id: id }),
-          ...(userRole === 'resident' && { resident_id: id }),
-          lineUserId: user.line_user_id,
-          email: user.email,
-          fname: user.fname,
-          lname: user.lname,
-          phone: user.phone,
-          village_id: user.village_id,
-          status: user.status,
-          line_profile_url: user.line_profile_url,
-          role: userRole,
-        },
+        user: userResponse,
         token,
         availableRoles: existingRoles, // All available roles
       };

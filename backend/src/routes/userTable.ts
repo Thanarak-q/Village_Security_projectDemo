@@ -199,6 +199,7 @@ async function createGuardFromResident(resident: any, status: string) {
           eq(guards.email, resident.email),
           resident.line_user_id ? eq(guards.line_user_id, resident.line_user_id) : sql`1=0`
         ),
+        resident.village_id ? eq(guards.village_id, resident.village_id) : sql`1=1`,
         isNull(guards.disable_at) // Only check active guards
       ),
     });
@@ -265,6 +266,7 @@ async function createGuardFromResidentWithTx(resident: any, status: string, tx: 
           eq(guards.email, resident.email),
           resident.line_user_id ? eq(guards.line_user_id, resident.line_user_id) : sql`1=0`
         ),
+        resident.village_id ? eq(guards.village_id, resident.village_id) : sql`1=1`,
         isNull(guards.disable_at) // Only check active guards
       ),
     });
@@ -334,6 +336,7 @@ async function createResidentFromGuardWithTx(guard: any, status: string, tx: any
           eq(residents.email, guard.email),
           guard.line_user_id ? eq(residents.line_user_id, guard.line_user_id) : sql`1=0`
         ),
+        guard.village_id ? eq(residents.village_id, guard.village_id) : sql`1=1`,
         isNull(residents.disable_at) // Only check active residents
       ),
     });
@@ -402,6 +405,7 @@ async function createResidentFromGuard(guard: any, status: string) {
           eq(residents.email, guard.email),
           guard.line_user_id ? eq(residents.line_user_id, guard.line_user_id) : sql`1=0`
         ),
+        guard.village_id ? eq(residents.village_id, guard.village_id) : sql`1=1`,
         isNull(residents.disable_at) // Only check active residents
       ),
     });
@@ -1266,7 +1270,12 @@ export const userTableRoutes = new Elysia({ prefix: "/api" })
             const newGuard = await db
               .select()
               .from(guards)
-              .where(eq(guards.email, resident.email))
+              .where(
+                and(
+                  eq(guards.email, resident.email),
+                  resident.village_id ? eq(guards.village_id, resident.village_id) : sql`1=1`
+                )
+              )
               .limit(1);
 
             if (newGuard.length > 0) {

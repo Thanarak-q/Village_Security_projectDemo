@@ -382,7 +382,15 @@ export async function getVisitorRecordWithDetails(visitorId: string) {
  * @param {string} lineUserId - The LINE user ID of the resident.
  * @returns {Promise<Array<Object>>} A promise that resolves to an array of visitor records for the resident.
  */
-export async function getVisitorRecordsByLineId(lineUserId: string) {
+type VisitorRecordLineIdOptions = {
+  villageId?: string;
+  houseId?: string;
+};
+
+export async function getVisitorRecordsByLineId(
+  lineUserId: string,
+  options: VisitorRecordLineIdOptions = {}
+) {
   console.log(`🔍 Querying visitor records for LINE user ID: ${lineUserId}`);
   
   // First, check if the resident exists
@@ -398,6 +406,16 @@ export async function getVisitorRecordsByLineId(lineUserId: string) {
   console.log(`✅ Found resident: ${resident.resident_id} (${resident.fname} ${resident.lname})`);
   
   // Find visitor records where the resident is associated with the house
+  let whereClause = eq(residents.line_user_id, lineUserId);
+
+  if (options.villageId) {
+    whereClause = and(whereClause, eq(houses.village_id, options.villageId));
+  }
+
+  if (options.houseId) {
+    whereClause = and(whereClause, eq(houses.house_id, options.houseId));
+  }
+
   const result = await db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
@@ -437,7 +455,7 @@ export async function getVisitorRecordsByLineId(lineUserId: string) {
     .leftJoin(villages, eq(houses.village_id, villages.village_id))
     .innerJoin(house_members, eq(visitor_records.house_id, house_members.house_id))
     .innerJoin(residents, eq(house_members.resident_id, residents.resident_id))
-    .where(eq(residents.line_user_id, lineUserId));
+    .where(whereClause);
 
   console.log(`📊 Found ${result.length} visitor records for resident ${resident.resident_id}`);
   return result;

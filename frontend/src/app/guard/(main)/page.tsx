@@ -113,6 +113,10 @@ function Page() {
 
                   // Check if user has guard role and its status
                   const guardRole = roles.find((role) => role.role === 'guard');
+                  const activeGuardRole =
+                    roles
+                      .filter((role) => role.role === 'guard')
+                      .find((role) => role.guard_id === user?.guard_id) ?? guardRole;
                   const hasResidentRole = roles.some((role) => role.role === 'resident');
                   
                   console.log("🔍 Guard role check - guardRole:", guardRole);
@@ -133,6 +137,14 @@ function Page() {
                   }
                   
                   console.log("✅ User has verified guard role, continuing to main page");
+                  
+                  if (activeGuardRole?.village_id) {
+                    sessionStorage.setItem("selectedVillage", activeGuardRole.village_id);
+                    sessionStorage.setItem("selectedVillageId", activeGuardRole.village_id);
+                  }
+                  if (activeGuardRole?.village_name) {
+                    sessionStorage.setItem("selectedVillageName", activeGuardRole.village_name);
+                  }
                   
                   // User is verified - allow access
                   setIsCheckingAuth(false);

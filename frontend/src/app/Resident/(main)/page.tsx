@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Home, User, Shield, Loader2 } from "lucide-react";
+import { Home, User, Shuffle } from "lucide-react";
 // import NotificationComponent from "@/app/dashboard/(main)/notification";
 import { ModeToggle } from "@/components/mode-toggle";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
@@ -12,7 +12,7 @@ import { LoadingState, AuthLoadingState } from "../components/Loadingstate";
 import { ErrorState } from "../components/Errorstate";
 import { useVisitorData } from "../hooks/useVisitordata";
 
-import { switchUserRole, getAuthData } from "@/lib/liffAuth";
+import { getAuthData } from "@/lib/liffAuth";
 import { LiffService } from "@/lib/liff";
 import type { UserRole, UserRolesResponse } from "@/types/roles";
 
@@ -20,7 +20,6 @@ import type { UserRole, UserRolesResponse } from "@/types/roles";
 const ResidentPage = () => {
   const router = useRouter();
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
-  const [isSwitchingRole, setIsSwitchingRole] = useState(false);
   const [villageName, setVillageName] = useState<string>('');
 
   const {
@@ -39,6 +38,10 @@ const ResidentPage = () => {
 
   const handleNavigateToProfile = () => {
     router.push('/Resident/profile');
+  };
+
+  const handleGoToRoleSelect = () => {
+    router.push('/liff/select-role');
   };
 
   // Check basic user authentication
@@ -115,7 +118,18 @@ const ResidentPage = () => {
                 console.log("🔍 Resident main page - roles data:", roles);
 
                 // Check if user has resident role and its status
-                const residentRole = roles.find((role) => role.role === 'resident');
+                const residentRole =
+                  roles
+                    .filter((role) => role.role === 'resident')
+                    .find((role) => {
+                      if (currentUser?.resident_id) {
+                        return role.resident_id === currentUser.resident_id;
+                      }
+                      if (currentUser?.village_id) {
+                        return role.village_id === currentUser.village_id;
+                      }
+                      return true;
+                    }) ?? roles.find((role) => role.role === 'resident');
                 console.log("🔍 Resident main page - residentRole:", residentRole);
 
                 if (!residentRole) {
@@ -158,109 +172,7 @@ const ResidentPage = () => {
     fetchUserRoles();
   }, [currentUser, router]);
 
-  const handleSwitchToGuard = async () => {
-    if (isSwitchingRole) return; // Prevent multiple clicks
-
-    try {
-      setIsSwitchingRole(true);
-      console.log("🔄 Switching to guard role...");
-
-      // First check the guard role status from userRoles
-      const guardRole = userRoles.find(role => role.role === 'guard');
-      console.log("🔍 Current userRoles:", userRoles);
-      console.log("🔍 Found guardRole:", guardRole);
-
-      // If userRoles is empty or doesn't have guard role, try to fetch fresh data
-      if (!guardRole || userRoles.length === 0) {
-        console.log("⚠️ No guard role found in userRoles, attempting to fetch fresh roles data...");
-
-        try {
-          const { user, token } = getAuthData();
-          if (user?.lineUserId || user?.id) {
-            const userId = user.lineUserId || user.id;
-            const response = await fetch(`$/api/users/roles?lineUserId=${userId}`, {
-              credentials: 'include',
-              headers: {
-                'Content-Type': 'application/json',
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-              },
-            });
-
-            if (response.ok) {
-              const contentType = response.headers.get("content-type");
-              if (contentType && contentType.includes("application/json")) {
-                const data: UserRolesResponse = await response.json();
-                console.log("🔍 Fresh roles data:", data);
-
-                if (data.success && data.roles) {
-                  const freshGuardRole = data.roles.find((role) => role.role === 'guard');
-                  console.log("🔍 Fresh guardRole:", freshGuardRole);
-
-                  if (freshGuardRole) {
-                    // Use the fresh data for role switching
-                    return handleGuardRoleSwitchWithData(freshGuardRole);
-                  }
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.error("❌ Error fetching fresh roles data:", error);
-        }
-
-        console.log("❌ User does not have guard role, redirecting to LIFF with guard context");
-        router.push("/liff?role=guard");
-        return;
-      }
-
-      // Use the found guard role
-      handleGuardRoleSwitchWithData(guardRole);
-    } catch (error) {
-      console.error("❌ Error switching to guard role:", error);
-      alert("เกิดข้อผิดพลาดในการสลับบทบาท");
-    } finally {
-      setIsSwitchingRole(false);
-    }
-  };
-
-  const handleGuardRoleSwitchWithData = async (guardRole: UserRole) => {
-    try {
-      // Check guard role status and redirect accordingly
-      if (guardRole.status === "verified") {
-        console.log("✅ Guard role is verified, switching to guard main page");
-        const result = await switchUserRole('guard');
-
-        if (result.success) {
-          console.log("✅ Successfully switched to guard role");
-          router.push('/guard');
-        } else if (result.needsRedirect && result.redirectTo) {
-          // Handle the special case where user needs to go to the role page first
-          console.log(`🔄 Redirecting to ${result.redirectTo} first, then will redirect to LIFF`);
-          router.push(result.redirectTo);
-        } else {
-          console.error("❌ Failed to switch to guard role:", result.error);
-          alert(`ไม่สามารถสลับบทบาทได้: ${result.error}`);
-        }
-      } else if (guardRole.status === "pending") {
-        console.log("⏳ Guard role is pending, redirecting to guard pending page");
-        router.push('/guard/pending');
-      } else if (guardRole.status === "disable") {
-        console.log("❌ Guard role is disabled, redirecting to LIFF with guard context");
-        router.push("/liff?role=guard");
-      } else {
-        console.log("❌ Unknown guard role status, redirecting to LIFF with guard context");
-        router.push("/liff?role=guard");
-      }
-    } catch (error) {
-      console.error("❌ Error in handleGuardRoleSwitchWithData:", error);
-      alert("เกิดข้อผิดพลาดในการสลับบทบาท");
-    } finally {
-      setIsSwitchingRole(false);
-    }
-  };
-
   // Check if user has guard role with verified or pending status
-  const hasGuardRole = userRoles.some(role => role.role === 'guard' && (role.status === 'verified' || role.status === 'pending'));
   const displayVillageName = currentUser?.village_name ?? villageName;
 
   // Show loading state while checking authentication
@@ -284,21 +196,14 @@ const ResidentPage = () => {
               </div>
               <span className="flex items-center gap-2">
                 <ModeToggle />
-                {hasGuardRole && (
-                  <button
-                    onClick={handleSwitchToGuard}
-                    disabled={isSwitchingRole}
-                    className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-                    aria-label="Switch to Guard role"
-                    title="สลับไปยังหน้ายามรักษาความปลอดภัย"
-                  >
-                    {isSwitchingRole ? (
-                      <Loader2 className="w-5 h-5 text-foreground animate-spin" />
-                    ) : (
-                      <Shield className="w-5 h-5 text-foreground" />
-                    )}
-                  </button>
-                )}
+                <button
+                  onClick={handleGoToRoleSelect}
+                  className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                  aria-label="Go to role selection"
+                  title="กลับไปเลือกบทบาท"
+                >
+                  <Shuffle className="w-5 h-5 text-foreground" />
+                </button>
                 <button
                   onClick={handleNavigateToProfile}
                   className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
