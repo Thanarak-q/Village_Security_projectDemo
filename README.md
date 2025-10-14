@@ -73,8 +73,8 @@ The root `.env` file feeds every service via `docker-compose.yml` as well as loc
 
 ### Database migrations & seed data
 - Apply schema changes: `bunx drizzle-kit push` (runs automatically in the backend Docker entrypoint).
-- Seed base data: `bun run src/db/seed.ts`
-- Seed super-admin credentials: `bun run src/db/seed-superadmin.ts`
+- Seed base data: `bun run seed`
+- Seed super-admin credentials: `bun run seed:superadmin`
 
 ## Environment Variables
 Create a `.env` file in the repository root (also referenced by `ENV_FILE_PATH` in Docker). Use placeholder values below and replace them with project-specific secrets.
