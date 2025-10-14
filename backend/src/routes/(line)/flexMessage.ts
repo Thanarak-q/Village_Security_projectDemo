@@ -5,6 +5,8 @@
 
 import { Elysia } from 'elysia';
 
+const residentPortalUrl = process.env.URL ;
+
 // LINE Flex Message Types
 interface FlexMessage {
   type: 'flex';
@@ -294,7 +296,7 @@ class FlexMessageService {
               action: {
                 type: 'uri',
                 label: '📄 ดูรายละเอียดเพิ่มเติม',
-                uri: `https://shad-unlumped-nonobediently.ngrok-free.dev/Resident`
+                uri: residentPortalUrl
               },
               margin: 'md'
             }
@@ -431,7 +433,7 @@ class FlexMessageService {
               action: {
                 type: 'uri',
                 label: '📄 ดูรายละเอียดเพิ่มเติม',
-                uri: `https://shad-unlumped-nonobediently.ngrok-free.dev/Resident`
+                uri: residentPortalUrl
               },
               margin: 'md'
             }
@@ -556,7 +558,7 @@ class FlexMessageService {
               action: {
                 type: 'uri',
                 label: '📄 ดูรายละเอียดเพิ่มเติม',
-                uri: `https://shad-unlumped-nonobediently.ngrok-free.dev/Resident`
+                uri: residentPortalUrl
               },
               margin: 'md'
             }
