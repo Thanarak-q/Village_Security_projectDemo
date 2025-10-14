@@ -9,7 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, UserPlus, Eye, EyeOff, Copy, Check } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2, UserPlus, Eye, EyeOff, Copy, Check, AlertTriangle } from "lucide-react";
 // import { toast } from "sonner";
 
 const addStaffSchema = z.object({
@@ -46,6 +54,8 @@ export function AddStaffForm({ villageId, villageName, onStaffAdded }: AddStaffF
   } | null>(null);
   const [showPassword, setShowPassword] = useState(true); // แสดง password ตั้งแต่แรก
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [showDuplicateAlert, setShowDuplicateAlert] = useState(false);
+  const [duplicateUsername, setDuplicateUsername] = useState("");
 
   const {
     register,
@@ -83,7 +93,15 @@ export function AddStaffForm({ villageId, villageName, onStaffAdded }: AddStaffF
         reset();
         // toast.success("เพิ่มนิติบุคคลสำเร็จ");
       } else {
-        // toast.error(result.error || "เกิดข้อผิดพลาดในการเพิ่มนิติบุคคล");
+        // Check if it's a duplicate username error
+        if (response.status === 409 && result.error === "ชื่อผู้ใช้นี้ถูกใช้งานแล้ว") {
+          setDuplicateUsername(`staff_${data.username}`);
+          setShowDuplicateAlert(true);
+        } else {
+          // Handle other errors with a generic message
+          console.error("Error adding staff:", result.error);
+          // toast.error(result.error || "เกิดข้อผิดพลาดในการเพิ่มนิติบุคคล");
+        }
       }
     } catch {
       // toast.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
@@ -242,6 +260,43 @@ export function AddStaffForm({ villageId, villageName, onStaffAdded }: AddStaffF
           </div>
         </form>
       )}
+
+      {/* Duplicate Username Alert Dialog */}
+      <AlertDialog open={showDuplicateAlert} onOpenChange={setShowDuplicateAlert}>
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader className="text-center">
+            <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
+              <AlertTriangle className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+            </div>
+            <AlertDialogTitle className="text-xl font-semibold text-orange-800 dark:text-orange-200">
+              ชื่อผู้ใช้ซ้ำ
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base text-muted-foreground">
+              ชื่อผู้ใช้ <span className="font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded font-medium text-foreground">{duplicateUsername}</span> ถูกใช้งานแล้ว
+              <br />
+              กรุณาเลือกชื่อผู้ใช้อื่น
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex justify-center pt-2">
+            <AlertDialogAction 
+              onClick={() => {
+                setShowDuplicateAlert(false);
+                // Focus back to the username input for easy correction
+                const usernameInput = document.getElementById('username') as HTMLInputElement;
+                if (usernameInput) {
+                  setTimeout(() => {
+                    usernameInput.focus();
+                    usernameInput.select();
+                  }, 100);
+                }
+              }}
+              className="bg-orange-600 hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-800"
+            >
+              เข้าใจแล้ว
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

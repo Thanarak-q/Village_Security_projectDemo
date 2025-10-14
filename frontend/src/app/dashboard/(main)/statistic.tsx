@@ -2,7 +2,7 @@
 
 import { useState, useEffect, memo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, UserCheck, AlertTriangle, Plus, Loader2, CheckCircle, XCircle, Shield } from "lucide-react"
+import { Users, UserCheck, AlertTriangle, Plus, Loader2, CheckCircle, XCircle, Shield, Clock } from "lucide-react"
 
 // Types for API response
 interface StatsData {
@@ -38,12 +38,12 @@ export const TotalUsersCard = memo(function TotalUsersCard({ data, loading, erro
             <div className="text-2xl sm:text-3xl font-bold text-foreground">
               {data?.residentCount?.toLocaleString() || 0}
             </div>
-            <div className="flex items-center mt-2">
+            {/* <div className="flex items-center mt-2">
               <Users className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500 mr-1" />
               <span className="text-xs sm:text-sm text-blue-600 font-medium">
                 รออนุมัติ: {data?.residentPendingCount || 0}
               </span>
-            </div>
+            </div> */}
           </>
         )}
       </CardContent>
@@ -53,6 +53,13 @@ export const TotalUsersCard = memo(function TotalUsersCard({ data, loading, erro
 
 // 2. Card แสดงจำนวนอนุมัติ/ปฏิเสธวันนี้
 export function DailyAccessCard({ data, loading, error }: { data: StatsData | null, loading: boolean, error: string | null }) {
+  const totalVisitors = data?.visitorRecordToday
+    ?? ((data?.visitorApprovedToday || 0) + (data?.visitorPendingToday || 0) + (data?.visitorRejectedToday || 0))
+
+  const approvedCount = data?.visitorApprovedToday || 0
+  const pendingCount = data?.visitorPendingToday || 0
+  const rejectedCount = data?.visitorRejectedToday || 0
+
   return (
     <Card className="shadow transition-shadow hover:shadow-md">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -72,21 +79,27 @@ export function DailyAccessCard({ data, loading, error }: { data: StatsData | nu
         ) : (
           <>
             <div className="text-2xl sm:text-3xl font-bold text-foreground">
-              {(data?.visitorApprovedToday || 0) + (data?.visitorRejectedToday || 0)}
+              {totalVisitors}
             </div>
             <div className="flex items-center gap-3 mt-2">
               <div className="flex items-center">
                 <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 mr-1" />
                 <span className="text-xs sm:text-sm text-green-600 font-medium">
-                  อนุมัติ: {data?.visitorApprovedToday || 0}
+                  อนุมัติ: {approvedCount}
                 </span>
               </div>
               <div className="flex items-center">
                 <XCircle className="h-3 w-3 sm:h-4 sm:w-4 text-red-500 mr-1" />
                 <span className="text-xs sm:text-sm text-red-600 font-medium">
-                  ปฏิเสธ: {data?.visitorRejectedToday || 0}
+                  ปฏิเสธ: {rejectedCount}
                 </span>
               </div>
+              {/* <div className="flex items-center">
+                <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500 mr-1" />
+                <span className="text-xs sm:text-sm text-yellow-600 font-medium">
+                  รอตรวจสอบ: {pendingCount}
+                </span>
+              </div> */}
             </div>
           </>
         )}
@@ -190,12 +203,12 @@ export function useStatsData() {
     try {
       // Get selected village from sessionStorage (with SSR safety check)
       const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem('selectedVillage') : null;
-      const url = selectedVillage 
+      const url = selectedVillage
         ? `/api/statsCard?village_id=${encodeURIComponent(selectedVillage)}`
         : '/api/statsCard';
-        
+
       console.log('🔍 Fetching stats for village:', selectedVillage, 'URL:', url);
-        
+
       const response = await fetch(url, {
         method: 'GET',
         credentials: 'include',
@@ -254,12 +267,12 @@ export function useStatsData() {
       console.log('🔄 Village changed, refetching stats...');
       fetchStats()
     }
-    
+
     window.addEventListener('storage', handleVillageChange)
-    
+
     // Also listen for custom event when village changes in same tab
     window.addEventListener('villageChanged', handleVillageChange)
-    
+
     return () => {
       window.removeEventListener('storage', handleVillageChange)
       window.removeEventListener('villageChanged', handleVillageChange)

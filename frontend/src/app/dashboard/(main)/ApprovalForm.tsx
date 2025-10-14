@@ -260,29 +260,35 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
 
           <Form {...form}>
             <div className="space-y-4">
-              {/* บทบาทที่อนุมัติ */}
+              {/* บทบาทที่ผู้ใช้สมัคร - แสดงแบบ read-only */}
+              <div className="space-y-2">
+                <FormLabel className="text-sm font-medium text-foreground">
+                  บทบาทที่ผู้ใช้สมัคร
+                </FormLabel>
+                <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md border">
+                  {user?.role === 'resident' ? (
+                    <>
+                      <Home className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm font-medium">ลูกบ้าน</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="w-4 h-4 text-cyan-600" />
+                      <span className="text-sm font-medium">ยาม</span>
+                    </>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  ระบบจะอนุมัติตามบทบาทที่ผู้ใช้สมัครมา
+                </p>
+              </div>
+
+              {/* Hidden field to store the role */}
               <FormField
                 control={form.control}
                 name="approvedRole"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-foreground">
-                      บทบาทที่อนุมัติ
-                    </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="เลือกบทบาท" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="ลูกบ้าน">ลูกบ้าน</SelectItem>
-                        <SelectItem value="ยาม">ยาม</SelectItem>
-                        {/* <SelectItem value="ผู้จัดการ">ผู้จัดการ</SelectItem> */}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
+                  <input type="hidden" {...field} />
                 )}
               />
 

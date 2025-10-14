@@ -327,6 +327,46 @@ export default function HistoryTable() {
     });
   };
 
+  // Function to translate action types to Thai
+  const translateActionType = (actionType: string) => {
+    const translations: { [key: string]: string } = {
+      'house_update': 'แก้ไขข้อมูลบ้าน',
+      'house_create': 'สร้างบ้านใหม่',
+      'house_delete': 'ลบบ้าน',
+      'user_create': 'สร้างผู้ใช้ใหม่',
+      'user_update': 'แก้ไขข้อมูลผู้ใช้',
+      'user_delete': 'ลบผู้ใช้',
+      'role_change': 'เปลี่ยนบทบาทผู้ใช้',
+      'status_change': 'เปลี่ยนสถานะผู้ใช้',
+      'village_update': 'แก้ไขข้อมูลหมู่บ้าน',
+      'village_create': 'สร้างหมู่บ้านใหม่',
+      'staff_create': 'สร้างนิติบุคคลใหม่',
+      'staff_update': 'แก้ไขข้อมูลนิติบุคคล',
+      'staff_delete': 'ลบนิติบุคคล',
+      'login': 'เข้าสู่ระบบ',
+      'logout': 'ออกจากระบบ'
+    };
+    
+    return translations[actionType] || actionType;
+  };
+
+  // Function to translate description text to Thai
+  const translateDescription = (description: string) => {
+    if (!description) return description;
+    
+    return description
+      .replace(/available/g, 'ว่าง')
+      .replace(/occupied/g, 'มีผู้อยู่อาศัย')
+      .replace(/disable/g, 'ไม่ใช้งาน')
+      .replace(/pending/g, 'รอดำเนินการ')
+      .replace(/approved/g, 'อนุมัติแล้ว')
+      .replace(/rejected/g, 'ปฏิเสธ')
+      .replace(/verified/g, 'ยืนยันแล้ว')
+      .replace(/resident/g, 'ลูกบ้าน')
+      .replace(/guard/g, 'ยาม')
+      .replace(/admin/g, 'ผู้ดูแลระบบ');
+  };
+
   // Filter admin history by search term - focus on admin name
   const filteredAdminHistory = adminHistoryData.filter(item =>
     (item.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
@@ -563,8 +603,8 @@ export default function HistoryTable() {
                               </div>
                               {/* Show action on mobile */}
                               <div className="sm:hidden text-xs text-muted-foreground mt-1 space-y-1">
-                                <div className="truncate">{item.action}</div>
-                                <div className="truncate">{item.note}</div>
+                                <div className="truncate">{translateActionType(item.action)}</div>
+                                <div className="truncate">{translateDescription(item.note)}</div>
                               </div>
                             </div>
                           </div>
@@ -573,14 +613,14 @@ export default function HistoryTable() {
                         {/* Action column */}
                         <TableCell className="hidden sm:table-cell min-w-[150px]">
                           <div className="space-y-1">
-                            <div className="text-sm text-foreground truncate">{item.action}</div>
-                            <div className="text-sm text-muted-foreground truncate">{item.note}</div>
+                            <div className="text-sm text-foreground truncate">{translateActionType(item.action)}</div>
+                            <div className="text-sm text-muted-foreground truncate">{translateDescription(item.note)}</div>
                           </div>
                         </TableCell>
                         
                         {/* Note column */}
                         <TableCell className="text-gray-700 hidden md:table-cell text-sm min-w-[120px]">
-                          <div className="truncate">{item.note}</div>
+                          <div className="truncate">{translateDescription(item.note)}</div>
                         </TableCell>
                         
                         {/* Timestamp column */}

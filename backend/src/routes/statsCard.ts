@@ -1,13 +1,9 @@
 import { Elysia } from "elysia";
 import db from "../db/drizzle";
-import { residents, visitor_records, guards } from "../db/schema";
-import { eq, count, and, gte, lt } from "drizzle-orm";
+import { residents, visitor_records, guards, houses } from "../db/schema";
+import { eq, count, and, gte, lt, sql } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 
-/**
- * Interface for the statistics data.
- * @interface
- */
 interface StatsData {
   residentCount: number;
   residentPendingCount: number;
@@ -18,10 +14,6 @@ interface StatsData {
   visitorRejectedToday: number;
 }
 
-/**
- * Gets the start and end of the current day.
- * @returns {Object} An object containing the start and end of the day.
- */
 const getTodayDateRange = () => {
   const today = new Date();
   const startOfDay = new Date(
@@ -37,51 +29,28 @@ const getTodayDateRange = () => {
   return { startOfDay, endOfDay };
 };
 
-/**
- * Gets the count from a database query result.
- * @param {any[]} result - The result of the database query.
- * @returns {number} The count.
- */
 const getCountFromResult = (result: any[]): number => {
   return result[0]?.count || 0;
 };
 
-/**
- * The statistics card routes.
- * Accessible by: admin (เจ้าของโครงการ), staff (นิติ)
- * @type {Elysia}
- */
 export const statsCardRoutes = new Elysia({ prefix: "/api" })
   .onBeforeHandle(requireRole(["admin", "staff"]))
-  /**
-   * Get resident count and visitor record stats for today.
-   * @returns {Promise<Object>} A promise that resolves to an object containing the statistics data.
-   */
   .get("/statsCard", async ({ currentUser, query, request }: any) => {
     try {
       const { startOfDay, endOfDay } = getTodayDateRange();
-      
-      // Extract village_id from query parameters
+
       let village_id = query?.village_id;
-      
-      // Fallback: if query parsing fails, try to extract from URL
       if (!village_id && request?.url) {
         const url = new URL(request.url);
         village_id = url.searchParams.get('village_id');
       }
-      
+
       const { village_ids, role } = currentUser;
 
-      console.log("StatsCard - Extracted village_id:", village_id);
-      console.log("StatsCard - Available village_ids:", village_ids);
-
-      // For staff role, use their assigned village if no village_id provided
-      if (!village_id && role === "staff" && village_ids && village_ids.length > 0) {
+      if (!village_id && role === "staff" && village_ids?.length > 0) {
         village_id = village_ids[0];
-        console.log("StatsCard - Using staff's assigned village:", village_id);
       }
 
-      // Validate village_id parameter
       if (!village_id || typeof village_id !== 'string') {
         return {
           success: false,
@@ -89,7 +58,6 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
-      // Check if admin has access to the specified village
       if (role !== "superadmin" && !village_ids.includes(village_id)) {
         return {
           success: false,
@@ -97,139 +65,61 @@ export const statsCardRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
-      // Count total residents (filtered by village if not superadmin)
-      const countResidents = role === "superadmin"
-        ? await db.select({ count: count() }).from(residents)
-        : await db.select({ count: count() }).from(residents).where(eq(residents.village_id, village_id));
+      // Optimized queries using Promise.all for parallel execution
+      const [
+        countResidents,
+        countResidentsPending,
+        countGuardsPending,
+        visitorStats
+      ] = await Promise.all([
+        // Total verified residents only
+        db.select({ count: count() })
+          .from(residents)
+          .where(and(
+            eq(residents.village_id, village_id),
+            eq(residents.status, "verified")
+          )),
 
-      // Count residents with pending status (filtered by village if not superadmin)
-      const countResidentsPending = role === "superadmin"
-        ? await db
-            .select({ count: count() })
-            .from(residents)
-            .where(eq(residents.status, "pending"))
-        : await db
-            .select({ count: count() })
-            .from(residents)
-            .where(and(eq(residents.status, "pending"), eq(residents.village_id, village_id)));
+        // Pending residents
+        db.select({ count: count() })
+          .from(residents)
+          .where(and(
+            eq(residents.status, "pending"),
+            eq(residents.village_id, village_id)
+          )),
 
-      // Count guards with pending status (filtered by village if not superadmin)
-      const countGuardsPending = role === "superadmin"
-        ? await db
-            .select({ count: count() })
-            .from(guards)
-            .where(eq(guards.status, "pending"))
-        : await db
-            .select({ count: count() })
-            .from(guards)
-            .where(and(eq(guards.status, "pending"), eq(guards.village_id, village_id)));
+        // Pending guards
+        db.select({ count: count() })
+          .from(guards)
+          .where(and(
+            eq(guards.status, "pending"),
+            eq(guards.village_id, village_id)
+          )),
 
-      // Count visitor records for today (filtered by village if not superadmin)
-      const countVisitorRecordToday = role === "superadmin"
-        ? await db
-            .select({ count: count() })
-            .from(visitor_records)
-            .where(
-              and(
-                gte(visitor_records.createdAt, startOfDay),
-                lt(visitor_records.createdAt, endOfDay)
-              )
-            )
-        : await db
-            .select({ count: count() })
-            .from(visitor_records)
-            .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
-            .where(
-              and(
-                eq(residents.village_id, village_id),
-                gte(visitor_records.createdAt, startOfDay),
-                lt(visitor_records.createdAt, endOfDay)
-              )
-            );
-
-      // Count approved visitor records for today (filtered by village if not superadmin)
-      const countApprovedToday = role === "superadmin"
-        ? await db
-            .select({ count: count() })
-            .from(visitor_records)
-            .where(
-              and(
-                eq(visitor_records.record_status, "approved"),
-                gte(visitor_records.createdAt, startOfDay),
-                lt(visitor_records.createdAt, endOfDay)
-              )
-            )
-        : await db
-            .select({ count: count() })
-            .from(visitor_records)
-            .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
-            .where(
-              and(
-                eq(residents.village_id, village_id),
-                eq(visitor_records.record_status, "approved"),
-                gte(visitor_records.createdAt, startOfDay),
-                lt(visitor_records.createdAt, endOfDay)
-              )
-            );
-
-      // Count pending visitor records for today (filtered by village if not superadmin)
-      const countPendingToday = role === "superadmin"
-        ? await db
-            .select({ count: count() })
-            .from(visitor_records)
-            .where(
-              and(
-                eq(visitor_records.record_status, "pending"),
-                gte(visitor_records.createdAt, startOfDay),
-                lt(visitor_records.createdAt, endOfDay)
-              )
-            )
-        : await db
-            .select({ count: count() })
-            .from(visitor_records)
-            .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
-            .where(
-              and(
-                eq(residents.village_id, village_id),
-                eq(visitor_records.record_status, "pending"),
-                gte(visitor_records.createdAt, startOfDay),
-                lt(visitor_records.createdAt, endOfDay)
-              )
-            );
-
-      // Count rejected visitor records for today (filtered by village if not superadmin)
-      const countRejectedToday = role === "superadmin"
-        ? await db
-            .select({ count: count() })
-            .from(visitor_records)
-            .where(
-              and(
-                eq(visitor_records.record_status, "rejected"),
-                gte(visitor_records.createdAt, startOfDay),
-                lt(visitor_records.createdAt, endOfDay)
-              )
-            )
-        : await db
-            .select({ count: count() })
-            .from(visitor_records)
-            .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
-            .where(
-              and(
-                eq(residents.village_id, village_id),
-                eq(visitor_records.record_status, "rejected"),
-                gte(visitor_records.createdAt, startOfDay),
-                lt(visitor_records.createdAt, endOfDay)
-              )
-            );
+        // All visitor stats in one query - using houses instead of residents
+        db.select({
+          total: count(),
+          approved: sql<number>`COUNT(CASE WHEN ${visitor_records.record_status} = 'approved' THEN 1 END)`,
+          pending: sql<number>`COUNT(CASE WHEN ${visitor_records.record_status} = 'pending' THEN 1 END)`,
+          rejected: sql<number>`COUNT(CASE WHEN ${visitor_records.record_status} = 'rejected' THEN 1 END)`
+        })
+          .from(visitor_records)
+          .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
+          .where(and(
+            eq(houses.village_id, village_id),
+            gte(visitor_records.entry_time, startOfDay),
+            lt(visitor_records.entry_time, endOfDay)
+          ))
+      ]);
 
       const statsData: StatsData = {
         residentCount: getCountFromResult(countResidents),
         residentPendingCount: getCountFromResult(countResidentsPending),
         guardPendingCount: getCountFromResult(countGuardsPending),
-        visitorRecordToday: getCountFromResult(countVisitorRecordToday),
-        visitorApprovedToday: getCountFromResult(countApprovedToday),
-        visitorPendingToday: getCountFromResult(countPendingToday),
-        visitorRejectedToday: getCountFromResult(countRejectedToday),
+        visitorRecordToday: Number(visitorStats[0]?.total || 0),
+        visitorApprovedToday: Number(visitorStats[0]?.approved || 0),
+        visitorPendingToday: Number(visitorStats[0]?.pending || 0),
+        visitorRejectedToday: Number(visitorStats[0]?.rejected || 0),
       };
 
       return {

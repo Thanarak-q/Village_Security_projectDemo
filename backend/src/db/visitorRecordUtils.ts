@@ -506,6 +506,28 @@ export async function updateVisitorRecordStatus(
 }
 
 /**
+ * Updates the status of a visitor record by visitor_record_id.
+ * @param {string} visitorRecordId - The UUID of the visitor record.
+ * @param {"approved" | "pending" | "rejected"} status - The new status of the visitor record.
+ * @returns {Promise<Object>} A promise that resolves to the updated visitor record.
+ */
+export async function updateVisitorRecordStatusById(
+  visitorRecordId: string,
+  status: "approved" | "pending" | "rejected"
+) {
+  const [updatedVisitorRecord] = await db
+    .update(visitor_records)
+    .set({
+      record_status: status,
+      updatedAt: new Date(),
+    })
+    .where(eq(visitor_records.visitor_record_id, visitorRecordId))
+    .returning();
+
+  return updatedVisitorRecord;
+}
+
+/**
  * Deletes a visitor record from the database.
  * @param {string} visitorRecordId - The UUID of the visitor record to delete.
  * @returns {Promise<Object>} A promise that resolves to the deleted visitor record.
@@ -629,7 +651,6 @@ export async function getWeeklyVisitorRecords(villageIds?: string[], role?: stri
   // Add village filtering if villageIds provided and user is not superadmin
   if (villageIds && villageIds.length > 0 && role !== "superadmin") {
     query = query
-      .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
       .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
       .where(
         and(
@@ -726,7 +747,6 @@ export async function getMonthlyVisitorRecords(villageIds?: string[], role?: str
   // Add village filtering if villageIds provided and user is not superadmin
   if (villageIds && villageIds.length > 0 && role !== "superadmin") {
     query = query
-      .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
       .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
       .where(
         and(
@@ -825,7 +845,6 @@ export async function getYearlyVisitorRecords(villageIds?: string[], role?: stri
   // Add village filtering if villageIds provided and user is not superadmin
   if (villageIds && villageIds.length > 0 && role !== "superadmin") {
     query = query
-      .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
       .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
       .where(inArray(houses.village_id, villageIds));
   }

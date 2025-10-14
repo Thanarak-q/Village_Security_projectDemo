@@ -11,6 +11,7 @@ import {
   getVisitorRecordWithDetails,
   createVisitorRecord,
   updateVisitorRecordStatus,
+  updateVisitorRecordStatusById,
   deleteVisitorRecord,
 } from "../db/visitorRecordUtils";
 import { requireLiffAuth } from "../hooks/requireLiffAuth";
@@ -317,7 +318,7 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
-      const result = await updateVisitorRecordStatus(record_id, record_status);
+      const result = await updateVisitorRecordStatusById(record_id, record_status);
       return {
         success: true,
         message: "Visitor record status updated successfully!",
@@ -415,7 +416,7 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
-      const result = await updateVisitorRecordStatus(record_id, "approved");
+      const result = await updateVisitorRecordStatusById(record_id, "approved");
       return {
         success: true,
         message: "Visitor request approved successfully!",
@@ -447,7 +448,7 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
         };
       }
 
-      const result = await updateVisitorRecordStatus(record_id, "rejected");
+      const result = await updateVisitorRecordStatusById(record_id, "rejected");
       return {
         success: true,
         message: "Visitor request denied successfully!",

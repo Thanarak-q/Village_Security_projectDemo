@@ -90,19 +90,19 @@ export default function UserManagementTable() {
   const [guardsData, setGuardsData] = useState<Guard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // State for managing selected tab (residents or guards)
   const [activeTab, setActiveTab] = useState<'residents' | 'guards'>('residents');
-  
+
   // State for managing selected user for editing
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  
+
   // State for controlling edit form visibility
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
-  
+
   // State for search term
   const [searchTerm, setSearchTerm] = useState("");
-  
+
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(() => {
@@ -113,13 +113,13 @@ export default function UserManagementTable() {
     }
     return 5;
   });
-  
+
   // State สำหรับการ refresh ข้อมูล
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // State สำหรับเก็บจำนวนผู้ใช้ที่รออนุมัติ
   const [pendingCount, setPendingCount] = useState(0);
-  
+
   // State for selected village info
   const [selectedVillageName, setSelectedVillageName] = useState<string>("");
 
@@ -132,18 +132,18 @@ export default function UserManagementTable() {
         setLoading(true);
       }
       setError(null);
-      
+
       // Get selected village from sessionStorage (with SSR safety check)
       const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem("selectedVillage") : null;
       const url = selectedVillage ? `/api/userTable?village_id=${encodeURIComponent(selectedVillage)}` : "/api/userTable";
-      
+
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data: UserTableResponse = await response.json();
-      
+
       if (data.success) {
         setResidentsData(data.data.residents);
         setGuardsData(data.data.guards);
@@ -165,14 +165,14 @@ export default function UserManagementTable() {
       // Get selected village from sessionStorage (with SSR safety check)
       const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem("selectedVillage") : null;
       const url = selectedVillage ? `/api/pendingUsers?village_id=${encodeURIComponent(selectedVillage)}` : "/api/pendingUsers";
-      
+
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setPendingCount(data.total.total);
       }
@@ -195,7 +195,7 @@ export default function UserManagementTable() {
     };
 
     window.addEventListener('villageChanged', handleVillageChange);
-    
+
     return () => {
       window.removeEventListener('villageChanged', handleVillageChange);
     };
@@ -260,6 +260,20 @@ export default function UserManagementTable() {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  // Function to translate status to Thai
+  const getStatusInThai = (status: string) => {
+    switch (status) {
+      case 'verified':
+        return 'ยืนยันแล้ว';
+      case 'disable':
+        return 'ระงับการใช้งาน';
+      case 'pending':
+        return 'รออนุมัติ';
+      default:
+        return status;
+    }
   };
 
   // Filter residents by search term
@@ -334,7 +348,7 @@ export default function UserManagementTable() {
     const newValue = Number(value);
     setItemsPerPage(newValue);
     setCurrentPage(1);
-    
+
     // Save to localStorage for persistence
     if (typeof window !== 'undefined' && window.localStorage) {
       localStorage.setItem('userTable_itemsPerPage', newValue.toString());
@@ -345,10 +359,10 @@ export default function UserManagementTable() {
   const handleFormSubmit = async (formData: { status: string; role: string; houseNumber?: string; notes?: string }) => {
     try {
       console.log("Updating user:", selectedUser?.id, 'with data:', formData);
-      
+
       // Refresh data after successful update
       await fetchUsers(true);
-      
+
       setIsEditFormOpen(false);
       setSelectedUser(null);
     } catch (error) {
@@ -373,8 +387,8 @@ export default function UserManagementTable() {
         <div className="text-center">
           <div className="text-red-500 text-xl mb-2">⚠️</div>
           <p className="text-red-600">เกิดข้อผิดพลาด: {error}</p>
-          <button 
-            onClick={() => fetchUsers()} 
+          <button
+            onClick={() => fetchUsers()}
             className="mt-2 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
           >
             ลองใหม่
@@ -389,13 +403,13 @@ export default function UserManagementTable() {
       {/* Main table section */}
       <div className="bg-background rounded-lg shadow-sm border border-border p-4 sm:p-6">
         {/* Village indicator */}
-        
+
         {/* Header with tabs and search */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
           {/* User type tabs and pending users button */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
             {/* Pending Users Button */}
-            <PendingUsersDialog 
+            <PendingUsersDialog
               onRefresh={() => {
                 fetchUsers(true);
                 fetchPendingCount();
@@ -405,30 +419,28 @@ export default function UserManagementTable() {
             {/* Residents tab */}
             <button
               onClick={() => setActiveTab('residents')}
-              className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
-                activeTab === 'residents'
+              className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${activeTab === 'residents'
                   ? 'bg-primary/10 text-primary border border-primary/20'
                   : 'text-muted-foreground hover:bg-muted'
-              }`}
+                }`}
             >
               <Home className="h-4 w-4 sm:h-5 sm:w-5" />
               <span>ลูกบ้าน ({residentsData.length})</span>
             </button>
-            
+
             {/* Guards tab */}
             <button
               onClick={() => setActiveTab('guards')}
-              className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
-                activeTab === 'guards'
+              className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${activeTab === 'guards'
                   ? 'bg-green-100 text-green-700 border border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800'
                   : 'text-muted-foreground hover:bg-muted'
-              }`}
+                }`}
             >
               <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
               <span>ยาม ({guardsData.length})</span>
             </button>
           </div>
-          
+
           {/* Search box and refresh indicator */}
           <div className="flex items-center gap-3">
             <div className="relative w-full sm:w-auto">
@@ -441,7 +453,7 @@ export default function UserManagementTable() {
                 className="pl-10 pr-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent w-full sm:w-64 text-sm"
               />
             </div>
-            
+
             {/* Refresh indicator */}
             {refreshing && (
               <div className="flex items-center gap-1 text-primary text-sm">
@@ -467,7 +479,7 @@ export default function UserManagementTable() {
                   <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
-              
+
               {/* Residents table body */}
               <TableBody>
                 {getCurrentResidents().map((user) => (
@@ -503,7 +515,7 @@ export default function UserManagementTable() {
                         </div>
                       </div>
                     </TableCell>
-                    
+
                     {/* Contact info column */}
                     <TableCell className="hidden sm:table-cell py-4 px-6">
                       <div className="space-y-2">
@@ -511,33 +523,32 @@ export default function UserManagementTable() {
                         <div className="text-sm text-muted-foreground">{user.phone}</div>
                       </div>
                     </TableCell>
-                    
+
                     {/* House number column */}
                     <TableCell className="text-foreground font-semibold hidden md:table-cell text-sm py-4 px-6">
                       {user.houseNumber}
                     </TableCell>
-                    
+
                     {/* Join date column */}
                     <TableCell className="text-muted-foreground hidden lg:table-cell text-sm py-4 px-6">
                       {formatDate(user.joinDate)}
                     </TableCell>
-                    
+
                     {/* Status column */}
                     <TableCell>
                       <Badge
                         variant={user.status === "verified" ? "default" : "secondary"}
-                        className={`text-xs sm:text-sm ${
-                          user.status === "verified"
+                        className={`text-xs sm:text-sm ${user.status === "verified"
                             ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/20"
                             : user.status === "disable"
-                            ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20"
-                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/20"
-                        }`}
+                              ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20"
+                              : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/20"
+                          }`}
                       >
-                        {user.status}
+                        {getStatusInThai(user.status)}
                       </Badge>
                     </TableCell>
-                    
+
                     {/* Actions column */}
                     <TableCell>
                       <Button
@@ -571,7 +582,7 @@ export default function UserManagementTable() {
                   <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">จัดการ</TableHead>
                 </TableRow>
               </TableHeader>
-              
+
               {/* Guards table body */}
               <TableBody>
                 {getCurrentGuards().map((user) => (
@@ -597,13 +608,13 @@ export default function UserManagementTable() {
                           </div>
                           {/* Show contact info on mobile */}
                           <div className="sm:hidden text-xs text-muted-foreground mt-1">
-                            {user.email}<br/>
+                            {user.email}<br />
                             {user.phone}
                           </div>
                         </div>
                       </div>
                     </TableCell>
-                    
+
                     {/* Contact info column */}
                     <TableCell className="hidden sm:table-cell">
                       <div className="space-y-1">
@@ -611,7 +622,7 @@ export default function UserManagementTable() {
                         <div className="text-sm text-muted-foreground">{user.phone}</div>
                       </div>
                     </TableCell>
-                    
+
                     {/* Shift column */}
                     {/* <TableCell>
                       <Badge 
@@ -625,28 +636,27 @@ export default function UserManagementTable() {
                         {user.shift}
                       </Badge>
                     </TableCell> */}
-                    
+
                     {/* Join date column */}
                     <TableCell className="text-muted-foreground hidden lg:table-cell text-sm">
                       {formatDate(user.joinDate)}
                     </TableCell>
-                    
+
                     {/* Status column */}
                     <TableCell>
                       <Badge
                         variant={user.status === "verified" ? "default" : "secondary"}
-                        className={`text-xs sm:text-sm ${
-                          user.status === "verified"
+                        className={`text-xs sm:text-sm ${user.status === "verified"
                             ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/20"
                             : user.status === "disable"
-                            ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20"
-                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/20"
-                        }`}
+                              ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20"
+                              : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/20"
+                          }`}
                       >
-                        {user.status}
+                        {getStatusInThai(user.status)}
                       </Badge>
                     </TableCell>
-                    
+
                     {/* Actions column */}
                     <TableCell>
                       <Button
@@ -668,16 +678,16 @@ export default function UserManagementTable() {
         {/* No data message */}
         {((activeTab === 'residents' && filteredResidents.length === 0) ||
           (activeTab === 'guards' && filteredGuards.length === 0)) && (
-          <div className="p-8 sm:p-12 text-center">
-            <Users className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-base sm:text-lg font-medium text-foreground mb-2">
-              ไม่พบข้อมูลผู้ใช้
-            </h3>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              {searchTerm ? 'ลองค้นหาด้วยคำอื่น' : 'ยังไม่มีข้อมูลผู้ใช้ในหมวดหมู่นี้'}
-            </p>
-          </div>
-        )}
+            <div className="p-8 sm:p-12 text-center">
+              <Users className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-base sm:text-lg font-medium text-foreground mb-2">
+                ไม่พบข้อมูลผู้ใช้
+              </h3>
+              <p className="text-sm sm:text-base text-muted-foreground">
+                {searchTerm ? 'ลองค้นหาด้วยคำอื่น' : 'ยังไม่มีข้อมูลผู้ใช้ในหมวดหมู่นี้'}
+              </p>
+            </div>
+          )}
 
         {/* Pagination controls */}
         {totalItems > 0 && (
@@ -703,13 +713,13 @@ export default function UserManagementTable() {
                 </Select>
                 <span className="text-xs sm:text-sm text-muted-foreground">รายการต่อหน้า</span>
               </div>
-              
+
               {/* Pagination info */}
               <div className="text-xs sm:text-sm text-muted-foreground">
                 แสดง {((currentPage - 1) * itemsPerPage) + 1} ถึง {Math.min(currentPage * itemsPerPage, totalItems)} จาก {totalItems} รายการ
               </div>
             </div>
-            
+
             {/* Right section - Navigation buttons */}
             <div className="flex items-center space-x-2">
               {/* Previous page button */}
@@ -724,7 +734,7 @@ export default function UserManagementTable() {
                 <span className="hidden sm:inline">ก่อนหน้า</span>
                 <span className="sm:hidden">ก่อน</span>
               </Button>
-              
+
               {/* Page number buttons */}
               <div className="flex items-center space-x-1">
                 {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
@@ -738,25 +748,24 @@ export default function UserManagementTable() {
                   } else {
                     pageNum = currentPage - 2 + i;
                   }
-                  
+
                   return (
                     <Button
                       key={pageNum}
                       variant={currentPage === pageNum ? "default" : "outline"}
                       size="sm"
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`w-6 h-6 sm:w-8 sm:h-8 p-0 text-xs sm:text-sm ${
-                        currentPage === pageNum 
-                          ? "bg-primary text-primary-foreground" 
+                      className={`w-6 h-6 sm:w-8 sm:h-8 p-0 text-xs sm:text-sm ${currentPage === pageNum
+                          ? "bg-primary text-primary-foreground"
                           : "text-muted-foreground hover:bg-muted"
-                      }`}
+                        }`}
                     >
                       {pageNum}
                     </Button>
                   );
                 })}
               </div>
-              
+
               {/* Next page button */}
               <Button
                 variant="outline"

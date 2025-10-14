@@ -259,8 +259,8 @@ const ResidentPage = () => {
     }
   };
 
-  // Check if user has guard role
-  const hasGuardRole = userRoles.some(role => role.role === 'guard');
+  // Check if user has guard role with verified or pending status
+  const hasGuardRole = userRoles.some(role => role.role === 'guard' && (role.status === 'verified' || role.status === 'pending'));
   const displayVillageName = currentUser?.village_name ?? villageName;
 
   // Show loading state while checking authentication
@@ -279,7 +279,7 @@ const ResidentPage = () => {
               <div className="flex items-center gap-3">
                 <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2">
                   <Home className="w-6 h-6 sm:w-7 sm:h-7" /> 
-                  {displayVillageName ? `หมู่บ้าน${displayVillageName}` : 'หมู่บ้าน'}
+                  {displayVillageName ? `${displayVillageName}` : 'หมู่บ้าน'}
                 </h1>
               </div>
               <span className="flex items-center gap-2">

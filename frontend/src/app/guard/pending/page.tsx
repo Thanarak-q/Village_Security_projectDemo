@@ -134,8 +134,8 @@ export default function GuardPendingPage() {
     }
   };
 
-  // Check if user has resident role
-  const hasResidentRole = userRoles.some(role => role.role === 'resident');
+  // Check if user has resident role with verified or pending status
+  const hasResidentRole = userRoles.some(role => role.role === 'resident' && (role.status === 'verified' || role.status === 'pending'));
 
   if (isCheckingAuth) {
     return (

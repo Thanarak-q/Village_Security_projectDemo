@@ -35,11 +35,12 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
       setCurrentIndex(0);
     } else if (currentIndex >= sortedPending.length) {
       // If current index is out of bounds, set it to the last valid index
-      setCurrentIndex(sortedPending.length - 1);
+      setCurrentIndex(Math.max(0, sortedPending.length - 1));
     }
   }, [sortedPending.length, currentIndex]);
 
   const nextCard = (skipCount: number = 1) => {
+    if (sortedPending.length === 0) return;
     const newIndex = Math.min(currentIndex + skipCount, sortedPending.length - 1);
     if (newIndex !== currentIndex && !isAnimating && cardRef.current) {
       setIsAnimating(true);
@@ -66,6 +67,7 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
   };
 
   const prevCard = (skipCount: number = 1) => {
+    if (sortedPending.length === 0) return;
     const newIndex = Math.max(currentIndex - skipCount, 0);
     if (newIndex !== currentIndex && !isAnimating && cardRef.current) {
       setIsAnimating(true);
@@ -380,7 +382,7 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
           </div>
         )}
 
-        {sortedPending.length > 0 ? (
+        {sortedPending.length > 0 && sortedPending[currentIndex] ? (
           <div ref={cardRef}>
             <Card className="shadow-sm border-border bg-background/50">
               <CardContent className="p-3">
@@ -431,9 +433,7 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
                           </div>
                         ) : sortedPending[currentIndex].carImage ? (
                           <img
-                            src={sortedPending[currentIndex].carImage.startsWith('/api/') ?
-                              sortedPending[currentIndex].carImage :
-                              `/${sortedPending[currentIndex].carImage}`}
+                            src={sortedPending[currentIndex].carImage}
                             alt={`Car ${sortedPending[currentIndex].plateNumber}`}
                             className="object-cover w-full h-full"
                             onError={(e) => {
@@ -442,6 +442,8 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
                                 plateNumber: sortedPending[currentIndex].plateNumber,
                                 actualSrc: e.currentTarget.src
                               });
+                              // Fallback to default image on error
+                              e.currentTarget.src = '/car1.jpg';
                             }}
                             onLoad={(e) => {
                               console.log('✅ Image loaded successfully:', {
@@ -512,12 +514,14 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
 
             {/* Full-size image */}
             <img
-              src={sortedPending[currentIndex].carImage.startsWith('/api/') ?
-                sortedPending[currentIndex].carImage :
-                `/${sortedPending[currentIndex].carImage}`}
+              src={sortedPending[currentIndex].carImage}
               alt={`Full size - Car ${sortedPending[currentIndex].plateNumber}`}
               className="max-w-full max-h-full object-contain rounded-lg"
               onClick={(e) => e.stopPropagation()} // Prevent closing when clicking on image
+              onError={(e) => {
+                // Fallback to default image on error
+                e.currentTarget.src = '/car1.jpg';
+              }}
             />
 
             {/* Image info */}
