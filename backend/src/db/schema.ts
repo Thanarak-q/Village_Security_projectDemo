@@ -80,10 +80,10 @@ export const residents = pgTable(
   "residents",
   {
     resident_id: uuid("resident_id").primaryKey().defaultRandom(),
-    line_user_id: text("line_user_id").unique(),
+    line_user_id: text("line_user_id"),
     line_display_name: text("line_display_name"),
     line_profile_url: text("line_profile_url"),
-    email: text("email").notNull().unique(),
+    email: text("email").notNull(),
     fname: text("fname").notNull(),
     lname: text("lname").notNull(),
     phone: text("phone").notNull(),
@@ -101,6 +101,13 @@ export const residents = pgTable(
     index("idx_residents_status").on(table.status),
     index("idx_residents_village_id").on(table.village_id),
     index("idx_residents_status_village_id").on(table.status, table.village_id),
+    index("idx_residents_line_user_id").on(table.line_user_id),
+    index("idx_residents_email").on(table.email),
+    unique("unique_residents_line_user_village").on(
+      table.line_user_id,
+      table.village_id
+    ),
+    unique("unique_residents_email_village").on(table.email, table.village_id),
   ]
 );
 
@@ -122,10 +129,10 @@ export const guards = pgTable(
   "guards",
   {
     guard_id: uuid("guard_id").primaryKey().defaultRandom(),
-    line_user_id: text("line_user_id").unique(),
+    line_user_id: text("line_user_id"),
     line_display_name: text("line_display_name"),
     line_profile_url: text("line_profile_url"),
-    email: text("email").notNull().unique(),
+    email: text("email").notNull(),
     fname: text("fname").notNull(),
     lname: text("lname").notNull(),
     phone: text("phone").notNull(),
@@ -143,6 +150,13 @@ export const guards = pgTable(
     index("idx_guards_status").on(table.status),
     index("idx_guards_village_id").on(table.village_id),
     index("idx_guards_status_village_id").on(table.status, table.village_id),
+    index("idx_guards_line_user_id").on(table.line_user_id),
+    index("idx_guards_email").on(table.email),
+    unique("unique_guards_line_user_village").on(
+      table.line_user_id,
+      table.village_id
+    ),
+    unique("unique_guards_email_village").on(table.email, table.village_id),
   ]
 );
 
