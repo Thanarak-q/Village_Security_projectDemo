@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { isAuthenticated, getAuthData } from "@/lib/liffAuth";
+import { isAuthenticated, getAuthData, logout } from "@/lib/liffAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Clock, RefreshCw, Shield, Home, User } from "lucide-react";
@@ -75,9 +75,11 @@ export default function GuardPendingPage() {
   };
 
   const handleLogout = () => {
-    // Clear auth data and redirect to login
-    localStorage.clear();
-    router.push("/liff?role=guard");
+    // Use the centralized logout function to clear both app and LIFF sessions
+    logout();
+    // Perform a full page redirect to the LIFF entry point to ensure a clean state.
+    // This prevents "cross-LIFF" errors.
+    window.location.href = "/liff?role=guard";
   };
 
   const handleSwitchToResident = async () => {

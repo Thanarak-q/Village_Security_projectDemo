@@ -31,6 +31,7 @@ export interface LiffAuthResponse {
   message?: string; // Custom success/error message
   needsRedirect?: boolean; // Indicates if redirect is needed
   redirectTo?: string; // Where to redirect
+  tokenExpired?: boolean; // Indicates if the token expired
 }
 
 // Use relative paths for API calls so Caddy can route them properly
@@ -100,6 +101,7 @@ export const verifyLiffToken = async (
         return {
           success: false,
           error: 'LINE token expired. Please refresh the page and try again.',
+          tokenExpired: true,
         };
       }
       
@@ -388,6 +390,7 @@ export const registerLiffUser = async (
         return {
           success: false,
           error: 'LINE token expired. Please refresh the page and try again.',
+          tokenExpired: true,
         };
       }
       
@@ -487,6 +490,24 @@ export const clearAuthData = () => {
   localStorage.removeItem('liffToken');
   localStorage.removeItem('lineProfile');
   localStorage.removeItem('lineIdToken');
+};
+
+// Centralized logout function
+export const logout = () => {
+  console.log('🚀 Performing full logout...');
+  // Clear local application auth data
+  clearAuthData();
+
+  // Get LIFF service instance and perform LIFF logout
+  try {
+    const svc = LiffService.getInstance();
+    if (svc.isLoggedIn()) {
+      svc.logout();
+      console.log('✅ LIFF session logged out.');
+    }
+  } catch (error) {
+    console.warn('⚠️ Could not perform LIFF logout:', error);
+  }
 };
 
 // Check if user is authenticated

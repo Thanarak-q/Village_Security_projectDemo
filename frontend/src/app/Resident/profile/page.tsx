@@ -22,57 +22,49 @@ const ResidentProfilePage = () => {
         return;
       }
 
+      const { user, token } = getAuthData();
+      if (!user) {
+        router.push('/liff');
+        return;
+      }
+
       try {
-        // Try LIFF authentication first (for guards and residents)
-        let response = await fetch('/api/auth/liff/me', {
+        const response = await fetch('/api/resident/profile', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
           credentials: 'include',
         });
 
-        // If LIFF auth fails, try admin authentication
-        if (!response.ok) {
-          response = await fetch('/api/auth/me', {
-            credentials: 'include',
-          });
-        }
-
         if (response.ok) {
-          const userData: ResidentProfile = await response.json();
-          setCurrentUser(userData);
-          
-          // Set village name from API response
-          if (userData.village_name) {
-            setVillageName(userData.village_name);
-          }
-        } else {
-          // Fallback to localStorage if API fails
-          const { user } = getAuthData();
-          if (user) {
+          const profileData = await response.json();
+          if (profileData.success && profileData.data) {
+            setCurrentUser(profileData.data);
+            if (profileData.data.village_id) {
+              fetchVillageName(profileData.data.village_id);
+            }
+          } else {
+            // Fallback to local storage if API fails
             setCurrentUser(user);
-            // Fetch village name from API
             if (user.village_id) {
               fetchVillageName(user.village_id);
             }
-          } else {
-            router.push('/liff');
-            return;
           }
-        }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-        // Fallback to localStorage
-        const { user } = getAuthData();
-        if (user) {
+        } else {
           setCurrentUser(user);
           if (user.village_id) {
             fetchVillageName(user.village_id);
           }
-        } else {
-          router.push('/liff');
-          return;
         }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        setCurrentUser(user);
+        if (user.village_id) {
+          fetchVillageName(user.village_id);
+        }
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     loadUserData();
@@ -110,7 +102,7 @@ const ResidentProfilePage = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">กำลังโหลดข้อมูล...</p>
+          <p className="text-muted-foreground">กำลังโหลด...</p>
         </div>
       </div>
     );
@@ -118,9 +110,9 @@ const ResidentProfilePage = () => {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center">
-          <p className="text-muted-foreground">ไม่พบข้อมูลผู้ใช้</p>
+          <p className="text-muted-foreground mb-4">ไม่พบข้อมูลผู้ใช้</p>
           <button
             onClick={handleGoBack}
             className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
@@ -135,17 +127,11 @@ const ResidentProfilePage = () => {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-2 sm:p-4">
       <div className="w-full max-w-[420px]">
-        {/* Main Card */}
         <div className="bg-card rounded-2xl border shadow-lg">
-          {/* Header */}
           <div className="px-4 py-4 border-b">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
-                <button
-                  onClick={handleGoBack}
-                  className="p-2 rounded-lg hover:bg-muted transition-colors"
-                  aria-label="Go back"
-                >
+                <button onClick={handleGoBack} className="p-2 rounded-lg hover:bg-muted transition-colors" aria-label="Go back">
                   <ArrowLeft className="w-5 h-5 text-foreground" />
                 </button>
                 <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2">
@@ -157,9 +143,7 @@ const ResidentProfilePage = () => {
             </div>
           </div>
 
-          {/* Profile Content */}
           <div className="px-4 py-6 space-y-6">
-            {/* Profile Picture */}
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                 {currentUser.line_profile_url ? (
@@ -180,7 +164,6 @@ const ResidentProfilePage = () => {
               </p>
             </div>
 
-            {/* User Information */}
             <div className="space-y-4">
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
                 <Mail className="w-5 h-5 text-muted-foreground" />
@@ -219,7 +202,6 @@ const ResidentProfilePage = () => {
               </div>
             </div>
 
-            {/* LINE Information */}
             <div className="pt-4 border-t">
               <h3 className="text-sm font-medium text-muted-foreground mb-3">ข้อมูล LINE</h3>
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
@@ -233,20 +215,13 @@ const ResidentProfilePage = () => {
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="pt-4 space-y-3">
-              <button 
-                onClick={handleRegisterRole}
-                className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
-              >
+              <button onClick={handleRegisterRole} className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors">
                 <Plus className="w-4 h-4" />
                 ลงทะเบียนบทบาทเพิ่มเติม
               </button>
               
-              <button 
-                onClick={handleEditProfile}
-                className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
+              <button onClick={handleEditProfile} className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors">
                 <Edit className="w-4 h-4" />
                 แก้ไขข้อมูล
               </button>

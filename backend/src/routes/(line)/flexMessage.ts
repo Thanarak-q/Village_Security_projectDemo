@@ -723,25 +723,25 @@ export const flexMessageRoutes = new Elysia({ prefix: '/api/line' })
         // Parse the postback data
         const params = new URLSearchParams(data);
         const action = params.get('action');
-        const visitorId = params.get('visitorId');
+        const visitorRecordId = params.get('visitorId'); // This is now visitor_record_id
         
         console.log('Postback data:', data);
         console.log('Parsed action:', action);
-        console.log('Parsed visitorId:', visitorId);
+        console.log('Parsed visitorRecordId:', visitorRecordId);
         console.log('User ID:', userId);
         
-          if (action && visitorId) {
+          if (action && visitorRecordId) {
             if (action === 'approve') {
               // Check current status before processing
-              const { getVisitorRecordByVisitorId, updateVisitorRecordStatus } = await import('../../db/visitorRecordUtils');
+              const { getVisitorRecordById, updateVisitorRecordStatusById } = await import('../../db/visitorRecordUtils');
               
               try {
-                console.log('Approving visitorId:', visitorId);
-                const currentRecord = await getVisitorRecordByVisitorId(visitorId);
+                console.log('Approving visitorRecordId:', visitorRecordId);
+                const currentRecord = await getVisitorRecordById(visitorRecordId);
                 console.log('Approval - Current record found:', currentRecord);
                 
                 if (!currentRecord) {
-                  console.log('Approval - No record found for visitorId:', visitorId);
+                  console.log('Approval - No record found for visitorRecordId:', visitorRecordId);
                   const errorMessage = `❌ ไม่พบข้อมูลการเยี่ยม\n`;
                   await flexMessageService.sendFlexMessage(userId, { type: 'text', text: errorMessage } as any);
                   return;
@@ -758,7 +758,7 @@ export const flexMessageRoutes = new Elysia({ prefix: '/api/line' })
                 }
                 
                 // Process approval
-                await updateVisitorRecordStatus(visitorId, 'approved');
+                await updateVisitorRecordStatusById(visitorRecordId, 'approved');
                 
                 // Send confirmation message to resident
                 const confirmationMessage = `✅ คุณได้อนุมัติการเข้าให้ผู้เยี่ยมแล้ว`;
@@ -782,17 +782,17 @@ export const flexMessageRoutes = new Elysia({ prefix: '/api/line' })
               }
             } else if (action === 'deny') {
               // Check current status before showing denial confirmation
-              const { getVisitorRecordByVisitorId, getVisitorRecordWithDetails } = await import('../../db/visitorRecordUtils');
+              const { getVisitorRecordById, getVisitorRecordWithDetailsById } = await import('../../db/visitorRecordUtils');
               
               try {
-                console.log('Denying visitorId:', visitorId);
+                console.log('Denying visitorRecordId:', visitorRecordId);
                 
                 // First check if record exists with basic query
-                const basicRecord = await getVisitorRecordByVisitorId(visitorId);
+                const basicRecord = await getVisitorRecordById(visitorRecordId);
                 console.log('Deny - Basic record found:', basicRecord);
                 
                 if (!basicRecord) {
-                  console.log('Deny - No record found for visitorId:', visitorId);
+                  console.log('Deny - No record found for visitorRecordId:', visitorRecordId);
                   const errorMessage = `❌ ไม่พบข้อมูลการเยี่ยม\n`;
                   await flexMessageService.sendFlexMessage(userId, { type: 'text', text: errorMessage } as any);
                   return;
@@ -807,13 +807,13 @@ export const flexMessageRoutes = new Elysia({ prefix: '/api/line' })
                 }
                 
                 // Get detailed record for the confirmation message
-                const detailedRecord = await getVisitorRecordWithDetails(visitorId);
+                const detailedRecord = await getVisitorRecordWithDetailsById(visitorRecordId);
                 console.log('Deny - Detailed record found:', detailedRecord);
                 
                 if (detailedRecord) {
                   // Show denial confirmation message using the detailed record data
                   const confirmationMessage = flexMessageService.createDenialConfirmationMessage({
-                    visitorId,
+                    visitorId: visitorRecordId,
                     visitorName: detailedRecord.visitor_name || 'ผู้เยี่ยม',
                     houseNumber: detailedRecord.house_address || 'บ้านเลขที่',
                     residentName: detailedRecord.resident_name || 'ผู้อยู่อาศัย',
@@ -830,7 +830,7 @@ export const flexMessageRoutes = new Elysia({ prefix: '/api/line' })
                 } else {
                   // Fallback with basic data from basicRecord
                   const confirmationMessage = flexMessageService.createDenialConfirmationMessage({
-                    visitorId,
+                    visitorId: visitorRecordId,
                     visitorName: 'ผู้เยี่ยม',
                     houseNumber: 'บ้านเลขที่',
                     residentName: 'ผู้อยู่อาศัย',
@@ -852,10 +852,10 @@ export const flexMessageRoutes = new Elysia({ prefix: '/api/line' })
               }
             } else if (action === 'reject_confirm') {
               // Check current status before processing final denial
-              const { getVisitorRecordByVisitorId, updateVisitorRecordStatus } = await import('../../db/visitorRecordUtils');
+              const { getVisitorRecordById, updateVisitorRecordStatusById } = await import('../../db/visitorRecordUtils');
               
               try {
-                const currentRecord = await getVisitorRecordByVisitorId(visitorId);
+                const currentRecord = await getVisitorRecordById(visitorRecordId);
                 
                 if (!currentRecord) {
                   const errorMessage = `❌ ไม่พบข้อมูลการเยี่ยม\n`;
@@ -874,8 +874,8 @@ export const flexMessageRoutes = new Elysia({ prefix: '/api/line' })
                 }
                 
                 // Process final denial
-                console.log('Reject confirm - Updating status to rejected for visitorId:', visitorId);
-                await updateVisitorRecordStatus(visitorId, 'rejected');
+                console.log('Reject confirm - Updating status to rejected for visitorRecordId:', visitorRecordId);
+                await updateVisitorRecordStatusById(visitorRecordId, 'rejected');
                 
                 // Send confirmation message to resident
                 const confirmationMessage = `❌ คุณได้ปฏิเสธการเข้าให้ผู้เยี่ยมแล้ว`;
@@ -899,10 +899,10 @@ export const flexMessageRoutes = new Elysia({ prefix: '/api/line' })
               }
             } else if (action === 'cancel') {
               // Check current status before showing original approval message
-              const { getVisitorRecordByVisitorId, getVisitorRecordWithDetails } = await import('../../db/visitorRecordUtils');
+              const { getVisitorRecordById, getVisitorRecordWithDetailsById } = await import('../../db/visitorRecordUtils');
               
               try {
-                const currentRecord = await getVisitorRecordByVisitorId(visitorId);
+                const currentRecord = await getVisitorRecordById(visitorRecordId);
                 
                 if (!currentRecord) {
                   const errorMessage = `❌ ไม่พบข้อมูลการเยี่ยม\n`;
@@ -919,11 +919,11 @@ export const flexMessageRoutes = new Elysia({ prefix: '/api/line' })
                 }
                 
                 // Show original approval message
-                const visitorRecord = await getVisitorRecordWithDetails(visitorId);
+                const visitorRecord = await getVisitorRecordWithDetailsById(visitorRecordId);
                 
                 if (visitorRecord) {
                   const approvalMessage = flexMessageService.createVisitorApprovalMessage({
-                    visitorId,
+                    visitorId: visitorRecordId,
                     visitorName: visitorRecord.visitor_name || 'ผู้เยี่ยม',
                     houseNumber: visitorRecord.house_address || 'บ้านเลขที่',
                     residentName: visitorRecord.resident_name || 'ผู้อยู่อาศัย',
@@ -940,7 +940,7 @@ export const flexMessageRoutes = new Elysia({ prefix: '/api/line' })
                 } else {
                   // Fallback with basic data
                   const approvalMessage = flexMessageService.createVisitorApprovalMessage({
-                    visitorId,
+                    visitorId: visitorRecordId,
                     visitorName: 'ผู้เยี่ยม',
                     houseNumber: 'บ้านเลขที่',
                     residentName: 'ผู้อยู่อาศัย',

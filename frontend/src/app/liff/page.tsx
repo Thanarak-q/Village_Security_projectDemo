@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LiffService } from "@/lib/liff";
-import { verifyLiffToken, storeAuthData } from "@/lib/liffAuth";
+import { verifyLiffToken, storeAuthData, logout } from "@/lib/liffAuth";
 import { useTokenRefresh } from "@/hooks/useTokenRefresh";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import type { UserRole, UserRolesResponse } from "@/types/roles";
@@ -304,6 +304,25 @@ export default function LiffPage() {
                 console.log('⚠️ Fallback redirecting to:', redirectPath);
                 setTimeout(() => router.replace(redirectPath), 1000);
               }
+            } else if (authResult.tokenExpired) {
+              // Token is expired, force re-login automatically
+              console.warn("⚠️ Backend verification failed (token expired) → re-login");
+              setStep("logging-in");
+              setMsg("สิทธิ์เข้าใช้งานหมดอายุ กำลังรีเฟรช...");
+              svc.logout();
+              try {
+                // Use relative path to prevent cross-LIFF redirection
+                const redirectUri = window.location.pathname + window.location.search;
+                await svc.login(redirectUri);
+                return; // Will redirect
+              } catch (error) {
+                if (error instanceof Error && error.message === "Cross-LIFF redirection not allowed") {
+                  setStep("error");
+                  setMsg("คุณกำลังเข้าถึงจาก LIFF แอปอื่น กรุณาใช้ LIFF แอปที่ถูกต้อง");
+                  return;
+                }
+                throw error; // Re-throw other errors
+              }
             } else if (authResult.lineUserId) {
               // User not found, redirect to registration page
               console.log('📝 User not found in database, redirecting to registration');
@@ -336,12 +355,24 @@ export default function LiffPage() {
     void run();
   }, [router]);
 
+  useEffect(() => {
+    // Automatically handle retry for "denied" and "error" states
+    if (step === 'denied' || step === 'error') {
+      // Don't auto-retry for "wrong LIFF" error to prevent loops
+      if (msg.includes("LIFF แอปอื่น")) {
+        return;
+      }
+      setTimeout(handleRetry, 3000); // Wait 3 seconds before retrying
+    }
+  }, [step, msg]);
+
   const handleRetry = () => {
     // เคส denied/error ให้ลองใหม่ เคลียร์ session + reload
+    console.log('🔄 Retrying login. Performing full logout first...');
+    logout(); // Perform a full logout to clear LIFF and app session
     setStep("init");
     setMsg("กำลังเตรียม LIFF ...");
-    svc.clearCache();
-    svc.retryConsent();
+    window.location.reload(); // Reload the page to start the login process fresh
   };
 
 
@@ -380,12 +411,7 @@ export default function LiffPage() {
             <>
               <XCircle className="w-12 h-12 text-yellow-400" />
               <p className="text-yellow-300">{msg}</p>
-              <button
-                onClick={handleRetry}
-                className="mt-4 px-4 py-2 bg-yellow-400 text-black font-semibold rounded-lg shadow-md hover:bg-yellow-300 transition"
-              >
-                ลองใหม่
-              </button>
+              <p className="mt-4 text-gray-400">กำลังลองใหม่อัตโนมัติ...</p>
             </>
           ) : (
             <>
@@ -393,10 +419,11 @@ export default function LiffPage() {
               <p className="text-rose-300">{msg}</p>
               <button
                 onClick={handleRetry}
-                className="mt-4 px-4 py-2 bg-rose-500 text-white font-semibold rounded-lg shadow-md hover:bg-rose-400 transition"
+                className="mt-4 text-gray-400 hover:text-gray-300 text-sm underline"
               >
-                โหลดใหม่
+                {msg.includes("LIFF แอปอื่น") ? "กลับไปหน้าหลัก" : "ลองใหม่อีกครั้ง"}
               </button>
+              {!msg.includes("LIFF แอปอื่น") && <p className="mt-2 text-sm text-gray-500">กำลังลองใหม่อัตโนมัติใน 3 วินาที...</p>}
             </>
           )}
         </div>

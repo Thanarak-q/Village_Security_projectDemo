@@ -333,11 +333,11 @@ const approvalForm = new Elysia({ prefix: "/api" })
         // Format visitor data for flex message
         const visitorFlexData = formatVisitorDataForFlexMessage(
           {
-            visitor_name: visitorIDCard, // Using ID card as visitor name for now
+            visitor_name: `${fname || ''} ${lname || ''}`.trim() || 'ผู้มาติดต่อ',
             visitor_phone: 'ไม่ระบุ',
             visit_purpose: visitPurpose || 'ไม่ระบุวัตถุประสงค์',
             entry_time: result.inserted.entry_time,
-            visitor_id: result.inserted.visitor_id,
+            visitor_id: result.inserted.visitor_record_id, // Use visitor_record_id for unique visit actions
             visitor_record_id: result.inserted.visitor_record_id,
             picture_key: savedImageFilename,
             resident_name: result.residents.length > 0 ? 
@@ -379,5 +379,3 @@ const approvalForm = new Elysia({ prefix: "/api" })
 )
 
 export default approvalForm;
-
-

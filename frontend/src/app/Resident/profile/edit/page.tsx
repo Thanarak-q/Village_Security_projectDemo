@@ -2,17 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, User, Mail, Phone, MapPin, Save, X } from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, Save, X } from "lucide-react";
 import { getAuthData, isAuthenticated } from "@/lib/liffAuth";
 import { ModeToggle } from "@/components/mode-toggle";
 import type { LiffUser } from "@/lib/liffAuth";
 
-type ResidentProfile = LiffUser & { village_name?: string };
-
 const EditResidentProfilePage = () => {
   const router = useRouter();
-  const [currentUser, setCurrentUser] = useState<ResidentProfile | null>(null);
-  const [villageName, setVillageName] = useState<string>('');
+  const [currentUser, setCurrentUser] = useState<LiffUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>("");
@@ -47,7 +44,7 @@ const EditResidentProfilePage = () => {
         }
 
         if (response.ok) {
-          const userData: ResidentProfile = await response.json();
+          const userData: LiffUser = await response.json();
           setCurrentUser(userData);
           setFormData({
             fname: userData.fname || "",
@@ -60,11 +57,6 @@ const EditResidentProfilePage = () => {
           const { user } = getAuthData();
           if (user) {
             setCurrentUser(user);
-            
-            // If localStorage data doesn't have village_name, fetch it from village_id
-            if (user.village_id) {
-              fetchVillageName(user.village_id);
-            }
             setFormData({
               fname: user.fname || "",
               lname: user.lname || "",
@@ -99,21 +91,6 @@ const EditResidentProfilePage = () => {
 
     loadUserData();
   }, [router]);
-
-  const fetchVillageName = async (villageId: string) => {
-    try {
-      const response = await fetch(`/api/villages/validate?id=${encodeURIComponent(villageId)}`, {
-        credentials: 'include'
-      });
-      const data = await response.json();
-      
-      if (data.success && data.data && data.data.village_name) {
-        setVillageName(data.data.village_name);
-      }
-    } catch (error) {
-      console.error('Error fetching village name:', error);
-    }
-  };
 
   const handleGoBack = () => {
     router.back();
@@ -370,24 +347,6 @@ const EditResidentProfilePage = () => {
                 </div>
               </div>
 
-              {/* Village Info (Read-only) */}
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  หมู่บ้าน
-                </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={villageName || currentUser?.village_id || "ไม่ระบุ"}
-                    className="w-full pl-10 pr-3 py-2 border border-input rounded-lg bg-muted text-muted-foreground cursor-not-allowed"
-                    disabled
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  หมู่บ้านไม่สามารถแก้ไขได้
-                </p>
-              </div>
             </div>
 
             {/* Action Buttons */}
