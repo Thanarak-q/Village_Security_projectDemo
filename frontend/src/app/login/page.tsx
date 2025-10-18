@@ -306,9 +306,8 @@ const Page: React.FC = () => {
 
       // Fallback to default dashboard
       animateLoginSuccess("/dashboard");
-    } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Something went wrong";
+    } catch (error: unknown) {
+      console.error("Unexpected login error:", error);
       // Trigger login failure animation
       animateLoginFailure();
       setLoading(false);

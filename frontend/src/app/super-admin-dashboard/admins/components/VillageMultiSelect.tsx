@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -13,16 +12,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Building, Plus, X, MapPin, Edit } from "lucide-react";
+import { Building, Plus, X, Edit } from "lucide-react";
 import { toast } from "sonner";
 
 interface Village {
@@ -185,10 +176,6 @@ export default function VillageMultiSelect({
 
   const getSelectedVillages = () => {
     return villages.filter(village => selectedVillageIds.includes(village.village_id));
-  };
-
-  const isVillageSelected = (villageId: string) => {
-    return selectedVillageIds.includes(villageId);
   };
 
   return (

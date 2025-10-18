@@ -432,6 +432,7 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
                             <span className="text-xs">กำลังโหลด...</span>
                           </div>
                         ) : sortedPending[currentIndex].carImage ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
                           <img
                             src={sortedPending[currentIndex].carImage}
                             alt={`Car ${sortedPending[currentIndex].plateNumber}`}
@@ -513,6 +514,7 @@ export const ApprovalCards: React.FC<ApprovalCardsProps> = ({ items, onApprove, 
             </button>
 
             {/* Full-size image */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={sortedPending[currentIndex].carImage}
               alt={`Full size - Car ${sortedPending[currentIndex].plateNumber}`}

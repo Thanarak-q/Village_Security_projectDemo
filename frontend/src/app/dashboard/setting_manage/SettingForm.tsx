@@ -115,6 +115,7 @@ function SettingForm() {
     try {
       // Exclude username from the update payload since it should not be changed
       const { username, ...updateData } = values;
+      void username;
 
       const response = await fetch('/api/admin/profile', {
         method: 'PUT',

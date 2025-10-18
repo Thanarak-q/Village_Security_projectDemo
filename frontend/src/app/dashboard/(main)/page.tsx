@@ -27,7 +27,6 @@ interface DashboardUser {
 export default function Page() {
   const [data, setData] = useState<DashboardUser | null>(null);
   const [selectedVillageName, setSelectedVillageName] = useState<string>("");
-  const [selectedVillageKey, setSelectedVillageKey] = useState<string>("");
   const [villageKey, setVillageKey] = useState<string>("");
   const [showVillageKey, setShowVillageKey] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
@@ -65,7 +64,6 @@ export default function Page() {
               if (selectedVillage) {
                 setSelectedVillageName(selectedVillage.village_name);
                 setVillageKey(selectedVillage.village_key);
-                setSelectedVillageKey(selectedVillageId);
               }
             }
           }
@@ -140,12 +138,10 @@ export default function Page() {
           console.log('✅ Dashboard: Village updated:', selectedVillage.village_name);
           setSelectedVillageName(selectedVillage.village_name);
           setVillageKey(selectedVillage.village_key);
-          setSelectedVillageKey(villageId);
         }
       } else {
         console.log('❌ Dashboard: No village selected');
         setSelectedVillageName("");
-        setSelectedVillageKey("");
         setVillageKey("");
       }
     };
@@ -155,7 +151,7 @@ export default function Page() {
     return () => {
       window.removeEventListener('villageChanged', handleVillageChange);
     };
-  }, []);
+  }, [data]);
 
   // if (!data) return <p>Loading...</p>;
   // if (data.role !== "admin") {

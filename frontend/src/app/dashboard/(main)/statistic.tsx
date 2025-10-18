@@ -2,7 +2,7 @@
 
 import { useState, useEffect, memo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, UserCheck, AlertTriangle, Plus, Loader2, CheckCircle, XCircle, Shield, Clock } from "lucide-react"
+import { Users, UserCheck, AlertTriangle, Plus, Loader2, CheckCircle, XCircle, Shield } from "lucide-react"
 
 // Types for API response
 interface StatsData {
@@ -57,7 +57,6 @@ export function DailyAccessCard({ data, loading, error }: { data: StatsData | nu
     ?? ((data?.visitorApprovedToday || 0) + (data?.visitorPendingToday || 0) + (data?.visitorRejectedToday || 0))
 
   const approvedCount = data?.visitorApprovedToday || 0
-  const pendingCount = data?.visitorPendingToday || 0
   const rejectedCount = data?.visitorRejectedToday || 0
 
   return (

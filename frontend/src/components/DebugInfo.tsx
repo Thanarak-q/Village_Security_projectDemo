@@ -14,14 +14,13 @@ interface DebugInfoProps {
   showPerformance?: boolean;
 }
 
-export function DebugInfo({
-  componentName,
-  enabled = process.env.NODE_ENV === 'development',
-  showProps = false,
-  showState = false,
-  showRenderCount = true,
-  showPerformance = true
-}: DebugInfoProps) {
+export function DebugInfo(props: DebugInfoProps) {
+  const {
+    componentName,
+    enabled = process.env.NODE_ENV === 'development',
+    showRenderCount = true,
+    showPerformance = true
+  } = props;
   const renderCountRef = useRef(0);
   const lastRenderTimeRef = useRef(Date.now());
   const renderTimesRef = useRef<number[]>([]);

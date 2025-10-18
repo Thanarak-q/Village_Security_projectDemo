@@ -174,7 +174,7 @@ export function useWebSocketNotifications(options: UseWebSocketNotificationsOpti
       setHealthStatus(calculateHealthStatus(updated));
       return updated;
     });
-  }, [calculateHealthStatus]);
+  }, [calculateHealthStatus, setErrorStats, setHealthStatus]);
 
   const handleWebSocketError = useCallback((
     error: Event | Error | string,

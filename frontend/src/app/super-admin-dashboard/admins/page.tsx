@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +31,6 @@ import {
   AlertTriangle,
   Building,
   Shield,
-  UserCheck,
   Archive,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -86,12 +85,7 @@ export default function AdminsPage() {
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    fetchAdmins();
-    fetchVillages();
-  }, []);
-
-  const fetchAdmins = async () => {
+  const fetchAdmins = useCallback(async () => {
     try {
       const response = await fetch("/api/superadmin/admins", {
         credentials: "include",
@@ -123,9 +117,9 @@ export default function AdminsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
-  const fetchVillages = async () => {
+  const fetchVillages = useCallback(async () => {
     try {
       const response = await fetch("/api/superadmin/villages", {
         credentials: "include",
@@ -140,7 +134,12 @@ export default function AdminsPage() {
     } catch (err) {
       console.error("Error fetching villages:", err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchAdmins();
+    fetchVillages();
+  }, [fetchAdmins, fetchVillages]);
 
   const handleCreateAdmin = async () => {
     if (!formData.username.trim() || !formData.email.trim() || 
@@ -312,24 +311,6 @@ export default function AdminsPage() {
 
   const getRoleDisplayName = (role: string) => {
     return role === "admin" ? "เจ้าของโครงการ" : "นิติ";
-  };
-
-  const getStatusDisplayName = (status: string) => {
-    switch (status) {
-      case "verified": return "ยืนยันแล้ว";
-      case "pending": return "รอการอนุมัติ";
-      case "disable": return "ปิดใช้งาน";
-      default: return status;
-    }
-  };
-
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case "verified": return "default";
-      case "pending": return "secondary";
-      case "disable": return "destructive";
-      default: return "outline";
-    }
   };
 
   if (loading) {

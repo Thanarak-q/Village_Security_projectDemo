@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback } from "react"
 import { Bell, Users, Home, Clock, AlertTriangle, Settings } from "lucide-react"
 import Link from "next/link"
 
@@ -146,7 +146,6 @@ export default function NotificationComponent() {
     counts,
     loading,
     error,
-    isWebSocketConnected
   } = useHybridNotifications();
 
   // Separate notifications into today and previous days

@@ -10,13 +10,10 @@ import {
   AlertCircle,
   Loader2,
   MapPin,
-  X,
 } from "lucide-react";
 import { getAuthData, isAuthenticated } from "@/lib/liffAuth";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { LiffUser } from "@/lib/liffAuth";
@@ -309,6 +306,7 @@ const RoleRegistrationPage = () => {
             <div className="text-center">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
                 {currentUser.line_profile_url ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     src={currentUser.line_profile_url}
                     alt="Profile"

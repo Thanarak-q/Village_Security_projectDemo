@@ -1,16 +1,14 @@
 "use client";
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle, CheckCircle, User, Shield, ArrowLeft, MapPin } from 'lucide-react';
+import { Loader2, CheckCircle, User, Shield, MapPin } from 'lucide-react';
 import { LiffService } from '@/lib/liff';
 import { registerLiffUser, storeAuthData } from '@/lib/liffAuth';
-import { validateRegistrationForm, validateField, type ValidationError as ZodValidationError } from '@/lib/validation';
+import { validateRegistrationForm } from '@/lib/validation';
 import { ModeToggle } from '@/components/mode-toggle';
 import Image from 'next/image';
 
@@ -18,7 +16,6 @@ const svc = LiffService.getInstance();
 
 function RegisterPageContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

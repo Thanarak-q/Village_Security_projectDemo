@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +24,6 @@ import {
   Archive, 
   ArrowLeft,
   AlertTriangle,
-  Users,
   Calendar,
   RotateCcw,
   Shield,
@@ -60,11 +59,7 @@ export default function DisabledAdminsPage() {
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    fetchDisabledAdmins();
-  }, []);
-
-  const fetchDisabledAdmins = async () => {
+  const fetchDisabledAdmins = useCallback(async () => {
     try {
       const response = await fetch("/api/superadmin/admins/disabled", {
         credentials: "include",
@@ -96,7 +91,11 @@ export default function DisabledAdminsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    fetchDisabledAdmins();
+  }, [fetchDisabledAdmins]);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "ไม่ระบุ";

@@ -7,30 +7,6 @@ interface HybridNotification extends Notification {
   isRealtime?: boolean; // Flag to indicate if this came from WebSocket
 }
 
-interface UseHybridNotificationsReturn {
-  notifications: HybridNotification[];
-  counts: { total: number; unread: number } | null;
-  loading: boolean;
-  error: string | null;
-  isWebSocketConnected: boolean;
-  refreshNotifications: () => Promise<void>;
-  markAsRead: (notificationId: string) => Promise<void>;
-  markAllAsRead: () => Promise<void>;
-  deleteNotificationById: (notificationId: string) => Promise<void>;
-  errorStats: {
-    total: number;
-    byType: Record<string, number>;
-    bySeverity: Record<string, number>;
-    retryable: number;
-    critical: number;
-  };
-  healthStatus: {
-    status: 'HEALTHY' | 'WARNING' | 'CRITICAL';
-    message: string;
-    color: string;
-  };
-}
-
 export function useHybridNotifications() {
   // HTTP-based notifications (existing system)
   const {

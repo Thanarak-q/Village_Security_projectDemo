@@ -3,6 +3,7 @@
  * Prevents infinite re-render loops by providing safe state management
  */
 
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 
 interface SafeStateOptions {
@@ -24,7 +25,6 @@ export function useSafeState<T>(
   const [state, setState] = useState(initialState);
   const updateCountRef = useRef(0);
   const lastUpdateTimeRef = useRef(Date.now());
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Reset update count periodically
   useEffect(() => {
@@ -62,15 +62,6 @@ export function useSafeState<T>(
     lastUpdateTimeRef.current = now;
     setState(newState);
   }, [maxUpdates, onMaxUpdatesReached]);
-
-  // Clear timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
 
   return [state, safeSetState] as const;
 }

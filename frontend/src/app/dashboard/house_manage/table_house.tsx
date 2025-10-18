@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -62,7 +62,7 @@ export default function HouseManagementTable() {
   // State สำหรับการ refresh ข้อมูล
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchVillageName = (villageId: string) => {
+  const fetchVillageName = useCallback((villageId: string) => {
     fetch(`/api/villages/check/${villageId}`, {
       credentials: "include",
     })
@@ -76,7 +76,7 @@ export default function HouseManagementTable() {
       .catch((err) => {
         console.error("Error fetching village name:", err);
       });
-  };
+  }, []);
 
   // Get selected village info from sessionStorage on mount
   useEffect(() => {
@@ -131,10 +131,10 @@ export default function HouseManagementTable() {
         setError("กรุณาเลือกหมู่บ้านก่อน - ไปที่เมนู 'เปลี่ยนหมู่บ้าน' เพื่อเลือกหมู่บ้าน");
         setLoading(false);
       });
-  }, []);
+  }, [fetchVillageName]);
 
   // Fetch data from API with village identifier parameter
-  const fetchHouses = async (isRefresh = false) => {
+  const fetchHouses = useCallback(async (isRefresh = false) => {
     const activeVillageId = selectedVillageId;
     const activeVillageKey = selectedVillageKey;
     const queryValue = activeVillageId ?? activeVillageKey;
@@ -191,13 +191,13 @@ export default function HouseManagementTable() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [fetchVillageName, selectedVillageId, selectedVillageKey, selectedVillageName]);
 
   useEffect(() => {
     if (selectedVillageId || selectedVillageKey) {
       fetchHouses();
     }
-  }, [selectedVillageId, selectedVillageKey]);
+  }, [fetchHouses, selectedVillageId, selectedVillageKey]);
 
   // Listen for village changes from village selection page
   useEffect(() => {
@@ -222,7 +222,7 @@ export default function HouseManagementTable() {
     return () => {
       window.removeEventListener('villageChanged', handleVillageChange as EventListener);
     };
-  }, []);
+  }, [fetchVillageName]);
 
   // แปลงสถานะเป็นภาษาไทย
   const getStatusText = (status: string) => {

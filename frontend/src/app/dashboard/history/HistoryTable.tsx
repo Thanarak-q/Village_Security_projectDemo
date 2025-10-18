@@ -123,9 +123,6 @@ export default function HistoryTable() {
   // State สำหรับการ refresh ข้อมูล
   const [refreshing, setRefreshing] = useState(false);
   
-  // State สำหรับเก็บชื่อหมู่บ้านที่เลือก
-  const [selectedVillageName, setSelectedVillageName] = useState<string>("");
-  
   // State สำหรับเก็บ role ของ user ที่ login
   const [userRole, setUserRole] = useState<string>("");
 
@@ -141,25 +138,6 @@ export default function HistoryTable() {
       
       // Get selected village key from sessionStorage
       const selectedVillageKey = sessionStorage.getItem('selectedVillage');
-      
-      // Get village name if village key exists
-      if (selectedVillageKey) {
-        try {
-          const villageResponse = await fetch(`/api/villages/check/${selectedVillageKey}`, {
-            credentials: "include",
-          });
-          if (villageResponse.ok) {
-            const villageData = await villageResponse.json();
-            if (villageData.exists) {
-              setSelectedVillageName(villageData.village_name);
-            }
-          }
-        } catch (error) {
-          console.error("Error fetching village name:", error);
-        }
-      } else {
-        setSelectedVillageName("");
-      }
       
       // Fetch admin activity logs from API
       try {

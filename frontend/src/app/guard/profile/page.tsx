@@ -163,6 +163,7 @@ const GuardProfilePage = () => {
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                 {currentUser.line_profile_url ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     src={currentUser.line_profile_url}
                     alt="Profile"

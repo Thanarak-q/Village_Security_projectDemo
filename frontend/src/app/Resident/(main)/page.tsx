@@ -14,12 +14,11 @@ import { useVisitorData } from "../hooks/useVisitordata";
 
 import { getAuthData } from "@/lib/liffAuth";
 import { LiffService } from "@/lib/liff";
-import type { UserRole, UserRolesResponse } from "@/types/roles";
+import type { UserRolesResponse } from "@/types/roles";
 
 // Main Resident Page Component
 const ResidentPage = () => {
   const router = useRouter();
-  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [villageName, setVillageName] = useState<string>('');
 
   const {
@@ -114,7 +113,6 @@ const ResidentPage = () => {
 
               if (data.success && data.roles) {
                 const roles = data.roles;
-                setUserRoles(roles);
                 console.log("🔍 Resident main page - roles data:", roles);
 
                 // Check if user has resident role and its status

@@ -1,10 +1,8 @@
 "use client";
 
 import {
-  Home,
   Building,
   Users,
-  BarChart3,
 } from "lucide-react";
 
 import {

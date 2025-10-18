@@ -304,7 +304,7 @@ const VillageSelectionPage = () => {
                 ? "grid-cols-1 md:grid-cols-2 max-w-2xl mx-auto"
                 : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
             }`}>
-              {villages.map((village, index) => (
+              {villages.map((village) => (
                 <Card
                   key={village.village_id}
                   data-village-id={village.village_id}

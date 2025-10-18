@@ -180,6 +180,8 @@ export function useMessageDeduplication(options: Partial<MessageDeduplicationOpt
 
   // Check if message is duplicate
   const isDuplicate = useCallback((type: string, data: unknown) => {
+    void type;
+    void data;
     // Simple duplicate check based on content hash
     // This is a simplified check - in a real implementation,
     // you'd want to check against actual message content

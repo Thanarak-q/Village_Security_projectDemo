@@ -86,7 +86,13 @@ const visitPurposeOptions = [
 ] as const;
 
 interface ApprovalFormProps {
-  userRoles?: Array<{role: string, village_id: string, village_name?: string, status: string}>;
+  userRoles?: Array<{
+    role: string;
+    village_id: string;
+    village_name?: string;
+    status: string;
+    guard_id?: string;
+  }>;
 }
 
 function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
@@ -118,7 +124,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { user, token } = getAuthData();
+        const { user } = getAuthData();
         if (user) {
           setCurrentUser(user);
         }
@@ -742,6 +748,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                     >
                       {capturedImage ? (
                         <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={capturedImage}
                             alt="Uploaded"
@@ -864,6 +871,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                     >
                       {capturedIdCardImage ? (
                         <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={capturedIdCardImage}
                             alt="ID Card"

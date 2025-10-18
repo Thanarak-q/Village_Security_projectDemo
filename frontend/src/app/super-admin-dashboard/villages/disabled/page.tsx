@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,11 +54,7 @@ export default function DisabledVillagesPage() {
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    fetchDisabledVillages();
-  }, []);
-
-  const fetchDisabledVillages = async () => {
+  const fetchDisabledVillages = useCallback(async () => {
     try {
       const response = await fetch("/api/superadmin/villages/disabled", {
         credentials: "include",
@@ -90,7 +86,11 @@ export default function DisabledVillagesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    fetchDisabledVillages();
+  }, [fetchDisabledVillages]);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "ไม่ระบุ";

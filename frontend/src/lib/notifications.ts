@@ -138,6 +138,7 @@ export function getNotificationColor(type: string): string {
   }
 }
 
-export function getPriorityColor(priority: string): string {
+export function getPriorityColor(_priority: string): string {
+  void _priority;
   return 'bg-gray-500';
 }

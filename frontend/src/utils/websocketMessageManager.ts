@@ -149,7 +149,8 @@ export class WebSocketMessageManager {
     return `${type}_${btoa(dataString).slice(0, 8)}_${timestamp}`;
   }
 
-  private isDuplicate(messageId: string): boolean {
+  private isDuplicate(_messageId: string): boolean {
+    void _messageId;
     // Check if message was recently sent
     // This is a simplified check - in a real implementation,
     // you'd want to check against actual message content

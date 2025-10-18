@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -63,11 +63,7 @@ export default function VillagesPage() {
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    fetchVillages();
-  }, []);
-
-  const fetchVillages = async () => {
+  const fetchVillages = useCallback(async () => {
     try {
       const response = await fetch("/api/superadmin/villages", {
         credentials: "include",
@@ -99,7 +95,11 @@ export default function VillagesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    fetchVillages();
+  }, [fetchVillages]);
 
   const handleEditVillage = async () => {
     if (!selectedVillage || !formData.village_name.trim()) {

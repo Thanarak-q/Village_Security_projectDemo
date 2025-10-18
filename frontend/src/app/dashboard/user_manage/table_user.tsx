@@ -120,9 +120,6 @@ export default function UserManagementTable() {
   // State สำหรับเก็บจำนวนผู้ใช้ที่รออนุมัติ
   const [pendingCount, setPendingCount] = useState(0);
 
-  // State for selected village info
-  const [selectedVillageName, setSelectedVillageName] = useState<string>("");
-
   // Fetch data from API
   const fetchUsers = async (isRefresh = false) => {
     try {
@@ -191,7 +188,6 @@ export default function UserManagementTable() {
     const handleVillageChange = () => {
       fetchUsers(true);
       fetchPendingCount();
-      updateSelectedVillageName();
     };
 
     window.addEventListener('villageChanged', handleVillageChange);
@@ -202,32 +198,6 @@ export default function UserManagementTable() {
   }, []);
 
   // Update selected village name
-  const updateSelectedVillageName = async () => {
-    const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem("selectedVillage") : null;
-    if (selectedVillage) {
-      try {
-        const response = await fetch(`/api/villages/check/${selectedVillage}`, {
-          credentials: "include",
-        });
-        if (response.ok) {
-          const villageData = await response.json();
-          if (villageData.exists) {
-            setSelectedVillageName(villageData.village_name);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching village name:", error);
-      }
-    } else {
-      setSelectedVillageName("");
-    }
-  };
-
-  // Initialize selected village name
-  useEffect(() => {
-    updateSelectedVillageName();
-  }, []);
-
   // Function to handle edit button click
   const handleEdit = (user: User) => {
     setSelectedUser(user);

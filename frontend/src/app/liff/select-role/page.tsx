@@ -8,7 +8,7 @@ import { LiffService } from "@/lib/liff";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import type { UserRole } from "@/types/roles";
+import type { RoleHouse, UserRole } from "@/types/roles";
 const RESIDENT_SELECTION_STORAGE_KEY = 'residentRoleSelection';
 const GUARD_SELECTION_STORAGE_KEY = 'guardRoleSelection';
 
@@ -86,7 +86,7 @@ export default function SelectRolePage() {
     };
 
     fetchUserRoles();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (residentSelectionOpen && typeof window !== 'undefined') {
@@ -107,8 +107,8 @@ export default function SelectRolePage() {
             });
           if (preferred) {
             setSelectedResidentOption(preferred);
-            const houses = preferred.houses ?? [];
-            if (storedSelection.houseId && houses.some((house: any) => house.house_id === storedSelection.houseId)) {
+            const houses: RoleHouse[] = preferred.houses ?? [];
+            if (storedSelection.houseId && houses.some((house) => house.house_id === storedSelection.houseId)) {
               setSelectedResidentHouseId(storedSelection.houseId);
             }
           }
