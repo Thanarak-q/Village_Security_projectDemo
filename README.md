@@ -34,7 +34,11 @@ The root `.env` file feeds every service via `docker-compose.yml` as well as loc
    cd Village_Security_project
    ```
 2. **Create the root `.env` file** (see [Environment Variables](#environment-variables)).
-3. **Start everything with Docker**
+3. **Start the shared data services**
+   ```bash
+   docker compose -f DB/docker-compose.yml up -d
+   ```
+4. **Start the application stack**
    ```bash
    docker compose up --build
    ```
@@ -54,7 +58,10 @@ The root `.env` file feeds every service via `docker-compose.yml` as well as loc
    bun install --frozen-lockfile --cwd websocket
    ```
 2. **Ensure Postgres and MinIO are running**
-   - You can keep using the `docker compose` services for `db` and `minio` while running the app layers locally.
+   ```bash
+   docker compose -f DB/docker-compose.yml up -d
+   ```
+   - Stop them when finished: `docker compose -f DB/docker-compose.yml down`
 3. **Start each service**
    ```bash
    # Backend API with hot reload

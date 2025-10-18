@@ -5,7 +5,7 @@
 
 import { Elysia } from 'elysia';
 
-const rawResidentPortalUrl = process.env.URL || process.env.NEXT_PUBLIC_RESIDENT_PORTAL_URL || '';
+const rawResidentPortalUrl = process.env.DOMAIN || '';
 
 const normalizedPortalUrl = rawResidentPortalUrl
   ? /^https?:\/\//i.test(rawResidentPortalUrl)
