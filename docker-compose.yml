@@ -1,12 +1,49 @@
 services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"               # ✅ ต้องเปิดเพื่อ HTTPS
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data        # ✅ เก็บใบรับรอง
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+      - websocket
+    networks:
+      - default
+
+  frontend:
+    build: ./frontend
+    environment:
+      - WATCHPACK_POLLING=${CHOKIDAR_USEPOLLING}
+      - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - NEXT_PUBLIC_LIFF_ID=${NEXT_PUBLIC_LIFF_ID}
+      - NODE_ENV=${NODE_ENV}
+    expose:
+      - "3000"                  # ✅ ใช้ภายใน docker network เท่านั้น
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - default
+
   backend:
     build: ./backend
-    ports:
-      - "3001:3001"
-    volumes:
-      - ./backend:/app
     env_file:
       - ${ENV_FILE_PATH:-./.env}
+    expose:
+      - "3001"                  # ✅ ไม่ต้อง map ออกนอก
+    volumes:
+      - ./backend:/app
     depends_on:
       - websocket
       - minio
@@ -15,76 +52,39 @@ services:
     networks:
       - default
 
+  websocket:
+    build: ./websocket
+    environment:
+      - WS_PORT=${WS_PORT}
+      - WS_PATH=${WS_PATH}
+      - WS_IDLE_TIMEOUT=${WS_IDLE_TIMEOUT}
+      - NODE_ENV=${NODE_ENV}
+    expose:
+      - "3002"                  # ✅ ภายในเท่านั้น
+    volumes:
+      - ./websocket:/app
+      - /app/node_modules
+    restart: unless-stopped
+    networks:
+      - default
+
   minio:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
-      # Must match MINIO_ACCESS_KEY / MINIO_SECRET_KEY in .env
       - MINIO_ROOT_USER=minioadmin
       - MINIO_ROOT_PASSWORD=minioadmin123
-    ports:
-      - "9002:9000"
-      - "9001:9001"
+    expose:
+      - "9000"                  # API ภายใน
+      - "9001"                  # Console ภายใน
     volumes:
       - minio_data:/data
     restart: unless-stopped
     networks:
       - default
 
-  websocket:
-    build: ./websocket
-    ports:
-      - "3002:3002"
-    volumes:
-      - ./websocket:/app
-      - /app/node_modules
-    environment:
-      - WS_PORT=${WS_PORT}
-      - WS_PATH=${WS_PATH}
-      - WS_IDLE_TIMEOUT=${WS_IDLE_TIMEOUT}
-      - NODE_ENV=${NODE_ENV}
-    restart: unless-stopped
-    networks:
-      - default
-
-  frontend:
-    build: ./frontend
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
-    environment:
-      - WATCHPACK_POLLING=${CHOKIDAR_USEPOLLING}
-      - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING}
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-      - NEXT_PUBLIC_LIFF_ID=${NEXT_PUBLIC_LIFF_ID}
-      - NODE_ENV=${NODE_ENV}
-    depends_on:
-      - backend
-    restart: unless-stopped
-    networks:
-      - default
-
-
-  caddy:
-    image: caddy:alpine
-    ports:
-      - "80:80"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-    depends_on:
-      - frontend
-      - backend
-    restart: unless-stopped
-    networks:
-      - default
-
   db:
-    image: postgres:18-alpine
-    ports:
-      - "5432:5432"
+    image: postgres:16-alpine    # ✅ แก้เวอร์ชัน
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -95,23 +95,26 @@ services:
     networks:
       - default
 
-  ngrok:
-    image: ngrok/ngrok:latest
-    command: ["http", "caddy:80", "--log=stdout", "--url=${URL}"]
-    environment:
-      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
-      URL: ${URL}
-    ports:
-      - "4040:4040"
-    depends_on:
-      - caddy
-    restart: unless-stopped
-    networks:
-      - default
+  # ใช้เฉพาะตอน dev เท่านั้น (โปรดักชันไม่ต้อง)
+  # ngrok:
+  #   image: ngrok/ngrok:latest
+  #   command: ["http", "caddy:80", "--log=stdout", "--url=${URL}"]
+  #   environment:
+  #     NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+  #     URL: ${URL}
+  #   ports:
+  #     - "4040:4040"
+  #   depends_on:
+  #     - caddy
+  #   restart: unless-stopped
+  #   networks:
+  #     - default
 
 volumes:
   dbdata:
   minio_data:
+  caddy_data:
+  caddy_config:
 
 networks:
   default:

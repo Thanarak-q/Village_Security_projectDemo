@@ -1,19 +1,40 @@
-:80 {
-  # API routes
-  reverse_proxy /api/* backend:3001 {
-  }
-  
-  # WebSocket service with proper WebSocket headers
-  reverse_proxy /ws websocket:3002 {
-    transport http {
-      versions 1.1
-    }
-  }
-  
-  # Frontend (catch-all for SPA routing)
-  reverse_proxy frontend:3000 {
+{
+  # ไม่ใส่ email ก็ได้ แต่ถ้าจะใส่:
+  # email admin@vlls.space
+}
+
+vlls.space {
+  encode zstd gzip
+
+  # ----- API path -----
+  @api path /api/*
+  handle @api {
+    reverse_proxy backend:3001
   }
 
-  # Enable compression
-  encode gzip
+  # ----- WebSocket path -----
+  @ws path /ws
+  handle @ws {
+    reverse_proxy websocket:3002
+  }
+
+  # ----- Frontend (SPA catch-all) -----
+  handle {
+    reverse_proxy frontend:3000
+  }
+
+  # (แนะนำ) security headers
+  header {
+    -Server
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    # เปิด HSTS เมื่อยืนยันว่า HTTPS ใช้ครบแล้ว
+    # Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+  }
+}
+
+# redirect www -> non-www
+www.vlls.space {
+  redir https://vlls.space{uri} permanent
 }
