@@ -38,6 +38,7 @@ The root `.env` file feeds every service via `docker-compose.yml` as well as loc
    ```bash
    docker compose -f DB/docker-compose.yml up -d
    ```
+   > ℹ️ This bootstraps the shared `village_net` Docker network. If you ever need to start the app stack without this step, create it manually once via `docker network create village_net`.
 4. **Start the application stack**
    ```bash
    docker compose up --build
