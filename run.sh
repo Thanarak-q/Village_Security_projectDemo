@@ -8,6 +8,12 @@ if ! command -v docker; then
     exit 1
 fi
 
+# Check Bun availability
+if ! command -v bun; then
+    echo "❌ Bun is not installed. Please install Bun and try again."
+    exit 1
+fi
+
 # Clean up Docker resources silently
 if [ "$(docker ps -q)" ]; then
     echo "🧹 Stopping and removing running Docker containers..."
@@ -51,5 +57,5 @@ if [ -n "$NGROK_URL" ]; then
     echo "🌐 Public (Ngrok): $NGROK_URL"
     echo "------------------------------------------------------"
 else
-    echo "❌ Could not retrieve Ngrok HTTPS URL. Is the ngrok container running properly?"
+    echo "❌ Could not retrieve Ngrok HTTPS URL. Is the ngrok container running properly? || this project is start in server without ngrok"
 fi
