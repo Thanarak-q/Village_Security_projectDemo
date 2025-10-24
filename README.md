@@ -145,6 +145,7 @@ URL=my-tunnel.ngrok-free.dev
 DOCKER_BUILDKIT=1
 COMPOSE_DOCKER_CLI_BUILD=1
 BUILDKIT_PROGRESS=plain
+
 # DOMAIN
 DOMAIN=your-domain
 ```
