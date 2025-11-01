@@ -10,9 +10,9 @@ sleep 10
 bunx drizzle-kit push
 
 # seed ข้อมูล (เฉพาะเมื่อจำเป็น)
-if [ "$MODE" != "production" ]; then
-  bun run src/db/seed.ts
-fi
+# if [ "$MODE" != "production" ]; then
+#   bun run src/db/seed.ts
+# fi
 
 # รันแอปตามโหมด
 if [ "$MODE" = "production" ]; then

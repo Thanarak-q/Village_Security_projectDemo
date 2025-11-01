@@ -37,6 +37,8 @@ interface VisitorRecordAPI {
   license_image: string;
   license_plate: string;
   entry_time: string;
+  exit_time?: string;
+  is_in?: boolean;
   record_status: string;
   visit_purpose: string;
   createdAt: string;
@@ -65,6 +67,8 @@ interface VisitorHistory {
   id: string;
   license_plate: string;
   entry_time: string;
+  exit_time?: string;
+  is_in?: boolean;
   record_status: string;
   visit_purpose: string;
   resident_name: string;
@@ -73,7 +77,6 @@ interface VisitorHistory {
   guard_email: string;
   house_address: string;
   license_image: string;
-  exit_time?: string;
 }
 
 interface AdminActivityLogApi {
@@ -205,6 +208,8 @@ export default function HistoryTable() {
           guard_email: record.guard_email,
           house_address: record.house_address,
           license_image: record.license_image,
+          exit_time: record.exit_time,
+          is_in: record.is_in,
         }));
         
         setVisitorHistoryData(transformedVisitorHistory);
