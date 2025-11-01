@@ -83,7 +83,7 @@ export default function LandingPage() {
         gsap.fromTo(
           heroRef.current,
           { opacity: 0, y: 40 },
-          { opacity: 1, y: 0, duration: 0.9, ease: "power3.out" }
+          { opacity: 1, y: 0, duration: 0.9, ease: "power3.out" },
         );
       }
 
@@ -101,7 +101,7 @@ export default function LandingPage() {
               trigger: featuresRef.current,
               start: "top 80%",
             },
-          }
+          },
         );
       }
 
@@ -121,7 +121,7 @@ export default function LandingPage() {
               trigger: featuresRef.current,
               start: "top 80%",
             },
-          }
+          },
         );
       }
 
@@ -139,7 +139,7 @@ export default function LandingPage() {
               trigger: statsRef.current,
               start: "top 80%",
             },
-          }
+          },
         );
       }
     });
@@ -168,25 +168,46 @@ export default function LandingPage() {
 
         {/* Subtle grid */}
         <div aria-hidden className="absolute inset-0 -z-10">
-          <svg className="h-full w-full opacity-[0.07] dark:opacity-[0.08]" xmlns="http://www.w3.org/2000/svg">
+          <svg
+            className="h-full w-full opacity-[0.07] dark:opacity-[0.08]"
+            xmlns="http://www.w3.org/2000/svg"
+          >
             <defs>
-              <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
-                <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" strokeWidth="0.5" />
+              <pattern
+                id="grid"
+                width="32"
+                height="32"
+                patternUnits="userSpaceOnUse"
+              >
+                <path
+                  d="M 32 0 L 0 0 0 32"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="0.5"
+                />
               </pattern>
             </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" className="text-slate-400" />
+            <rect
+              width="100%"
+              height="100%"
+              fill="url(#grid)"
+              className="text-slate-400"
+            />
           </svg>
         </div>
       </>
     ),
-    []
+    [],
   );
 
   if (loading) {
     return (
       <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
         {Background}
-        <div className="size-24 animate-spin rounded-full border-4 border-transparent border-t-primary/80" aria-label="Loading" />
+        <div
+          className="size-24 animate-spin rounded-full border-4 border-transparent border-t-primary/80"
+          aria-label="Loading"
+        />
       </div>
     );
   }
@@ -211,11 +232,34 @@ export default function LandingPage() {
               </span>
             </Link>
             <div className="flex items-center gap-2">
-              <Link href="#features" className="hidden md:block text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">ฟีเจอร์</Link>
-              <Link href="#stats" className="hidden md:block text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">สถิติ</Link>
+              <Link
+                href="#features"
+                className="hidden md:block text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+              >
+                ฟีเจอร์
+              </Link>
+              <Link
+                href="#stats"
+                className="hidden md:block text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+              >
+                สถิติ
+              </Link>
+              <Link href="/guard/visitors-in">
+                <Button
+                  variant="outline"
+                  className="hover:scale-[1.03] transition-transform"
+                >
+                  Visitors-In
+                </Button>
+              </Link>
               <ModeToggle />
               <Link href="/login">
-                <Button variant="outline" className="hover:scale-[1.03] transition-transform">เข้าสู่ระบบ</Button>
+                <Button
+                  variant="outline"
+                  className="hover:scale-[1.03] transition-transform"
+                >
+                  เข้าสู่ระบบ
+                </Button>
               </Link>
             </div>
           </nav>
@@ -223,27 +267,42 @@ export default function LandingPage() {
 
         {/* Hero */}
         <main className="container mx-auto px-4 pb-24 pt-8 md:pt-16">
-          <section ref={heroRef} className="relative mx-auto max-w-4xl text-center">
+          <section
+            ref={heroRef}
+            className="relative mx-auto max-w-4xl text-center"
+          >
             <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-slate-300/60 bg-white/60 px-3 py-1 text-xs font-medium text-slate-700 backdrop-blur-md dark:border-slate-700/60 dark:bg-slate-900/50 dark:text-slate-200">
-              <Sparkles className="h-4 w-4" /> เวอร์ชันใหม่: รองรับแจ้งเตือนแบบเรียลไทม์
+              <Sparkles className="h-4 w-4" /> เวอร์ชันใหม่:
+              รองรับแจ้งเตือนแบบเรียลไทม์
             </div>
 
             <h1 className="mt-6 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-600 bg-clip-text text-5xl font-extrabold leading-tight tracking-tight text-transparent md:text-7xl dark:from-white dark:via-slate-100 dark:to-slate-300">
-              ระบบรักษาความปลอดภัยหมู่บ้านที่ทั้ง <span className="underline decoration-wavy decoration-primary/60 underline-offset-8">ปลอดภัย</span> และ <span className="whitespace-nowrap">ใช้งานง่าย</span>
+              ระบบรักษาความปลอดภัยหมู่บ้านที่ทั้ง{" "}
+              <span className="underline decoration-wavy decoration-primary/60 underline-offset-8">
+                ปลอดภัย
+              </span>{" "}
+              และ <span className="whitespace-nowrap">ใช้งานง่าย</span>
             </h1>
 
             <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-slate-600 dark:text-slate-300">
-              จัดการการเข้าออกของบุคคลภายนอก อนุมัติแขก แจ้งเตือนเหตุการณ์สำคัญ และติดตามสถิติ—all in one.
+              จัดการการเข้าออกของบุคคลภายนอก อนุมัติแขก แจ้งเตือนเหตุการณ์สำคัญ
+              และติดตามสถิติ—all in one.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link href="/login">
-                <Button size="lg" className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg transition-all hover:from-blue-700 hover:to-purple-700">
+                <Button
+                  size="lg"
+                  className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg transition-all hover:from-blue-700 hover:to-purple-700"
+                >
                   เริ่มใช้งานทันที
                   <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-0.5" />
                 </Button>
               </Link>
-              <a href="#features" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 underline-offset-4 hover:underline dark:text-slate-200">
+              <a
+                href="#features"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 underline-offset-4 hover:underline dark:text-slate-200"
+              >
                 ดูฟีเจอร์
               </a>
             </div>
@@ -257,8 +316,12 @@ export default function LandingPage() {
                       <Users className="h-6 w-6" />
                     </div>
                     <div>
-                      <h3 className="text-base font-semibold">จัดการผู้อยู่อาศัย</h3>
-                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">ฐานข้อมูลครบถ้วน ปรับสิทธิ์ได้ละเอียด</p>
+                      <h3 className="text-base font-semibold">
+                        จัดการผู้อยู่อาศัย
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                        ฐานข้อมูลครบถ้วน ปรับสิทธิ์ได้ละเอียด
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
@@ -266,8 +329,12 @@ export default function LandingPage() {
                       <Camera className="h-6 w-6" />
                     </div>
                     <div>
-                      <h3 className="text-base font-semibold">บันทึกการเข้า-ออก</h3>
-                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">พร้อมรูป/ทะเบียน และประวัติย้อนหลัง</p>
+                      <h3 className="text-base font-semibold">
+                        บันทึกการเข้า-ออก
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                        พร้อมรูป/ทะเบียน และประวัติย้อนหลัง
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
@@ -275,8 +342,12 @@ export default function LandingPage() {
                       <BellRing className="h-6 w-6" />
                     </div>
                     <div>
-                      <h3 className="text-base font-semibold">แจ้งเตือนทันที</h3>
-                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">เหตุการณ์สำคัญส่งตรงถึงมือถือ</p>
+                      <h3 className="text-base font-semibold">
+                        แจ้งเตือนทันที
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                        เหตุการณ์สำคัญส่งตรงถึงมือถือ
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -290,7 +361,8 @@ export default function LandingPage() {
               ฟีเจอร์หลัก
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-center text-slate-600 dark:text-slate-300">
-              ออกแบบมาเพื่อเจ้าหน้าที่ รปภ. นิติบุคคล และผู้อยู่อาศัย ให้ทำงานร่วมกันได้อย่างลื่นไหล
+              ออกแบบมาเพื่อเจ้าหน้าที่ รปภ. นิติบุคคล และผู้อยู่อาศัย
+              ให้ทำงานร่วมกันได้อย่างลื่นไหล
             </p>
 
             <div className="mt-12 grid gap-6 md:grid-cols-3">
@@ -313,10 +385,15 @@ export default function LandingPage() {
               ].map((f, i) => (
                 <Card
                   key={i}
-                  ref={(el: HTMLDivElement | null) => { cardsRef.current[i] = el; }}
+                  ref={(el: HTMLDivElement | null) => {
+                    cardsRef.current[i] = el;
+                  }}
                   className="group relative overflow-hidden border-0 bg-white/70 shadow-xl transition-all hover:-translate-y-1.5 hover:shadow-2xl dark:bg-slate-900/70"
                 >
-                  <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" aria-hidden>
+                  <div
+                    className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                    aria-hidden
+                  >
                     <div className="absolute -inset-24 animate-[spin_12s_linear_infinite] bg-[conic-gradient(var(--tw-gradient-stops))] from-blue-500 via-fuchsia-500 to-blue-500 opacity-20 blur-2xl" />
                   </div>
                   <CardHeader className="relative">
@@ -324,7 +401,9 @@ export default function LandingPage() {
                       {f.icon}
                     </div>
                     <CardTitle className="text-xl">{f.title}</CardTitle>
-                    <CardDescription className="text-base">{f.desc}</CardDescription>
+                    <CardDescription className="text-base">
+                      {f.desc}
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
@@ -378,12 +457,15 @@ export default function LandingPage() {
                     <div className="text-4xl font-extrabold tracking-tight text-primary">
                       {s.value}
                     </div>
-                    <div className="mt-1 text-slate-600 dark:text-slate-300">{s.label}</div>
+                    <div className="mt-1 text-slate-600 dark:text-slate-300">
+                      {s.label}
+                    </div>
                   </div>
                 ))}
               </div>
               <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
-                *ตัวเลขเป็นตัวอย่างเพื่อการนำเสนอ สามารถดึงจากฐานข้อมูลแบบเรียลไทม์
+                *ตัวเลขเป็นตัวอย่างเพื่อการนำเสนอ
+                สามารถดึงจากฐานข้อมูลแบบเรียลไทม์
               </p>
             </div>
           </section>
@@ -391,10 +473,21 @@ export default function LandingPage() {
           {/* CTA */}
           <section className="mx-auto mt-24 max-w-4xl text-center">
             <div className="relative overflow-hidden rounded-3xl border border-slate-200/70 bg-gradient-to-r from-blue-600 to-violet-600 p-10 text-white shadow-2xl dark:border-slate-800">
-              <div className="pointer-events-none absolute inset-0 opacity-30" aria-hidden>
-                <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
+              <div
+                className="pointer-events-none absolute inset-0 opacity-30"
+                aria-hidden
+              >
+                <svg
+                  className="h-full w-full"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
                   <defs>
-                    <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
+                    <pattern
+                      id="dots"
+                      width="24"
+                      height="24"
+                      patternUnits="userSpaceOnUse"
+                    >
                       <circle cx="1" cy="1" r="1" fill="white" />
                     </pattern>
                   </defs>
@@ -416,7 +509,10 @@ export default function LandingPage() {
                     ติดต่อสอบถาม
                   </Button>
                 </Link>
-                <a href="#features" className="inline-flex items-center gap-2 text-sm font-semibold underline underline-offset-4">
+                <a
+                  href="#features"
+                  className="inline-flex items-center gap-2 text-sm font-semibold underline underline-offset-4"
+                >
                   ดูรายละเอียด
                   <ArrowRight className="h-4 w-4" />
                 </a>
@@ -431,7 +527,9 @@ export default function LandingPage() {
             <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
               <div className="flex items-center gap-2">
                 <Home className="h-5 w-5" />
-                <span className="text-sm font-medium">Village Security System</span>
+                <span className="text-sm font-medium">
+                  Village Security System
+                </span>
               </div>
               <div className="text-center text-xs text-white/60 md:text-right">
                 © {new Date().getFullYear()} Village Security — สงวนลิขสิทธิ์
