@@ -748,8 +748,8 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
         <div className="bg-card rounded-2xl border shadow-lg">
           <div className="px-4 py-4">
             <div className="flex items-center justify-between mb-5">
-              <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2 slect-none pointer-events-none">
-                <House className="w-6 h-6 sm:w-7 sm:h-7" /> ส่งคำขอเข้าเยี่ยม
+              <h1 className="text-lg sm:text-xl font-semibold text-foreground flex items-center gap-2 slect-none pointer-events-none">
+                <House className="w-5 h-5 sm:w-6 sm:h-6" /> ส่งคำขอเข้าเยี่ยม
               </h1>
 
               <span className="flex items-center gap-2">

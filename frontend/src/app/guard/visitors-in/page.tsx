@@ -5,6 +5,16 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+} from "@/components/ui/alert-dialog";
 import { ModeToggle } from "@/components/mode-toggle";
 import {
   CheckCircle2,
@@ -13,7 +23,6 @@ import {
   Home,
   CalendarClock,
   Car,
-  ImageOff,
   Shuffle,
   User,
 } from "lucide-react";
@@ -27,7 +36,6 @@ type VisitorIn = {
   purpose: string;
   entryTime: string; // ISO string
   licensePlate?: string;
-  imageUrl?: string;
   isIn: boolean;
   villageKey: string;
 };
@@ -47,12 +55,31 @@ export default function VisitorsInPage() {
   >({});
   const [visitors, setVisitors] = React.useState<VisitorIn[]>([]);
   const [error, setError] = React.useState<string | null>(null);
+  const [search, setSearch] = React.useState("");
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const [successOpen, setSuccessOpen] = React.useState(false);
+  const [successName, setSuccessName] = React.useState("");
+  const [selected, setSelected] = React.useState<VisitorIn | null>(null);
+  const filteredVisitors = React.useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return visitors;
+    return visitors.filter((v) => {
+      const fields = [
+        v.visitorName,
+        v.licensePlate || "",
+        v.houseNumber || "",
+        v.phone || "",
+        v.purpose || "",
+      ];
+      return fields.some((f) => f.toLowerCase().includes(q));
+    });
+  }, [visitors, search]);
 
   const fetchVisitors = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/mock/visitors-in?isIn=true`, {
+      const res = await fetch(`/api/visitors-in?isIn=true`, {
         credentials: "include",
         cache: "no-store",
       });
@@ -87,7 +114,7 @@ export default function VisitorsInPage() {
 
     try {
       // Try to call a mock endpoint. If it doesn't exist, we still do optimistic update.
-      const res = await fetch(`/api/mock/visitors-in/approve-out`, {
+      const res = await fetch(`/api/visitors-in/approve-out`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -104,6 +131,8 @@ export default function VisitorsInPage() {
       toast.success("บันทึกการออกสำเร็จ", {
         description: `อนุมัติการออกของผู้เยี่ยมเรียบร้อย`,
       });
+      setSuccessOpen(true);
+      setSelected(null);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Unknown error";
       toast.error("อนุมัติการออกไม่สำเร็จ", { description: msg });
@@ -133,8 +162,8 @@ export default function VisitorsInPage() {
         <div className="bg-card rounded-2xl border shadow-lg">
           <div className="px-4 py-4">
             <div className="flex items-center justify-between mb-5">
-              <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2 slect-none pointer-events-none">
-                <Home className="w-6 h-6 sm:w-7 sm:h-7" /> ผู้เยี่ยมในหมู่บ้าน
+              <h1 className="text-lg sm:text-xl font-semibold text-foreground flex items-center gap-2 slect-none pointer-events-none">
+                <Home className="w-5 h-5 sm:w-6 sm:h-6" /> ผู้เยี่ยมในหมู่บ้าน
               </h1>
 
               <span className="flex items-center gap-2">
@@ -167,18 +196,31 @@ export default function VisitorsInPage() {
                 </a>
               </span>
             </div>
-            <p className="text-sm text-muted-foreground">
-              รายชื่อผู้เยี่ยมที่ยังอยู่ในหมู่บ้าน
-            </p>
-            <div className="mt-4 flex gap-2">
+            <div className="mt-2 flex gap-2">
+              <Input
+                placeholder="ค้นหาชื่อ ทะเบียน เลขที่บ้าน หรือเบอร์"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-10"
+              />
               <Button
+                variant="outline"
+                onClick={() => setSearch("")}
+                disabled={!search}
+              >
+                ล้าง
+              </Button>
+              <Button onClick={() => setSearch(search)} disabled={loading}>
+                ค้นหา
+              </Button>
+              {/*<Button
                 variant="outline"
                 onClick={fetchVisitors}
                 disabled={loading}
               >
                 <RefreshCcw className="mr-2 h-4 w-4" />
                 รีเฟรช
-              </Button>
+              </Button>*/}
             </div>
           </div>
 
@@ -187,30 +229,13 @@ export default function VisitorsInPage() {
               <LoadingList />
             ) : error ? (
               <ErrorState message={error} onRetry={fetchVisitors} />
-            ) : visitors.length === 0 ? (
+            ) : filteredVisitors.length === 0 ? (
               <EmptyState onRefresh={fetchVisitors} />
             ) : (
               <div className="space-y-3">
-                {visitors.map((v) => (
+                {filteredVisitors.map((v) => (
                   <Card key={v.visitorId} className="overflow-hidden">
                     <div className="flex flex-col gap-4 p-4 md:flex-row">
-                      <div className="md:w-40 md:flex-shrink-0">
-                        {v.imageUrl ? (
-                          <div className="aspect-video overflow-hidden rounded-md border">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={v.imageUrl}
-                              alt={v.visitorName}
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex aspect-video items-center justify-center rounded-md border text-muted-foreground">
-                            <ImageOff className="h-6 w-6" />
-                          </div>
-                        )}
-                      </div>
-
                       <div className="flex-1">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
@@ -239,7 +264,10 @@ export default function VisitorsInPage() {
                             <Button
                               size="sm"
                               className="gap-1"
-                              onClick={() => handleApproveOut(v.visitorId)}
+                              onClick={() => {
+                                setSelected(v);
+                                setConfirmOpen(true);
+                              }}
                               disabled={!!approvingIds[v.visitorId]}
                             >
                               <CheckCircle2 className="h-4 w-4" />
@@ -263,17 +291,6 @@ export default function VisitorsInPage() {
                             </span>
                             <span>{v.purpose || "-"}</span>
                           </div>
-                          <div className="text-xs">
-                            <span className="text-muted-foreground">
-                              Visitor ID: {v.visitorId}
-                            </span>
-                            <span className="mx-2 text-muted-foreground">
-                              •
-                            </span>
-                            <span className="text-muted-foreground">
-                              Record: {v.visitor_record_id}
-                            </span>
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -282,6 +299,51 @@ export default function VisitorsInPage() {
               </div>
             )}
           </div>
+
+          {/* Confirmation Dialog */}
+          <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>ยืนยันการอนุมัติออก</AlertDialogTitle>
+                <AlertDialogDescription>
+                  ยืนยันการบันทึกการออกของ
+                  {selected ? ` ${selected.visitorName}` : ""} ใช่หรือไม่?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="flex gap-2 justify-end pt-2">
+                <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    if (selected) {
+                      setSuccessName(selected.visitorName);
+                      setConfirmOpen(false);
+                      handleApproveOut(selected.visitorId);
+                    }
+                  }}
+                >
+                  ยืนยัน
+                </AlertDialogAction>
+              </div>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          {/* Success Dialog */}
+          <AlertDialog open={successOpen} onOpenChange={setSuccessOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>บันทึกสำเร็จ</AlertDialogTitle>
+                <AlertDialogDescription>
+                  ระบบบันทึกการออกเรียบร้อยแล้ว
+                  {successName ? ` สำหรับ ${successName}` : ""}.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="flex justify-end pt-2">
+                <AlertDialogAction onClick={() => setSuccessOpen(false)}>
+                  เข้าใจแล้ว
+                </AlertDialogAction>
+              </div>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </div>
