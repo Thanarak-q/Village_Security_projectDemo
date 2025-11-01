@@ -1384,7 +1384,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
       {/* Success Notification Dialog */}
       <AlertDialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
         <AlertDialogContent className="sm:max-w-md">
-          <AlertDialogHeader className="text-center">
+          <AlertDialogHeader className="text-center px-6">
             <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
               <CheckCircle className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             </div>

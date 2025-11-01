@@ -21,9 +21,8 @@ export const validateLoginInput = (body: any): { isValid: boolean; errors: strin
     errors.push("Username is required and must be a string");
   } else if (body.username.length < 3 || body.username.length > 50) {
     errors.push("Username must be between 3 and 50 characters");
-  } else if (!/^[a-zA-Z0-9_]+$/.test(body.username)) {
-    // Whitelist approach: only allow alphanumeric characters and underscores.
-    errors.push("Username can only contain letters, numbers, and underscores");
+  } else if (body.username.trim().length === 0) {
+    errors.push("Username cannot be empty or whitespace only");
   }
 
   // Password validation: ensure reasonable length to prevent denial-of-service attacks.
