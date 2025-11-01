@@ -1,13 +1,13 @@
 # Village Security Platform
 
-Village Security is an integrated platform for managing residential communities. It combines a Bun-powered API, a Next.js admin portal, and a real-time notification service to support tasks such as visitor screening, resident management, OCR-assisted ID checks, and LINE LIFF integrations. The stack is containerised with Docker and ships with Postgres, MinIO object storage, Caddy reverse proxy, and optional Ngrok exposure.
+Village Security is an integrated platform for managing residential communities. It combines a Bun-powered API, a Next.js admin portal, and a real-time notification service to support tasks such as visitor screening, resident management, OCR-assisted ID checks, and LINE LIFF integrations. The stack is containerised with Docker and ships with Postgres, DigitalOcean Spaces (S3-compatible) integration, Caddy reverse proxy, and optional Ngrok exposure.
 
 ## Key Capabilities
 - Visitor intake with OCR for Thai ID cards, driving licences, and licence plates.
 - Role-based portals for guards, residents, admins, and super admins.
 - Real-time announcements and alerts delivered through a Bun WebSocket service.
 - LINE LIFF login and messaging workflows for residents.
-- Media storage via MinIO with automatic bucket provisioning.
+- Media storage backed by DigitalOcean Spaces with automatic local filesystem fallback.
 - Weekly, monthly, and yearly reporting dashboards backed by Postgres and Drizzle ORM.
 
 ## Service Topology
@@ -15,9 +15,10 @@ Village Security is an integrated platform for managing residential communities.
 - **backend**: Elysia (Bun) REST API with Drizzle ORM, exposed on `http://localhost:3001`.
 - **websocket**: Bun service publishing notifications on `ws://localhost:3002/ws` by default.
 - **db**: Postgres 18 storing all operational data.
-- **minio**: Object storage for identification images and uploads (console on `http://localhost:9001`).
 - **caddy**: Reverse proxy terminating at `http://localhost`.
 - **ngrok** *(optional)*: Publishes Caddy to the internet when `NGROK_AUTHTOKEN` and `URL` are provided.
+
+> 🗃️ Object storage lives outside Docker. Configure DigitalOcean Spaces credentials (or leave blank for local disk storage) via environment variables.
 
 The root `.env` file feeds every service via `docker-compose.yml` as well as local Bun processes.
 
@@ -39,6 +40,7 @@ The root `.env` file feeds every service via `docker-compose.yml` as well as loc
    bun install --frozen-lockfile --cwd backend
    bun install --frozen-lockfile --cwd frontend
    bun install --frozen-lockfile --cwd websocket
+   ```
 4. **Start the shared data services**
    ```bash
    docker compose -f DB/docker-compose.yml up -d
@@ -51,7 +53,6 @@ The root `.env` file feeds every service via `docker-compose.yml` as well as loc
    After the containers settle:
    - Frontend UI: `http://localhost`
    - API health check: `http://localhost:3001/api/health`
-   - MinIO console: `http://localhost:9001` (default login `minioadmin` / `minioadmin123`)
    - Ngrok dashboard (if enabled): `http://localhost:4040`
 
 > ⚠️ The provided `run.sh` script performs a full Docker prune before rebuilding. Use it only if you are comfortable deleting *all* local Docker images, containers, and volumes.
@@ -63,11 +64,11 @@ The root `.env` file feeds every service via `docker-compose.yml` as well as loc
    bun install --frozen-lockfile --cwd frontend
    bun install --frozen-lockfile --cwd websocket
    ```
-2. **Ensure Postgres and MinIO are running**
+2. **Ensure Postgres is running**
    ```bash
    docker compose -f DB/docker-compose.yml up -d
    ```
-   - Stop them when finished: `docker compose -f DB/docker-compose.yml down`
+   - Stop it when finished: `docker compose -f DB/docker-compose.yml down`
 3. **Start each service**
    ```bash
    # Backend API with hot reload
@@ -130,15 +131,14 @@ WS_IDLE_TIMEOUT=120
 NEXT_PUBLIC_LIFF_ID=YOUR_LIFF_ID
 NEXT_PUBLIC_API_URL=http://localhost:3001
 
-# File storage (MinIO)
-MINIO_ENDPOINT=minio
-MINIO_PORT=9000
-MINIO_USE_SSL=false
-MINIO_ROOT_USER=minioadmin
-MINIO_ROOT_PASSWORD=minioadmin123
-MINIO_ACCESS_KEY=minioadmin
-MINIO_SECRET_KEY=minioadmin123
-MINIO_BUCKET=images
+# DigitalOcean Spaces (optional — falls back to local disk when empty)
+SPACES_ENDPOINT=https://nyc3.digitaloceanspaces.com
+SPACES_REGION=nyc3
+SPACES_BUCKET=village-security
+SPACES_ACCESS_KEY=YOUR_SPACES_ACCESS_KEY
+SPACES_SECRET_KEY=YOUR_SPACES_SECRET_KEY
+SPACES_CDN_ENDPOINT= # optional CDN URL e.g. https://cdn.example.com
+SPACES_OBJECT_ACL=private # or public-read
 
 # Tooling & tunnelling (optional)
 WATCHPACK_POLLING=true
@@ -170,8 +170,10 @@ DOMAIN=your-domain
 ## Troubleshooting
 - **API cannot connect to Postgres**  
   Ensure the `DATABASE_URL` host matches your running database (`db` inside Docker, `localhost` outside).
-- **MinIO bucket errors**  
-  Confirm the `MINIO_*` variables are aligned; the backend bootstraps the bucket name on startup.
+- **Images not appearing from Spaces**  
+  Confirm the `SPACES_*` variables are populated with a valid key pair, bucket, and endpoint; leave them blank to default to local disk storage instead.
+- **Uploaded images missing**  
+  The backend saves files under `backend/src/db/image`; ensure this path is writable and mounted if you run in Docker.
 - **LINE LIFF login fails locally**  
   Local LIFF apps require an HTTPS endpoint. Use Ngrok (`docker compose up ngrok`) or configure your own tunnel.
 - **WebSocket disconnects**  

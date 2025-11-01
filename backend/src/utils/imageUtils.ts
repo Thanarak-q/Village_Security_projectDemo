@@ -1,7 +1,8 @@
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { Client as MinioClient } from 'minio';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { createSpacesClient, getSpacesBucket, isSpacesConfigured } from './spaces';
 
 /**
  * Save base64 image data to the db/images directory
@@ -34,42 +35,34 @@ export async function saveBase64Image(
     // Convert base64 to buffer and save
     const imageBuffer = Buffer.from(base64Content, 'base64');
 
-    // If MINIO is configured, upload there; otherwise, save to local disk
-    const useMinio = Boolean(process.env.MINIO_ENDPOINT && process.env.MINIO_ACCESS_KEY && process.env.MINIO_SECRET_KEY);
-    if (useMinio) {
-      const minio = new MinioClient({
-        endPoint: process.env.MINIO_ENDPOINT as string,
-        port: process.env.MINIO_PORT ? Number(process.env.MINIO_PORT) : 9000,
-        useSSL: process.env.MINIO_USE_SSL === 'true',
-        accessKey: process.env.MINIO_ACCESS_KEY as string,
-        secretKey: process.env.MINIO_SECRET_KEY as string,
-      });
-
-      const bucket = process.env.MINIO_BUCKET || 'images';
+    if (isSpacesConfigured()) {
+      const client = createSpacesClient();
+      const bucket = getSpacesBucket();
       const objectKey = `${targetSubfolder}/${imageFilename}`;
+      const acl = process.env.SPACES_OBJECT_ACL;
 
-      const exists = await minio.bucketExists(bucket).catch(() => false);
-      if (!exists) {
-        await minio.makeBucket(bucket, 'us-east-1');
-      }
+      await client.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: objectKey,
+          Body: imageBuffer,
+          ContentType: contentType,
+          ...(acl ? { ACL: acl } : {}),
+        })
+      );
 
-      await minio.putObject(bucket, objectKey, imageBuffer, imageBuffer.length, {
-        'Content-Type': contentType,
-      });
-
-      console.log(`✅ Image uploaded to MinIO: ${objectKey}`);
-      // Return object key; callers should treat this as key, not local path
+      console.log(`✅ Image uploaded to DigitalOcean Spaces: ${objectKey}`);
       return objectKey;
-    } else {
-      // Fallback to local disk in src/db/image/<subfolder>
-      const imagesRootDir = join(process.cwd(), 'src', 'db', 'image');
-      const targetDir = join(imagesRootDir, targetSubfolder);
-      await mkdir(targetDir, { recursive: true });
-      const imagePath = join(targetDir, imageFilename);
-      await writeFile(imagePath, imageBuffer);
-      console.log(`✅ Image saved locally: ${join(targetSubfolder, imageFilename)}`);
-      return join(targetSubfolder, imageFilename);
     }
+
+    // Persist to local disk in src/db/image/<subfolder>
+    const imagesRootDir = join(process.cwd(), 'src', 'db', 'image');
+    const targetDir = join(imagesRootDir, targetSubfolder);
+    await mkdir(targetDir, { recursive: true });
+    const imagePath = join(targetDir, imageFilename);
+    await writeFile(imagePath, imageBuffer);
+    console.log(`✅ Image saved locally: ${join(targetSubfolder, imageFilename)}`);
+    return join(targetSubfolder, imageFilename);
   } catch (error) {
     console.error('❌ Error saving image:', error);
     throw new Error('Failed to save image');

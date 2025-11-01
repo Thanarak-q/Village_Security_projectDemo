@@ -4,11 +4,11 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
-      - "443:443"               # ✅ ต้องเปิดเพื่อ HTTPS
+      # - "443:443"               # ✅ ต้องเปิดเพื่อ HTTPS
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data        # ✅ เก็บใบรับรอง
-      - caddy_config:/config
+      # - caddy_data:/data        # ✅ เก็บใบรับรอง
+      # - caddy_config:/config
     environment:
       - DOMAIN=${DOMAIN}
     depends_on:
@@ -71,19 +71,19 @@ services:
  
 
   # ใช้เฉพาะตอน dev เท่านั้น (โปรดักชันไม่ต้อง)
-  # ngrok:
-  #   image: ngrok/ngrok:latest
-  #   command: ["http", "caddy:80", "--log=stdout", "--url=${URL}"]
-  #   environment:
-  #     NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
-  #     URL: ${URL}
-  #   ports:
-  #     - "4040:4040"
-  #   depends_on:
-  #     - caddy
-  #   restart: unless-stopped
-  #   networks:
-  #     - default
+  ngrok:
+    image: ngrok/ngrok:latest
+    command: ["http", "caddy:80", "--log=stdout", "--url=${URL}"]
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+      URL: ${URL}
+    ports:
+      - "4040:4040"
+    depends_on:
+      - caddy
+    restart: unless-stopped
+    networks:
+      - default
 
 volumes:
   caddy_data:

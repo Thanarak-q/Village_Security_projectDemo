@@ -9,27 +9,11 @@ services:
       - ${ENV_FILE_PATH:-./.env}
     depends_on:
       - websocket
-      - minio
       - db
     restart: unless-stopped
     networks:
       - default
 
-  minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
-    environment:
-      # Must match MINIO_ACCESS_KEY / MINIO_SECRET_KEY in .env
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin123
-    ports:
-      - "9002:9000"
-      - "9001:9001"
-    volumes:
-      - minio_data:/data
-    restart: unless-stopped
-    networks:
-      - default
 
   websocket:
     build: ./websocket
@@ -111,7 +95,6 @@ services:
 
 volumes:
   dbdata:
-  minio_data:
 
 networks:
   default:

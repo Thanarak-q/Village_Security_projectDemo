@@ -40,7 +40,8 @@
     "uuid": "^11.1.0",
     "ws": "^8.18.3",
     "zod": "^4.1.8",
-    "minio": "^8.0.1"
+    "@aws-sdk/client-s3": "^3.637.0",
+    "@aws-sdk/s3-request-presigner": "^3.637.0"
   },
   "devDependencies": {
     "@types/pg": "^8.15.4",

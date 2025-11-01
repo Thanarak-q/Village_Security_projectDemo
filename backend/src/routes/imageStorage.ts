@@ -1,7 +1,15 @@
 // src/routes/image-storage.ts
 import { Elysia, t } from 'elysia';
 import { createReadStream, statSync } from 'fs';
-import { join, resolve, sep } from 'path';
+import { resolve, sep } from 'path';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import {
+  buildSpacesCdnUrl,
+  createSpacesClient,
+  getSpacesBucket,
+  isSpacesConfigured,
+} from '../utils/spaces';
 
 // (เล็ก ๆ น้อย ๆ) เดา mime แบบเบา ๆ ถ้าไม่มีไลบรารี
 const guessMime = (filename: string) => {
@@ -23,34 +31,12 @@ const guessMime = (filename: string) => {
   }
 };
 
-// แปลง env เป็นพารามิเตอร์ของ MinIO client ที่ถูกต้อง แม้จะส่งมาเป็น URL
-const parseMinioEnv = () => {
-  const raw = process.env.MINIO_ENDPOINT || '';
-  let endPoint = raw;
-  let port = process.env.MINIO_PORT ? Number(process.env.MINIO_PORT) : undefined;
-  let useSSL = process.env.MINIO_USE_SSL === 'true';
-
-  try {
-    // ถ้า MINIO_ENDPOINT เป็น URL เช่น http://127.0.0.1:9000 หรือ https://minio.local
-    const u = new URL(raw);
-    endPoint = u.hostname;
-    port = Number(u.port) || (u.protocol === 'https:' ? 443 : 80);
-    useSSL = u.protocol === 'https:';
-  } catch {
-    // ไม่ใช่ URL -> ให้ถือว่าเป็น hostname ธรรมดา
-    // ถ้าไม่กำหนด port ให้ใช้ 9000 เป็นดีฟอลต์
-    if (!port) port = 9000;
-  }
-
-  return { endPoint, port, useSSL };
-};
-
 const imagesRootDir = resolve(process.cwd(), 'src', 'db', 'image'); // ปรับตามโปรเจกต์
 
 export const imageStorageRoutes = new Elysia({ prefix: '/api/images' })
 
   // 1) GET /api/images/presigned?key=<objectKey>
-  //    คืน pre-signed URL จาก MinIO (หมดอายุ 10 นาที)
+  //    คืน URL จาก DigitalOcean Spaces หรือ path ของไฟล์โลคัล
   .get(
     '/presigned',
     async ({ query, set }) => {
@@ -61,33 +47,25 @@ export const imageStorageRoutes = new Elysia({ prefix: '/api/images' })
           return { error: 'Missing key' };
         }
 
-        if (
-          process.env.MINIO_ACCESS_KEY &&
-          process.env.MINIO_SECRET_KEY &&
-          (process.env.MINIO_ENDPOINT || process.env.MINIO_PORT)
-        ) {
-          const { Client: MinioClient } = await import('minio');
-          const { endPoint, port, useSSL } = parseMinioEnv();
+        if (isSpacesConfigured()) {
+          const bucket = getSpacesBucket();
+          const cdnUrl = buildSpacesCdnUrl(key);
 
-          const minio = new MinioClient({
-            endPoint,
-            port: port ?? 9000,
-            useSSL,
-            accessKey: process.env.MINIO_ACCESS_KEY!,
-            secretKey: process.env.MINIO_SECRET_KEY!,
+          if (cdnUrl) {
+            return { url: cdnUrl, bucket };
+          }
+
+          const client = createSpacesClient();
+          const command = new GetObjectCommand({
+            Bucket: bucket,
+            Key: key,
           });
-
-          const bucket = process.env.MINIO_BUCKET || 'images';
-
-          // เพิ่ม response headers (เช่น content-type) ผ่าน query ของ presign ก็ได้
-          const reqParams = { 'response-content-type': 'image/*' };
-          const url = await minio.presignedGetObject(bucket, key, 60 * 10, reqParams);
-
-          return { url, expiresInSeconds: 600 };
+          const url = await getSignedUrl(client, command, { expiresIn: 600 });
+          return { url, bucket, expiresInSeconds: 600 };
         }
 
-        // Fallback: ใช้ local path
-        return { path: `/api/images/local/${encodeURIComponent(key)}` };
+        const localPath = `/api/images/local/${encodeURIComponent(key)}`;
+        return { url: localPath, path: localPath };
       } catch (e) {
         console.error('Failed to create presigned url', e);
         set.status = 500;
@@ -99,8 +77,8 @@ export const imageStorageRoutes = new Elysia({ prefix: '/api/images' })
     }
   )
 
-  // 2) GET /api/images/file/<...key> — proxy/stream ไฟล์จาก MinIO ออกมา
-  //    เหมาะกับ Next.js ที่อยากให้โหลดจากแบ็กเอนด์เราเอง (หลบ CORS + ซ่อนโดเมน MinIO)
+  // 2) GET /api/images/file/<...key> — stream ไฟล์จาก Spaces หรือดิสก์ออกมา
+  //    เหมาะกับ Next.js ที่อยากให้โหลดจากแบ็กเอนด์เราเอง (หลบ CORS)
   .get('/file/*', async ({ params, set }) => {
     try {
       // ✅ decode key ที่มาจาก URL เช่น .../%E0%B8%AB%E0%...
@@ -114,57 +92,45 @@ export const imageStorageRoutes = new Elysia({ prefix: '/api/images' })
         return svg;
       }
   
-      // Check if MinIO is configured
-      if (
-        process.env.MINIO_ACCESS_KEY &&
-        process.env.MINIO_SECRET_KEY &&
-        (process.env.MINIO_ENDPOINT || process.env.MINIO_PORT)
-      ) {
-        // Use MinIO
-        const { Client: MinioClient } = await import('minio');
-        const { endPoint, port, useSSL } = parseMinioEnv();
-
-        const minio = new MinioClient({
-          endPoint,
-          port: port ?? 9000,
-          useSSL,
-          accessKey: process.env.MINIO_ACCESS_KEY!,
-          secretKey: process.env.MINIO_SECRET_KEY!,
+      if (isSpacesConfigured()) {
+        const client = createSpacesClient();
+        const bucket = getSpacesBucket();
+        const command = new GetObjectCommand({
+          Bucket: bucket,
+          Key: key,
         });
+        const response = await client.send(command);
+        const body = response.Body;
 
-        const bucket = process.env.MINIO_BUCKET || 'images';
-
-        // Check if file exists
-        await minio.statObject(bucket, key);
-
-        // Get the object stream
-        const stream = await minio.getObject(bucket, key);
-
-        set.status = 200;
-        set.headers['Content-Type'] = guessMime(key);
-        set.headers['Cache-Control'] = 'public, max-age=300';
-        // @ts-ignore
-        return stream;
-      } else {
-        // Fallback to local file system
-        const resolved = resolve(imagesRootDir, key);
-        if (!resolved.startsWith(imagesRootDir + sep)) {
-          set.status = 403;
-          set.headers['Content-Type'] = 'image/svg+xml; charset=utf-8';
-          const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>`;
-          return svg;
-        }
-
-        const st = statSync(resolved);
-        if (!st.isFile()) {
-          throw new Error('Not a file');
+        if (!body) {
+          throw new Error('Empty response from Spaces');
         }
 
         set.status = 200;
-        set.headers['Content-Type'] = guessMime(key);
+        set.headers['Content-Type'] = response.ContentType || guessMime(key);
         set.headers['Cache-Control'] = 'public, max-age=300';
-        return createReadStream(resolved);
+        // @ts-ignore - AWS SDK returns a readable stream for Node.js
+        return body;
       }
+
+      // Serve from local filesystem
+      const resolved = resolve(imagesRootDir, key);
+      if (!resolved.startsWith(imagesRootDir + sep)) {
+        set.status = 403;
+        set.headers['Content-Type'] = 'image/svg+xml; charset=utf-8';
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>`;
+        return svg;
+      }
+
+      const st = statSync(resolved);
+      if (!st.isFile()) {
+        throw new Error('Not a file');
+      }
+
+      set.status = 200;
+      set.headers['Content-Type'] = guessMime(key);
+      set.headers['Cache-Control'] = 'public, max-age=300';
+      return createReadStream(resolved);
     } catch (e) {
       console.error('Error serving file:', e);
       // ❗อย่าส่ง HTML/JSON ให้ <Image> — ส่งรูป placeholder เล็ก ๆ แทน
@@ -176,7 +142,7 @@ export const imageStorageRoutes = new Elysia({ prefix: '/api/images' })
   })
   
 
-  // 3) GET /api/images/local/<...path> — เสิร์ฟไฟล์โลคัล (เมื่อยังไม่ตั้งค่า MinIO)
+  // 3) GET /api/images/local/<...path> — เสิร์ฟไฟล์โลคัล
   //    ป้องกัน path traversal และเดา MIME ให้
   .get('/local/*', async ({ params, set }) => {
     try {

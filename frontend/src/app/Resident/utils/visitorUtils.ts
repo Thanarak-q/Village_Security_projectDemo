@@ -101,7 +101,41 @@ export const denyVisitorRequest = async (id: string): Promise<void> => {
   }
 };
 
-export const transformApiData = (apiData: ApiVisitorRequest): VisitorRequest => {
+const DEFAULT_CAR_IMAGE = 'car1.jpg';
+
+export const resolveImageUrl = async (pictureKey?: string | null): Promise<string> => {
+  if (!pictureKey) {
+    return DEFAULT_CAR_IMAGE;
+  }
+
+  try {
+    const response = await fetch(`/api/images/presigned?key=${encodeURIComponent(pictureKey)}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data?.url) {
+        return data.url as string;
+      }
+      if (data?.path) {
+        return data.path as string;
+      }
+    } else {
+      console.warn(`⚠️ Failed to resolve image URL for key ${pictureKey}: ${response.status}`);
+    }
+  } catch (error) {
+    console.warn(`⚠️ Error resolving image URL for key ${pictureKey}:`, error);
+  }
+
+  // Fallback to backend streaming endpoint
+  return `/api/images/file/${pictureKey}`;
+};
+
+export const transformApiData = async (apiData: ApiVisitorRequest): Promise<VisitorRequest> => {
   // Format the entry time to display format with date
   const entryTime = new Date(apiData.entry_time);
   const timeString = entryTime.toLocaleTimeString('th-TH', {
@@ -117,11 +151,7 @@ export const transformApiData = (apiData: ApiVisitorRequest): VisitorRequest => 
   const timeWithDate = `${timeString} ${dateString}`;
 
   // Construct proper image URL from picture_key
-  let carImageUrl = 'car1.jpg'; // fallback to default image
-  if (apiData.picture_key) {
-    // Use the backend image serving endpoint
-    carImageUrl = `/api/images/file/${apiData.picture_key}`;
-  }
+  const carImageUrl = await resolveImageUrl(apiData.picture_key);
 
   return {
     id: apiData.visitor_record_id,  

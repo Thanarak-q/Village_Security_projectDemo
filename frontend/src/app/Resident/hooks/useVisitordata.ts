@@ -9,7 +9,8 @@ import {
   fetchVisitorHistory, 
   approveVisitorRequest, 
   denyVisitorRequest, 
-  transformApiData 
+  transformApiData,
+  resolveImageUrl
 } from "../utils/visitorUtils";
 import { 
   VisitorRequest, 
@@ -122,7 +123,7 @@ export const useVisitorData = () => {
 
         if (testData.success) {
           console.log("📋 Test visitor records:", testData.records);
-          const transformedRecords: VisitorRequest[] = testData.records.map((record) => {
+          const transformedRecords: VisitorRequest[] = await Promise.all(testData.records.map(async (record) => {
             const entryTime = new Date(record.createdAt);
             const timeString = entryTime.toLocaleTimeString('th-TH', {
               hour: '2-digit',
@@ -136,10 +137,7 @@ export const useVisitorData = () => {
             });
             const timeWithDate = `${timeString} ${dateString}`;
 
-            let carImageUrl = 'car1.jpg';
-            if (record.picture_key) {
-              carImageUrl = `/api/images/file/${record.picture_key}`;
-            }
+            const carImageUrl = await resolveImageUrl(record.picture_key);
 
             return {
               id: record.visitor_record_id,
@@ -154,7 +152,7 @@ export const useVisitorData = () => {
                   ? 'denied'
                   : undefined,
             };
-          });
+          }));
 
           const pending = transformedRecords.filter((record) => !record.status);
           const historyRecords = transformedRecords.filter((record) => Boolean(record.status));
@@ -182,8 +180,8 @@ export const useVisitorData = () => {
         historyCount: historyData?.length || 0,
       });
 
-      const transformedPending = pendingData.map(transformApiData);
-      const transformedHistory = historyData.map(transformApiData);
+      const transformedPending = await Promise.all(pendingData.map(transformApiData));
+      const transformedHistory = await Promise.all(historyData.map(transformApiData));
 
       setPendingRequests(transformedPending);
       setHistory(transformedHistory);
