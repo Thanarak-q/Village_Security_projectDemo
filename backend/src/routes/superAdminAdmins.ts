@@ -4,6 +4,7 @@ import { admins, villages, admin_villages } from "../db/schema";
 import { eq, and, isNull, isNotNull, inArray } from "drizzle-orm";
 import { requireRole } from "../hooks/requireRole";
 import { hashPassword } from "../utils/passwordUtils";
+import { randomBytes } from "crypto";
 
 type VillageLookup = {
   village_id: string;
@@ -14,9 +15,9 @@ const sanitizeVillageIds = (villageIds: string[]): string[] => {
   return Array.from(
     new Set(
       villageIds
-        .map(id => id.trim())
-        .filter((id): id is string => id.length > 0)
-    )
+        .map((id) => id.trim())
+        .filter((id): id is string => id.length > 0),
+    ),
   );
 };
 
@@ -39,7 +40,7 @@ const fetchVillagesByIds = async (villageIds: string[]) => {
     .where(inArray(villages.village_id, normalizedVillageIds));
 
   const villageMap = new Map<string, VillageLookup>();
-  villageRecords.forEach(record => {
+  villageRecords.forEach((record) => {
     villageMap.set(record.village_id, record);
   });
 
@@ -88,15 +89,18 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
               village_name: villages.village_name,
             })
             .from(admin_villages)
-            .innerJoin(villages, eq(admin_villages.village_id, villages.village_id))
+            .innerJoin(
+              villages,
+              eq(admin_villages.village_id, villages.village_id),
+            )
             .where(eq(admin_villages.admin_id, admin.admin_id));
 
           return {
             ...admin,
-            village_ids: adminVillages.map(av => av.village_id),
+            village_ids: adminVillages.map((av) => av.village_id),
             villages: adminVillages,
           };
-        })
+        }),
       );
 
       return { success: true, data: adminsWithVillages };
@@ -135,7 +139,7 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
 
       // Group admins by admin_id and collect their villages
       const adminMap = new Map();
-      
+
       disabledAdminsWithVillages.forEach((row) => {
         if (!adminMap.has(row.admin_id)) {
           adminMap.set(row.admin_id, {
@@ -149,17 +153,17 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
             createdAt: row.createdAt,
             updatedAt: row.updatedAt,
             village_ids: [],
-            villages: []
+            villages: [],
           });
         }
-        
+
         if (row.village_id && row.village_name) {
           const admin = adminMap.get(row.admin_id);
           if (!admin.village_ids.includes(row.village_id)) {
             admin.village_ids.push(row.village_id);
             admin.villages.push({
               village_id: row.village_id,
-              village_name: row.village_name
+              village_name: row.village_name,
             });
           }
         }
@@ -183,51 +187,49 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
    */
   .post("/admins", async ({ body, set }) => {
     try {
-      const { 
-        username, 
-        email, 
-        password, 
-        phone, 
-        role, 
-        village_ids 
-      } = body as {
+      const { username, email, phone, role, village_ids } = body as {
         username: string;
         email: string;
-        password: string;
         phone: string;
         role: "admin" | "staff";
         village_ids?: string[]; // Optional: can create admin without villages
       };
 
       // Validation
-      if (!username || !email || !password || !phone || !role) {
+      if (!username || !email || !phone || !role) {
         set.status = 400;
-        return { 
-          success: false, 
-          error: "All fields are required (username, email, password, phone, role)" 
+        return {
+          success: false,
+          error: "All fields are required (username, email, phone, role)",
         };
       }
 
-      if (username.trim().length === 0 || email.trim().length === 0 || 
-          password.trim().length === 0 || phone.trim().length === 0) {
+      if (
+        username.trim().length === 0 ||
+        email.trim().length === 0 ||
+        phone.trim().length === 0
+      ) {
         set.status = 400;
         return { success: false, error: "Fields cannot be empty" };
       }
 
-      if (password.length < 6) {
-        set.status = 400;
-        return { success: false, error: "Password must be at least 6 characters long" };
-      }
+      // Password will be auto-generated
 
       if (!["admin", "staff"].includes(role)) {
         set.status = 400;
-        return { success: false, error: "Role must be either 'admin' or 'staff'" };
+        return {
+          success: false,
+          error: "Role must be either 'admin' or 'staff'",
+        };
       }
 
       // For staff role, village_ids is required
       if (role === "staff" && (!village_ids || village_ids.length === 0)) {
         set.status = 400;
-        return { success: false, error: "Staff must be assigned to at least one village" };
+        return {
+          success: false,
+          error: "Staff must be assigned to at least one village",
+        };
       }
 
       let normalizedVillageIds: string[] = [];
@@ -240,17 +242,36 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
         villageLookupMap = fetchResult.villageMap;
 
         if (normalizedVillageIds.length !== villageLookupMap.size) {
-          const missingVillages = normalizedVillageIds.filter(id => !villageLookupMap.has(id));
+          const missingVillages = normalizedVillageIds.filter(
+            (id) => !villageLookupMap.has(id),
+          );
           set.status = 400;
-          return { success: false, error: `Village(s) not found: ${missingVillages.join(", ")}` };
+          return {
+            success: false,
+            error: `Village(s) not found: ${missingVillages.join(", ")}`,
+          };
         }
       }
 
-      // Check if username already exists
+      // Validate and normalize username, enforce admin_ prefix
+      const rawUsername = username.trim();
+      const baseUsername = rawUsername.replace(/^admin_+/i, "");
+      const USERNAME_REGEX = /^[A-Za-z0-9._-]+$/;
+      if (!USERNAME_REGEX.test(baseUsername)) {
+        set.status = 400;
+        return {
+          success: false,
+          error:
+            "Invalid username. Use English letters, numbers, dot (.), underscore (_), or dash (-) only",
+        };
+      }
+      const prefixedUsername = `admin_${baseUsername}`;
+
+      // Check if username already exists (with prefix)
       const existingUsername = await db
         .select()
         .from(admins)
-        .where(eq(admins.username, username.trim()));
+        .where(eq(admins.username, prefixedUsername));
 
       if (existingUsername.length > 0) {
         set.status = 400;
@@ -268,14 +289,17 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
         return { success: false, error: "Email already exists" };
       }
 
-      // Hash password
-      const hashedPassword = await hashPassword(password);
+      // Auto-generate password and hash it (crypto-random)
+      const generatedPassword = randomBytes(12)
+        .toString("base64url")
+        .slice(0, 12);
+      const hashedPassword = await hashPassword(generatedPassword);
 
       // Create admin
       const newAdmin = await db
         .insert(admins)
         .values({
-          username: username.trim(),
+          username: prefixedUsername,
           email: email.trim(),
           password_hash: hashedPassword,
           phone: phone.trim(),
@@ -294,22 +318,21 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
 
       // Create admin-village relationships (if village_ids provided)
       if (normalizedVillageIds.length > 0) {
-        const adminVillageData = normalizedVillageIds.map(villageId => ({
+        const adminVillageData = normalizedVillageIds.map((villageId) => ({
           admin_id: newAdmin[0].admin_id,
           village_id: villageLookupMap.get(villageId)!.village_id,
         }));
 
-        await db
-          .insert(admin_villages)
-          .values(adminVillageData);
+        await db.insert(admin_villages).values(adminVillageData);
       }
 
-      return { 
-        success: true, 
+      return {
+        success: true,
         data: {
           ...newAdmin[0],
-          village_ids: normalizedVillageIds
-        }
+          village_ids: normalizedVillageIds,
+          generated_password: generatedPassword,
+        },
       };
     } catch (error) {
       console.error("Error creating admin:", error);
@@ -328,14 +351,7 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
   .put("/admins/:id", async ({ params, body, set }) => {
     try {
       const { id } = params as { id: string };
-      const { 
-        username, 
-        email, 
-        phone, 
-        role, 
-        village_id, 
-        status 
-      } = body as {
+      const { username, email, phone, role, village_id, status } = body as {
         username?: string;
         email?: string;
         phone?: string;
@@ -373,12 +389,21 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
 
       if (role !== undefined && !["admin", "staff"].includes(role)) {
         set.status = 400;
-        return { success: false, error: "Role must be either 'admin' or 'staff'" };
+        return {
+          success: false,
+          error: "Role must be either 'admin' or 'staff'",
+        };
       }
 
-      if (status !== undefined && !["verified", "pending", "disable"].includes(status)) {
+      if (
+        status !== undefined &&
+        !["verified", "pending", "disable"].includes(status)
+      ) {
         set.status = 400;
-        return { success: false, error: "Status must be 'verified', 'pending', or 'disable'" };
+        return {
+          success: false,
+          error: "Status must be 'verified', 'pending', or 'disable'",
+        };
       }
 
       // Check if village exists (if village_id is being updated)
@@ -446,7 +471,9 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
 
       // Update admin-village relationship if village_id is provided
       if (village_id !== undefined) {
-        const { normalizedVillageIds, villageMap } = await fetchVillagesByIds([village_id]);
+        const { normalizedVillageIds, villageMap } = await fetchVillagesByIds([
+          village_id,
+        ]);
         const normalizedVillageId = normalizedVillageIds[0];
 
         if (!normalizedVillageId) {
@@ -462,17 +489,13 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
         }
 
         // Delete existing relationships
-        await db
-          .delete(admin_villages)
-          .where(eq(admin_villages.admin_id, id));
+        await db.delete(admin_villages).where(eq(admin_villages.admin_id, id));
 
         // Create new relationship
-        await db
-          .insert(admin_villages)
-          .values({
-            admin_id: id,
-            village_id: villageRecord.village_id,
-          });
+        await db.insert(admin_villages).values({
+          admin_id: id,
+          village_id: villageRecord.village_id,
+        });
       }
 
       return { success: true, data: updatedAdmin[0] };
@@ -511,16 +534,14 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
       }
 
       // Delete admin-village relationships first
-      await db
-        .delete(admin_villages)
-        .where(eq(admin_villages.admin_id, id));
+      await db.delete(admin_villages).where(eq(admin_villages.admin_id, id));
 
       // Soft delete admin
       await db
         .update(admins)
-        .set({ 
+        .set({
           disable_at: new Date(),
-          status: "disable"
+          status: "disable",
         })
         .where(eq(admins.admin_id, id));
 
@@ -545,7 +566,11 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
       const { village_ids } = body as { village_ids: string[] };
 
       // Validation
-      if (!village_ids || !Array.isArray(village_ids) || village_ids.length === 0) {
+      if (
+        !village_ids ||
+        !Array.isArray(village_ids) ||
+        village_ids.length === 0
+      ) {
         set.status = 400;
         return { success: false, error: "village_ids array is required" };
       }
@@ -561,12 +586,18 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
         return { success: false, error: "Admin not found" };
       }
 
-      const { normalizedVillageIds, villageMap } = await fetchVillagesByIds(village_ids);
+      const { normalizedVillageIds, villageMap } =
+        await fetchVillagesByIds(village_ids);
 
       if (normalizedVillageIds.length !== villageMap.size) {
-        const missingVillages = normalizedVillageIds.filter(idValue => !villageMap.has(idValue));
+        const missingVillages = normalizedVillageIds.filter(
+          (idValue) => !villageMap.has(idValue),
+        );
         set.status = 400;
-        return { success: false, error: `Village(s) not found: ${missingVillages.join(", ")}` };
+        return {
+          success: false,
+          error: `Village(s) not found: ${missingVillages.join(", ")}`,
+        };
       }
 
       // Check for existing relationships to avoid duplicates
@@ -575,30 +606,35 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
         .from(admin_villages)
         .where(eq(admin_villages.admin_id, id));
 
-      const existingVillageIds = new Set(existingRelations.map(rel => rel.village_id));
-      const newVillageIds = normalizedVillageIds.filter(villageIdValue => {
+      const existingVillageIds = new Set(
+        existingRelations.map((rel) => rel.village_id),
+      );
+      const newVillageIds = normalizedVillageIds.filter((villageIdValue) => {
         const villageRecord = villageMap.get(villageIdValue);
-        return villageRecord && !existingVillageIds.has(villageRecord.village_id);
+        return (
+          villageRecord && !existingVillageIds.has(villageRecord.village_id)
+        );
       });
 
       if (newVillageIds.length === 0) {
-        return { success: true, message: "All villages are already assigned to this admin" };
+        return {
+          success: true,
+          message: "All villages are already assigned to this admin",
+        };
       }
 
       // Create new admin-village relationships
-      const adminVillageData = newVillageIds.map(villageIdValue => ({
+      const adminVillageData = newVillageIds.map((villageIdValue) => ({
         admin_id: id,
         village_id: villageMap.get(villageIdValue)!.village_id,
       }));
 
-      await db
-        .insert(admin_villages)
-        .values(adminVillageData);
+      await db.insert(admin_villages).values(adminVillageData);
 
-      return { 
-        success: true, 
+      return {
+        success: true,
         message: `Added ${newVillageIds.length} village(s) to admin`,
-        added_villages: newVillageIds
+        added_villages: newVillageIds,
       };
     } catch (error) {
       console.error("Error adding villages to admin:", error);
@@ -628,7 +664,9 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
         return { success: false, error: "Admin not found" };
       }
 
-      const { normalizedVillageIds, villageMap } = await fetchVillagesByIds([village_id]);
+      const { normalizedVillageIds, villageMap } = await fetchVillagesByIds([
+        village_id,
+      ]);
       const normalizedVillageId = normalizedVillageIds[0];
 
       if (!normalizedVillageId) {
@@ -647,10 +685,12 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
       const existingRelation = await db
         .select()
         .from(admin_villages)
-        .where(and(
-          eq(admin_villages.admin_id, id),
-          eq(admin_villages.village_id, villageRecord.village_id)
-        ));
+        .where(
+          and(
+            eq(admin_villages.admin_id, id),
+            eq(admin_villages.village_id, villageRecord.village_id),
+          ),
+        );
 
       if (existingRelation.length === 0) {
         set.status = 404;
@@ -660,12 +700,17 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
       // Remove the relationship
       await db
         .delete(admin_villages)
-        .where(and(
-          eq(admin_villages.admin_id, id),
-          eq(admin_villages.village_id, villageRecord.village_id)
-        ));
+        .where(
+          and(
+            eq(admin_villages.admin_id, id),
+            eq(admin_villages.village_id, villageRecord.village_id),
+          ),
+        );
 
-      return { success: true, message: "Village removed from admin successfully" };
+      return {
+        success: true,
+        message: "Village removed from admin successfully",
+      };
     } catch (error) {
       console.error("Error removing village from admin:", error);
       set.status = 500;
@@ -702,35 +747,37 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
         return { success: false, error: "Admin not found" };
       }
 
-      const { normalizedVillageIds, villageMap } = await fetchVillagesByIds(village_ids);
+      const { normalizedVillageIds, villageMap } =
+        await fetchVillagesByIds(village_ids);
 
       if (normalizedVillageIds.length !== villageMap.size) {
-        const missingVillages = normalizedVillageIds.filter(idValue => !villageMap.has(idValue));
+        const missingVillages = normalizedVillageIds.filter(
+          (idValue) => !villageMap.has(idValue),
+        );
         set.status = 400;
-        return { success: false, error: `Village(s) not found: ${missingVillages.join(", ")}` };
+        return {
+          success: false,
+          error: `Village(s) not found: ${missingVillages.join(", ")}`,
+        };
       }
 
       // Remove all existing relationships
-      await db
-        .delete(admin_villages)
-        .where(eq(admin_villages.admin_id, id));
+      await db.delete(admin_villages).where(eq(admin_villages.admin_id, id));
 
       // Create new relationships (if any villages provided)
       if (normalizedVillageIds.length > 0) {
-        const adminVillageData = normalizedVillageIds.map(villageIdValue => ({
+        const adminVillageData = normalizedVillageIds.map((villageIdValue) => ({
           admin_id: id,
           village_id: villageMap.get(villageIdValue)!.village_id,
         }));
 
-        await db
-          .insert(admin_villages)
-          .values(adminVillageData);
+        await db.insert(admin_villages).values(adminVillageData);
       }
 
-      return { 
-        success: true, 
+      return {
+        success: true,
         message: `Updated admin villages successfully`,
-        village_ids: normalizedVillageIds
+        village_ids: normalizedVillageIds,
       };
     } catch (error) {
       console.error("Error updating admin villages:", error);
@@ -753,10 +800,7 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
       const existingAdmin = await db
         .select()
         .from(admins)
-        .where(and(
-          eq(admins.admin_id, id),
-          isNotNull(admins.disable_at)
-        ));
+        .where(and(eq(admins.admin_id, id), isNotNull(admins.disable_at)));
 
       if (existingAdmin.length === 0) {
         set.status = 404;
@@ -766,9 +810,9 @@ export const superAdminAdminsRoutes = new Elysia({ prefix: "/api/superadmin" })
       // Restore admin
       await db
         .update(admins)
-        .set({ 
+        .set({
           disable_at: null,
-          status: "verified"
+          status: "verified",
         })
         .where(eq(admins.admin_id, id));
 

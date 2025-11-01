@@ -90,8 +90,8 @@ export const visitorsInRoutes = new Elysia({ prefix: "/api" })
             ),
           )
           .orderBy(visitor_records.entry_time)
-          .limit(limitNum)
           .offset(offsetNum);
+        // .limit(limitNum)
 
         // Map to frontend payload shape
         const data = rows.map((r) => {

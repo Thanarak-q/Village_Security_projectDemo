@@ -9,20 +9,20 @@ export default function HistoryPage() {
   // GSAP smooth scroll-up animation
   useEffect(() => {
     const tableElement = tableRef.current;
-    
+
     // Set initial state
     gsap.set(tableElement, {
       opacity: 0,
-      y: 50
+      y: 50,
     });
-
+    //dsaioudisuLJDS{OIshDu}
     // Animate entrance
     gsap.to(tableElement, {
       duration: 0.8,
       opacity: 1,
       y: 0,
       ease: "power2.inOut",
-      delay: 0.2
+      delay: 0.2,
     });
 
     return () => {

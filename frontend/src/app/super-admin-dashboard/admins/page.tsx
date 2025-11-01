@@ -1,10 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
+import {
   Table,
   TableBody,
   TableCell,
@@ -77,12 +83,15 @@ export default function AdminsPage() {
   const [formData, setFormData] = useState({
     username: "",
     email: "",
-    password: "",
     phone: "",
     role: "admin" as "admin" | "staff",
     village_ids: [] as string[],
   });
   const [submitting, setSubmitting] = useState(false);
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    username: string;
+    password: string;
+  } | null>(null);
   const router = useRouter();
 
   const fetchAdmins = useCallback(async () => {
@@ -142,14 +151,12 @@ export default function AdminsPage() {
   }, [fetchAdmins, fetchVillages]);
 
   const handleCreateAdmin = async () => {
-    if (!formData.username.trim() || !formData.email.trim() || 
-        !formData.password.trim() || !formData.phone.trim()) {
+    if (
+      !formData.username.trim() ||
+      !formData.email.trim() ||
+      !formData.phone.trim()
+    ) {
       toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      toast.error("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร");
       return;
     }
 
@@ -167,17 +174,26 @@ export default function AdminsPage() {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          username: formData.username,
+          email: formData.email,
+          phone: formData.phone,
+          role: formData.role,
+          village_ids: formData.village_ids,
+        }),
       });
 
       const data = await response.json();
       if (data.success) {
         toast.success("สร้าง Admin สำเร็จ");
-        setIsCreateDialogOpen(false);
+        // Keep dialog open to show credentials
+        setCreatedCredentials({
+          username: data.data.username,
+          password: data.data.generated_password,
+        });
         setFormData({
           username: "",
           email: "",
-          password: "",
           phone: "",
           role: "admin",
           village_ids: [],
@@ -195,8 +211,12 @@ export default function AdminsPage() {
   };
 
   const handleEditAdmin = async () => {
-    if (!selectedAdmin || !formData.username.trim() || 
-        !formData.email.trim() || !formData.phone.trim()) {
+    if (
+      !selectedAdmin ||
+      !formData.username.trim() ||
+      !formData.email.trim() ||
+      !formData.phone.trim()
+    ) {
       toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
       return;
     }
@@ -210,35 +230,41 @@ export default function AdminsPage() {
     setSubmitting(true);
     try {
       // First update admin basic info
-      const response = await fetch(`/api/superadmin/admins/${selectedAdmin.admin_id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `/api/superadmin/admins/${selectedAdmin.admin_id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            username: formData.username,
+            email: formData.email,
+            phone: formData.phone,
+            role: formData.role,
+          }),
         },
-        credentials: "include",
-        body: JSON.stringify({
-          username: formData.username,
-          email: formData.email,
-          phone: formData.phone,
-          role: formData.role,
-        }),
-      });
+      );
 
       if (!response.ok) {
         throw new Error("Failed to update admin");
       }
 
       // Then update villages
-      const villageResponse = await fetch(`/api/superadmin/admins/${selectedAdmin.admin_id}/villages`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
+      const villageResponse = await fetch(
+        `/api/superadmin/admins/${selectedAdmin.admin_id}/villages`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            village_ids: formData.village_ids,
+          }),
         },
-        credentials: "include",
-        body: JSON.stringify({
-          village_ids: formData.village_ids,
-        }),
-      });
+      );
 
       if (!villageResponse.ok) {
         throw new Error("Failed to update villages");
@@ -250,7 +276,6 @@ export default function AdminsPage() {
       setFormData({
         username: "",
         email: "",
-        password: "",
         phone: "",
         role: "admin",
         village_ids: [],
@@ -269,10 +294,13 @@ export default function AdminsPage() {
 
     setSubmitting(true);
     try {
-      const response = await fetch(`/api/superadmin/admins/${selectedAdmin.admin_id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
+      const response = await fetch(
+        `/api/superadmin/admins/${selectedAdmin.admin_id}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        },
+      );
 
       const data = await response.json();
       if (data.success) {
@@ -296,7 +324,6 @@ export default function AdminsPage() {
     setFormData({
       username: admin.username,
       email: admin.email,
-      password: "",
       phone: admin.phone,
       role: admin.role,
       village_ids: admin.village_ids || [],
@@ -355,79 +382,124 @@ export default function AdminsPage() {
               แอดมินที่ถูกระงับ
             </Button>
           </Link>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <Dialog
+            open={isCreateDialogOpen}
+            onOpenChange={setIsCreateDialogOpen}
+          >
             <DialogTrigger asChild>
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
                 สร้าง Admin ใหม่
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>สร้าง Admin ใหม่</DialogTitle>
-              <DialogDescription>
-                เพิ่ม Admin ใหม่เข้าไปในระบบ
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="username">ชื่อผู้ใช้</Label>
-                <Input
-                  id="username"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  placeholder="เช่น admin01"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">อีเมล</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="เช่น admin@example.com"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">รหัสผ่าน</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder="อย่างน้อย 6 ตัวอักษร"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">เบอร์โทรศัพท์</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="เช่น 0812345678"
-                />
-              </div>
-              <VillageMultiSelect
-                villages={villages}
-                selectedVillageIds={formData.village_ids}
-                onSelectionChange={(villageIds) => 
-                  setFormData({ ...formData, village_ids: villageIds })
-                }
-                onVillagesChange={setVillages}
-                role={formData.role}
-              />
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                ยกเลิก
-              </Button>
-              <Button onClick={handleCreateAdmin} disabled={submitting}>
-                {submitting ? "กำลังสร้าง..." : "สร้าง Admin"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>สร้าง Admin ใหม่</DialogTitle>
+                <DialogDescription>
+                  เพิ่ม Admin ใหม่เข้าไปในระบบ
+                </DialogDescription>
+              </DialogHeader>
+              {createdCredentials ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>ชื่อผู้ใช้ (Username)</Label>
+                    <Input value={createdCredentials.username} readOnly />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>รหัสผ่าน (Password)</Label>
+                    <Input value={createdCredentials.password} readOnly />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    โปรดบันทึกข้อมูลนี้
+                    เนื่องจากจะไม่สามารถดูรหัสผ่านได้อีกครั้ง
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="username">ชื่อผู้ใช้</Label>
+                    <Input
+                      id="username"
+                      value={formData.username}
+                      onChange={(e) =>
+                        setFormData({ ...formData, username: e.target.value })
+                      }
+                      placeholder="เช่น admin01"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">อีเมล</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
+                      placeholder="เช่น admin@example.com"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">เบอร์โทรศัพท์</Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        setFormData({ ...formData, phone: e.target.value })
+                      }
+                      placeholder="เช่น 0812345678"
+                    />
+                  </div>
+                  <VillageMultiSelect
+                    villages={villages}
+                    selectedVillageIds={formData.village_ids}
+                    onSelectionChange={(villageIds) =>
+                      setFormData({ ...formData, village_ids: villageIds })
+                    }
+                    onVillagesChange={setVillages}
+                    role={formData.role}
+                  />
+                </div>
+              )}
+              <DialogFooter>
+                {createdCredentials ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsCreateDialogOpen(false);
+                        setCreatedCredentials(null);
+                      }}
+                    >
+                      ปิด
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        const text = `username: ${createdCredentials.username}\npassword: ${createdCredentials.password}`;
+                        navigator.clipboard.writeText(text);
+                      }}
+                    >
+                      คัดลอกข้อมูล
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsCreateDialogOpen(false)}
+                    >
+                      ยกเลิก
+                    </Button>
+                    <Button onClick={handleCreateAdmin} disabled={submitting}>
+                      {submitting ? "กำลังสร้าง..." : "สร้าง Admin"}
+                    </Button>
+                  </>
+                )}
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -436,19 +508,18 @@ export default function AdminsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            รายการ Admin ({admins.filter(admin => admin.role === "admin").length})
+            รายการ Admin (
+            {admins.filter((admin) => admin.role === "admin").length})
           </CardTitle>
-          <CardDescription>
-            Admin ทั้งหมดในระบบ
-          </CardDescription>
+          <CardDescription>Admin ทั้งหมดในระบบ</CardDescription>
         </CardHeader>
         <CardContent>
-          {admins.filter(admin => admin.role === "admin").length === 0 ? (
+          {admins.filter((admin) => admin.role === "admin").length === 0 ? (
             <div className="text-center py-8">
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">ยังไม่มี Admin ในระบบ</p>
-              <Button 
-                className="mt-2" 
+              <Button
+                className="mt-2"
                 onClick={() => setIsCreateDialogOpen(true)}
               >
                 <Plus className="mr-2 h-4 w-4" />
@@ -468,44 +539,50 @@ export default function AdminsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {admins.filter(admin => admin.role === "admin").map((admin) => (
-                  <TableRow key={admin.admin_id}>
-                    <TableCell className="font-medium">
-                      {admin.username}
-                    </TableCell>
-                    <TableCell>{admin.email}</TableCell>
-                    <TableCell>
-                      <Badge variant={admin.role === "admin" ? "default" : "secondary"}>
-                        {getRoleDisplayName(admin.role)}
-                      </Badge>
-                    </TableCell>
-             
-                    <TableCell>
-                      {new Date(admin.createdAt).toLocaleDateString('th-TH')}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openEditDialog(admin)}
-                          title="แก้ไข"
+                {admins
+                  .filter((admin) => admin.role === "admin")
+                  .map((admin) => (
+                    <TableRow key={admin.admin_id}>
+                      <TableCell className="font-medium">
+                        {admin.username}
+                      </TableCell>
+                      <TableCell>{admin.email}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            admin.role === "admin" ? "default" : "secondary"
+                          }
                         >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openDeleteDialog(admin)}
-                          disabled={false}
-                          title="ลบ"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          {getRoleDisplayName(admin.role)}
+                        </Badge>
+                      </TableCell>
+
+                      <TableCell>
+                        {new Date(admin.createdAt).toLocaleDateString("th-TH")}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditDialog(admin)}
+                            title="แก้ไข"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openDeleteDialog(admin)}
+                            disabled={false}
+                            title="ลบ"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           )}
@@ -546,19 +623,25 @@ export default function AdminsPage() {
                   <CardContent className="space-y-6">
                     <div className="space-y-4">
                       <div className="space-y-1.5">
-                        <Label className="text-sm text-muted-foreground">ชื่อผู้ใช้</Label>
+                        <Label className="text-sm text-muted-foreground">
+                          ชื่อผู้ใช้
+                        </Label>
                         <div className="px-3 py-2 bg-muted rounded-md border text-base font-medium">
                           {formData.username}
                         </div>
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-sm text-muted-foreground">อีเมล</Label>
+                        <Label className="text-sm text-muted-foreground">
+                          อีเมล
+                        </Label>
                         <div className="px-3 py-2 bg-muted rounded-md border text-base break-words">
                           {formData.email}
                         </div>
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-sm text-muted-foreground">เบอร์โทรศัพท์</Label>
+                        <Label className="text-sm text-muted-foreground">
+                          เบอร์โทรศัพท์
+                        </Label>
                         <div className="px-3 py-2 bg-muted rounded-md border text-base">
                           {formData.phone}
                         </div>
@@ -582,7 +665,7 @@ export default function AdminsPage() {
                     <VillageMultiSelect
                       villages={villages}
                       selectedVillageIds={formData.village_ids}
-                      onSelectionChange={(villageIds) => 
+                      onSelectionChange={(villageIds) =>
                         setFormData({ ...formData, village_ids: villageIds })
                       }
                       onVillagesChange={setVillages}
@@ -596,7 +679,10 @@ export default function AdminsPage() {
             {/* Footer */}
             <div className="flex-shrink-0 px-4 py-6 sm:px-8 border-t bg-muted/30">
               <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditDialogOpen(false)}
+                >
                   ยกเลิก
                 </Button>
                 <Button onClick={handleEditAdmin} disabled={submitting}>
@@ -614,17 +700,20 @@ export default function AdminsPage() {
           <DialogHeader>
             <DialogTitle>ยืนยันการลบ Admin</DialogTitle>
             <DialogDescription>
-              คุณแน่ใจหรือไม่ที่จะลบ Admin &quot;{selectedAdmin?.username}&quot;? 
-              การดำเนินการนี้ไม่สามารถย้อนกลับได้
+              คุณแน่ใจหรือไม่ที่จะลบ Admin &quot;{selectedAdmin?.username}
+              &quot;? การดำเนินการนี้ไม่สามารถย้อนกลับได้
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
               ยกเลิก
             </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDeleteAdmin} 
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAdmin}
               disabled={submitting}
             >
               {submitting ? "กำลังลบ..." : "ลบ Admin"}
@@ -632,7 +721,6 @@ export default function AdminsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }
