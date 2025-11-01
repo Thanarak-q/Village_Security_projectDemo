@@ -34,14 +34,20 @@ The root `.env` file feeds every service via `docker-compose.yml` as well as loc
    cd Village_Security_project
    ```
 2. **Create the root `.env` file** (see [Environment Variables](#environment-variables)).
-3. **Start the shared data services**
+3. **Install dependencies**
+   ```bash
+   bun install --frozen-lockfile --cwd backend
+   bun install --frozen-lockfile --cwd frontend
+   bun install --frozen-lockfile --cwd websocket
+   ```
+4. **Start the shared data services**
    ```bash
    docker compose -f DB/docker-compose.yml up -d
    ```
    > ℹ️ This bootstraps the shared `village_net` Docker network. If you ever need to start the app stack without this step, create it manually once via `docker network create village_net`.
-4. **Start the application stack**
+5. **Start the application stack**
    ```bash
-   docker compose up --build
+   docker compose up --build -d
    ```
    After the containers settle:
    - Frontend UI: `http://localhost`

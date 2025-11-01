@@ -37,6 +37,7 @@ import { residentProfileRoutes } from "./routes/residentProfile";
 import { ocrIdCardRoutes } from "./routes/ocrIdCard";
 import { ocrLicensePlateRoutes } from "./routes/ocrLicensePlate";
 import { ocrDriverLicenseRoutes } from "./routes/ocrDriverLicense";
+import { visitorsInRoutes } from "./routes/visitorsIn";
 /**
  * SECURITY ENHANCEMENT: Secure Health Check Endpoint
  *
@@ -84,7 +85,7 @@ const app = new Elysia()
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
-    })
+    }),
   )
   .use(jwt({ name: "jwt", secret: jwtSecret, exp: jwtExpiresIn }))
   .use(healthCheck)
@@ -107,6 +108,7 @@ const app = new Elysia()
   .use(villagesRoutes)
   .use(notificationsRoutes)
   .use(approvalForm)
+  .use(visitorsInRoutes)
   // .use(residentApi)
   // .use(approvalForm)
   .use(superAdminVillagesRoutes)
@@ -132,19 +134,23 @@ async function startServer() {
     await testConnection();
 
     // Optionally ensure MinIO bucket exists at startup for faster first-upload
-    if (process.env.MINIO_ENDPOINT && process.env.MINIO_ACCESS_KEY && process.env.MINIO_SECRET_KEY) {
-      const { Client: MinioClient } = await import('minio');
+    if (
+      process.env.MINIO_ENDPOINT &&
+      process.env.MINIO_ACCESS_KEY &&
+      process.env.MINIO_SECRET_KEY
+    ) {
+      const { Client: MinioClient } = await import("minio");
       const minio = new MinioClient({
         endPoint: process.env.MINIO_ENDPOINT as string,
         port: process.env.MINIO_PORT ? Number(process.env.MINIO_PORT) : 9000,
-        useSSL: process.env.MINIO_USE_SSL === 'true',
+        useSSL: process.env.MINIO_USE_SSL === "true",
         accessKey: process.env.MINIO_ACCESS_KEY as string,
         secretKey: process.env.MINIO_SECRET_KEY as string,
       });
-      const bucket = process.env.MINIO_BUCKET || 'images';
+      const bucket = process.env.MINIO_BUCKET || "images";
       const exists = await minio.bucketExists(bucket).catch(() => false);
       if (!exists) {
-        await minio.makeBucket(bucket, 'us-east-1');
+        await minio.makeBucket(bucket, "us-east-1");
         console.log(`🪣 MinIO bucket created: ${bucket}`);
       } else {
         console.log(`🪣 MinIO bucket exists: ${bucket}`);
@@ -152,22 +158,19 @@ async function startServer() {
     }
 
     const port = parseInt(process.env.PORT || "3001");
-    
+
     // Start the Elysia app and get the server
-    const server = app.listen({
-      port,
-      hostname: '0.0.0.0'
-    }, () => {
-      console.log(
-        `🦊 Village Security API is running on port ${port}`
-      );
-      console.log(
-        `📊 Health check available at /api/health`
-      );
-      console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
-    });
-    
-    
+    const server = app.listen(
+      {
+        port,
+        hostname: "0.0.0.0",
+      },
+      () => {
+        console.log(`🦊 Village Security API is running on port ${port}`);
+        console.log(`📊 Health check available at /api/health`);
+        console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
+      },
+    );
   } catch (error) {
     console.error("❌ Failed to start server:", error);
     process.exit(1);

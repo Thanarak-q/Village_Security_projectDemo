@@ -296,6 +296,8 @@ export const visitor_records = pgTable(
     picture_key: text("picture_key"),
     license_plate: text("license_plate"),
     entry_time: timestamp("entry_time").defaultNow(),
+    exit_time: timestamp("exit_time"),
+    is_in: boolean("is_in").default(true),
     record_status: text("record_status")
       .$type<"approved" | "pending" | "rejected">()
       .default("pending"),

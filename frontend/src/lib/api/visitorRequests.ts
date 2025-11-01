@@ -12,6 +12,7 @@ export interface VisitorRequest {
   license_plate?: string;
   entry_time: string;
   exit_time?: string;
+  is_in?: boolean;
   record_status: "pending" | "approved" | "rejected";
   visit_purpose?: string;
   created_at: string;

@@ -23,6 +23,8 @@ export async function getAllVisitorRecords() {
       picture_key: visitor_records.picture_key,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
+      exit_time: visitor_records.exit_time,
+      is_in: visitor_records.is_in,
       record_status: visitor_records.record_status,
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
@@ -71,6 +73,8 @@ export async function getVisitorRecordsByVillage(villageId: string) {
       picture_key: visitor_records.picture_key,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
+      exit_time: visitor_records.exit_time,
+      is_in: visitor_records.is_in,
       record_status: visitor_records.record_status,
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
@@ -120,6 +124,8 @@ export async function getVisitorRecordsByResident(residentId: string) {
       picture_key: visitor_records.picture_key,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
+      exit_time: visitor_records.exit_time,
+      is_in: visitor_records.is_in,
       record_status: visitor_records.record_status,
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
@@ -169,6 +175,8 @@ export async function getVisitorRecordsByGuard(guardId: string) {
       picture_key: visitor_records.picture_key,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
+      exit_time: visitor_records.exit_time,
+      is_in: visitor_records.is_in,
       record_status: visitor_records.record_status,
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
@@ -218,6 +226,8 @@ export async function getVisitorRecordsByHouse(houseId: string) {
       picture_key: visitor_records.picture_key,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
+      exit_time: visitor_records.exit_time,
+      is_in: visitor_records.is_in,
       record_status: visitor_records.record_status,
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
@@ -268,6 +278,8 @@ export async function getVisitorRecordsByStatus(
       picture_key: visitor_records.picture_key,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
+      exit_time: visitor_records.exit_time,
+      is_in: visitor_records.is_in,
       record_status: visitor_records.record_status,
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
@@ -316,6 +328,8 @@ export async function getVisitorRecordByVisitorId(visitorId: string) {
       picture_key: visitor_records.picture_key,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
+      exit_time: visitor_records.exit_time,
+      is_in: visitor_records.is_in,
       record_status: visitor_records.record_status,
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
@@ -344,6 +358,8 @@ export async function getVisitorRecordById(visitorRecordId: string) {
       picture_key: visitor_records.picture_key,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
+      exit_time: visitor_records.exit_time,
+      is_in: visitor_records.is_in,
       record_status: visitor_records.record_status,
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
@@ -371,6 +387,8 @@ export async function getVisitorRecordWithDetails(visitorId: string) {
       picture_key: visitor_records.picture_key,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
+      exit_time: visitor_records.exit_time,
+      is_in: visitor_records.is_in,
       record_status: visitor_records.record_status,
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
@@ -420,6 +438,8 @@ export async function getVisitorRecordWithDetailsById(visitorRecordId: string) {
       picture_key: visitor_records.picture_key,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
+      exit_time: visitor_records.exit_time,
+      is_in: visitor_records.is_in,
       record_status: visitor_records.record_status,
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
@@ -504,6 +524,8 @@ export async function getVisitorRecordsByLineId(
       picture_key: visitor_records.picture_key,
       license_plate: visitor_records.license_plate,
       entry_time: visitor_records.entry_time,
+      exit_time: visitor_records.exit_time,
+      is_in: visitor_records.is_in,
       record_status: visitor_records.record_status,
       visit_purpose: visitor_records.visit_purpose,
       createdAt: visitor_records.createdAt,
@@ -577,6 +599,52 @@ export async function createVisitorRecord(data: {
     .returning();
 
   return newVisitorRecord;
+}
+
+/**
+ * Updates the in/out status of a visitor record and automatically manages the exit timestamp.
+ * If the new `is_in` value differs from the stored value, `exit_time` is set to the current time
+ * when a visitor leaves (is_in = false) or cleared when they re-enter (is_in = true).
+ * @param {string} visitorRecordId - The UUID of the visitor record.
+ * @param {boolean} isIn - The new presence state for the visitor.
+ * @returns {Promise<Object|null>} The updated visitor record or null if not found.
+ */
+export async function updateVisitorRecordPresenceById(
+  visitorRecordId: string,
+  isIn: boolean
+) {
+  const existingRecord = await db
+    .select({
+      is_in: visitor_records.is_in,
+      exit_time: visitor_records.exit_time,
+    })
+    .from(visitor_records)
+    .where(eq(visitor_records.visitor_record_id, visitorRecordId))
+    .limit(1);
+
+  if (existingRecord.length === 0) {
+    return null;
+  }
+
+  const previousIsIn = existingRecord[0].is_in;
+  const exitTime =
+    previousIsIn === isIn
+      ? existingRecord[0].exit_time
+      : isIn
+        ? null
+        : new Date();
+
+  const [updatedVisitorRecord] = await db
+    .update(visitor_records)
+    .set({
+      is_in: isIn,
+      exit_time: exitTime,
+      updatedAt: new Date(),
+    })
+    .where(eq(visitor_records.visitor_record_id, visitorRecordId))
+    .returning();
+
+  return updatedVisitorRecord;
 }
 
 /**
@@ -657,6 +725,8 @@ export async function getVisitorRecordsByResidentName(residentName: string) {
         picture_key: visitor_records.picture_key,
         license_plate: visitor_records.license_plate,
         entry_time: visitor_records.entry_time,
+        exit_time: visitor_records.exit_time,
+        is_in: visitor_records.is_in,
         record_status: visitor_records.record_status,
         visit_purpose: visitor_records.visit_purpose,
         createdAt: visitor_records.createdAt,
