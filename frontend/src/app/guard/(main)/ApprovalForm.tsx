@@ -28,7 +28,18 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Upload, House, User, Search, Loader2, Camera, ImageIcon, CheckCircle, Shuffle, Home } from "lucide-react";
+import {
+  Upload,
+  House,
+  User,
+  Search,
+  Loader2,
+  Camera,
+  ImageIcon,
+  CheckCircle,
+  Shuffle,
+  Home,
+} from "lucide-react";
 import axios from "axios";
 import { ModeToggle } from "@/components/mode-toggle";
 import { getAuthData } from "@/lib/liffAuth";
@@ -40,38 +51,36 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const visitorSchema = z.object({
-  license_image: z.string().optional(),
-  province: z.string().optional(),
-  guard_id: z.string().min(1, "ต้องการ ID ของผู้รับผิดชอบ"),
-  id_card_image: z.string().optional(),
-  fname: z
-    .string()
-    .min(1, "กรุณากรอกชื่อผู้เข้าเยี่ยม"),
-  lname: z
-    .string()
-    .min(1, "กรุณากรอกนามสกุลผู้เข้าเยี่ยม"),
-  visitor_id_card: z
-    .string()
-    .min(1, "กรุณากรอกเลขบัตรประชาชน")
-    .regex(/^[0-9]{8,13}$/, "เลขบัตรต้องเป็นตัวเลข 8-13 หลัก"),
-  license_plate: z
-    .string()
-    .min(1, "กรุณาระบุเลขทะเบียน")
-    .regex(/^[ก-๙A-Za-z0-9\s-]+$/, "เลขทะเบียนไม่สามารถใช้อักษรพิเศษได้"),
-  house_id: z.string().min(1, "กรุณาเลือกบ้าน"),
-  entry_time: z.string().min(1, "กรุณาระบุเวลาเข้า"),
-  visit_purpose: z.string().min(1, "กรุณาเลือกวัตถุประสงค์"),
-  visit_purpose_note: z.string().optional(),
-}).refine(
-  (data) =>
-    data.visit_purpose !== "other" ||
-    (data.visit_purpose_note && data.visit_purpose_note.trim().length > 0),
-  {
-    message: "กรุณาระบุวัตถุประสงค์เพิ่มเติม",
-    path: ["visit_purpose_note"],
-  }
-);
+const visitorSchema = z
+  .object({
+    license_image: z.string().optional(),
+    province: z.string().optional(),
+    guard_id: z.string().min(1, "ต้องการ ID ของผู้รับผิดชอบ"),
+    id_card_image: z.string().optional(),
+    fname: z.string().min(1, "กรุณากรอกชื่อผู้เข้าเยี่ยม"),
+    lname: z.string().min(1, "กรุณากรอกนามสกุลผู้เข้าเยี่ยม"),
+    visitor_id_card: z
+      .string()
+      .min(1, "กรุณากรอกเลขบัตรประชาชน")
+      .regex(/^[0-9]{8,13}$/, "เลขบัตรต้องเป็นตัวเลข 8-13 หลัก"),
+    license_plate: z
+      .string()
+      .min(1, "กรุณาระบุเลขทะเบียน")
+      .regex(/^[ก-๙A-Za-z0-9\s-]+$/, "เลขทะเบียนไม่สามารถใช้อักษรพิเศษได้"),
+    house_id: z.string().min(1, "กรุณาเลือกบ้าน"),
+    entry_time: z.string().min(1, "กรุณาระบุเวลาเข้า"),
+    visit_purpose: z.string().min(1, "กรุณาเลือกวัตถุประสงค์"),
+    visit_purpose_note: z.string().optional(),
+  })
+  .refine(
+    (data) =>
+      data.visit_purpose !== "other" ||
+      (data.visit_purpose_note && data.visit_purpose_note.trim().length > 0),
+    {
+      message: "กรุณาระบุวัตถุประสงค์เพิ่มเติม",
+      path: ["visit_purpose_note"],
+    },
+  );
 
 const visitPurposeOptions = [
   { value: "deliver_package", label: "ส่งของ" },
@@ -110,12 +119,19 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   } | null>(null);
   const [villageName, setVillageName] = useState<string>("");
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [capturedIdCardImage, setCapturedIdCardImage] = useState<string | null>(null);
+  const [capturedIdCardImage, setCapturedIdCardImage] = useState<string | null>(
+    null,
+  );
   const [isProcessingIDCardOCR, setIsProcessingIDCardOCR] = useState(false);
-  const [isProcessingLicensePlateOCR, setIsProcessingLicensePlateOCR] = useState(false);
-  const [documentType, setDocumentType] = useState<"id_card" | "driver_license">("id_card");
+  const [isProcessingLicensePlateOCR, setIsProcessingLicensePlateOCR] =
+    useState(false);
+  const [documentType, setDocumentType] = useState<
+    "id_card" | "driver_license"
+  >("id_card");
   const [showImageSourceDialog, setShowImageSourceDialog] = useState(false);
-  const [currentImageType, setCurrentImageType] = useState<"car" | "idcard">("car");
+  const [currentImageType, setCurrentImageType] = useState<"car" | "idcard">(
+    "car",
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const idCardFileInputRef = useRef<HTMLInputElement>(null);
@@ -132,47 +148,49 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
         if (storedVillageName) {
           setVillageName(storedVillageName);
         }
-        
+
         // Get village_id from user data or sessionStorage
         let villageId = user?.village_id;
         if (!villageId) {
           villageId = sessionStorage.getItem("selectedVillageId") || undefined;
         }
-        
+
         if (!villageId) {
           console.error("No village_id found for guard", {
             user: user,
-            sessionStorage: sessionStorage.getItem("selectedVillageId")
+            sessionStorage: sessionStorage.getItem("selectedVillageId"),
           });
           alert("ไม่พบข้อมูลหมู่บ้าน กรุณาติดต่อผู้ดูแลระบบ");
           return;
         }
-        
-        
-        const housesResponse = await axios.get(`/api/houses/liff?village_id=${encodeURIComponent(villageId)}`, {
-          withCredentials: true,
-          headers: {
-            "Content-Type": "application/json",
+
+        const housesResponse = await axios.get(
+          `/api/houses/liff?village_id=${encodeURIComponent(villageId)}`,
+          {
+            withCredentials: true,
+            headers: {
+              "Content-Type": "application/json",
+            },
           },
-        });
+        );
 
         const houses = housesResponse.data?.data || [];
         setHouses(houses);
-        
+
         // Get village name from the response
         const villageNameFromResponse = housesResponse.data?.village_name;
         if (villageNameFromResponse) {
           setVillageName(villageNameFromResponse);
         }
-        
+
         console.log("🏠 Houses loaded:", {
           total: houses.length,
           village_id: villageId,
           village_name: villageNameFromResponse,
           houses: houses,
-          response: housesResponse.data
+          response: housesResponse.data,
         });
-        
+
         if (houses.length === 0) {
           console.warn("No houses found for village:", villageId);
         }
@@ -189,7 +207,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   useEffect(() => {
     if (!currentUser) return;
     const matchingRole = userRoles
-      .filter((role) => role.role === 'guard')
+      .filter((role) => role.role === "guard")
       .find((role) => role.guard_id === currentUser.guard_id);
 
     if (matchingRole?.village_name) {
@@ -205,13 +223,12 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   }, [userRoles, currentUser]);
 
   const handleNavigateToProfile = () => {
-    router.push('/guard/profile');
+    router.push("/guard/profile");
   };
 
   const handleGoToRoleSelect = () => {
-    router.push('/liff/select-role');
+    router.push("/liff/select-role");
   };
-
 
   const getLocalDateTimeForInput = () => {
     const now = new Date();
@@ -245,11 +262,11 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
     }
   }, [selectedPurpose, visitorForm]);
 
-    useEffect(() => {
-      if (currentUser?.guard_id || currentUser?.id) {
-        visitorForm.setValue("guard_id", currentUser.guard_id || currentUser.id);
-      }
-    }, [currentUser?.guard_id, currentUser?.id, visitorForm]);
+  useEffect(() => {
+    if (currentUser?.guard_id || currentUser?.id) {
+      visitorForm.setValue("guard_id", currentUser.guard_id || currentUser.id);
+    }
+  }, [currentUser?.guard_id, currentUser?.id, visitorForm]);
 
   const [step, setStep] = useState<number>(1);
   const progress = step === 1 ? 25 : step === 2 ? 60 : 100;
@@ -263,14 +280,19 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   } | null>(null);
   useEffect(() => {
     const checkDevice = () => {
-      const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-      setIsMobileDevice(isMobile || (typeof window !== 'undefined' && window.innerWidth < 1024));
+      const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
+      const isMobile =
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          ua,
+        );
+      setIsMobileDevice(
+        isMobile || (typeof window !== "undefined" && window.innerWidth < 1024),
+      );
     };
     checkDevice();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('resize', checkDevice);
-      return () => window.removeEventListener('resize', checkDevice);
+    if (typeof window !== "undefined") {
+      window.addEventListener("resize", checkDevice);
+      return () => window.removeEventListener("resize", checkDevice);
     }
   }, []);
 
@@ -281,9 +303,9 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
   const filteredHouses = useMemo(
     () =>
       houses.filter((h) =>
-        h.address.toLowerCase().includes(houseQuery.toLowerCase())
+        h.address.toLowerCase().includes(houseQuery.toLowerCase()),
       ),
-    [houses, houseQuery]
+    [houses, houseQuery],
   );
 
   const paginatedHouses = useMemo(() => {
@@ -345,10 +367,17 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
     const fname = visitorForm.watch("fname");
     const lname = visitorForm.watch("lname");
 
-    return licensePlate?.trim() !== "" && entryTime?.trim() !== "" && fname?.trim() !== "" && lname?.trim() !== "";
+    return (
+      licensePlate?.trim() !== "" &&
+      entryTime?.trim() !== "" &&
+      fname?.trim() !== "" &&
+      lname?.trim() !== ""
+    );
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -362,8 +391,9 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
         try {
           console.log("🚗 Processing license plate with OCR...");
           const { token } = getAuthData();
-          
-          const response = await axios.post("/api/ocr/license-plate", 
+
+          const response = await axios.post(
+            "/api/ocr/license-plate",
             { image: result },
             {
               withCredentials: true,
@@ -371,28 +401,30 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                 "Content-Type": "application/json",
                 ...(token ? { Authorization: `Bearer ${token}` } : {}),
               },
-            }
+            },
           );
 
           if (response.data?.success && response.data?.data?.licensePlate) {
             const licensePlate = response.data.data.licensePlate;
             const vehicleInfo = response.data.data;
-            
+
             console.log("✅ OCR extracted license plate:", licensePlate);
             console.log("🚗 Vehicle info:", vehicleInfo);
-            
+
             // Auto-fill the license plate field
             visitorForm.setValue("license_plate", licensePlate);
-            
+
             // Auto-fill province if available
             if (vehicleInfo.province) {
               // Extract Thai province name from format "th-14:Phra Nakhon Si Ayutthaya (พระนครศรีอยุธยา)"
               const provinceMatch = vehicleInfo.province.match(/\(([^)]+)\)/);
-              const provinceName = provinceMatch ? provinceMatch[1] : vehicleInfo.province;
+              const provinceName = provinceMatch
+                ? provinceMatch[1]
+                : vehicleInfo.province;
               visitorForm.setValue("province", provinceName);
               console.log("✅ OCR extracted province:", provinceName);
             }
-            
+
             // Build vehicle info string
             // let infoText = `ระบบอ่านป้ายทะเบียนสำเร็จ!\nทะเบียน: ${licensePlate}`;
             // if (vehicleInfo.vehicleBrand || vehicleInfo.vehicleColor) {
@@ -408,7 +440,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
             // if (vehicleInfo.confidence) {
             //   infoText += `\nความแม่นยำ: ${Math.round(vehicleInfo.confidence)}%`;
             // }
-            
+
             // Show success message with vehicle info
             // alert(infoText);
           } else {
@@ -418,7 +450,8 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
         } catch (error) {
           console.error("❌ License plate OCR processing failed:", error);
           if (axios.isAxiosError(error)) {
-            const errorMessage = error.response?.data?.error || "ไม่สามารถอ่านป้ายทะเบียนได้";
+            const errorMessage =
+              error.response?.data?.error || "ไม่สามารถอ่านป้ายทะเบียนได้";
             alert(`เกิดข้อผิดพลาด: ${errorMessage}\nกรุณากรอกทะเบียนด้วยตนเอง`);
           } else {
             alert("เกิดข้อผิดพลาดในการอ่านป้ายทะเบียน กรุณากรอกด้วยตนเอง");
@@ -431,7 +464,9 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
     }
   };
 
-  const handleIdCardUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleIdCardUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -444,13 +479,17 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
         setIsProcessingIDCardOCR(true);
         try {
           const { token } = getAuthData();
-          const apiEndpoint = documentType === "id_card" 
-            ? "/api/ocr/id-card" 
-            : "/api/ocr/driver-license";
-          
-          console.log(`🔍 Processing ${documentType === "id_card" ? "ID card" : "driver license"} with OCR...`);
-          
-          const response = await axios.post(apiEndpoint, 
+          const apiEndpoint =
+            documentType === "id_card"
+              ? "/api/ocr/id-card"
+              : "/api/ocr/driver-license";
+
+          console.log(
+            `🔍 Processing ${documentType === "id_card" ? "ID card" : "driver license"} with OCR...`,
+          );
+
+          const response = await axios.post(
+            apiEndpoint,
             { image: result },
             {
               withCredentials: true,
@@ -458,26 +497,26 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                 "Content-Type": "application/json",
                 ...(token ? { Authorization: `Bearer ${token}` } : {}),
               },
-            }
+            },
           );
 
           if (response.data?.success && response.data?.data) {
             const data = response.data.data;
-            
+
             if (documentType === "id_card") {
               // Handle ID Card response
               const idNumber = data.idCardNumber;
               const firstName = data.thaiFirstName || "";
               const lastName = data.thaiLastName || "";
-              
+
               console.log("✅ OCR extracted ID number:", idNumber);
               console.log("✅ OCR extracted name:", firstName, lastName);
-              
+
               // Auto-fill the ID card number field
               if (idNumber) {
                 visitorForm.setValue("visitor_id_card", idNumber);
               }
-              
+
               // Auto-fill first name and last name if available
               if (firstName) {
                 visitorForm.setValue("fname", firstName);
@@ -490,15 +529,15 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
               const idCardNumber = data.idCardNumber; // ID card number from driver's license
               const firstName = data.thaiFirstName || "";
               const lastName = data.thaiLastName || "";
-              
+
               console.log("✅ OCR extracted ID card number:", idCardNumber);
               console.log("✅ OCR extracted name:", firstName, lastName);
-              
+
               // Auto-fill the ID card number
               if (idCardNumber) {
                 visitorForm.setValue("visitor_id_card", idCardNumber);
               }
-              
+
               // Auto-fill first name and last name if available
               if (firstName) {
                 visitorForm.setValue("fname", firstName);
@@ -509,15 +548,23 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
             }
           } else {
             console.warn("⚠️ OCR could not extract document data");
-            alert(`ไม่สามารถอ่าน${documentType === "id_card" ? "บัตรประชาชน" : "ใบขับขี่"}ได้ กรุณากรอกด้วยตนเอง`);
+            alert(
+              `ไม่สามารถอ่าน${documentType === "id_card" ? "บัตรประชาชน" : "ใบขับขี่"}ได้ กรุณากรอกด้วยตนเอง`,
+            );
           }
         } catch (error) {
           console.error("❌ Document OCR processing failed:", error);
           if (axios.isAxiosError(error)) {
-            const errorMessage = error.response?.data?.error || `ไม่สามารถอ่าน${documentType === "id_card" ? "บัตร" : "ใบขับขี่"}ได้`;
-            alert(`เกิดข้อผิดพลาดในการอ่าน${documentType === "id_card" ? "บัตร" : "ใบขับขี่"}: ${errorMessage}\nกรุณากรอกด้วยตนเอง`);
+            const errorMessage =
+              error.response?.data?.error ||
+              `ไม่สามารถอ่าน${documentType === "id_card" ? "บัตร" : "ใบขับขี่"}ได้`;
+            alert(
+              `เกิดข้อผิดพลาดในการอ่าน${documentType === "id_card" ? "บัตร" : "ใบขับขี่"}: ${errorMessage}\nกรุณากรอกด้วยตนเอง`,
+            );
           } else {
-            alert(`เกิดข้อผิดพลาดในการอ่าน${documentType === "id_card" ? "บัตร" : "ใบขับขี่"} กรุณากรอกด้วยตนเอง`);
+            alert(
+              `เกิดข้อผิดพลาดในการอ่าน${documentType === "id_card" ? "บัตร" : "ใบขับขี่"} กรุณากรอกด้วยตนเอง`,
+            );
           }
         } finally {
           setIsProcessingIDCardOCR(false);
@@ -539,7 +586,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
 
   const handleImageSourceSelection = (source: "camera" | "file") => {
     setShowImageSourceDialog(false);
-    
+
     if (currentImageType === "car") {
       if (source === "camera") {
         cameraInputRef.current?.click();
@@ -585,7 +632,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
       console.log("🔍 Guard ID being sent:", data.guard_id);
 
       const selectedPurposeOption = visitPurposeOptions.find(
-        (option) => option.value === data.visit_purpose
+        (option) => option.value === data.visit_purpose,
       );
 
       const visitPurposeText = selectedPurposeOption
@@ -607,10 +654,14 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
         idDocType: documentType === "id_card" ? "thai_id" : "driver_license",
       };
 
-      if (selectedPurposeOption?.value === "other" && data.visit_purpose_note?.trim()) {
+      if (
+        selectedPurposeOption?.value === "other" &&
+        data.visit_purpose_note?.trim()
+      ) {
         payload.visitPurposeNote = data.visit_purpose_note.trim();
       }
-      payload.visitPurposeCode = selectedPurposeOption?.value || data.visit_purpose;
+      payload.visitPurposeCode =
+        selectedPurposeOption?.value || data.visit_purpose;
 
       if (data.license_image && data.license_image.trim()) {
         payload.licenseImage = data.license_image;
@@ -635,12 +686,12 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
       if (response.data?.success) {
         // Store success data for the dialog
         setSuccessData({
-          visitorId: response.data.visitorId || 'N/A',
+          visitorId: response.data.visitorId || "N/A",
           visitorName: `${data.fname} ${data.lname}`,
-          licensePlate: data.license_plate
+          licensePlate: data.license_plate,
         });
         setShowSuccessDialog(true);
-        
+
         // Reset form values and UI state for a new submission
         visitorForm.reset({
           license_image: "",
@@ -700,7 +751,18 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
               <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2 slect-none pointer-events-none">
                 <House className="w-6 h-6 sm:w-7 sm:h-7" /> ส่งคำขอเข้าเยี่ยม
               </h1>
+
               <span className="flex items-center gap-2">
+                <Button asChild variant="outline" size="sm" className="h-9">
+                  <a
+                    href="/guard/visitors-in"
+                    aria-label="Open visitors currently in village"
+                    title="รายชื่อผู้เยี่ยมในหมู่บ้าน"
+                  >
+                    ผู้เยี่ยมในหมู่บ้าน
+                  </a>
+                </Button>
+
                 <ModeToggle />
                 <button
                   onClick={handleGoToRoleSelect}
@@ -722,7 +784,9 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
             <p className="text-sm text-muted-foreground mb-3">
               กำลังปฏิบัติหน้าที่ดูแลหมู่บ้าน:{" "}
               <span className="font-medium text-foreground">
-                {villageName || currentUser?.village_id || "ไม่พบข้อมูลหมู่บ้าน"}
+                {villageName ||
+                  currentUser?.village_id ||
+                  "ไม่พบข้อมูลหมู่บ้าน"}
               </span>
             </p>
             <div className="text-sm text-muted-foreground">{progress}%</div>
@@ -743,8 +807,10 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                       รูปภาพรถ/ป้ายทะเบียน
                     </FormLabel>
                     <div
-                      onClick={isProcessingLicensePlateOCR ? undefined : openFileDialog}
-                      className={`w-full max-h-[100%] rounded-lg border border-dashed overflow-hidden relative ${isProcessingLicensePlateOCR ? 'cursor-wait' : 'cursor-pointer hover:bg-muted'} transition-colors`}
+                      onClick={
+                        isProcessingLicensePlateOCR ? undefined : openFileDialog
+                      }
+                      className={`w-full max-h-[100%] rounded-lg border border-dashed overflow-hidden relative ${isProcessingLicensePlateOCR ? "cursor-wait" : "cursor-pointer hover:bg-muted"} transition-colors`}
                     >
                       {capturedImage ? (
                         <>
@@ -752,13 +818,15 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                           <img
                             src={capturedImage}
                             alt="Uploaded"
-                            className={`w-full h-full object-cover ${isProcessingLicensePlateOCR ? 'opacity-50' : ''}`}
+                            className={`w-full h-full object-cover ${isProcessingLicensePlateOCR ? "opacity-50" : ""}`}
                           />
                           {isProcessingLicensePlateOCR && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
                               <div className="text-center text-white">
                                 <Loader2 className="w-12 h-12 animate-spin mx-auto mb-2" />
-                                <p className="text-sm font-medium">กำลังอ่านป้ายทะเบียน...</p>
+                                <p className="text-sm font-medium">
+                                  กำลังอ่านป้ายทะเบียน...
+                                </p>
                               </div>
                             </div>
                           )}
@@ -792,7 +860,9 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                       ) : (
                         <div className="w-full h-48 flex flex-col items-center justify-center text-muted-foreground">
                           <Upload className="w-16 h-16 mb-2" />
-                          <div className="text-sm">อัปโหลดรูปภาพรถ/ป้ายทะเบียน</div>
+                          <div className="text-sm">
+                            อัปโหลดรูปภาพรถ/ป้ายทะเบียน
+                          </div>
                         </div>
                       )}
                     </div>
@@ -863,11 +933,15 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
 
                     {/* ID card/Driver license image upload */}
                     <FormLabel className="text-base font-medium select-none">
-                      {documentType === "id_card" ? "รูปภาพบัตรประชาชน" : "รูปภาพใบขับขี่"}
+                      {documentType === "id_card"
+                        ? "รูปภาพบัตรประชาชน"
+                        : "รูปภาพใบขับขี่"}
                     </FormLabel>
                     <div
-                      onClick={isProcessingIDCardOCR ? undefined : openIdCardFileDialog}
-                      className={`w-full max-h-[100%] rounded-lg border border-dashed overflow-hidden relative ${isProcessingIDCardOCR ? 'cursor-wait' : 'cursor-pointer hover:bg-muted'} transition-colors`}
+                      onClick={
+                        isProcessingIDCardOCR ? undefined : openIdCardFileDialog
+                      }
+                      className={`w-full max-h-[100%] rounded-lg border border-dashed overflow-hidden relative ${isProcessingIDCardOCR ? "cursor-wait" : "cursor-pointer hover:bg-muted"} transition-colors`}
                     >
                       {capturedIdCardImage ? (
                         <>
@@ -875,14 +949,16 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                           <img
                             src={capturedIdCardImage}
                             alt="ID Card"
-                            className={`w-full h-full object-cover ${isProcessingIDCardOCR ? 'opacity-50' : ''}`}
+                            className={`w-full h-full object-cover ${isProcessingIDCardOCR ? "opacity-50" : ""}`}
                           />
                           {isProcessingIDCardOCR && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
                               <div className="text-center text-white">
                                 <Loader2 className="w-12 h-12 animate-spin mx-auto mb-2" />
                                 <p className="text-sm font-medium">
-                                  {documentType === "id_card" ? "กำลังอ่านบัตรประชาชน..." : "กำลังอ่านใบขับขี่..."}
+                                  {documentType === "id_card"
+                                    ? "กำลังอ่านบัตรประชาชน..."
+                                    : "กำลังอ่านใบขับขี่..."}
                                 </p>
                               </div>
                             </div>
@@ -896,7 +972,11 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                               }}
                               disabled={isProcessingIDCardOCR}
                               className="bg-red-500/90 hover:bg-red-600 text-white rounded-full p-2 text-sm shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                              title={documentType === "id_card" ? "ลบรูปบัตรประชาชน" : "ลบรูปใบขับขี่"}
+                              title={
+                                documentType === "id_card"
+                                  ? "ลบรูปบัตรประชาชน"
+                                  : "ลบรูปใบขับขี่"
+                              }
                             >
                               <svg
                                 className="w-4 h-4"
@@ -918,7 +998,9 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                         <div className="w-full h-48 flex flex-col items-center justify-center text-muted-foreground">
                           <Upload className="w-16 h-16 mb-2" />
                           <div className="text-sm">
-                            {documentType === "id_card" ? "อัปโหลดรูปภาพบัตรประชาชน" : "อัปโหลดรูปภาพใบขับขี่"}
+                            {documentType === "id_card"
+                              ? "อัปโหลดรูปภาพบัตรประชาชน"
+                              : "อัปโหลดรูปภาพใบขับขี่"}
                           </div>
                         </div>
                       )}
@@ -999,7 +1081,11 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                           </FormLabel>
                           <FormControl>
                             <Input
-                              placeholder={documentType === "id_card" ? "เลขบัตรประชาชนผู้เข้าเยี่ยม (13 หลัก)" : "เลขใบขับขี่ผู้เข้าเยี่ยม (8 หลัก)"}
+                              placeholder={
+                                documentType === "id_card"
+                                  ? "เลขบัตรประชาชนผู้เข้าเยี่ยม (13 หลัก)"
+                                  : "เลขใบขับขี่ผู้เข้าเยี่ยม (8 หลัก)"
+                              }
                               {...field}
                               className="h-12 text-base focus-visible:ring-ring"
                             />
@@ -1093,7 +1179,10 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                             </FormControl>
                             <SelectContent>
                               {visitPurposeOptions.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                >
                                   {option.label}
                                 </SelectItem>
                               ))}
@@ -1147,7 +1236,8 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                       />
                     </div>
                     <div className="text-sm rounded-md bg-muted/50 text-muted-foreground p-3 border border-border">
-                      ระบบจะตรวจเลขทะเบียน และหมายเลขบัตรประชาชนอัตโนมัติ หากไม่แน่ใจสามารถแก้ไขได้ด้วยตนเอง
+                      ระบบจะตรวจเลขทะเบียน และหมายเลขบัตรประชาชนอัตโนมัติ
+                      หากไม่แน่ใจสามารถแก้ไขได้ด้วยตนเอง
                     </div>
                   </div>
                 )}
@@ -1161,7 +1251,8 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                           <FormLabel>
                             {currentUser?.village_id && (
                               <span className="text-base ml-2">
-                                หมู่บ้าน: {villageName || currentUser.village_id} <br />
+                                หมู่บ้าน:{" "}
+                                {villageName || currentUser.village_id} <br />
                                 เลือกบ้านเลขที่
                               </span>
                             )}
@@ -1186,7 +1277,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                                     onClick={() => {
                                       visitorForm.setValue(
                                         "house_id",
-                                        house.house_id
+                                        house.house_id,
                                       );
                                     }}
                                     className={`w-full text-left px-4 py-4 rounded-lg border flex items-center gap-3 ${
@@ -1241,7 +1332,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                                     size="sm"
                                     onClick={() =>
                                       setCurrentPage((prev) =>
-                                        Math.max(1, prev - 1)
+                                        Math.max(1, prev - 1),
                                       )
                                     }
                                     disabled={currentPage === 1}
@@ -1271,7 +1362,7 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                                     size="sm"
                                     onClick={() =>
                                       setCurrentPage((prev) =>
-                                        Math.min(totalPages, prev + 1)
+                                        Math.min(totalPages, prev + 1),
                                       )
                                     }
                                     disabled={currentPage === totalPages}
@@ -1326,7 +1417,11 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                       ต่อไป
                     </Button>
                   ) : (
-                    <Button type="submit" className="flex-1 h-12 text-base" disabled={isSubmitting}>
+                    <Button
+                      type="submit"
+                      className="flex-1 h-12 text-base"
+                      disabled={isSubmitting}
+                    >
                       {isSubmitting ? (
                         <span className="inline-flex items-center">
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1345,16 +1440,21 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
       </div>
 
       {/* Image Source Selection Dialog */}
-      <AlertDialog open={showImageSourceDialog} onOpenChange={setShowImageSourceDialog}>
+      <AlertDialog
+        open={showImageSourceDialog}
+        onOpenChange={setShowImageSourceDialog}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-center">เลือกวิธีการอัปโหลดรูปภาพ</AlertDialogTitle>
+            <AlertDialogTitle className="text-center">
+              เลือกวิธีการอัปโหลดรูปภาพ
+            </AlertDialogTitle>
             <AlertDialogDescription className="text-center">
-              {currentImageType === "car" 
+              {currentImageType === "car"
                 ? "คุณต้องการอัปโหลดรูปภาพรถ/ป้ายทะเบียนอย่างไร?"
                 : documentType === "id_card"
-                ? "คุณต้องการอัปโหลดรูปบัตรประชาชนอย่างไร?"
-                : "คุณต้องการอัปโหลดรูปใบขับขี่อย่างไร?"}
+                  ? "คุณต้องการอัปโหลดรูปบัตรประชาชนอย่างไร?"
+                  : "คุณต้องการอัปโหลดรูปใบขับขี่อย่างไร?"}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex flex-col gap-3 mt-4">
@@ -1395,27 +1495,29 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
               คำขอได้ถูกส่งไปยังผู้อยู่อาศัยเรียบร้อยแล้ว
             </AlertDialogDescription>
           </AlertDialogHeader>
-          
+
           {/* Visitor Information */}
           <div className="space-y-3 px-6 pb-2">
             <div className="text-sm">
-              <span className="font-medium text-foreground">ผู้เยี่ยม:</span> 
+              <span className="font-medium text-foreground">ผู้เยี่ยม:</span>
               <span className="ml-2">{successData?.visitorName}</span>
             </div>
             <div className="text-sm">
-              <span className="font-medium text-foreground">ทะเบียน:</span> 
+              <span className="font-medium text-foreground">ทะเบียน:</span>
               <span className="ml-2">{successData?.licensePlate}</span>
             </div>
             <div className="text-sm">
-              <span className="font-medium text-foreground">รหัสการเยี่ยม:</span> 
+              <span className="font-medium text-foreground">
+                รหัสการเยี่ยม:
+              </span>
               <span className="font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded ml-2 text-xs">
                 {successData?.visitorId}
               </span>
             </div>
           </div>
-          
+
           <div className="flex justify-center pt-2 px-6">
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={() => setShowSuccessDialog(false)}
               className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
             >

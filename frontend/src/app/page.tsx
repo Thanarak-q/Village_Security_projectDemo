@@ -244,14 +244,7 @@ export default function LandingPage() {
               >
                 สถิติ
               </Link>
-              <Link href="/guard/visitors-in">
-                <Button
-                  variant="outline"
-                  className="hover:scale-[1.03] transition-transform"
-                >
-                  Visitors-In
-                </Button>
-              </Link>
+
               <ModeToggle />
               <Link href="/login">
                 <Button

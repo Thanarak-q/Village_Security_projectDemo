@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ModeToggle } from "@/components/mode-toggle";
 import {
   CheckCircle2,
   RefreshCcw,
@@ -13,6 +14,8 @@ import {
   CalendarClock,
   Car,
   ImageOff,
+  Shuffle,
+  User,
 } from "lucide-react";
 
 type VisitorIn = {
@@ -39,7 +42,9 @@ type ApiResponse<T> = {
 
 export default function VisitorsInPage() {
   const [loading, setLoading] = React.useState(true);
-  const [approvingIds, setApprovingIds] = React.useState<Record<string, boolean>>({});
+  const [approvingIds, setApprovingIds] = React.useState<
+    Record<string, boolean>
+  >({});
   const [visitors, setVisitors] = React.useState<VisitorIn[]>([]);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -123,116 +128,162 @@ export default function VisitorsInPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6">
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            รายงานผู้เยี่ยมที่ยังอยู่ในหมู่บ้าน
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            ข้อมูลนี้เป็นการแสดงผลจากระบบจำลอง (mock) สำหรับทดสอบ UI
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={fetchVisitors} disabled={loading}>
-            <RefreshCcw className="mr-2 h-4 w-4" />
-            รีเฟรช
-          </Button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-background flex items-center justify-center p-2 sm:p-4">
+      <div className="w-full max-w-[420px]">
+        <div className="bg-card rounded-2xl border shadow-lg">
+          <div className="px-4 py-4">
+            <div className="flex items-center justify-between mb-5">
+              <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2 slect-none pointer-events-none">
+                <Home className="w-6 h-6 sm:w-7 sm:h-7" /> ผู้เยี่ยมในหมู่บ้าน
+              </h1>
 
-      {loading ? (
-        <LoadingList />
-      ) : error ? (
-        <ErrorState message={error} onRetry={fetchVisitors} />
-      ) : visitors.length === 0 ? (
-        <EmptyState onRefresh={fetchVisitors} />
-      ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {visitors.map((v) => (
-            <Card key={v.visitorId} className="overflow-hidden">
-              <div className="flex flex-col gap-4 p-4 md:flex-row">
-                <div className="md:w-40 md:flex-shrink-0">
-                  {v.imageUrl ? (
-                    <div className="aspect-video overflow-hidden rounded-md border">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={v.imageUrl}
-                        alt={v.visitorName}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex aspect-video items-center justify-center rounded-md border text-muted-foreground">
-                      <ImageOff className="h-6 w-6" />
-                    </div>
-                  )}
-                </div>
+              <span className="flex items-center gap-2">
+                <Button asChild variant="outline" size="sm" className="h-9">
+                  <a
+                    href="/guard"
+                    aria-label="Open approval form"
+                    title="ส่งคำขอเข้าเยี่ยม"
+                  >
+                    ส่งคำขอเข้าเยี่ยม
+                  </a>
+                </Button>
 
-                <div className="flex-1">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h2 className="truncate text-lg font-medium">
-                        {v.visitorName}
-                      </h2>
-                      <div className="mt-1 flex flex-wrap items-center gap-2">
-                        <Badge variant="secondary" className="gap-1">
-                          <Home className="h-3.5 w-3.5" />
-                          {v.houseNumber}
-                        </Badge>
-                        <Badge variant="outline" className="gap-1">
-                          <CalendarClock className="h-3.5 w-3.5" />
-                          เข้ามา: {formatThaiDateTime(v.entryTime)}
-                        </Badge>
-                        {v.licensePlate ? (
-                          <Badge variant="outline" className="gap-1">
-                            <Car className="h-3.5 w-3.5" />
-                            {v.licensePlate}
-                          </Badge>
-                        ) : null}
+                <ModeToggle />
+                <a
+                  href="/liff/select-role"
+                  className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                  aria-label="Go to role selection"
+                  title="กลับไปเลือกบทบาท"
+                >
+                  <Shuffle className="w-5 h-5 text-foreground" />
+                </a>
+                <a
+                  href="/guard/profile"
+                  className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                  aria-label="Go to profile"
+                  title="โปรไฟล์"
+                >
+                  <User className="w-5 h-5 text-foreground" />
+                </a>
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              รายชื่อผู้เยี่ยมที่ยังอยู่ในหมู่บ้าน
+            </p>
+            <div className="mt-4 flex gap-2">
+              <Button
+                variant="outline"
+                onClick={fetchVisitors}
+                disabled={loading}
+              >
+                <RefreshCcw className="mr-2 h-4 w-4" />
+                รีเฟรช
+              </Button>
+            </div>
+          </div>
+
+          <div className="px-4 pb-4">
+            {loading ? (
+              <LoadingList />
+            ) : error ? (
+              <ErrorState message={error} onRetry={fetchVisitors} />
+            ) : visitors.length === 0 ? (
+              <EmptyState onRefresh={fetchVisitors} />
+            ) : (
+              <div className="space-y-3">
+                {visitors.map((v) => (
+                  <Card key={v.visitorId} className="overflow-hidden">
+                    <div className="flex flex-col gap-4 p-4 md:flex-row">
+                      <div className="md:w-40 md:flex-shrink-0">
+                        {v.imageUrl ? (
+                          <div className="aspect-video overflow-hidden rounded-md border">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={v.imageUrl}
+                              alt={v.visitorName}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex aspect-video items-center justify-center rounded-md border text-muted-foreground">
+                            <ImageOff className="h-6 w-6" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h2 className="truncate text-lg font-medium">
+                              {v.visitorName}
+                            </h2>
+                            <div className="mt-1 flex flex-wrap items-center gap-2">
+                              <Badge variant="secondary" className="gap-1">
+                                <Home className="h-3.5 w-3.5" />
+                                {v.houseNumber}
+                              </Badge>
+                              <Badge variant="outline" className="gap-1">
+                                <CalendarClock className="h-3.5 w-3.5" />
+                                เข้ามา: {formatThaiDateTime(v.entryTime)}
+                              </Badge>
+                              {v.licensePlate ? (
+                                <Badge variant="outline" className="gap-1">
+                                  <Car className="h-3.5 w-3.5" />
+                                  {v.licensePlate}
+                                </Badge>
+                              ) : null}
+                            </div>
+                          </div>
+
+                          <div className="flex-shrink-0">
+                            <Button
+                              size="sm"
+                              className="gap-1"
+                              onClick={() => handleApproveOut(v.visitorId)}
+                              disabled={!!approvingIds[v.visitorId]}
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                              {approvingIds[v.visitorId]
+                                ? "กำลังบันทึก..."
+                                : "อนุมัติออก"}
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1">
+                              <Phone className="h-4 w-4" />
+                              {v.phone}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-foreground">
+                              วัตถุประสงค์:{" "}
+                            </span>
+                            <span>{v.purpose || "-"}</span>
+                          </div>
+                          <div className="text-xs">
+                            <span className="text-muted-foreground">
+                              Visitor ID: {v.visitorId}
+                            </span>
+                            <span className="mx-2 text-muted-foreground">
+                              •
+                            </span>
+                            <span className="text-muted-foreground">
+                              Record: {v.visitor_record_id}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-
-                    <div className="flex-shrink-0">
-                      <Button
-                        size="sm"
-                        className="gap-1"
-                        onClick={() => handleApproveOut(v.visitorId)}
-                        disabled={!!approvingIds[v.visitorId]}
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                        {approvingIds[v.visitorId] ? "กำลังบันทึก..." : "อนุมัติออก"}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1">
-                        <Phone className="h-4 w-4" />
-                        {v.phone}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-foreground">วัตถุประสงค์: </span>
-                      <span>{v.purpose || "-"}</span>
-                    </div>
-                    <div className="text-xs">
-                      <span className="text-muted-foreground">
-                        Visitor ID: {v.visitorId}
-                      </span>
-                      <span className="mx-2 text-muted-foreground">•</span>
-                      <span className="text-muted-foreground">
-                        Record: {v.visitor_record_id}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                  </Card>
+                ))}
               </div>
-            </Card>
-          ))}
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -266,9 +317,12 @@ function LoadingList() {
 function EmptyState({ onRefresh }: { onRefresh: () => void }) {
   return (
     <Card className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-      <h3 className="text-lg font-medium">ไม่มีผู้เยี่ยมที่อยู่ในหมู่บ้านขณะนี้</h3>
+      <h3 className="text-lg font-medium">
+        ไม่มีผู้เยี่ยมที่อยู่ในหมู่บ้านขณะนี้
+      </h3>
       <p className="max-w-md text-sm text-muted-foreground">
-        เมื่อมีผู้เยี่ยมเข้ามา ระบบจะแสดงรายชื่อที่นี่เพื่อให้คุณสามารถกดอนุมัติการออกได้
+        เมื่อมีผู้เยี่ยมเข้ามา
+        ระบบจะแสดงรายชื่อที่นี่เพื่อให้คุณสามารถกดอนุมัติการออกได้
       </p>
       <Button variant="outline" onClick={onRefresh} className="mt-2">
         <RefreshCcw className="mr-2 h-4 w-4" />
