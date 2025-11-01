@@ -1,9 +1,21 @@
 import { Elysia } from "elysia";
 import db from "../db/drizzle";
-import { visitor_records, guards, houses, house_members, villages, visitors } from "../db/schema";
+import {
+  visitor_records,
+  guards,
+  houses,
+  house_members,
+  villages,
+  visitors,
+} from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import { saveBase64Image, getImageExtension } from "../utils/imageUtils";
 import { requireLiffAuth } from "../hooks/requireLiffAuth";
+import {
+  extractIdLast4,
+  hashIdNumber,
+  normalizeIdNumber,
+} from "../utils/idNumberUtils";
 
 // Approval form routes for guards to submit visitor forms
 const approvalForm = new Elysia({ prefix: "/api" })
@@ -155,6 +167,10 @@ const approvalForm = new Elysia({ prefix: "/api" })
       }
     }
 
+    const normalizedVisitorId = normalizeIdNumber(visitorIDCard);
+    const visitorIdHash = hashIdNumber(normalizedVisitorId);
+    const visitorIdLast4 = extractIdLast4(normalizedVisitorId);
+
     try {
       // Use a transaction to ensure data consistency
       const result = await db.transaction(async (tx) => {
@@ -210,12 +226,21 @@ const approvalForm = new Elysia({ prefix: "/api" })
             const villageId = houseWithVillage[0].village_id;
             
             // Try to find existing visitor by ID card hash
-            const existingVisitor = await tx.query.visitors.findFirst({
+            let existingVisitor = await tx.query.visitors.findFirst({
               where: and(
-                eq(visitors.id_number_hash, visitorIDCard),
+                eq(visitors.id_number_hash, visitorIdHash),
                 eq(visitors.village_id, villageId)
-              )
+              ),
             });
+
+            if (!existingVisitor) {
+              existingVisitor = await tx.query.visitors.findFirst({
+                where: and(
+                  eq(visitors.id_number_hash, visitorIDCard),
+                  eq(visitors.village_id, villageId)
+                ),
+              });
+            }
 
             if (existingVisitor) {
               // Visitor exists - update visit_count, last_visit_at, and missing data
@@ -252,6 +277,17 @@ const approvalForm = new Elysia({ prefix: "/api" })
               if (!existingVisitor.id_doc_type && idDocType) {
                 updateData.id_doc_type = idDocType;
               }
+
+              if (
+                !existingVisitor.id_number_last4 ||
+                existingVisitor.id_number_last4 !== visitorIdLast4
+              ) {
+                updateData.id_number_last4 = visitorIdLast4;
+              }
+
+              if (existingVisitor.id_number_hash !== visitorIdHash) {
+                updateData.id_number_hash = visitorIdHash;
+              }
               
               // Update the visitor
               await tx
@@ -267,7 +303,8 @@ const approvalForm = new Elysia({ prefix: "/api" })
                 .values({
                   fname: fname && fname.trim() ? fname : "ไม่ระบุ",
                   lname: lname && lname.trim() ? lname : "ไม่ระบุ",
-                  id_number_hash: visitorIDCard,
+                  id_number_hash: visitorIdHash,
+                  id_number_last4: visitorIdLast4,
                   id_card_image: savedIdCardImageFilename || undefined,
                   id_doc_type: (idDocType as "thai_id" | "passport" | "driver_license" | "other" | undefined) || undefined,
                   village_id: villageId,

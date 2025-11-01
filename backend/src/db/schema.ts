@@ -415,6 +415,7 @@ export const visitors = pgTable(
       "thai_id" | "passport" | "driver_license" | "other"
     >(),
     id_number_hash: text("id_number_hash").unique(),
+    id_number_last4: text("id_number_last4"),
     phone: text("phone"),
     village_id: uuid("village_id")
       .references(() => villages.village_id)

@@ -22,6 +22,22 @@ import {
 } from "./schema";
 import { eq, sql } from "drizzle-orm";
 import { hashPassword } from "../utils/passwordUtils";
+import {
+  extractIdLast4,
+  hashIdNumber,
+  normalizeIdNumber,
+} from "../utils/idNumberUtils";
+
+async function ensureVisitorIdColumns() {
+  try {
+    await db.execute(
+      sql`ALTER TABLE visitors ADD COLUMN IF NOT EXISTS id_number_last4 text`
+    );
+  } catch (error) {
+    console.error("Failed to ensure id_number_last4 column:", error);
+    throw error;
+  }
+}
 
 /**
  * An array of mock notification data for admin notifications.
@@ -1097,6 +1113,7 @@ async function createVisitorsData() {
     lname: string;
     id_doc_type: "thai_id" | "passport" | "other";
     id_number_hash: string;
+    id_number_last4: string;
     phone?: string | null;
     village_id: string;
     risk_status: "clear" | "watchlist" | "banned";
@@ -1151,7 +1168,9 @@ async function createVisitorsData() {
       
       // Generate realistic ID number hash (simulating hashed ID numbers)
       const idNumber = `${Math.floor(Math.random() * 9) + 1}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}${Math.floor(Math.random() * 9)}`;
-      const idNumberHash = `hash_${idNumber}`;
+      const normalizedId = normalizeIdNumber(idNumber);
+      const idNumberHash = hashIdNumber(normalizedId);
+      const idNumberLast4 = extractIdLast4(normalizedId);
       
       // Generate visit count (0-20 visits)
       const visitCount = Math.floor(Math.random() * 21);
@@ -1169,6 +1188,7 @@ async function createVisitorsData() {
         lname,
         id_doc_type: idDocType,
         id_number_hash: idNumberHash,
+        id_number_last4: idNumberLast4,
         phone: phone || undefined,
         village_id: village.village_id,
         risk_status: riskStatus,
@@ -1751,6 +1771,7 @@ async function createNotificationData() {
  * @returns {Promise<void>} A promise that resolves when seeding is complete.
  */
 async function seed() {
+  await ensureVisitorIdColumns();
   await clearDb();
   console.log("Cleared database");
   
