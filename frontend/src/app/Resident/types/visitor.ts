@@ -4,6 +4,8 @@ export interface VisitorRequest {
   visitorName: string;
   destination: string;
   time: string;
+  exitTime?: string;
+  isInside?: boolean;
   carImage: string;
   status?: "approved" | "denied";
 }
@@ -24,6 +26,8 @@ export interface ApiVisitorRequest {
   visitor_id_card?: string;
   license_plate?: string;
   entry_time: string;
+  exit_time?: string;
+  is_in?: boolean;
   record_status: 'pending' | 'approved' | 'rejected';
   visit_purpose?: string;
   createdAt: string;

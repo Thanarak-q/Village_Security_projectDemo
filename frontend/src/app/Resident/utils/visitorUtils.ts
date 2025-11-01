@@ -116,6 +116,22 @@ export const transformApiData = (apiData: ApiVisitorRequest): VisitorRequest => 
   });
   const timeWithDate = `${timeString} ${dateString}`;
 
+  let exitTimeWithDate: string | undefined;
+  if (apiData.exit_time) {
+    const exitTime = new Date(apiData.exit_time);
+    const exitTimeString = exitTime.toLocaleTimeString('th-TH', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    const exitDateString = exitTime.toLocaleDateString('th-TH', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+    exitTimeWithDate = `${exitTimeString} ${exitDateString}`;
+  }
+
   // Construct proper image URL from picture_key
   let carImageUrl = 'car1.jpg'; // fallback to default image
   if (apiData.picture_key) {
@@ -129,6 +145,8 @@ export const transformApiData = (apiData: ApiVisitorRequest): VisitorRequest => 
     visitorName: apiData.visit_purpose || apiData.visitor_name || '',
     destination: apiData.house_address ? `บ้านเลขที่ ${apiData.house_address}` : '',
     time: timeWithDate,
+    exitTime: exitTimeWithDate,
+    isInside: apiData.is_in,
     carImage: carImageUrl,
     status: apiData.record_status === 'approved' ? 'approved' :
       apiData.record_status === 'rejected' ? 'denied' : undefined,

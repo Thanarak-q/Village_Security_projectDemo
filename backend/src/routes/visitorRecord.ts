@@ -12,6 +12,7 @@ import {
   createVisitorRecord,
   updateVisitorRecordStatus,
   updateVisitorRecordStatusById,
+  updateVisitorRecordPresenceById,
   deleteVisitorRecord,
 } from "../db/visitorRecordUtils";
 import { requireLiffAuth } from "../hooks/requireLiffAuth";
@@ -36,6 +37,14 @@ interface CreateVisitorRecordBody {
  */
 interface UpdateStatusBody {
   record_status: "pending" | "approved" | "rejected";
+}
+
+/**
+ * Interface for updating the in/out state of a visitor record.
+ * @interface
+ */
+interface UpdatePresenceBody {
+  is_in: boolean | string;
 }
 
 /**
@@ -288,6 +297,69 @@ export const visitorRecordRoutes = new Elysia({ prefix: "/api" })
       return {
         success: false,
         error: "Failed to create visitor record. Please try again.",
+      };
+    }
+  })
+
+  /**
+   * Update a visitor record's in/out presence status.
+   * @param {Object} params - The parameters for the request.
+   * @param {string} params.record_id - The record ID.
+   * @param {Object} body - The body of the request.
+   * @returns {Promise<Object>} A promise that resolves to an object containing the updated visitor record.
+   */
+  .put("/visitor-records/:record_id/presence", async ({ params, body }) => {
+    try {
+      const { record_id } = params;
+      const { is_in } = body as UpdatePresenceBody;
+
+      if (!record_id?.trim()) {
+        return {
+          success: false,
+          error: "Record ID is required",
+        };
+      }
+
+      let parsedIsIn: boolean;
+      if (typeof is_in === "boolean") {
+        parsedIsIn = is_in;
+      } else if (typeof is_in === "string") {
+        if (["true", "false"].includes(is_in.toLowerCase())) {
+          parsedIsIn = is_in.toLowerCase() === "true";
+        } else {
+          return {
+            success: false,
+            error: "is_in must be a boolean value",
+          };
+        }
+      } else {
+        return {
+          success: false,
+          error: "is_in must be provided as a boolean value",
+        };
+      }
+
+      const result = await updateVisitorRecordPresenceById(record_id, parsedIsIn);
+
+      if (!result) {
+        return {
+          success: false,
+          error: "Visitor record not found",
+        };
+      }
+
+      return {
+        success: true,
+        message: parsedIsIn
+          ? "Visitor record marked as inside successfully!"
+          : "Visitor record marked as exited successfully!",
+        data: result,
+      };
+    } catch (error) {
+      console.error("Error updating visitor presence status:", error);
+      return {
+        success: false,
+        error: "Failed to update visitor presence status",
       };
     }
   })
