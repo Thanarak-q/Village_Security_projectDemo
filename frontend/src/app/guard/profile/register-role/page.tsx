@@ -2,7 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, User, Shield, MapPin, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  User,
+  Shield,
+  MapPin,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
 import { isAuthenticated, getAuthData } from "@/lib/liffAuth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,11 +57,14 @@ export default function GuardRegisterRolePage() {
 
   const checkExistingRoles = async (lineUserId: string) => {
     try {
-      const apiUrl = '';
-      const response = await fetch(`${apiUrl}/api/users/roles?lineUserId=${lineUserId}`, {
-        credentials: 'include'
-      });
-      
+      const apiUrl = "";
+      const response = await fetch(
+        `${apiUrl}/api/users/roles?lineUserId=${lineUserId}`,
+        {
+          credentials: "include",
+        },
+      );
+
       if (response.ok) {
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
@@ -64,7 +75,7 @@ export default function GuardRegisterRolePage() {
         }
       }
     } catch (error) {
-      console.error('Error fetching existing roles:', error);
+      console.error("Error fetching existing roles:", error);
     }
   };
 
@@ -77,20 +88,22 @@ export default function GuardRegisterRolePage() {
     setVillageValidation({ isValid: false, isLoading: true });
 
     try {
-      const response = await fetch(`/api/villages/check/${encodeURIComponent(villageId)}`);
+      const response = await fetch(
+        `/api/villages/check/${encodeURIComponent(villageId)}`,
+      );
       const data = await response.json();
 
       if (data.exists && data.village_name) {
         setVillageValidation({
           isValid: true,
           isLoading: false,
-          villageName: data.village_name
+          villageName: data.village_name,
         });
       } else {
         setVillageValidation({ isValid: false, isLoading: false });
       }
     } catch (error) {
-      console.error('Village validation error:', error);
+      console.error("Village validation error:", error);
       setVillageValidation({ isValid: false, isLoading: false });
     }
   };
@@ -99,7 +112,7 @@ export default function GuardRegisterRolePage() {
     setSelectedVillage(value);
     setError(null);
     setSuccess(null);
-    
+
     // Debounce the validation
     const timeoutId = setTimeout(() => {
       validateVillage(value);
@@ -116,7 +129,7 @@ export default function GuardRegisterRolePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedRole) {
       setError("กรุณาเลือกบทบาท");
       return;
@@ -143,14 +156,14 @@ export default function GuardRegisterRolePage() {
 
     try {
       const { token } = getAuthData();
-      const apiUrl = '';
+      const apiUrl = "";
       const response = await fetch(`${apiUrl}/api/users/register-role`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        credentials: 'include',
+        credentials: "include",
         body: JSON.stringify({
           lineUserId: currentUser.lineUserId || currentUser.id,
           role: selectedRole,
@@ -159,7 +172,7 @@ export default function GuardRegisterRolePage() {
           lname: currentUser.lname,
           phone: currentUser.phone,
           village_key: selectedVillage,
-          profile_image_url: currentUser.line_profile_url
+          profile_image_url: currentUser.line_profile_url,
         }),
       });
 
@@ -168,7 +181,9 @@ export default function GuardRegisterRolePage() {
         if (contentType && contentType.includes("application/json")) {
           const data = await response.json();
           if (data.success) {
-            setSuccess(`ลงทะเบียนบทบาท${selectedRole === 'resident' ? 'ผู้อยู่อาศัย' : 'ยามรักษาความปลอดภัย'} ในหมู่บ้าน ${villageValidation.villageName} สำเร็จ!`);
+            setSuccess(
+              `ลงทะเบียนบทบาท${selectedRole === "resident" ? "ผู้อยู่อาศัย" : "รปภ."} ในหมู่บ้าน ${villageValidation.villageName} สำเร็จ!`,
+            );
             setSelectedRole("");
             setSelectedVillage("");
             setVillageValidation({ isValid: false, isLoading: false });
@@ -184,7 +199,7 @@ export default function GuardRegisterRolePage() {
         setError("เกิดข้อผิดพลาดในการลงทะเบียน");
       }
     } catch (error) {
-      console.error('Error registering role:', error);
+      console.error("Error registering role:", error);
       setError("เกิดข้อผิดพลาดในการลงทะเบียน");
     } finally {
       setSubmitting(false);
@@ -251,15 +266,17 @@ export default function GuardRegisterRolePage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Role Selection */}
               <div className="space-y-3">
-                <h3 className="text-lg font-medium text-foreground">เลือกบทบาท</h3>
+                <h3 className="text-lg font-medium text-foreground">
+                  เลือกบทบาท
+                </h3>
                 <div className="grid grid-cols-1 gap-3">
                   <button
                     type="button"
-                    onClick={() => handleRoleSelection('resident')}
+                    onClick={() => handleRoleSelection("resident")}
                     className={`p-4 rounded-lg border-2 transition-colors text-left ${
-                      selectedRole === 'resident'
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-primary/50'
+                      selectedRole === "resident"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -267,19 +284,23 @@ export default function GuardRegisterRolePage() {
                         <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div>
-                        <h4 className="font-medium text-foreground">ผู้อยู่อาศัย</h4>
-                        <p className="text-sm text-muted-foreground">ลงทะเบียนเป็นผู้อยู่อาศัยในหมู่บ้าน</p>
+                        <h4 className="font-medium text-foreground">
+                          ผู้อยู่อาศัย
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          ลงทะเบียนเป็นผู้อยู่อาศัยในหมู่บ้าน
+                        </p>
                       </div>
                     </div>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => handleRoleSelection('guard')}
+                    onClick={() => handleRoleSelection("guard")}
                     className={`p-4 rounded-lg border-2 transition-colors text-left ${
-                      selectedRole === 'guard'
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-primary/50'
+                      selectedRole === "guard"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -287,8 +308,10 @@ export default function GuardRegisterRolePage() {
                         <Shield className="w-5 h-5 text-green-600 dark:text-green-400" />
                       </div>
                       <div>
-                        <h4 className="font-medium text-foreground">ยามรักษาความปลอดภัย</h4>
-                        <p className="text-sm text-muted-foreground">ลงทะเบียนเป็นยามรักษาความปลอดภัย</p>
+                        <h4 className="font-medium text-foreground">รปภ.</h4>
+                        <p className="text-sm text-muted-foreground">
+                          ลงทะเบียนเป็นรปภ.
+                        </p>
                       </div>
                     </div>
                   </button>
@@ -298,7 +321,10 @@ export default function GuardRegisterRolePage() {
               {/* Village Input */}
               <div className="space-y-3">
                 <div>
-                  <Label htmlFor="village-key" className="text-lg font-medium text-foreground">
+                  <Label
+                    htmlFor="village-key"
+                    className="text-lg font-medium text-foreground"
+                  >
                     รหัสหมู่บ้าน
                   </Label>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -315,10 +341,12 @@ export default function GuardRegisterRolePage() {
                     onChange={(e) => handleVillageInput(e.target.value)}
                     className={`w-full ${
                       villageValidation.isValid
-                        ? 'border-green-500 focus:border-green-500'
-                        : selectedVillage && !villageValidation.isValid && !villageValidation.isLoading
-                        ? 'border-red-500 focus:border-red-500'
-                        : ''
+                        ? "border-green-500 focus:border-green-500"
+                        : selectedVillage &&
+                            !villageValidation.isValid &&
+                            !villageValidation.isLoading
+                          ? "border-red-500 focus:border-red-500"
+                          : ""
                     }`}
                   />
 
@@ -334,11 +362,13 @@ export default function GuardRegisterRolePage() {
                     </div>
                   )}
 
-                  {selectedVillage && !villageValidation.isValid && !villageValidation.isLoading && (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      <AlertCircle className="w-4 h-4 text-red-500" />
-                    </div>
-                  )}
+                  {selectedVillage &&
+                    !villageValidation.isValid &&
+                    !villageValidation.isLoading && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <AlertCircle className="w-4 h-4 text-red-500" />
+                      </div>
+                    )}
                 </div>
 
                 {villageValidation.isValid && villageValidation.villageName && (
@@ -350,20 +380,27 @@ export default function GuardRegisterRolePage() {
                   </div>
                 )}
 
-                {selectedVillage && !villageValidation.isValid && !villageValidation.isLoading && (
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800">
-                    <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
-                    <span className="text-red-800 dark:text-red-200 text-sm">
-                      รหัสหมู่บ้านไม่ถูกต้อง
-                    </span>
-                  </div>
-                )}
+                {selectedVillage &&
+                  !villageValidation.isValid &&
+                  !villageValidation.isLoading && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800">
+                      <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                      <span className="text-red-800 dark:text-red-200 text-sm">
+                        รหัสหมู่บ้านไม่ถูกต้อง
+                      </span>
+                    </div>
+                  )}
               </div>
 
               {/* Submit Button */}
               <Button
                 type="submit"
-                disabled={!selectedRole || !selectedVillage || !villageValidation.isValid || submitting}
+                disabled={
+                  !selectedRole ||
+                  !selectedVillage ||
+                  !villageValidation.isValid ||
+                  submitting
+                }
                 className="w-full"
               >
                 {submitting ? (
@@ -372,21 +409,25 @@ export default function GuardRegisterRolePage() {
                     กำลังลงทะเบียน...
                   </>
                 ) : (
-                  'ลงทะเบียนบทบาท'
+                  "ลงทะเบียนบทบาท"
                 )}
               </Button>
 
               {/* Error Message */}
               {error && (
                 <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800">
-                  <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+                  <p className="text-red-800 dark:text-red-200 text-sm">
+                    {error}
+                  </p>
                 </div>
               )}
 
               {/* Success Message */}
               {success && (
                 <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
-                  <p className="text-green-800 dark:text-green-200 text-sm">{success}</p>
+                  <p className="text-green-800 dark:text-green-200 text-sm">
+                    {success}
+                  </p>
                 </div>
               )}
             </form>
@@ -394,7 +435,9 @@ export default function GuardRegisterRolePage() {
             {/* Current Roles */}
             {existingRoles.length > 0 && (
               <div className="pt-4 border-t">
-                <h3 className="text-sm font-medium text-muted-foreground mb-3">บทบาทที่มีอยู่</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                  บทบาทที่มีอยู่
+                </h3>
                 <div className="space-y-2">
                   {existingRoles.map((roleInfo, index) => (
                     <div
@@ -403,7 +446,7 @@ export default function GuardRegisterRolePage() {
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          {roleInfo.role === 'resident' ? (
+                          {roleInfo.role === "resident" ? (
                             <User className="w-4 h-4 text-primary" />
                           ) : (
                             <Shield className="w-4 h-4 text-primary" />
@@ -411,7 +454,9 @@ export default function GuardRegisterRolePage() {
                         </div>
                         <div>
                           <p className="font-medium text-foreground">
-                            {roleInfo.role === 'resident' ? 'ผู้อยู่อาศัย' : 'ยามรักษาความปลอดภัย'}
+                            {roleInfo.role === "resident"
+                              ? "ผู้อยู่อาศัย"
+                              : "รปภ."}
                           </p>
                           <p className="text-sm text-muted-foreground flex items-center gap-1">
                             <MapPin className="w-3 h-3" />
@@ -419,17 +464,22 @@ export default function GuardRegisterRolePage() {
                           </p>
                         </div>
                       </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        roleInfo.status === 'verified' 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          : roleInfo.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                          : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                      }`}>
-                        {roleInfo.status === 'verified' ? 'ยืนยันแล้ว' : 
-                         roleInfo.status === 'pending' ? 'รอการยืนยัน' : 
-                         roleInfo.status === 'disable' ? 'ถูกปิดใช้งาน' : 
-                         roleInfo.status || 'ไม่ทราบสถานะ'}
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          roleInfo.status === "verified"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            : roleInfo.status === "pending"
+                              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                        }`}
+                      >
+                        {roleInfo.status === "verified"
+                          ? "ยืนยันแล้ว"
+                          : roleInfo.status === "pending"
+                            ? "รอการยืนยัน"
+                            : roleInfo.status === "disable"
+                              ? "ถูกปิดใช้งาน"
+                              : roleInfo.status || "ไม่ทราบสถานะ"}
                       </span>
                     </div>
                   ))}

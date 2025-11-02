@@ -75,7 +75,7 @@ class NotificationService {
         .where(eq(villages.village_id, data.village_id));
 
       console.log(
-        `📢 Created notification: ${notification.title} for village ${data.village_id}`
+        `📢 Created notification: ${notification.title} for village ${data.village_id}`,
       );
 
       // Send via WebSocket to admins
@@ -96,7 +96,7 @@ class NotificationService {
 
         await websocketClient.sendNotification(wsNotification);
         console.log(
-          `📤 WebSocket notification sent: ${notification.title} to village ${data.village_id}`
+          `📤 WebSocket notification sent: ${notification.title} to village ${data.village_id}`,
         );
       } catch (wsError) {
         console.error("❌ WebSocket notification failed:", wsError);
@@ -146,8 +146,8 @@ class NotificationService {
       village_id: guardData.village_id,
       type: "guard_pending",
       category: "user_approval",
-      title: "ยามรักษาความปลอดภัยใหม่รอการอนุมัติ",
-      message: `มียามรักษาความปลอดภัยใหม่ ${guardData.fname} ${guardData.lname} รอการอนุมัติเข้าทำงาน`,
+      title: "รปภ.ใหม่รอการอนุมัติ",
+      message: `มีรปภ.ใหม่ ${guardData.fname} ${guardData.lname} รอการอนุมัติเข้าทำงาน`,
       data: {
         guard_id: guardData.guard_id,
         guard_name: `${guardData.fname} ${guardData.lname}`,
@@ -167,9 +167,7 @@ class NotificationService {
     village_id: string;
   }) {
     const userTypeText =
-      userData.user_type === "resident"
-        ? "ผู้อยู่อาศัย"
-        : "ยามรักษาความปลอดภัย";
+      userData.user_type === "resident" ? "ผู้อยู่อาศัย" : "รปภ.";
 
     return this.createNotification({
       village_id: userData.village_id,
@@ -349,26 +347,25 @@ class NotificationService {
    */
   async sendVisitorApprovalFlexMessage(
     userId: string,
-    visitorData: VisitorNotificationData
+    visitorData: VisitorNotificationData,
   ) {
     try {
       // Get the appropriate flex message based on current status
-      const flexMessage = await flexMessageService.getVisitorFlexMessage(
-        visitorData
-      );
+      const flexMessage =
+        await flexMessageService.getVisitorFlexMessage(visitorData);
 
       const success = await flexMessageService.sendFlexMessage(
         userId,
-        flexMessage
+        flexMessage,
       );
 
       if (success) {
         console.log(
-          `📱 LINE flex message sent for visitor: ${visitorData.visitorName}`
+          `📱 LINE flex message sent for visitor: ${visitorData.visitorName}`,
         );
       } else {
         console.error(
-          `❌ Failed to send LINE flex message for visitor: ${visitorData.visitorName}`
+          `❌ Failed to send LINE flex message for visitor: ${visitorData.visitorName}`,
         );
       }
 
@@ -384,21 +381,21 @@ class NotificationService {
    */
   async sendApprovalResultFlexMessage(
     userId: string,
-    approvalData: ApprovalNotificationData
+    approvalData: ApprovalNotificationData,
   ) {
     try {
       const success = await flexMessageService.sendFlexMessage(
         userId,
-        flexMessageService.createApprovalResultMessage(approvalData)
+        flexMessageService.createApprovalResultMessage(approvalData),
       );
 
       if (success) {
         console.log(
-          `📱 LINE flex message sent for approval result: ${approvalData.visitorName}`
+          `📱 LINE flex message sent for approval result: ${approvalData.visitorName}`,
         );
       } else {
         console.error(
-          `❌ Failed to send LINE flex message for approval result: ${approvalData.visitorName}`
+          `❌ Failed to send LINE flex message for approval result: ${approvalData.visitorName}`,
         );
       }
 
@@ -437,16 +434,16 @@ class NotificationService {
 
       const success = await this.sendVisitorNotificationFlexMessage(
         data.lineUserId,
-        visitorData
+        visitorData,
       );
 
       if (success) {
         console.log(
-          `📱 Visitor notification sent to ${data.residentName} (${data.lineUserId})`
+          `📱 Visitor notification sent to ${data.residentName} (${data.lineUserId})`,
         );
       } else {
         console.error(
-          `❌ Failed to send visitor notification to ${data.residentName} (${data.lineUserId})`
+          `❌ Failed to send visitor notification to ${data.residentName} (${data.lineUserId})`,
         );
       }
 
@@ -463,7 +460,7 @@ class NotificationService {
   async sendVisitorNotificationToResidents(
     visitorData: VisitorNotificationData,
     houseNumber: string,
-    villageKey: string
+    villageKey: string,
   ) {
     try {
       // Get all residents in the house
@@ -471,13 +468,13 @@ class NotificationService {
 
       if (residents.length === 0) {
         console.log(
-          `⚠️ No residents found in house ${houseNumber} for village ${villageKey}`
+          `⚠️ No residents found in house ${houseNumber} for village ${villageKey}`,
         );
         return { success: false, message: "No residents found in house" };
       }
 
       console.log(
-        `📱 Sending visitor notification to ${residents.length} residents in house ${houseNumber}`
+        `📱 Sending visitor notification to ${residents.length} residents in house ${houseNumber}`,
       );
 
       // Send notification to all residents
@@ -485,18 +482,18 @@ class NotificationService {
         residents.map((resident) =>
           this.sendVisitorNotificationFlexMessage(
             resident.lineUserId,
-            visitorData
-          )
-        )
+            visitorData,
+          ),
+        ),
       );
 
       const successful = results.filter(
-        (result) => result.status === "fulfilled" && result.value
+        (result) => result.status === "fulfilled" && result.value,
       ).length;
       const failed = results.length - successful;
 
       console.log(
-        `📊 Notification results: ${successful} successful, ${failed} failed`
+        `📊 Notification results: ${successful} successful, ${failed} failed`,
       );
 
       return {
@@ -521,19 +518,19 @@ class NotificationService {
    */
   async sendVisitorNotificationFlexMessage(
     userId: string,
-    visitorData: VisitorNotificationData
+    visitorData: VisitorNotificationData,
   ) {
     try {
       const success = await flexMessageService.sendFlexMessage(
         userId,
-        flexMessageService.createVisitorNotificationMessage(visitorData)
+        flexMessageService.createVisitorNotificationMessage(visitorData),
       );
 
       if (success) {
         console.log(`📱 Visitor notification sent to user: ${userId}`);
       } else {
         console.error(
-          `❌ Failed to send visitor notification to user: ${userId}`
+          `❌ Failed to send visitor notification to user: ${userId}`,
         );
       }
 
@@ -549,12 +546,12 @@ class NotificationService {
    */
   async sendVisitorDetailsFlexMessage(
     userId: string,
-    visitorData: VisitorNotificationData
+    visitorData: VisitorNotificationData,
   ) {
     try {
       const success = await flexMessageService.sendFlexMessage(
         userId,
-        flexMessageService.createVisitorDetailsMessage(visitorData)
+        flexMessageService.createVisitorDetailsMessage(visitorData),
       );
 
       if (success) {
@@ -591,7 +588,7 @@ class NotificationService {
       ];
 
       console.log(
-        `📋 Found ${mockResidents.length} residents in house ${houseNumber}`
+        `📋 Found ${mockResidents.length} residents in house ${houseNumber}`,
       );
       return mockResidents;
     } catch (error) {

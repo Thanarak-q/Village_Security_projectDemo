@@ -43,21 +43,26 @@ interface AvailableHouse {
 }
 
 // Zod validation schema
-const approvalFormSchema = z.object({
-  approvedRole: z.string().min(1, "กรุณาเลือกบทบาทที่อนุมัติ"),
-  houseId: z.string().optional(),
-  houseNumber: z.string().optional(), // Keep for backward compatibility
-  notes: z.string().optional(),
-}).refine((data) => {
-  // If approved role is 'ลูกบ้าน', house selection is required
-  if (data.approvedRole === 'ลูกบ้าน') {
-    return data.houseId && data.houseId.trim().length > 0;
-  }
-  return true;
-}, {
-  message: "กรุณาเลือกบ้านสำหรับลูกบ้าน",
-  path: ["houseId"],
-});
+const approvalFormSchema = z
+  .object({
+    approvedRole: z.string().min(1, "กรุณาเลือกบทบาทที่อนุมัติ"),
+    houseId: z.string().optional(),
+    houseNumber: z.string().optional(), // Keep for backward compatibility
+    notes: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      // If approved role is 'ลูกบ้าน', house selection is required
+      if (data.approvedRole === "ลูกบ้าน") {
+        return data.houseId && data.houseId.trim().length > 0;
+      }
+      return true;
+    },
+    {
+      message: "กรุณาเลือกบ้านสำหรับลูกบ้าน",
+      path: ["houseId"],
+    },
+  );
 
 type ApprovalFormData = z.infer<typeof approvalFormSchema>;
 
@@ -78,10 +83,15 @@ interface ApprovalFormProps {
   user: PendingUser | null;
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (action: 'approve' | 'reject', formData: ApprovalFormData) => void;
+  onSubmit: (action: "approve" | "reject", formData: ApprovalFormData) => void;
 }
 
-export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: ApprovalFormProps) {
+export default function ApprovalForm({
+  user,
+  isOpen,
+  onClose,
+  onSubmit,
+}: ApprovalFormProps) {
   // Confirmation dialog states
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
@@ -97,8 +107,8 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
       approvedRole: "",
       houseId: "",
       houseNumber: "",
-      notes: ""
-    }
+      notes: "",
+    },
   });
 
   // Fetch available houses
@@ -108,9 +118,12 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
       const selectedVillage = sessionStorage.getItem("selectedVillage");
       if (!selectedVillage) return;
 
-      const response = await fetch(`/api/houses/available?village_id=${encodeURIComponent(selectedVillage)}`, {
-        credentials: "include",
-      });
+      const response = await fetch(
+        `/api/houses/available?village_id=${encodeURIComponent(selectedVillage)}`,
+        {
+          credentials: "include",
+        },
+      );
 
       if (response.ok) {
         const result = await response.json();
@@ -130,10 +143,10 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
   useEffect(() => {
     if (user) {
       form.reset({
-        approvedRole: user.role === 'resident' ? 'ลูกบ้าน' : 'ยาม',
+        approvedRole: user.role === "resident" ? "ลูกบ้าน" : "รปภ.",
         houseId: "", // Will be set based on houseNumber if needed
         houseNumber: user.houseNumber !== "-" ? user.houseNumber : "",
-        notes: ""
+        notes: "",
       });
     }
   }, [user, form]);
@@ -141,11 +154,12 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
   // Filtered and paginated houses
   const filteredHouses = useMemo(
     () =>
-      availableHouses.filter((house) =>
-        house.address.toLowerCase().includes(houseQuery.toLowerCase()) ||
-        house.house_id.toLowerCase().includes(houseQuery.toLowerCase())
+      availableHouses.filter(
+        (house) =>
+          house.address.toLowerCase().includes(houseQuery.toLowerCase()) ||
+          house.house_id.toLowerCase().includes(houseQuery.toLowerCase()),
       ),
-    [availableHouses, houseQuery]
+    [availableHouses, houseQuery],
   );
 
   const paginatedHouses = useMemo(() => {
@@ -167,13 +181,16 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
 
   const handleApproveClick = () => {
     if (!user) return;
-    
+
     // Validate form using Zod
-    form.handleSubmit(() => {
-      setShowApproveConfirm(true);
-    }, (errors) => {
-      console.log('Form validation errors:', errors);
-    })();
+    form.handleSubmit(
+      () => {
+        setShowApproveConfirm(true);
+      },
+      (errors) => {
+        console.log("Form validation errors:", errors);
+      },
+    )();
   };
 
   const handleRejectClick = () => {
@@ -184,22 +201,24 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
   const handleConfirmApprove = () => {
     setShowApproveConfirm(false);
     const formData = form.getValues();
-    
+
     // Get house address from selected house ID
-    if (formData.approvedRole === 'ลูกบ้าน' && formData.houseId) {
-      const selectedHouse = availableHouses.find(house => house.house_id === formData.houseId);
+    if (formData.approvedRole === "ลูกบ้าน" && formData.houseId) {
+      const selectedHouse = availableHouses.find(
+        (house) => house.house_id === formData.houseId,
+      );
       if (selectedHouse) {
         formData.houseNumber = selectedHouse.address;
       }
     }
-    
-    onSubmit('approve', formData);
+
+    onSubmit("approve", formData);
   };
 
   const handleConfirmReject = () => {
     setShowRejectConfirm(false);
     const formData = form.getValues();
-    onSubmit('reject', formData);
+    onSubmit("reject", formData);
   };
 
   const handleCancelConfirm = () => {
@@ -225,8 +244,12 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
             <h3 className="font-medium text-primary mb-3">ข้อมูลผู้สมัคร</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-primary/80 font-medium">ชื่อ-นามสกุล:</span>
-                <p className="text-foreground">{user.fname} {user.lname}</p>
+                <span className="text-primary/80 font-medium">
+                  ชื่อ-นามสกุล:
+                </span>
+                <p className="text-foreground">
+                  {user.fname} {user.lname}
+                </p>
               </div>
               <div>
                 <span className="text-primary/80 font-medium">Username:</span>
@@ -241,12 +264,20 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
                 <p className="text-foreground">{user.phone}</p>
               </div>
               <div>
-                <span className="text-primary/80 font-medium">วันที่สมัคร:</span>
-                <p className="text-foreground">{new Date(user.requestDate).toLocaleDateString('th-TH')}</p>
+                <span className="text-primary/80 font-medium">
+                  วันที่สมัคร:
+                </span>
+                <p className="text-foreground">
+                  {new Date(user.requestDate).toLocaleDateString("th-TH")}
+                </p>
               </div>
               <div>
-                <span className="text-primary/80 font-medium">บทบาทที่สมัคร:</span>
-                <p className="text-foreground">{user.role === 'resident' ? 'ลูกบ้าน' : 'ยาม'}</p>
+                <span className="text-primary/80 font-medium">
+                  บทบาทที่สมัคร:
+                </span>
+                <p className="text-foreground">
+                  {user.role === "resident" ? "ลูกบ้าน" : "รปภ."}
+                </p>
               </div>
             </div>
           </div>
@@ -259,7 +290,7 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
                   บทบาทที่ผู้ใช้สมัคร
                 </FormLabel>
                 <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md border">
-                  {user?.role === 'resident' ? (
+                  {user?.role === "resident" ? (
                     <>
                       <Home className="w-4 h-4 text-blue-600" />
                       <span className="text-sm font-medium">ลูกบ้าน</span>
@@ -267,7 +298,7 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
                   ) : (
                     <>
                       <UserCheck className="w-4 h-4 text-cyan-600" />
-                      <span className="text-sm font-medium">ยาม</span>
+                      <span className="text-sm font-medium">รปภ.</span>
                     </>
                   )}
                 </div>
@@ -280,9 +311,7 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
               <FormField
                 control={form.control}
                 name="approvedRole"
-                render={({ field }) => (
-                  <input type="hidden" {...field} />
-                )}
+                render={({ field }) => <input type="hidden" {...field} />}
               />
 
               {/* เลือกบ้าน */}
@@ -307,7 +336,7 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
                               className="pl-10 text-sm"
                             />
                           </div>
-                          
+
                           {/* House List */}
                           <div className="space-y-2 max-h-60 overflow-y-auto border rounded-md p-2">
                             {loadingHouses ? (
@@ -316,7 +345,9 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
                               </div>
                             ) : filteredHouses.length === 0 ? (
                               <div className="text-center py-4 text-muted-foreground">
-                                {houseQuery ? "ไม่พบบ้านที่ตรงกับการค้นหา" : "ไม่มีบ้านที่ว่าง"}
+                                {houseQuery
+                                  ? "ไม่พบบ้านที่ตรงกับการค้นหา"
+                                  : "ไม่มีบ้านที่ว่าง"}
                               </div>
                             ) : (
                               paginatedHouses.map((house) => (
@@ -352,7 +383,7 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
                               ))
                             )}
                           </div>
-                          
+
                           {/* Pagination */}
                           {totalPages > 1 && (
                             <div className="flex items-center justify-between pt-2 border-t">
@@ -360,7 +391,11 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                                onClick={() =>
+                                  setCurrentPage((prev) =>
+                                    Math.max(1, prev - 1),
+                                  )
+                                }
                                 disabled={currentPage === 1}
                                 className="text-xs"
                               >
@@ -373,7 +408,11 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                                onClick={() =>
+                                  setCurrentPage((prev) =>
+                                    Math.min(totalPages, prev + 1),
+                                  )
+                                }
                                 disabled={currentPage === totalPages}
                                 className="text-xs"
                               >
@@ -386,7 +425,8 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
                       <FormMessage />
                       {availableHouses.length === 0 && !loadingHouses && (
                         <p className="text-xs text-muted-foreground">
-                          ไม่มีบ้านที่ว่างในหมู่บ้านนี้ กรุณาเพิ่มบ้านใหม่ในหน้าจัดการบ้าน
+                          ไม่มีบ้านที่ว่างในหมู่บ้านนี้
+                          กรุณาเพิ่มบ้านใหม่ในหน้าจัดการบ้าน
                         </p>
                       )}
                     </FormItem>
@@ -418,9 +458,9 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
           </Form>
 
           <DialogFooter className="flex gap-3 pt-6">
-            {/* <Button 
-              type="button" 
-              variant="outline" 
+            {/* <Button
+              type="button"
+              variant="outline"
               className="flex-1"
               onClick={onClose}
             >
@@ -448,7 +488,10 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
       </Dialog>
 
       {/* Approve Confirmation Dialog */}
-      <AlertDialog open={showApproveConfirm} onOpenChange={setShowApproveConfirm}>
+      <AlertDialog
+        open={showApproveConfirm}
+        onOpenChange={setShowApproveConfirm}
+      >
         <AlertDialogContent className="flex flex-col w-100">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -456,20 +499,32 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
               ยืนยันการอนุมัติ
             </AlertDialogTitle>
             <AlertDialogDescription>
-              คุณต้องการอนุมัติผู้ใช้ <strong>{user?.fname} {user?.lname}</strong> 
+              คุณต้องการอนุมัติผู้ใช้{" "}
+              <strong>
+                {user?.fname} {user?.lname}
+              </strong>
               เป็น <strong>{form.watch("approvedRole")}</strong> ใช่หรือไม่?
-              {form.watch("approvedRole") === 'ลูกบ้าน' && form.watch("houseId") && (
-                <>
-                  <br />บ้านเลขที่: <strong>
-                    {availableHouses.find(house => house.house_id === form.watch("houseId"))?.address}
-                  </strong>
-                </>
-              )}
+              {form.watch("approvedRole") === "ลูกบ้าน" &&
+                form.watch("houseId") && (
+                  <>
+                    <br />
+                    บ้านเลขที่:{" "}
+                    <strong>
+                      {
+                        availableHouses.find(
+                          (house) => house.house_id === form.watch("houseId"),
+                        )?.address
+                      }
+                    </strong>
+                  </>
+                )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelConfirm}>ยกเลิก</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogCancel onClick={handleCancelConfirm}>
+              ยกเลิก
+            </AlertDialogCancel>
+            <AlertDialogAction
               onClick={handleConfirmApprove}
               className="bg-green-600 hover:bg-green-700"
             >
@@ -488,7 +543,11 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
               ยืนยันการปฏิเสธ
             </AlertDialogTitle>
             <AlertDialogDescription>
-              คุณต้องการปฏิเสธผู้ใช้ <strong>{user?.fname} {user?.lname}</strong> ใช่หรือไม่?
+              คุณต้องการปฏิเสธผู้ใช้{" "}
+              <strong>
+                {user?.fname} {user?.lname}
+              </strong>{" "}
+              ใช่หรือไม่?
               <br />
               <span className="text-red-600 font-medium">
                 การปฏิเสธจะทำให้ผู้ใช้ไม่สามารถเข้าสู่ระบบได้
@@ -496,8 +555,10 @@ export default function ApprovalForm({ user, isOpen, onClose, onSubmit }: Approv
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelConfirm}>ยกเลิก</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogCancel onClick={handleCancelConfirm}>
+              ยกเลิก
+            </AlertDialogCancel>
+            <AlertDialogAction
               onClick={handleConfirmReject}
               className="bg-red-600 hover:bg-red-700"
             >

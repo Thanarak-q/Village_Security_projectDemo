@@ -28,7 +28,7 @@ export default function GetOutPlaceholderPage() {
 
         <Button asChild variant="outline">
           <Link href="/guard" prefetch>
-            กลับหน้าหลักของยาม
+            กลับหน้าหลักของรปภ.
           </Link>
         </Button>
       </div>

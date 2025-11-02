@@ -10,7 +10,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserPlus, Settings, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import {
+  UserPlus,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+} from "lucide-react";
 import ApprovalForm from "./ApprovalForm";
 import {
   Select,
@@ -69,24 +75,24 @@ interface PendingGuard {
 
 // Interface สำหรับกำหนดโครงสร้างข้อมูลผู้ใช้ที่รออนุมัติ
 interface PendingUser {
-  id: string;           // รหัสผู้ใช้
-  username: string;     // ชื่อผู้ใช้
-  email: string;        // อีเมล
-  fname: string;        // ชื่อจริง
-  lname: string;        // นามสกุล
-  phone: string;        // เบอร์โทรศัพท์
-  role: string;         // บทบาท (resident/guard)
-  houseNumber: string;  // บ้านเลขที่
-  requestDate: string;  // วันที่สมัคร
-  status: string;       // สถานะ
-  profile_image_url?: string | null;  // รูปโปรไฟล์
+  id: string; // รหัสผู้ใช้
+  username: string; // ชื่อผู้ใช้
+  email: string; // อีเมล
+  fname: string; // ชื่อจริง
+  lname: string; // นามสกุล
+  phone: string; // เบอร์โทรศัพท์
+  role: string; // บทบาท (resident/guard)
+  houseNumber: string; // บ้านเลขที่
+  requestDate: string; // วันที่สมัคร
+  status: string; // สถานะ
+  profile_image_url?: string | null; // รูปโปรไฟล์
 }
 
 // Interface สำหรับข้อมูลฟอร์มการอนุมัติ
 interface ApprovalFormData {
-  approvedRole: string;  // บทบาทที่อนุมัติ
-  houseNumber?: string;  // บ้านเลขที่
-  notes?: string;        // หมายเหตุ
+  approvedRole: string; // บทบาทที่อนุมัติ
+  houseNumber?: string; // บ้านเลขที่
+  notes?: string; // หมายเหตุ
 }
 
 // ฟังก์ชันหลักสำหรับแสดงตารางผู้ใช้ที่รออนุมัติ
@@ -96,25 +102,25 @@ export default function PendingTable() {
   const [guardsData, setGuardsData] = useState<PendingGuard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // State สำหรับจัดการผู้ใช้ที่เลือกเพื่ออนุมัติ
   const [selectedUser, setSelectedUser] = useState<PendingUser | null>(null);
-  
+
   // State สำหรับควบคุมการแสดง/ซ่อนฟอร์มอนุมัติ
   const [isApprovalFormOpen, setIsApprovalFormOpen] = useState(false);
-  
+
   // State สำหรับการแบ่งหน้า (Pagination)
-  const [currentPage, setCurrentPage] = useState(1);        // หน้าปัจจุบัน
+  const [currentPage, setCurrentPage] = useState(1); // หน้าปัจจุบัน
   const [itemsPerPage, setItemsPerPage] = useState(() => {
     // Get saved itemsPerPage from localStorage, default to 2
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const saved = localStorage.getItem('pendingTable_itemsPerPage');
+    if (typeof window !== "undefined" && window.localStorage) {
+      const saved = localStorage.getItem("pendingTable_itemsPerPage");
       return saved ? parseInt(saved, 10) : 2;
     }
     return 2;
-  });      // จำนวนรายการต่อหน้า
-  const [searchTerm, setSearchTerm] = useState("");         // คำค้นหา
-  
+  }); // จำนวนรายการต่อหน้า
+  const [searchTerm, setSearchTerm] = useState(""); // คำค้นหา
+
   // State สำหรับการ refresh ข้อมูล
   const [refreshing, setRefreshing] = useState(false);
 
@@ -122,25 +128,28 @@ export default function PendingTable() {
   const fetchPendingUsers = async (isRefresh = false) => {
     try {
       if (isRefresh) {
-        setRefreshing(true);  
+        setRefreshing(true);
       } else {
         setLoading(true);
       }
       setError(null);
-      
+
       // Get selected village from sessionStorage (with SSR safety check)
-      const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem('selectedVillage') : null;
-      const url = selectedVillage 
+      const selectedVillage =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("selectedVillage")
+          : null;
+      const url = selectedVillage
         ? `/api/pendingUsers?village_id=${encodeURIComponent(selectedVillage)}`
-        : '/api/pendingUsers';
-        
+        : "/api/pendingUsers";
+
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data: PendingUsersResponse = await response.json();
-      
+
       if (data.success) {
         setResidentsData(data.data.residents);
         setGuardsData(data.data.guards);
@@ -164,58 +173,65 @@ export default function PendingTable() {
   useEffect(() => {
     const handleStorageChange = () => {
       fetchPendingUsers();
-    }
-    
-    window.addEventListener('storage', handleStorageChange)
-    
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+
     // Also listen for custom event when village changes in same tab
-    window.addEventListener('villageChanged', handleStorageChange)
-    
+    window.addEventListener("villageChanged", handleStorageChange);
+
     return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('villageChanged', handleStorageChange)
-    }
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("villageChanged", handleStorageChange);
+    };
   }, []);
 
   // ฟังก์ชันสำหรับเปิดฟอร์มอนุมัติเมื่อคลิกปุ่ม "ดำเนินการ"
   const handleProcess = (user: PendingUser) => {
-    setSelectedUser(user);           // เก็บข้อมูลผู้ใช้ที่เลือก
-    setIsApprovalFormOpen(true);     // เปิดฟอร์มอนุมัติ
+    setSelectedUser(user); // เก็บข้อมูลผู้ใช้ที่เลือก
+    setIsApprovalFormOpen(true); // เปิดฟอร์มอนุมัติ
   };
 
   // ฟังก์ชันสำหรับจัดการการส่งฟอร์มอนุมัติ (อนุมัติหรือปฏิเสธ)
-  const handleApprovalSubmit = async (action: 'approve' | 'reject', formData: ApprovalFormData) => {
+  const handleApprovalSubmit = async (
+    action: "approve" | "reject",
+    formData: ApprovalFormData,
+  ) => {
     if (!selectedUser) return;
-    
-    console.log(`${action} user:`, selectedUser.id, 'with data:', formData);
-    
+
+    console.log(`${action} user:`, selectedUser.id, "with data:", formData);
+
     try {
       let response;
-      
-      if (action === 'approve') {
-        response = await fetch('/api/approveUser', {
-          method: 'PUT',
+
+      if (action === "approve") {
+        response = await fetch("/api/approveUser", {
+          method: "PUT",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             userId: selectedUser.id,
             currentRole: selectedUser.role,
-            approvedRole: formData.approvedRole === 'ลูกบ้าน' ? 'resident' : 'guard',
-            houseAddress: formData.approvedRole === 'ลูกบ้าน' ? formData.houseNumber : undefined,
-            notes: formData.notes
+            approvedRole:
+              formData.approvedRole === "ลูกบ้าน" ? "resident" : "guard",
+            houseAddress:
+              formData.approvedRole === "ลูกบ้าน"
+                ? formData.houseNumber
+                : undefined,
+            notes: formData.notes,
           }),
         });
       } else {
-        response = await fetch('/api/rejectUser', {
-          method: 'PUT',
+        response = await fetch("/api/rejectUser", {
+          method: "PUT",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             userId: selectedUser.id,
             currentRole: selectedUser.role,
-            reason: 'Rejected by administrator',
+            reason: "Rejected by administrator",
             notes: formData.notes,
           }),
         });
@@ -225,7 +241,6 @@ export default function PendingTable() {
 
       if (result.success) {
         console.log(`User ${action}d successfully:`, result.message);
-
 
         // Refresh data after successful approval/rejection
         await fetchPendingUsers(true);
@@ -263,18 +278,20 @@ export default function PendingTable() {
 
   // ฟังก์ชันสำหรับจัดรูปแบบวันที่ให้เป็นภาษาไทย
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('th-TH', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("th-TH", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
   // Function to convert API data to PendingUser format
-  const convertToPendingUser = (data: PendingResident | PendingGuard): PendingUser => {
+  const convertToPendingUser = (
+    data: PendingResident | PendingGuard,
+  ): PendingUser => {
     return {
       id: data.id,
-      username: data.email.split('@')[0],
+      username: data.email.split("@")[0],
       email: data.email,
       fname: data.fname,
       lname: data.lname,
@@ -283,31 +300,32 @@ export default function PendingTable() {
       houseNumber: data.house_address || "-",
       requestDate: data.createdAt,
       status: data.status,
-      profile_image_url: data.profile_image_url
+      profile_image_url: data.profile_image_url,
     };
   };
 
   // Combine and filter all pending users
   const allPendingUsers = [
     ...residentsData.map(convertToPendingUser),
-    ...guardsData.map(convertToPendingUser)
+    ...guardsData.map(convertToPendingUser),
   ];
 
   // กรองข้อมูลผู้ใช้ตามคำค้นหา
   // ค้นหาได้จากชื่อ, นามสกุล, อีเมล, บทบาท, และบ้านเลขที่
-  const filteredUsers = allPendingUsers.filter(user =>
-    user.fname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.lname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.houseNumber.includes(searchTerm)
+  const filteredUsers = allPendingUsers.filter(
+    (user) =>
+      user.fname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.lname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.houseNumber.includes(searchTerm),
   );
 
   // คำนวณข้อมูลสำหรับการแบ่งหน้า
-  const totalItems = filteredUsers.length;                    // จำนวนรายการทั้งหมด
-  const totalPages = Math.ceil(totalItems / itemsPerPage);    // จำนวนหน้าทั้งหมด
-  const startIndex = (currentPage - 1) * itemsPerPage;        // ดัชนีเริ่มต้นของหน้าปัจจุบัน
-  const endIndex = startIndex + itemsPerPage;                 // ดัชนีสิ้นสุดของหน้าปัจจุบัน
+  const totalItems = filteredUsers.length; // จำนวนรายการทั้งหมด
+  const totalPages = Math.ceil(totalItems / itemsPerPage); // จำนวนหน้าทั้งหมด
+  const startIndex = (currentPage - 1) * itemsPerPage; // ดัชนีเริ่มต้นของหน้าปัจจุบัน
+  const endIndex = startIndex + itemsPerPage; // ดัชนีสิ้นสุดของหน้าปัจจุบัน
   const currentUsers = filteredUsers.slice(startIndex, endIndex); // ข้อมูลผู้ใช้ในหน้าปัจจุบัน
 
   // Effect สำหรับรีเซ็ตหน้าแรกเมื่อมีการค้นหาใหม่
@@ -334,10 +352,10 @@ export default function PendingTable() {
     const newValue = Number(value);
     setItemsPerPage(newValue);
     setCurrentPage(1); // รีเซ็ตกลับไปหน้าแรก
-    
+
     // Save to localStorage for persistence
-    if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.setItem('pendingTable_itemsPerPage', newValue.toString());
+    if (typeof window !== "undefined" && window.localStorage) {
+      localStorage.setItem("pendingTable_itemsPerPage", newValue.toString());
     }
   };
 
@@ -358,8 +376,8 @@ export default function PendingTable() {
         <div className="text-center">
           <div className="text-red-500 text-xl mb-2">⚠️</div>
           <p className="text-red-600">เกิดข้อผิดพลาด: {error}</p>
-          <button 
-            onClick={() => fetchPendingUsers()} 
+          <button
+            onClick={() => fetchPendingUsers()}
             className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             ลองใหม่
@@ -380,11 +398,14 @@ export default function PendingTable() {
             <h2 className="text-lg sm:text-xl font-semibold text-foreground">
               ผู้ใช้ใหม่รออนุมัติ
             </h2>
-            <Badge variant="secondary" className="bg-orange-100 text-orange-800 text-xs sm:text-sm">
+            <Badge
+              variant="secondary"
+              className="bg-orange-100 text-orange-800 text-xs sm:text-sm"
+            >
               {allPendingUsers.length} รายการ
             </Badge>
           </div>
-          
+
           {/* ส่วนค้นหาและเวลาอัปเดต */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
             {/* ช่องค้นหา */}
@@ -417,27 +438,42 @@ export default function PendingTable() {
           {/* หัวตาราง */}
           <TableHeader>
             <TableRow className="bg-muted/50 border-b border-border">
-              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">ผู้สมัคร</TableHead>
-              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden sm:table-cell">ข้อมูลติดต่อ</TableHead>
-              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">บทบาท</TableHead>
-              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden md:table-cell">บ้านเลขที่</TableHead>
-              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden lg:table-cell">วันที่สมัคร</TableHead>
+              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">
+                ผู้สมัคร
+              </TableHead>
+              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden sm:table-cell">
+                ข้อมูลติดต่อ
+              </TableHead>
+              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">
+                บทบาท
+              </TableHead>
+              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden md:table-cell">
+                บ้านเลขที่
+              </TableHead>
+              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden lg:table-cell">
+                วันที่สมัคร
+              </TableHead>
               {/* <TableHead className="text-muted-foreground font-medium text-xs sm:text-sm">สถานะ</TableHead> */}
-              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">การดำเนินการ</TableHead>
+              <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">
+                การดำเนินการ
+              </TableHead>
             </TableRow>
           </TableHeader>
-          
+
           {/* เนื้อหาตาราง */}
           <TableBody>
             {currentUsers.map((user) => (
-              <TableRow key={user.id} className="hover:bg-muted/30 transition-colors border-b border-border/50">
+              <TableRow
+                key={user.id}
+                className="hover:bg-muted/30 transition-colors border-b border-border/50"
+              >
                 {/* คอลัมน์ผู้สมัคร - แสดง Avatar และชื่อ */}
                 <TableCell className="py-4 px-6">
                   <div className="flex items-center space-x-4">
                     {/* Avatar วงกลมที่มีตัวอักษรย่อ */}
                     <div
                       className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-sm ${getAvatarColor(
-                        user.id
+                        user.id,
                       )}`}
                     >
                       {getAvatarInitials(user.fname, user.lname)}
@@ -458,39 +494,41 @@ export default function PendingTable() {
                     </div>
                   </div>
                 </TableCell>
-                
+
                 {/* คอลัมน์ข้อมูลติดต่อ - แสดงอีเมลและเบอร์โทร */}
                 <TableCell className="hidden sm:table-cell">
                   <div className="space-y-1">
                     <div className="text-sm text-foreground">{user.email}</div>
-                    <div className="text-sm text-muted-foreground">{user.phone}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {user.phone}
+                    </div>
                   </div>
                 </TableCell>
-                
+
                 {/* คอลัมน์บทบาท - แสดง Badge สีตามบทบาท */}
                 <TableCell>
-                  <Badge 
-                    variant="outline" 
+                  <Badge
+                    variant="outline"
                     className={`text-xs sm:text-sm ${
-                      user.role === "guard" 
-                        ? "border-blue-200 text-blue-700 bg-blue-50" 
+                      user.role === "guard"
+                        ? "border-blue-200 text-blue-700 bg-blue-50"
                         : "border-green-200 text-green-700 bg-green-50"
                     }`}
                   >
-                    {user.role === "guard" ? "ยาม" : "ลูกบ้าน"}
+                    {user.role === "guard" ? "รปภ." : "ลูกบ้าน"}
                   </Badge>
                 </TableCell>
-                
+
                 {/* คอลัมน์บ้านเลขที่ */}
                 <TableCell className="text-gray-700 hidden md:table-cell text-sm">
                   {user.houseNumber !== "-" ? user.houseNumber : "-"}
                 </TableCell>
-                
+
                 {/* คอลัมน์วันที่สมัคร - แสดงในรูปแบบภาษาไทย */}
                 <TableCell className="text-muted-foreground hidden lg:table-cell text-sm">
                   {formatDate(user.requestDate)}
                 </TableCell>
-                
+
                 {/* คอลัมน์สถานะ - แสดง Badge สีส้มพร้อมไอคอนนาฬิกา */}
                 {/* <TableCell>
                   <Badge className="bg-orange-100 text-orange-800 border-orange-200 text-xs sm:text-sm">
@@ -498,7 +536,7 @@ export default function PendingTable() {
                     {user.status}
                   </Badge>
                 </TableCell> */}
-                
+
                 {/* คอลัมน์การดำเนินการ - ปุ่มสำหรับเปิดฟอร์มอนุมัติ */}
                 <TableCell>
                   <Button
@@ -522,10 +560,12 @@ export default function PendingTable() {
         <div className="p-8 sm:p-12 text-center">
           <UserPlus className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-base sm:text-lg font-medium text-foreground mb-2">
-            {searchTerm ? 'ไม่พบข้อมูลที่ค้นหา' : 'ไม่มีผู้ใช้ใหม่รออนุมัติ'}
+            {searchTerm ? "ไม่พบข้อมูลที่ค้นหา" : "ไม่มีผู้ใช้ใหม่รออนุมัติ"}
           </h3>
           <p className="text-sm sm:text-base text-muted-foreground">
-            {searchTerm ? 'ลองค้นหาด้วยคำอื่น' : 'ผู้ใช้ใหม่ที่สมัครเข้ามาจะปรากฏที่นี่'}
+            {searchTerm
+              ? "ลองค้นหาด้วยคำอื่น"
+              : "ผู้ใช้ใหม่ที่สมัครเข้ามาจะปรากฏที่นี่"}
           </p>
         </div>
       )}
@@ -537,7 +577,9 @@ export default function PendingTable() {
           <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
             {/* ตัวเลือกจำนวนรายการต่อหน้า */}
             <div className="flex items-center space-x-2">
-              <span className="text-xs sm:text-sm text-muted-foreground">แสดง</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">
+                แสดง
+              </span>
               <Select
                 value={itemsPerPage.toString()}
                 onValueChange={handleItemsPerPageChange}
@@ -552,15 +594,18 @@ export default function PendingTable() {
                   <SelectItem value="10">10</SelectItem>
                 </SelectContent>
               </Select>
-              <span className="text-xs sm:text-sm text-muted-foreground">รายการต่อหน้า</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">
+                รายการต่อหน้า
+              </span>
             </div>
-            
+
             {/* แสดงข้อมูลการแบ่งหน้า */}
             <div className="text-xs sm:text-sm text-muted-foreground">
-              แสดง {startIndex + 1} ถึง {Math.min(endIndex, totalItems)} จาก {totalItems} รายการ
+              แสดง {startIndex + 1} ถึง {Math.min(endIndex, totalItems)} จาก{" "}
+              {totalItems} รายการ
             </div>
           </div>
-          
+
           {/* ส่วนขวา - ปุ่มนำทางระหว่างหน้า */}
           <div className="flex items-center space-x-2">
             {/* ปุ่มไปหน้าก่อนหน้า */}
@@ -575,7 +620,7 @@ export default function PendingTable() {
               <span className="hidden sm:inline">ก่อนหน้า</span>
               <span className="sm:hidden">ก่อน</span>
             </Button>
-            
+
             {/* ปุ่มหมายเลขหน้า */}
             <div className="flex items-center space-x-1">
               {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
@@ -594,7 +639,7 @@ export default function PendingTable() {
                   // ถ้าอยู่ตรงกลาง แสดงหน้า 2 หน้าแรกและหลังหน้าปัจจุบัน
                   pageNum = currentPage - 2 + i;
                 }
-                
+
                 return (
                   <Button
                     key={pageNum}
@@ -602,8 +647,8 @@ export default function PendingTable() {
                     size="sm"
                     onClick={() => setCurrentPage(pageNum)}
                     className={`w-6 h-6 sm:w-8 sm:h-8 p-0 text-xs sm:text-sm ${
-                      currentPage === pageNum 
-                        ? "bg-blue-600 text-white" 
+                      currentPage === pageNum
+                        ? "bg-blue-600 text-white"
                         : "text-muted-foreground hover:bg-gray-100"
                     }`}
                   >
@@ -612,7 +657,7 @@ export default function PendingTable() {
                 );
               })}
             </div>
-            
+
             {/* ปุ่มไปหน้าถัดไป */}
             <Button
               variant="outline"

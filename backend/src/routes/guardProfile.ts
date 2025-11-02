@@ -6,7 +6,7 @@ import { requireLiffAuth } from "../hooks/requireLiffAuth";
 
 export const guardProfileRoutes = new Elysia({ prefix: "/api" })
   .onBeforeHandle(requireLiffAuth(["guard"]))
-  
+
   /**
    * Update guard profile information (fname, lname, email, phone)
    * Only allows guards to update their own profile
@@ -102,7 +102,7 @@ export const guardProfileRoutes = new Elysia({ prefix: "/api" })
         set.status = 404;
         return {
           success: false,
-          error: "ไม่พบข้อมูลยามรักษาความปลอดภัย",
+          error: "ไม่พบข้อมูลรปภ.",
         };
       }
 
@@ -203,7 +203,7 @@ export const guardProfileRoutes = new Elysia({ prefix: "/api" })
         set.status = 404;
         return {
           success: false,
-          error: "ไม่พบข้อมูลยามรักษาความปลอดภัย",
+          error: "ไม่พบข้อมูลรปภ.",
         };
       }
 

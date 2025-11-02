@@ -1,18 +1,24 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  Building, 
-  Users, 
-  UserCheck, 
+import {
+  Building,
+  Users,
+  UserCheck,
   Shield,
   AlertTriangle,
   TrendingUp,
   Clock,
-  BarChart3
+  BarChart3,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -113,7 +119,9 @@ export default function StatsPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading system statistics...</p>
+          <p className="mt-2 text-muted-foreground">
+            Loading system statistics...
+          </p>
         </div>
       </div>
     );
@@ -159,13 +167,18 @@ export default function StatsPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">หมู่บ้านทั้งหมด</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              หมู่บ้านทั้งหมด
+            </CardTitle>
             <Building className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.overview.totalVillages}</div>
+            <div className="text-2xl font-bold">
+              {stats.overview.totalVillages}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {stats.villages.withAdmins} มี Admin, {stats.villages.withoutAdmins} ไม่มี Admin
+              {stats.villages.withAdmins} มี Admin,{" "}
+              {stats.villages.withoutAdmins} ไม่มี Admin
             </p>
           </CardContent>
         </Card>
@@ -176,9 +189,12 @@ export default function StatsPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.overview.totalAdmins}</div>
+            <div className="text-2xl font-bold">
+              {stats.overview.totalAdmins}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {stats.adminBreakdown.byRole.admin || 0} เจ้าของโครงการ, {stats.adminBreakdown.byRole.staff || 0} นิติ
+              {stats.adminBreakdown.byRole.admin || 0} เจ้าของโครงการ,{" "}
+              {stats.adminBreakdown.byRole.staff || 0} นิติ
             </p>
           </CardContent>
         </Card>
@@ -189,7 +205,9 @@ export default function StatsPage() {
             <UserCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.overview.totalResidents}</div>
+            <div className="text-2xl font-bold">
+              {stats.overview.totalResidents}
+            </div>
             <p className="text-xs text-muted-foreground">
               ผู้อยู่อาศัยทั้งหมดในระบบ
             </p>
@@ -198,14 +216,14 @@ export default function StatsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">ยามรักษาความปลอดภัย</CardTitle>
+            <CardTitle className="text-sm font-medium">รปภ.</CardTitle>
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.overview.totalGuards}</div>
-            <p className="text-xs text-muted-foreground">
-              ยามทั้งหมดในระบบ
-            </p>
+            <div className="text-2xl font-bold">
+              {stats.overview.totalGuards}
+            </div>
+            <p className="text-xs text-muted-foreground">รปภ.ทั้งหมดในระบบ</p>
           </CardContent>
         </Card>
 
@@ -215,10 +233,10 @@ export default function StatsPage() {
             <Building className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.overview.totalHouses}</div>
-            <p className="text-xs text-muted-foreground">
-              บ้านทั้งหมดในระบบ
-            </p>
+            <div className="text-2xl font-bold">
+              {stats.overview.totalHouses}
+            </div>
+            <p className="text-xs text-muted-foreground">บ้านทั้งหมดในระบบ</p>
           </CardContent>
         </Card>
       </div>
@@ -231,9 +249,7 @@ export default function StatsPage() {
               <Users className="h-5 w-5" />
               สถิติ Admin ตามบทบาท
             </CardTitle>
-            <CardDescription>
-              จำนวน Admin แยกตามบทบาท
-            </CardDescription>
+            <CardDescription>จำนวน Admin แยกตามบทบาท</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -265,9 +281,7 @@ export default function StatsPage() {
               <TrendingUp className="h-5 w-5" />
               สถิติ Admin ตามสถานะ
             </CardTitle>
-            <CardDescription>
-              จำนวน Admin แยกตามสถานะ
-            </CardDescription>
+            <CardDescription>จำนวน Admin แยกตามสถานะ</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -304,8 +318,8 @@ export default function StatsPage() {
       </div>
 
       {/* Alerts */}
-      {(stats.alerts.villagesWithoutAdmins.length > 0 || 
-        stats.alerts.pendingAdmins > 0 || 
+      {(stats.alerts.villagesWithoutAdmins.length > 0 ||
+        stats.alerts.pendingAdmins > 0 ||
         stats.alerts.disabledAdmins > 0) && (
         <Card className="border-orange-200 bg-orange-50">
           <CardHeader>
@@ -317,7 +331,10 @@ export default function StatsPage() {
           <CardContent className="space-y-2">
             {stats.alerts.villagesWithoutAdmins.length > 0 && (
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="border-orange-300 text-orange-700">
+                <Badge
+                  variant="outline"
+                  className="border-orange-300 text-orange-700"
+                >
                   {stats.alerts.villagesWithoutAdmins.length}
                 </Badge>
                 <span className="text-sm text-orange-700">
@@ -327,7 +344,10 @@ export default function StatsPage() {
             )}
             {stats.alerts.pendingAdmins > 0 && (
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="border-yellow-300 text-yellow-700">
+                <Badge
+                  variant="outline"
+                  className="border-yellow-300 text-yellow-700"
+                >
                   {stats.alerts.pendingAdmins}
                 </Badge>
                 <span className="text-sm text-yellow-700">
@@ -337,7 +357,10 @@ export default function StatsPage() {
             )}
             {stats.alerts.disabledAdmins > 0 && (
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="border-red-300 text-red-700">
+                <Badge
+                  variant="outline"
+                  className="border-red-300 text-red-700"
+                >
                   {stats.alerts.disabledAdmins}
                 </Badge>
                 <span className="text-sm text-red-700">
@@ -364,36 +387,52 @@ export default function StatsPage() {
           <CardContent>
             <div className="space-y-3">
               {stats.recentActivity.recentAdmins.map((admin) => (
-                <div key={admin.admin_id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div
+                  key={admin.admin_id}
+                  className="flex items-center justify-between p-3 border rounded-lg"
+                >
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <p className="font-medium">{admin.username}</p>
-                      <Badge 
-                        variant={admin.role === 'admin' ? 'default' : 'secondary'}
-                        className="text-xs"
-                      >
-                        {admin.role === 'admin' ? 'เจ้าของโครงการ' : 'นิติ'}
-                      </Badge>
-                      <Badge 
+                      <Badge
                         variant={
-                          admin.status === 'verified' ? 'default' :
-                          admin.status === 'pending' ? 'secondary' : 'destructive'
+                          admin.role === "admin" ? "default" : "secondary"
                         }
                         className="text-xs"
                       >
-                        {admin.status === 'verified' ? 'ยืนยันแล้ว' :
-                         admin.status === 'pending' ? 'รอการอนุมัติ' : 'ปิดใช้งาน'}
+                        {admin.role === "admin" ? "เจ้าของโครงการ" : "นิติ"}
+                      </Badge>
+                      <Badge
+                        variant={
+                          admin.status === "verified"
+                            ? "default"
+                            : admin.status === "pending"
+                              ? "secondary"
+                              : "destructive"
+                        }
+                        className="text-xs"
+                      >
+                        {admin.status === "verified"
+                          ? "ยืนยันแล้ว"
+                          : admin.status === "pending"
+                            ? "รอการอนุมัติ"
+                            : "ปิดใช้งาน"}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">{admin.email}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {admin.email}
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      หมู่บ้าน: {admin.villages?.length
-                        ? admin.villages.map((village) => village.village_name).join(", ")
+                      หมู่บ้าน:{" "}
+                      {admin.villages?.length
+                        ? admin.villages
+                            .map((village) => village.village_name)
+                            .join(", ")
                         : "ไม่ระบุ"}
                     </p>
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {new Date(admin.createdAt).toLocaleDateString('th-TH')}
+                    {new Date(admin.createdAt).toLocaleDateString("th-TH")}
                   </div>
                 </div>
               ))}
@@ -420,7 +459,10 @@ export default function StatsPage() {
           <CardContent>
             <div className="space-y-3">
               {stats.villages.list.map((village) => (
-                <div key={village.village_id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div
+                  key={village.village_id}
+                  className="flex items-center justify-between p-3 border rounded-lg"
+                >
                   <div className="flex-1">
                     <p className="font-medium">{village.village_name}</p>
                     <p className="text-sm text-muted-foreground">
@@ -428,8 +470,10 @@ export default function StatsPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge 
-                      variant={village.admin_count > 0 ? 'default' : 'destructive'}
+                    <Badge
+                      variant={
+                        village.admin_count > 0 ? "default" : "destructive"
+                      }
                       className="text-xs"
                     >
                       {village.admin_count} Admin

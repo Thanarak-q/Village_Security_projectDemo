@@ -3,9 +3,22 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAuthenticated, getAuthData, logout } from "@/lib/liffAuth";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Clock, RefreshCw, Home, User, Shield } from "lucide-react";
+import {
+  AlertCircle,
+  Clock,
+  RefreshCw,
+  Home,
+  User,
+  Shield,
+} from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { switchUserRole } from "@/lib/liffAuth";
 import type { LiffUser } from "@/lib/liffAuth";
@@ -23,22 +36,25 @@ export default function ResidentPendingPage() {
   useEffect(() => {
     const checkAuthAndStatus = async () => {
       if (!isAuthenticated()) {
-        router.push('/liff');
+        router.push("/liff");
         return;
       }
 
       const { user } = getAuthData();
       if (user) {
         setCurrentUser(user);
-        
+
         // Check user roles
         try {
           const userId = user.lineUserId || user.id;
           if (userId) {
-            const response = await fetch(`/api/users/roles?lineUserId=${userId}`, {
-              credentials: 'include'
-            });
-            
+            const response = await fetch(
+              `/api/users/roles?lineUserId=${userId}`,
+              {
+                credentials: "include",
+              },
+            );
+
             if (response.ok) {
               const contentType = response.headers.get("content-type");
               if (contentType && contentType.includes("application/json")) {
@@ -50,7 +66,7 @@ export default function ResidentPendingPage() {
             }
           }
         } catch (error) {
-          console.error('Error checking user roles:', error);
+          console.error("Error checking user roles:", error);
         }
       }
       setIsCheckingAuth(false);
@@ -63,13 +79,13 @@ export default function ResidentPendingPage() {
     try {
       console.log("🔄 Refreshing resident status...");
       // Clear cached data
-      localStorage.removeItem('liffUser');
-      localStorage.removeItem('liffToken');
-      
+      localStorage.removeItem("liffUser");
+      localStorage.removeItem("liffToken");
+
       // Force reload to get fresh data
       window.location.reload();
     } catch (error) {
-      console.error('Error refreshing:', error);
+      console.error("Error refreshing:", error);
       window.location.reload();
     }
   };
@@ -84,16 +100,16 @@ export default function ResidentPendingPage() {
 
   const handleSwitchToGuard = async () => {
     if (isSwitchingRole) return;
-    
+
     try {
       setIsSwitchingRole(true);
-      const guardRole = userRoles.find(role => role.role === 'guard');
-      
+      const guardRole = userRoles.find((role) => role.role === "guard");
+
       if (!guardRole) {
-        alert("คุณไม่มีบทบาทยามรักษาความปลอดภัย");
+        alert("คุณไม่มีบทบาทรปภ.");
         return;
       }
-      
+
       await handleGuardRoleSwitchWithData(guardRole);
     } catch (error) {
       console.error("❌ Error in handleSwitchToGuard:", error);
@@ -108,26 +124,34 @@ export default function ResidentPendingPage() {
       // Check guard role status and redirect accordingly
       if (guardRole.status === "verified") {
         console.log("✅ Guard role is verified, switching to guard main page");
-        const result = await switchUserRole('guard');
-        
+        const result = await switchUserRole("guard");
+
         if (result.success) {
           console.log("✅ Successfully switched to guard role");
-          router.push('/guard');
+          router.push("/guard");
         } else if (result.needsRedirect && result.redirectTo) {
-          console.log(`🔄 Redirecting to ${result.redirectTo} first, then will redirect to LIFF`);
+          console.log(
+            `🔄 Redirecting to ${result.redirectTo} first, then will redirect to LIFF`,
+          );
           router.push(result.redirectTo);
         } else {
           console.error("❌ Failed to switch to guard role:", result.error);
           alert(`ไม่สามารถสลับบทบาทได้: ${result.error}`);
         }
       } else if (guardRole.status === "pending") {
-        console.log("⏳ Guard role is pending, redirecting to guard pending page");
-        router.push('/guard/pending');
+        console.log(
+          "⏳ Guard role is pending, redirecting to guard pending page",
+        );
+        router.push("/guard/pending");
       } else if (guardRole.status === "disable") {
-        console.log("❌ Guard role is disabled, redirecting to LIFF with guard context");
+        console.log(
+          "❌ Guard role is disabled, redirecting to LIFF with guard context",
+        );
         router.push("/liff?role=guard");
       } else {
-        console.log("❌ Unknown guard role status, redirecting to LIFF with guard context");
+        console.log(
+          "❌ Unknown guard role status, redirecting to LIFF with guard context",
+        );
         router.push("/liff?role=guard");
       }
     } catch (error) {
@@ -137,7 +161,11 @@ export default function ResidentPendingPage() {
   };
 
   // Check if user has guard role with verified or pending status
-  const hasGuardRole = userRoles.some(role => role.role === 'guard' && (role.status === 'verified' || role.status === 'pending'));
+  const hasGuardRole = userRoles.some(
+    (role) =>
+      role.role === "guard" &&
+      (role.status === "verified" || role.status === "pending"),
+  );
 
   if (isCheckingAuth) {
     return (
@@ -181,7 +209,9 @@ export default function ResidentPendingPage() {
                     </div>
                     <div>
                       <CardTitle className="text-xl">สถานะบัญชี</CardTitle>
-                      <CardDescription>ข้อมูลการยืนยันบัญชีของคุณ</CardDescription>
+                      <CardDescription>
+                        ข้อมูลการยืนยันบัญชีของคุณ
+                      </CardDescription>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -192,13 +222,13 @@ export default function ResidentPendingPage() {
                         disabled={isSwitchingRole}
                         className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
                         aria-label="Go to Guard page"
-                        title="ไปยังหน้ายามรักษาความปลอดภัย"
+                        title="ไปยังหน้า รปภ."
                       >
                         <Shield className="w-5 h-5 text-foreground" />
                       </button>
                     )}
                     <button
-                      onClick={() => router.push('/Resident/profile')}
+                      onClick={() => router.push("/Resident/profile")}
                       className="p-2 hover:bg-muted rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
                       aria-label="Go to profile"
                       title="ไปยังโปรไฟล์"
@@ -213,9 +243,14 @@ export default function ResidentPendingPage() {
                   <div className="flex items-start">
                     <AlertCircle className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5 mr-3 flex-shrink-0" />
                     <div className="text-sm text-orange-800 dark:text-orange-200">
-                      <p className="font-medium mb-1">สถานะบัญชี: <span className="text-orange-700 dark:text-orange-300 font-bold">กำลังรอการยืนยัน</span></p>
+                      <p className="font-medium mb-1">
+                        สถานะบัญชี:{" "}
+                        <span className="text-orange-700 dark:text-orange-300 font-bold">
+                          กำลังรอการยืนยัน
+                        </span>
+                      </p>
                       <p>
-                        ข้อมูลของคุณจะถูกตรวจสอบโดยผู้ดูแลระบบ 
+                        ข้อมูลของคุณจะถูกตรวจสอบโดยผู้ดูแลระบบ
                         คุณจะได้รับการแจ้งเตือนเมื่อบัญชีได้รับการยืนยันแล้ว
                       </p>
                     </div>
@@ -223,17 +258,17 @@ export default function ResidentPendingPage() {
                 </div>
 
                 <div className="space-y-4">
-                  <Button 
-                    onClick={handleRefresh} 
+                  <Button
+                    onClick={handleRefresh}
                     className="w-full sm:w-auto"
                     variant="outline"
                   >
                     <RefreshCw className="w-4 h-4 mr-2" />
                     ตรวจสอบสถานะใหม่
                   </Button>
-                  
-                  <Button 
-                    onClick={handleLogout} 
+
+                  <Button
+                    onClick={handleLogout}
                     className="w-full sm:w-auto"
                     variant="destructive"
                   >
@@ -263,31 +298,49 @@ export default function ResidentPendingPage() {
                   <div className="space-y-4">
                     <div className="space-y-3">
                       <div>
-                        <p className="text-sm text-muted-foreground">ชื่อ-นามสกุล</p>
-                        <p className="text-sm font-medium text-foreground">{currentUser.fname} {currentUser.lname}</p>
+                        <p className="text-sm text-muted-foreground">
+                          ชื่อ-นามสกุล
+                        </p>
+                        <p className="text-sm font-medium text-foreground">
+                          {currentUser.fname} {currentUser.lname}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">อีเมล</p>
-                        <p className="text-sm font-medium text-foreground">{currentUser.email}</p>
+                        <p className="text-sm font-medium text-foreground">
+                          {currentUser.email}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">เบอร์โทรศัพท์</p>
-                        <p className="text-sm font-medium text-foreground">{currentUser.phone}</p>
+                        <p className="text-sm text-muted-foreground">
+                          เบอร์โทรศัพท์
+                        </p>
+                        <p className="text-sm font-medium text-foreground">
+                          {currentUser.phone}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">หมู่บ้าน</p>
-                        <p className="text-sm font-medium text-foreground">{currentUser.village_name || "ไม่ระบุ"}</p>
+                        <p className="text-sm text-muted-foreground">
+                          หมู่บ้าน
+                        </p>
+                        <p className="text-sm font-medium text-foreground">
+                          {currentUser.village_name || "ไม่ระบุ"}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">ตำแหน่ง</p>
-                        <p className="text-sm font-medium text-foreground">ผู้อยู่อาศัย</p>
+                        <p className="text-sm font-medium text-foreground">
+                          ผู้อยู่อาศัย
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">สถานะ</p>
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full bg-orange-500"></div>
                           <span className="text-sm font-medium text-orange-600 dark:text-orange-400 capitalize">
-                            {currentUser.status === 'pending' ? 'รอการยืนยัน' : currentUser.status}
+                            {currentUser.status === "pending"
+                              ? "รอการยืนยัน"
+                              : currentUser.status}
                           </span>
                         </div>
                       </div>
@@ -296,7 +349,9 @@ export default function ResidentPendingPage() {
                 ) : (
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                    <p className="text-sm text-muted-foreground">กำลังโหลดข้อมูล...</p>
+                    <p className="text-sm text-muted-foreground">
+                      กำลังโหลดข้อมูล...
+                    </p>
                   </div>
                 )}
               </CardContent>

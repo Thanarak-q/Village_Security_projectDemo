@@ -24,14 +24,14 @@ type RoleRegistrationUser = LiffUser & { village_name?: string };
 const RoleRegistrationPage = () => {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<RoleRegistrationUser | null>(
-    null
+    null,
   );
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<"resident" | "guard" | null>(
-    null
+    null,
   );
   const [selectedVillage, setSelectedVillage] = useState<string>("");
   const [existingRoles, setExistingRoles] = useState<UserRole[]>([]);
@@ -73,7 +73,7 @@ const RoleRegistrationPage = () => {
         `/api/users/roles?lineUserId=${lineUserId}`,
         {
           credentials: "include",
-        }
+        },
       );
 
       if (response.ok) {
@@ -102,7 +102,7 @@ const RoleRegistrationPage = () => {
 
     try {
       const response = await fetch(
-        `/api/villages/check/${encodeURIComponent(villageId)}`
+        `/api/villages/check/${encodeURIComponent(villageId)}`,
       );
       const data = await response.json();
 
@@ -199,8 +199,8 @@ const RoleRegistrationPage = () => {
       if (data.success) {
         setSuccess(
           `ลงทะเบียนบทบาท ${
-            selectedRole === "resident" ? "ผู้อยู่อาศัย" : "ยามรักษาความปลอดภัย"
-          } ในหมู่บ้าน ${villageValidation.villageName} สำเร็จ!`
+            selectedRole === "resident" ? "ผู้อยู่อาศัย" : "รปภ."
+          } ในหมู่บ้าน ${villageValidation.villageName} สำเร็จ!`,
         );
         // Reset form
         setSelectedRole(null);
@@ -235,7 +235,7 @@ const RoleRegistrationPage = () => {
       },
       {
         key: "guard",
-        label: "ยามรักษาความปลอดภัย",
+        label: "รปภ.",
         description: "สำหรับเจ้าหน้าที่รักษาความปลอดภัย",
         icon: Shield,
         color: "green",
@@ -321,9 +321,7 @@ const RoleRegistrationPage = () => {
               </h2>
               <p className="text-sm text-muted-foreground">
                 บทบาทปัจจุบัน:{" "}
-                {currentUser.role === "resident"
-                  ? "ผู้อยู่อาศัย"
-                  : "ยามรักษาความปลอดภัย"}
+                {currentUser.role === "resident" ? "ผู้อยู่อาศัย" : "รปภ."}
               </p>
             </div>
 
@@ -350,8 +348,8 @@ const RoleRegistrationPage = () => {
                           isSelected && role.color === "blue"
                             ? "border-blue-500 bg-blue-500/20"
                             : isSelected && role.color === "green"
-                            ? "border-green-500 bg-green-500/20"
-                            : "border-border bg-muted/30 hover:border-primary/50"
+                              ? "border-green-500 bg-green-500/20"
+                              : "border-border bg-muted/30 hover:border-primary/50"
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -360,8 +358,8 @@ const RoleRegistrationPage = () => {
                               isSelected && role.color === "blue"
                                 ? "bg-blue-500/30"
                                 : isSelected && role.color === "green"
-                                ? "bg-green-500/30"
-                                : "bg-muted"
+                                  ? "bg-green-500/30"
+                                  : "bg-muted"
                             }`}
                           >
                             <IconComponent
@@ -369,8 +367,8 @@ const RoleRegistrationPage = () => {
                                 isSelected && role.color === "blue"
                                   ? "text-blue-600"
                                   : isSelected && role.color === "green"
-                                  ? "text-green-600"
-                                  : "text-muted-foreground"
+                                    ? "text-green-600"
+                                    : "text-muted-foreground"
                               }`}
                             />
                           </div>
@@ -413,10 +411,10 @@ const RoleRegistrationPage = () => {
                         villageValidation.isValid
                           ? "border-green-500 focus:border-green-500"
                           : selectedVillage &&
-                            !villageValidation.isValid &&
-                            !villageValidation.isLoading
-                          ? "border-red-500 focus:border-red-500"
-                          : ""
+                              !villageValidation.isValid &&
+                              !villageValidation.isLoading
+                            ? "border-red-500 focus:border-red-500"
+                            : ""
                       }`}
                     />
 
@@ -538,7 +536,7 @@ const RoleRegistrationPage = () => {
                           <p className="font-medium text-foreground">
                             {roleInfo.role === "resident"
                               ? "ผู้อยู่อาศัย"
-                              : "ยามรักษาความปลอดภัย"}
+                              : "รปภ."}
                           </p>
                           <p className="text-sm text-muted-foreground flex items-center gap-1">
                             <MapPin className="w-3 h-3" />
@@ -551,17 +549,17 @@ const RoleRegistrationPage = () => {
                           roleInfo.status === "verified"
                             ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                             : roleInfo.status === "pending"
-                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                            : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
                         }`}
                       >
                         {roleInfo.status === "verified"
                           ? "ยืนยันแล้ว"
                           : roleInfo.status === "pending"
-                          ? "รอการยืนยัน"
-                          : roleInfo.status === "disable"
-                          ? "ถูกปิดใช้งาน"
-                          : roleInfo.status || "ไม่ทราบสถานะ"}
+                            ? "รอการยืนยัน"
+                            : roleInfo.status === "disable"
+                              ? "ถูกปิดใช้งาน"
+                              : roleInfo.status || "ไม่ทราบสถานะ"}
                       </span>
                     </div>
                   ))}

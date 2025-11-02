@@ -5,11 +5,11 @@
  * by ensuring that the authenticated user has the necessary role(s) to access them.
  * It performs comprehensive security checks, including token validation, payload verification,
  * token age checks, and user account status verification.
- * 
+ *
  * This hook is specifically designed for guards and residents who authenticate through LIFF.
- * 
+ *
  * Role Hierarchy:
- * - guard: ยามรักษาความปลอดภัย (Security Guard) - Access to guard-specific features
+ * - guard: รปภ. (Security Guard) - Access to guard-specific features
  * - resident: ผู้อยู่อาศัย (Resident) - Access to resident-specific features
  */
 
@@ -53,7 +53,8 @@ export const requireLiffAuth = (required: string | string[] = "*") => {
     }
 
     const tokenAgeInSeconds = Date.now() / 1000 - payload.iat;
-    if (tokenAgeInSeconds > 60 * 60) { // 1-hour expiry for LIFF tokens
+    if (tokenAgeInSeconds > 60 * 60) {
+      // 1-hour expiry for LIFF tokens
       set.status = 401;
       return { error: "Unauthorized: The provided LIFF token has expired." };
     }
@@ -63,11 +64,11 @@ export const requireLiffAuth = (required: string | string[] = "*") => {
     let user = null;
 
     // Find user in the appropriate table based on their role
-    if (userRole === 'guard') {
+    if (userRole === "guard") {
       user = await db.query.guards.findFirst({
         where: eq(guards.guard_id, payload.id),
       });
-    } else if (userRole === 'resident') {
+    } else if (userRole === "resident") {
       user = await db.query.residents.findFirst({
         where: eq(residents.resident_id, payload.id),
       });
@@ -75,7 +76,9 @@ export const requireLiffAuth = (required: string | string[] = "*") => {
 
     if (!user) {
       set.status = 401;
-      return { error: "Unauthorized: User associated with the LIFF token not found." };
+      return {
+        error: "Unauthorized: User associated with the LIFF token not found.",
+      };
     }
 
     // Allow pending users for LIFF endpoints (guards and residents)
@@ -87,7 +90,10 @@ export const requireLiffAuth = (required: string | string[] = "*") => {
 
     if (required !== "*" && !allowedRoles.includes(userRole)) {
       set.status = 403;
-      return { error: "Forbidden: You do not have the required role to access this resource." };
+      return {
+        error:
+          "Forbidden: You do not have the required role to access this resource.",
+      };
     }
 
     // For guards and residents, use their village_id

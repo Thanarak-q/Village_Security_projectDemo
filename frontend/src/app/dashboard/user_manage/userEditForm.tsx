@@ -55,22 +55,27 @@ interface HousesResponse {
 }
 
 // Zod validation schema
-const userEditFormSchema = z.object({
-  status: z.string().min(1, "กรุณาเลือกสถานะ"),
-  role: z.string().min(1, "กรุณาเลือกบทบาท"),
-  houseId: z.string().optional(),
-  houseNumber: z.string().optional(), // Keep for backward compatibility
-  notes: z.string().optional(),
-}).refine((data) => {
-  // If role is 'resident', house selection is required
-  if (data.role === 'resident') {
-    return data.houseId && data.houseId.trim().length > 0;
-  }
-  return true;
-}, {
-  message: "กรุณาเลือกบ้านสำหรับลูกบ้าน",
-  path: ["houseId"],
-});
+const userEditFormSchema = z
+  .object({
+    status: z.string().min(1, "กรุณาเลือกสถานะ"),
+    role: z.string().min(1, "กรุณาเลือกบทบาท"),
+    houseId: z.string().optional(),
+    houseNumber: z.string().optional(), // Keep for backward compatibility
+    notes: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      // If role is 'resident', house selection is required
+      if (data.role === "resident") {
+        return data.houseId && data.houseId.trim().length > 0;
+      }
+      return true;
+    },
+    {
+      message: "กรุณาเลือกบ้านสำหรับลูกบ้าน",
+      path: ["houseId"],
+    },
+  );
 
 type UserEditFormData = z.infer<typeof userEditFormSchema>;
 
@@ -95,7 +100,12 @@ interface UserEditFormProps {
   onSubmit: (formData: UserEditFormData) => void;
 }
 
-export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEditFormProps) {
+export default function UserEditForm({
+  user,
+  isOpen,
+  onClose,
+  onSubmit,
+}: UserEditFormProps) {
   const [availableHouses, setAvailableHouses] = useState<AvailableHouse[]>([]);
   const [loadingHouses, setLoadingHouses] = useState(false);
   const [houseQuery, setHouseQuery] = useState("");
@@ -103,9 +113,10 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
   const housesPerPage = 5;
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [pendingFormData, setPendingFormData] = useState<UserEditFormData | null>(null);
+  const [pendingFormData, setPendingFormData] =
+    useState<UserEditFormData | null>(null);
   const [successData, setSuccessData] = useState<{
-    type: 'role_change' | 'user_update' | 'no_change';
+    type: "role_change" | "user_update" | "no_change";
     userName: string;
     action: string;
     formData: UserEditFormData;
@@ -115,9 +126,9 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
   const filteredHouses = useMemo(
     () =>
       availableHouses.filter((h) =>
-        h.address.toLowerCase().includes(houseQuery.toLowerCase())
+        h.address.toLowerCase().includes(houseQuery.toLowerCase()),
       ),
-    [availableHouses, houseQuery]
+    [availableHouses, houseQuery],
   );
 
   // Paginate filtered houses
@@ -141,8 +152,8 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
       role: "",
       houseId: "",
       houseNumber: "",
-      notes: ""
-    }
+      notes: "",
+    },
   });
 
   // Fetch available houses
@@ -154,15 +165,20 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
       if (!selectedVillageId) return;
 
       // Use the same endpoint as guard page but filter for available houses
-      const response = await fetch(`/api/houses?village_id=${encodeURIComponent(selectedVillageId)}`, {
-        credentials: "include",
-      });
+      const response = await fetch(
+        `/api/houses?village_id=${encodeURIComponent(selectedVillageId)}`,
+        {
+          credentials: "include",
+        },
+      );
 
       if (response.ok) {
         const result: HousesResponse = await response.json();
         if (result.success) {
           // Filter for available houses only
-          const available = result.data.filter((house) => house.status === "available");
+          const available = result.data.filter(
+            (house) => house.status === "available",
+          );
           setAvailableHouses(available);
         }
       }
@@ -177,8 +193,14 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
     if (user) {
       // Find the current house ID based on the user's house number
       let currentHouseId = "";
-      if (user.role === 'resident' && user.houseNumber && availableHouses.length > 0) {
-        const currentHouse = availableHouses.find(house => house.address === user.houseNumber);
+      if (
+        user.role === "resident" &&
+        user.houseNumber &&
+        availableHouses.length > 0
+      ) {
+        const currentHouse = availableHouses.find(
+          (house) => house.address === user.houseNumber,
+        );
         currentHouseId = currentHouse?.house_id || "";
       }
 
@@ -187,7 +209,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
         role: user.role,
         houseId: currentHouseId,
         houseNumber: user.houseNumber || "",
-        notes: ""
+        notes: "",
       });
     }
   }, [user, form, availableHouses]);
@@ -210,40 +232,57 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
 
     // For house comparison, we need to find the current house ID from the available houses
     let currentHouseId = null;
-    if (user.role === 'resident' && user.houseNumber && availableHouses.length > 0) {
-      const currentHouse = availableHouses.find(house => house.address === user.houseNumber);
+    if (
+      user.role === "resident" &&
+      user.houseNumber &&
+      availableHouses.length > 0
+    ) {
+      const currentHouse = availableHouses.find(
+        (house) => house.address === user.houseNumber,
+      );
       currentHouseId = currentHouse?.house_id;
     }
 
-    const houseChanged = user.role === 'resident' && data.role === 'resident' &&
-      currentHouseId !== data.houseId && data.houseId; // Also check that houseId is not empty
+    const houseChanged =
+      user.role === "resident" &&
+      data.role === "resident" &&
+      currentHouseId !== data.houseId &&
+      data.houseId; // Also check that houseId is not empty
 
-    console.log('Change detection:', {
+    console.log("Change detection:", {
       roleChanged,
       statusChanged,
       houseChanged,
       currentHouseId,
       selectedHouseId: data.houseId,
       userHouseNumber: user.houseNumber,
-      availableHousesCount: availableHouses.length
+      availableHousesCount: availableHouses.length,
     });
 
     // Check if there are any actual changes
-    if (!roleChanged && !statusChanged && !houseChanged && !data.notes?.trim()) {
+    if (
+      !roleChanged &&
+      !statusChanged &&
+      !houseChanged &&
+      !data.notes?.trim()
+    ) {
       // Show notification and close form
       setSuccessData({
-        type: 'no_change',
+        type: "no_change",
         userName: `${user.fname} ${user.lname}`,
-        action: 'ไม่มีการเปลี่ยนแปลงใดๆ',
-        formData: data
+        action: "ไม่มีการเปลี่ยนแปลงใดๆ",
+        formData: data,
       });
       setShowSuccessDialog(true);
       return;
     }
 
     // Validate that if role is resident, houseId is provided
-    if (data.role === 'resident' && (!data.houseId || data.houseId.trim() === '')) {
-      alert('กรุณาเลือกบ้านสำหรับลูกบ้าน');
+    if (
+      data.role === "resident" &&
+      (!data.houseId || data.houseId.trim() === "")
+    ) {
+      alert("กรุณาเลือกบ้านสำหรับลูกบ้าน");
       return;
     }
 
@@ -262,78 +301,87 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
     const roleChanged = user.role !== data.role;
 
     try {
-      const apiEndpoint = roleChanged ? '/api/changeUserRole' : '/api/updateUser';
+      const apiEndpoint = roleChanged
+        ? "/api/changeUserRole"
+        : "/api/updateUser";
 
       // Send houseId directly for proper house assignment
       const requestBody = roleChanged
         ? {
-          userId: user.id,
-          currentRole: user.role as 'resident' | 'guard',
-          newRole: data.role as 'resident' | 'guard',
-          status: data.status,
-          houseId: data.role === 'resident' ? data.houseId : undefined,
-          notes: data.notes
-        }
+            userId: user.id,
+            currentRole: user.role as "resident" | "guard",
+            newRole: data.role as "resident" | "guard",
+            status: data.status,
+            houseId: data.role === "resident" ? data.houseId : undefined,
+            notes: data.notes,
+          }
         : {
-          userId: user.id,
-          role: data.role,
-          status: data.status,
-          houseId: data.role === 'resident' ? data.houseId : undefined,
-          notes: data.notes
-        };
+            userId: user.id,
+            role: data.role,
+            status: data.status,
+            houseId: data.role === "resident" ? data.houseId : undefined,
+            notes: data.notes,
+          };
 
-      console.log('Sending request to:', apiEndpoint);
-      console.log('Request body:', requestBody);
-      console.log('Form data:', data);
-      console.log('Available houses:', availableHouses.length);
+      console.log("Sending request to:", apiEndpoint);
+      console.log("Request body:", requestBody);
+      console.log("Form data:", data);
+      console.log("Available houses:", availableHouses.length);
 
       const response = await fetch(apiEndpoint, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(requestBody),
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
+      console.log("Response status:", response.status);
+      console.log("Response headers:", response.headers);
 
       // Check if response is ok
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('HTTP Error:', response.status, errorText);
+        console.error("HTTP Error:", response.status, errorText);
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
       // Check content type
-      const contentType = response.headers.get('content-type');
-      console.log('Content-Type:', contentType);
+      const contentType = response.headers.get("content-type");
+      console.log("Content-Type:", contentType);
 
-      if (!contentType || !contentType.includes('application/json')) {
+      if (!contentType || !contentType.includes("application/json")) {
         const responseText = await response.text();
-        console.error('Non-JSON response:', responseText);
-        throw new Error('Server returned non-JSON response');
+        console.error("Non-JSON response:", responseText);
+        throw new Error("Server returned non-JSON response");
       }
 
       const result = await response.json();
-      console.log('API Response:', result);
+      console.log("API Response:", result);
 
       // Check if result is valid
-      if (!result || typeof result !== 'object') {
-        console.error('Invalid API response:', result);
-        alert('ได้รับข้อมูลตอบกลับที่ไม่ถูกต้องจากเซิร์ฟเวอร์');
+      if (!result || typeof result !== "object") {
+        console.error("Invalid API response:", result);
+        alert("ได้รับข้อมูลตอบกลับที่ไม่ถูกต้องจากเซิร์ฟเวอร์");
         return;
       }
 
       if (result.success) {
-        console.log(roleChanged ? 'User role changed successfully:' : 'User updated successfully:', result);
+        console.log(
+          roleChanged
+            ? "User role changed successfully:"
+            : "User updated successfully:",
+          result,
+        );
 
         // Show success notification dialog
         setSuccessData({
-          type: roleChanged ? 'role_change' : 'user_update',
+          type: roleChanged ? "role_change" : "user_update",
           userName: `${user.fname} ${user.lname}`,
-          action: roleChanged ? 'เปลี่ยนบทบาทผู้ใช้สำเร็จแล้ว' : 'อัปเดตข้อมูลผู้ใช้สำเร็จแล้ว',
-          formData: data // Store form data to call onSubmit later
+          action: roleChanged
+            ? "เปลี่ยนบทบาทผู้ใช้สำเร็จแล้ว"
+            : "อัปเดตข้อมูลผู้ใช้สำเร็จแล้ว",
+          formData: data, // Store form data to call onSubmit later
         });
         setShowSuccessDialog(true);
 
@@ -343,16 +391,24 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
           role: "",
           houseId: "",
           houseNumber: "",
-          notes: ""
+          notes: "",
         });
       } else {
-        console.error('Failed to update user:', result);
-        const errorMessage = result.error || result.details || result.message || 'Unknown error occurred';
-        alert(`Failed to ${roleChanged ? 'change user role' : 'update user'}: ${errorMessage}`);
+        console.error("Failed to update user:", result);
+        const errorMessage =
+          result.error ||
+          result.details ||
+          result.message ||
+          "Unknown error occurred";
+        alert(
+          `Failed to ${roleChanged ? "change user role" : "update user"}: ${errorMessage}`,
+        );
       }
     } catch (error) {
-      console.error('Error updating user:', error);
-      alert(`An error occurred while ${roleChanged ? 'changing user role' : 'updating the user'}`);
+      console.error("Error updating user:", error);
+      alert(
+        `An error occurred while ${roleChanged ? "changing user role" : "updating the user"}`,
+      );
     }
   };
 
@@ -367,28 +423,40 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
     const changes = [];
 
     if (user.status !== pendingFormData.status) {
-      const statusText = pendingFormData.status === 'verified' ? 'ยืนยันแล้ว' : 'ระงับการใช้งาน';
-      const oldStatusText = user.status === 'verified' ? 'ยืนยันแล้ว' : 'ระงับการใช้งาน';
+      const statusText =
+        pendingFormData.status === "verified" ? "ยืนยันแล้ว" : "ระงับการใช้งาน";
+      const oldStatusText =
+        user.status === "verified" ? "ยืนยันแล้ว" : "ระงับการใช้งาน";
       changes.push(`สถานะ: ${oldStatusText} → ${statusText}`);
     }
 
     if (user.role !== pendingFormData.role) {
-      const roleText = pendingFormData.role === 'resident' ? 'ลูกบ้าน' : 'ยาม';
-      const oldRoleText = user.role === 'resident' ? 'ลูกบ้าน' : 'ยาม';
+      const roleText = pendingFormData.role === "resident" ? "ลูกบ้าน" : "รปภ.";
+      const oldRoleText = user.role === "resident" ? "ลูกบ้าน" : "รปภ.";
       changes.push(`บทบาท: ${oldRoleText} → ${roleText}`);
     }
 
     // Check house changes for residents
-    if (user.role === 'resident' && pendingFormData.role === 'resident' && pendingFormData.houseId) {
+    if (
+      user.role === "resident" &&
+      pendingFormData.role === "resident" &&
+      pendingFormData.houseId
+    ) {
       let currentHouseId = null;
       if (user.houseNumber && availableHouses.length > 0) {
-        const currentHouse = availableHouses.find(house => house.address === user.houseNumber);
+        const currentHouse = availableHouses.find(
+          (house) => house.address === user.houseNumber,
+        );
         currentHouseId = currentHouse?.house_id;
       }
 
       if (currentHouseId !== pendingFormData.houseId) {
-        const newHouse = availableHouses.find(house => house.house_id === pendingFormData.houseId);
-        changes.push(`บ้าน: ${user.houseNumber || 'ไม่ระบุ'} → ${newHouse?.address || 'ไม่ระบุ'}`);
+        const newHouse = availableHouses.find(
+          (house) => house.house_id === pendingFormData.houseId,
+        );
+        changes.push(
+          `บ้าน: ${user.houseNumber || "ไม่ระบุ"} → ${newHouse?.address || "ไม่ระบุ"}`,
+        );
       }
     }
 
@@ -399,7 +467,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
     return changes;
   };
 
-  const isResident = user?.role === 'resident';
+  const isResident = user?.role === "resident";
 
   if (!user) return null;
 
@@ -417,13 +485,19 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
           {/* User Information Display */}
           <div className="bg-blue-50 p-3 sm:p-4 rounded-lg mb-4 sm:mb-6 border border-blue-200">
             <h3 className="font-medium text-blue-900 mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
-              {isResident ? <Home className="h-3 w-3 sm:h-4 sm:w-4" /> : <Shield className="h-3 w-3 sm:h-4 sm:w-4" />}
+              {isResident ? (
+                <Home className="h-3 w-3 sm:h-4 sm:w-4" />
+              ) : (
+                <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
+              )}
               ข้อมูลผู้ใช้
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
               <div>
                 <span className="text-blue-700 font-medium">ชื่อ-นามสกุล:</span>
-                <p className="text-blue-900">{user.fname} {user.lname}</p>
+                <p className="text-blue-900">
+                  {user.fname} {user.lname}
+                </p>
               </div>
               <div>
                 <span className="text-blue-700 font-medium">Username:</span>
@@ -439,11 +513,17 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
               </div>
               <div>
                 <span className="text-blue-700 font-medium">ประเภท:</span>
-                <p className="text-blue-900">{isResident ? "ลูกบ้าน" : "ยาม"}</p>
+                <p className="text-blue-900">
+                  {isResident ? "ลูกบ้าน" : "รปภ."}
+                </p>
               </div>
               <div>
-                <span className="text-blue-700 font-medium">วันที่เข้าร่วม:</span>
-                <p className="text-blue-900">{new Date(user.joinDate).toLocaleDateString('th-TH')}</p>
+                <span className="text-blue-700 font-medium">
+                  วันที่เข้าร่วม:
+                </span>
+                <p className="text-blue-900">
+                  {new Date(user.joinDate).toLocaleDateString("th-TH")}
+                </p>
               </div>
               {isResident && (
                 <div>
@@ -461,7 +541,10 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
           </div>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3 sm:space-y-4">
+            <form
+              onSubmit={form.handleSubmit(handleSubmit)}
+              className="space-y-3 sm:space-y-4"
+            >
               {/* Status Field */}
               <FormField
                 control={form.control}
@@ -505,7 +588,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="resident">ลูกบ้าน</SelectItem>
-                      <SelectItem value="guard">ยาม</SelectItem>
+                      <SelectItem value="guard">รปภ.</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -519,7 +602,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
                   บทบาท
                 </FormLabel>
                 <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md">
-                  {form.watch("role") === 'resident' ? (
+                  {form.watch("role") === "resident" ? (
                     <>
                       <Home className="w-4 h-4 text-blue-600" />
                       <span className="text-sm">ลูกบ้าน</span>
@@ -527,7 +610,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
                   ) : (
                     <>
                       <Shield className="w-4 h-4 text-cyan-600" />
-                      <span className="text-sm">ยาม</span>
+                      <span className="text-sm">รปภ.</span>
                     </>
                   )}
                 </div>
@@ -537,7 +620,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
               </div>
 
               {/* House Selection Field (for residents only) */}
-              {form.watch("role") === 'resident' && (
+              {form.watch("role") === "resident" && (
                 <FormField
                   control={form.control}
                   name="houseId"
@@ -567,7 +650,9 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
                               </div>
                             ) : filteredHouses.length === 0 ? (
                               <div className="text-center py-4 text-muted-foreground">
-                                {houseQuery ? "ไม่พบบ้านที่ตรงกับการค้นหา" : "ไม่มีบ้านที่ว่าง"}
+                                {houseQuery
+                                  ? "ไม่พบบ้านที่ตรงกับการค้นหา"
+                                  : "ไม่มีบ้านที่ว่าง"}
                               </div>
                             ) : (
                               paginatedHouses.map((house) => (
@@ -577,10 +662,11 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
                                   onClick={() => {
                                     field.onChange(house.house_id);
                                   }}
-                                  className={`w-full text-left px-3 py-2 rounded-md border flex items-center gap-3 transition-colors ${field.value === house.house_id
-                                    ? "border-primary bg-primary/10"
-                                    : "border-border hover:border-ring hover:bg-muted/50"
-                                    }`}
+                                  className={`w-full text-left px-3 py-2 rounded-md border flex items-center gap-3 transition-colors ${
+                                    field.value === house.house_id
+                                      ? "border-primary bg-primary/10"
+                                      : "border-border hover:border-ring hover:bg-muted/50"
+                                  }`}
                                 >
                                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
                                     <Home className="w-4 h-4" />
@@ -610,7 +696,11 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                                onClick={() =>
+                                  setCurrentPage((prev) =>
+                                    Math.max(1, prev - 1),
+                                  )
+                                }
                                 disabled={currentPage === 1}
                                 className="text-xs"
                               >
@@ -623,7 +713,11 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                                onClick={() =>
+                                  setCurrentPage((prev) =>
+                                    Math.min(totalPages, prev + 1),
+                                  )
+                                }
                                 disabled={currentPage === totalPages}
                                 className="text-xs"
                               >
@@ -636,7 +730,8 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
                       <FormMessage />
                       {availableHouses.length === 0 && !loadingHouses && (
                         <p className="text-xs text-muted-foreground">
-                          ไม่มีบ้านที่ว่างในหมู่บ้านนี้ กรุณาเพิ่มบ้านใหม่ในหน้าจัดการบ้าน
+                          ไม่มีบ้านที่ว่างในหมู่บ้านนี้
+                          กรุณาเพิ่มบ้านใหม่ในหน้าจัดการบ้าน
                         </p>
                       )}
                     </FormItem>
@@ -669,7 +764,11 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
               {/* Form Actions */}
               <DialogFooter className="flex gap-2 sm:gap-3 pt-4 sm:pt-6">
                 <DialogClose asChild>
-                  <Button type="button" variant="outline" className="flex-1 text-xs sm:text-sm">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 text-xs sm:text-sm"
+                  >
                     ยกเลิก
                   </Button>
                 </DialogClose>
@@ -698,16 +797,24 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
             <AlertDialogDescription asChild>
               <div className="space-y-3">
                 <p>
-                  คุณต้องการอัปเดตข้อมูลของผู้ใช้ <strong>{user?.fname} {user?.lname}</strong> ใช่หรือไม่?
+                  คุณต้องการอัปเดตข้อมูลของผู้ใช้{" "}
+                  <strong>
+                    {user?.fname} {user?.lname}
+                  </strong>{" "}
+                  ใช่หรือไม่?
                 </p>
 
                 {getChangesSummary().length > 0 && (
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">การเปลี่ยนแปลงที่จะดำเนินการ:</p>
+                    <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+                      การเปลี่ยนแปลงที่จะดำเนินการ:
+                    </p>
                     <ul className="space-y-1 text-sm text-blue-800 dark:text-blue-200">
                       {getChangesSummary().map((change, index) => (
                         <li key={index} className="flex items-start gap-2">
-                          <span className="text-blue-600 dark:text-blue-400">•</span>
+                          <span className="text-blue-600 dark:text-blue-400">
+                            •
+                          </span>
                           <span>{change}</span>
                         </li>
                       ))}
@@ -722,7 +829,9 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelConfirm}>ยกเลิก</AlertDialogCancel>
+            <AlertDialogCancel onClick={handleCancelConfirm}>
+              ยกเลิก
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmUpdate}
               className="bg-blue-600 hover:bg-blue-700"
@@ -737,30 +846,48 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
       <AlertDialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
         <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader className="text-center">
-            <div className={`mx-auto mb-4 w-12 h-12 rounded-full flex items-center justify-center ${successData?.type === 'no_change'
-                ? 'bg-blue-100 dark:bg-blue-900/20'
-                : 'bg-green-100 dark:bg-green-900/20'
-              }`}>
-              <CheckCircle className={`h-6 w-6 ${successData?.type === 'no_change'
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : 'text-green-600 dark:text-green-400'
-                }`} />
+            <div
+              className={`mx-auto mb-4 w-12 h-12 rounded-full flex items-center justify-center ${
+                successData?.type === "no_change"
+                  ? "bg-blue-100 dark:bg-blue-900/20"
+                  : "bg-green-100 dark:bg-green-900/20"
+              }`}
+            >
+              <CheckCircle
+                className={`h-6 w-6 ${
+                  successData?.type === "no_change"
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-green-600 dark:text-green-400"
+                }`}
+              />
             </div>
-            <AlertDialogTitle className={`text-xl font-semibold ${successData?.type === 'no_change'
-                ? 'text-blue-800 dark:text-blue-200'
-                : 'text-green-800 dark:text-green-200'
-              }`}>
+            <AlertDialogTitle
+              className={`text-xl font-semibold ${
+                successData?.type === "no_change"
+                  ? "text-blue-800 dark:text-blue-200"
+                  : "text-green-800 dark:text-green-200"
+              }`}
+            >
               {successData?.action}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-base text-muted-foreground">
-              {successData?.type === 'no_change' ? (
+              {successData?.type === "no_change" ? (
                 <>
-                  ข้อมูลของ <span className="font-medium text-foreground">{successData?.userName}</span> ไม่มีการเปลี่ยนแปลง
+                  ข้อมูลของ{" "}
+                  <span className="font-medium text-foreground">
+                    {successData?.userName}
+                  </span>{" "}
+                  ไม่มีการเปลี่ยนแปลง
                 </>
               ) : (
                 <>
-                  ผู้ใช้ <span className="font-medium text-foreground">{successData?.userName}</span>
-                  {successData?.type === 'role_change' ? ' ได้รับการเปลี่ยนบทบาทเรียบร้อยแล้ว' : ' ได้รับการอัปเดตข้อมูลเรียบร้อยแล้ว'}
+                  ผู้ใช้{" "}
+                  <span className="font-medium text-foreground">
+                    {successData?.userName}
+                  </span>
+                  {successData?.type === "role_change"
+                    ? " ได้รับการเปลี่ยนบทบาทเรียบร้อยแล้ว"
+                    : " ได้รับการอัปเดตข้อมูลเรียบร้อยแล้ว"}
                 </>
               )}
             </AlertDialogDescription>
@@ -770,7 +897,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
               onClick={() => {
                 setShowSuccessDialog(false);
                 // For no_change, just close the dialog without calling onSubmit
-                if (successData?.type === 'no_change') {
+                if (successData?.type === "no_change") {
                   onClose();
                 } else if (successData?.formData) {
                   // Call onSubmit to refresh data and close the edit dialog
@@ -778,7 +905,7 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
                 }
               }}
               className={
-                successData?.type === 'no_change'
+                successData?.type === "no_change"
                   ? "bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
                   : "bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
               }
@@ -790,4 +917,4 @@ export default function UserEditForm({ user, isOpen, onClose, onSubmit }: UserEd
       </AlertDialog>
     </>
   );
-} 
+}

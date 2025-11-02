@@ -1,8 +1,17 @@
-"use client"
+"use client";
 
-import { useState, useEffect, memo } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, UserCheck, AlertTriangle, Plus, Loader2, CheckCircle, XCircle, Shield } from "lucide-react"
+import { useState, useEffect, memo } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Users,
+  UserCheck,
+  AlertTriangle,
+  Plus,
+  Loader2,
+  CheckCircle,
+  XCircle,
+  Shield,
+} from "lucide-react";
 
 // Types for API response
 interface StatsData {
@@ -16,7 +25,15 @@ interface StatsData {
 }
 
 // 1. Card แสดงจำนวน user ทั้งหมด
-export const TotalUsersCard = memo(function TotalUsersCard({ data, loading, error }: { data: StatsData | null, loading: boolean, error: string | null }) {
+export const TotalUsersCard = memo(function TotalUsersCard({
+  data,
+  loading,
+  error,
+}: {
+  data: StatsData | null;
+  loading: boolean;
+  error: string | null;
+}) {
   return (
     <Card className="shadow transition-shadow hover:shadow-md">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -48,16 +65,27 @@ export const TotalUsersCard = memo(function TotalUsersCard({ data, loading, erro
         )}
       </CardContent>
     </Card>
-  )
-})
+  );
+});
 
 // 2. Card แสดงจำนวนอนุมัติ/ปฏิเสธวันนี้
-export function DailyAccessCard({ data, loading, error }: { data: StatsData | null, loading: boolean, error: string | null }) {
-  const totalVisitors = data?.visitorRecordToday
-    ?? ((data?.visitorApprovedToday || 0) + (data?.visitorPendingToday || 0) + (data?.visitorRejectedToday || 0))
+export function DailyAccessCard({
+  data,
+  loading,
+  error,
+}: {
+  data: StatsData | null;
+  loading: boolean;
+  error: string | null;
+}) {
+  const totalVisitors =
+    data?.visitorRecordToday ??
+    (data?.visitorApprovedToday || 0) +
+      (data?.visitorPendingToday || 0) +
+      (data?.visitorRejectedToday || 0);
 
-  const approvedCount = data?.visitorApprovedToday || 0
-  const rejectedCount = data?.visitorRejectedToday || 0
+  const approvedCount = data?.visitorApprovedToday || 0;
+  const rejectedCount = data?.visitorRejectedToday || 0;
 
   return (
     <Card className="shadow transition-shadow hover:shadow-md">
@@ -104,11 +132,19 @@ export function DailyAccessCard({ data, loading, error }: { data: StatsData | nu
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 // 3. Card แสดงผู้มาเยือนที่รอดำเนินการ
-export function PendingTasksCard({ data, loading, error }: { data: StatsData | null, loading: boolean, error: string | null }) {
+export function PendingTasksCard({
+  data,
+  loading,
+  error,
+}: {
+  data: StatsData | null;
+  loading: boolean;
+  error: string | null;
+}) {
   return (
     <Card className="shadow transition-shadow hover:shadow-md">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -140,12 +176,21 @@ export function PendingTasksCard({ data, loading, error }: { data: StatsData | n
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 // 4. Card แสดงผู้ใช้รอการอนุมัติ
-export function EmptyCard({ data, loading, error }: { data: StatsData | null, loading: boolean, error: string | null }) {
-  const totalPendingUsers = (data?.residentPendingCount || 0) + (data?.guardPendingCount || 0);
+export function EmptyCard({
+  data,
+  loading,
+  error,
+}: {
+  data: StatsData | null;
+  loading: boolean;
+  error: string | null;
+}) {
+  const totalPendingUsers =
+    (data?.residentPendingCount || 0) + (data?.guardPendingCount || 0);
 
   return (
     <Card className="shadow transition-shadow hover:shadow-md">
@@ -178,7 +223,7 @@ export function EmptyCard({ data, loading, error }: { data: StatsData | null, lo
               <div className="flex items-center">
                 <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-cyan-500 mr-1" />
                 <span className="text-xs sm:text-sm text-cyan-600 font-medium">
-                  ยาม: {data?.guardPendingCount || 0}
+                  รปภ.: {data?.guardPendingCount || 0}
                 </span>
               </div>
             </div>
@@ -186,41 +231,49 @@ export function EmptyCard({ data, loading, error }: { data: StatsData | null, lo
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 // Hook สำหรับดึงข้อมูลสถิติ
 export function useStatsData() {
-  const [data, setData] = useState<StatsData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [data, setData] = useState<StatsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchStats = async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
       // Get selected village from sessionStorage (with SSR safety check)
-      const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem('selectedVillage') : null;
+      const selectedVillage =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("selectedVillage")
+          : null;
       const url = selectedVillage
         ? `/api/statsCard?village_id=${encodeURIComponent(selectedVillage)}`
-        : '/api/statsCard';
+        : "/api/statsCard";
 
-      console.log('🔍 Fetching stats for village:', selectedVillage, 'URL:', url);
+      console.log(
+        "🔍 Fetching stats for village:",
+        selectedVillage,
+        "URL:",
+        url,
+      );
 
       const response = await fetch(url, {
-        method: 'GET',
-        credentials: 'include',
+        method: "GET",
+        credentials: "include",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-      })
+      });
 
       if (!response.ok) {
         if (response.status === 401) {
-          throw new Error('ไม่ได้รับอนุญาต กรุณาเข้าสู่ระบบใหม่')
+          throw new Error("ไม่ได้รับอนุญาต กรุณาเข้าสู่ระบบใหม่");
         }
-        throw new Error(`HTTP error! status: ${response.status}`)
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       // Check if response is JSON
@@ -229,17 +282,17 @@ export function useStatsData() {
         throw new Error("Response is not JSON");
       }
 
-      const result = await response.json()
+      const result = await response.json();
 
       if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch stats')
+        throw new Error(result.error || "Failed to fetch stats");
       }
 
-      console.log('✅ Stats data received:', result.data);
-      setData(result.data)
+      console.log("✅ Stats data received:", result.data);
+      setData(result.data);
     } catch (err) {
-      console.error('Error fetching stats:', err)
-      setError(err instanceof Error ? err.message : 'Unknown error occurred')
+      console.error("Error fetching stats:", err);
+      setError(err instanceof Error ? err.message : "Unknown error occurred");
 
       // Set fallback data for demo purposes
       setData({
@@ -250,33 +303,33 @@ export function useStatsData() {
         visitorApprovedToday: 38,
         visitorPendingToday: 5,
         visitorRejectedToday: 2,
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchStats()
-  }, [])
+    fetchStats();
+  }, []);
 
   // Refetch when selected village changes
   useEffect(() => {
     const handleVillageChange = () => {
-      console.log('🔄 Village changed, refetching stats...');
-      fetchStats()
-    }
+      console.log("🔄 Village changed, refetching stats...");
+      fetchStats();
+    };
 
-    window.addEventListener('storage', handleVillageChange)
+    window.addEventListener("storage", handleVillageChange);
 
     // Also listen for custom event when village changes in same tab
-    window.addEventListener('villageChanged', handleVillageChange)
+    window.addEventListener("villageChanged", handleVillageChange);
 
     return () => {
-      window.removeEventListener('storage', handleVillageChange)
-      window.removeEventListener('villageChanged', handleVillageChange)
-    }
-  }, [])
+      window.removeEventListener("storage", handleVillageChange);
+      window.removeEventListener("villageChanged", handleVillageChange);
+    };
+  }, []);
 
-  return { data, loading, error, refetch: fetchStats }
+  return { data, loading, error, refetch: fetchStats };
 }

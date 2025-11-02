@@ -372,7 +372,7 @@ export default function HistoryTable() {
       .replace(/rejected/g, "ปฏิเสธ")
       .replace(/verified/g, "ยืนยันแล้ว")
       .replace(/resident/g, "ลูกบ้าน")
-      .replace(/guard/g, "ยาม")
+      .replace(/guard/g, "รปภ.")
       .replace(/admin/g, "ผู้ดูแลระบบ");
   };
 

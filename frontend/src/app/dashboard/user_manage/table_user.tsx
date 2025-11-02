@@ -17,7 +17,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Edit, Users, Shield, Home, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Edit,
+  Users,
+  Shield,
+  Home,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import UserEditForm from "./userEditForm";
 import PendingUsersDialog from "./popup_pending_users";
 
@@ -81,8 +89,6 @@ interface User {
   shift?: string;
 }
 
-
-
 // Main user management table component
 export default function UserManagementTable() {
   // State for API data
@@ -92,7 +98,9 @@ export default function UserManagementTable() {
   const [error, setError] = useState<string | null>(null);
 
   // State for managing selected tab (residents or guards)
-  const [activeTab, setActiveTab] = useState<'residents' | 'guards'>('residents');
+  const [activeTab, setActiveTab] = useState<"residents" | "guards">(
+    "residents",
+  );
 
   // State for managing selected user for editing
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -107,8 +115,8 @@ export default function UserManagementTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(() => {
     // Get saved itemsPerPage from localStorage, default to 5
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const saved = localStorage.getItem('userTable_itemsPerPage');
+    if (typeof window !== "undefined" && window.localStorage) {
+      const saved = localStorage.getItem("userTable_itemsPerPage");
       return saved ? parseInt(saved, 10) : 5;
     }
     return 5;
@@ -131,8 +139,13 @@ export default function UserManagementTable() {
       setError(null);
 
       // Get selected village from sessionStorage (with SSR safety check)
-      const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem("selectedVillage") : null;
-      const url = selectedVillage ? `/api/userTable?village_id=${encodeURIComponent(selectedVillage)}` : "/api/userTable";
+      const selectedVillage =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("selectedVillage")
+          : null;
+      const url = selectedVillage
+        ? `/api/userTable?village_id=${encodeURIComponent(selectedVillage)}`
+        : "/api/userTable";
 
       const response = await fetch(url);
       if (!response.ok) {
@@ -160,8 +173,13 @@ export default function UserManagementTable() {
   const fetchPendingCount = async () => {
     try {
       // Get selected village from sessionStorage (with SSR safety check)
-      const selectedVillage = typeof window !== 'undefined' ? sessionStorage.getItem("selectedVillage") : null;
-      const url = selectedVillage ? `/api/pendingUsers?village_id=${encodeURIComponent(selectedVillage)}` : "/api/pendingUsers";
+      const selectedVillage =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("selectedVillage")
+          : null;
+      const url = selectedVillage
+        ? `/api/pendingUsers?village_id=${encodeURIComponent(selectedVillage)}`
+        : "/api/pendingUsers";
 
       const response = await fetch(url);
       if (!response.ok) {
@@ -190,10 +208,10 @@ export default function UserManagementTable() {
       fetchPendingCount();
     };
 
-    window.addEventListener('villageChanged', handleVillageChange);
+    window.addEventListener("villageChanged", handleVillageChange);
 
     return () => {
-      window.removeEventListener('villageChanged', handleVillageChange);
+      window.removeEventListener("villageChanged", handleVillageChange);
     };
   }, []);
 
@@ -225,54 +243,56 @@ export default function UserManagementTable() {
 
   // Function to format date in Thai
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('th-TH', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("th-TH", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
   // Function to translate status to Thai
   const getStatusInThai = (status: string) => {
     switch (status) {
-      case 'verified':
-        return 'ยืนยันแล้ว';
-      case 'disable':
-        return 'ระงับการใช้งาน';
-      case 'pending':
-        return 'รออนุมัติ';
+      case "verified":
+        return "ยืนยันแล้ว";
+      case "disable":
+        return "ระงับการใช้งาน";
+      case "pending":
+        return "รออนุมัติ";
       default:
         return status;
     }
   };
 
   // Filter residents by search term
-  const filteredResidents = residentsData.filter(user =>
-    user.fname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.lname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.phone.includes(searchTerm) ||
-    user.status.includes(searchTerm)
+  const filteredResidents = residentsData.filter(
+    (user) =>
+      user.fname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.lname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.phone.includes(searchTerm) ||
+      user.status.includes(searchTerm),
   );
 
   // Filter guards by search term
-  const filteredGuards = guardsData.filter(user =>
-    user.fname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.lname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.status.includes(searchTerm)
+  const filteredGuards = guardsData.filter(
+    (user) =>
+      user.fname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.lname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.status.includes(searchTerm),
   );
 
   // Function to get current page residents
   const getCurrentResidents = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return filteredResidents.slice(startIndex, endIndex).map(resident => ({
+    return filteredResidents.slice(startIndex, endIndex).map((resident) => ({
       ...resident,
-      username: resident.email.split('@')[0],
+      username: resident.email.split("@")[0],
       houseNumber: resident.house_address || resident.village_id,
       joinDate: resident.createdAt,
-      role: "resident"
+      role: "resident",
     }));
   };
 
@@ -280,18 +300,21 @@ export default function UserManagementTable() {
   const getCurrentGuards = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return filteredGuards.slice(startIndex, endIndex).map(guard => ({
+    return filteredGuards.slice(startIndex, endIndex).map((guard) => ({
       ...guard,
-      username: guard.email.split('@')[0],
+      username: guard.email.split("@")[0],
       houseNumber: guard.house_address || "-",
       shift: "กะปกติ",
       joinDate: guard.createdAt,
-      role: "guard"
+      role: "guard",
     }));
   };
 
   // Calculate pagination data
-  const totalItems = activeTab === 'residents' ? filteredResidents.length : filteredGuards.length;
+  const totalItems =
+    activeTab === "residents"
+      ? filteredResidents.length
+      : filteredGuards.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   // Reset to first page when changing tab or search
@@ -320,15 +343,20 @@ export default function UserManagementTable() {
     setCurrentPage(1);
 
     // Save to localStorage for persistence
-    if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.setItem('userTable_itemsPerPage', newValue.toString());
+    if (typeof window !== "undefined" && window.localStorage) {
+      localStorage.setItem("userTable_itemsPerPage", newValue.toString());
     }
   };
 
   // Function to handle form submission
-  const handleFormSubmit = async (formData: { status: string; role: string; houseNumber?: string; notes?: string }) => {
+  const handleFormSubmit = async (formData: {
+    status: string;
+    role: string;
+    houseNumber?: string;
+    notes?: string;
+  }) => {
     try {
-      console.log("Updating user:", selectedUser?.id, 'with data:', formData);
+      console.log("Updating user:", selectedUser?.id, "with data:", formData);
 
       // Refresh data after successful update
       await fetchUsers(true);
@@ -388,11 +416,12 @@ export default function UserManagementTable() {
             />
             {/* Residents tab */}
             <button
-              onClick={() => setActiveTab('residents')}
-              className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${activeTab === 'residents'
-                  ? 'bg-primary/10 text-primary border border-primary/20'
-                  : 'text-muted-foreground hover:bg-muted'
-                }`}
+              onClick={() => setActiveTab("residents")}
+              className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
+                activeTab === "residents"
+                  ? "bg-primary/10 text-primary border border-primary/20"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
             >
               <Home className="h-4 w-4 sm:h-5 sm:w-5" />
               <span>ลูกบ้าน ({residentsData.length})</span>
@@ -400,14 +429,15 @@ export default function UserManagementTable() {
 
             {/* Guards tab */}
             <button
-              onClick={() => setActiveTab('guards')}
-              className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${activeTab === 'guards'
-                  ? 'bg-green-100 text-green-700 border border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800'
-                  : 'text-muted-foreground hover:bg-muted'
-                }`}
+              onClick={() => setActiveTab("guards")}
+              className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
+                activeTab === "guards"
+                  ? "bg-green-100 text-green-700 border border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
             >
               <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
-              <span>ยาม ({guardsData.length})</span>
+              <span>รปภ. ({guardsData.length})</span>
             </button>
           </div>
 
@@ -435,32 +465,47 @@ export default function UserManagementTable() {
         </div>
 
         {/* Residents table */}
-        {activeTab === 'residents' && (
+        {activeTab === "residents" && (
           <div className="overflow-x-auto rounded-lg border border-border bg-background shadow-sm hover:shadow-md transition-shadow duration-200">
             <Table>
               {/* Residents table header */}
               <TableHeader>
                 <TableRow className="bg-muted/50 border-b border-border">
-                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">ผู้ใช้งาน</TableHead>
-                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden sm:table-cell">ข้อมูลติดต่อ</TableHead>
-                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden md:table-cell">บ้านเลขที่</TableHead>
-                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden lg:table-cell">วันที่เข้าร่วม</TableHead>
-                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">สถานะ</TableHead>
-                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">จัดการ</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">
+                    ผู้ใช้งาน
+                  </TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden sm:table-cell">
+                    ข้อมูลติดต่อ
+                  </TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden md:table-cell">
+                    บ้านเลขที่
+                  </TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden lg:table-cell">
+                    วันที่เข้าร่วม
+                  </TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">
+                    สถานะ
+                  </TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">
+                    จัดการ
+                  </TableHead>
                 </TableRow>
               </TableHeader>
 
               {/* Residents table body */}
               <TableBody>
                 {getCurrentResidents().map((user) => (
-                  <TableRow key={user.id} className="hover:bg-muted/30 transition-colors border-b border-border/50">
+                  <TableRow
+                    key={user.id}
+                    className="hover:bg-muted/30 transition-colors border-b border-border/50"
+                  >
                     {/* User column - Avatar and name */}
                     <TableCell className="py-4 px-6">
                       <div className="flex items-center space-x-4">
                         {/* Avatar circle with initials */}
                         <div
                           className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-sm ${getAvatarColor(
-                            user.id
+                            user.id,
                           )}`}
                         >
                           {getAvatarInitials(user.fname, user.lname)}
@@ -489,8 +534,12 @@ export default function UserManagementTable() {
                     {/* Contact info column */}
                     <TableCell className="hidden sm:table-cell py-4 px-6">
                       <div className="space-y-2">
-                        <div className="text-sm text-foreground font-medium">{user.email}</div>
-                        <div className="text-sm text-muted-foreground">{user.phone}</div>
+                        <div className="text-sm text-foreground font-medium">
+                          {user.email}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {user.phone}
+                        </div>
                       </div>
                     </TableCell>
 
@@ -507,13 +556,16 @@ export default function UserManagementTable() {
                     {/* Status column */}
                     <TableCell>
                       <Badge
-                        variant={user.status === "verified" ? "default" : "secondary"}
-                        className={`text-xs sm:text-sm ${user.status === "verified"
+                        variant={
+                          user.status === "verified" ? "default" : "secondary"
+                        }
+                        className={`text-xs sm:text-sm ${
+                          user.status === "verified"
                             ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/20"
                             : user.status === "disable"
                               ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20"
                               : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/20"
-                          }`}
+                        }`}
                       >
                         {getStatusInThai(user.status)}
                       </Badge>
@@ -538,18 +590,28 @@ export default function UserManagementTable() {
         )}
 
         {/* Guards table */}
-        {activeTab === 'guards' && (
+        {activeTab === "guards" && (
           <div className="overflow-x-auto rounded-lg border border-border bg-background shadow-sm hover:shadow-md transition-shadow duration-200">
             <Table>
               {/* Guards table header */}
               <TableHeader>
                 <TableRow className="bg-muted/50 border-b border-border">
-                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">ผู้ใช้งาน</TableHead>
-                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden sm:table-cell">ข้อมูลติดต่อ</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">
+                    ผู้ใช้งาน
+                  </TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden sm:table-cell">
+                    ข้อมูลติดต่อ
+                  </TableHead>
                   {/* <TableHead className="text-muted-foreground font-medium text-xs sm:text-sm">กะ</TableHead> */}
-                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden lg:table-cell">วันที่เข้าร่วม</TableHead>
-                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">สถานะ</TableHead>
-                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">จัดการ</TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6 hidden lg:table-cell">
+                    วันที่เข้าร่วม
+                  </TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">
+                    สถานะ
+                  </TableHead>
+                  <TableHead className="text-muted-foreground font-semibold text-sm py-4 px-6">
+                    จัดการ
+                  </TableHead>
                 </TableRow>
               </TableHeader>
 
@@ -563,7 +625,7 @@ export default function UserManagementTable() {
                         {/* Avatar circle with initials */}
                         <div
                           className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-medium text-xs sm:text-sm ${getAvatarColor(
-                            user.id
+                            user.id,
                           )}`}
                         >
                           {getAvatarInitials(user.fname, user.lname)}
@@ -578,7 +640,8 @@ export default function UserManagementTable() {
                           </div>
                           {/* Show contact info on mobile */}
                           <div className="sm:hidden text-xs text-muted-foreground mt-1">
-                            {user.email}<br />
+                            {user.email}
+                            <br />
                             {user.phone}
                           </div>
                         </div>
@@ -588,18 +651,22 @@ export default function UserManagementTable() {
                     {/* Contact info column */}
                     <TableCell className="hidden sm:table-cell">
                       <div className="space-y-1">
-                        <div className="text-sm text-foreground">{user.email}</div>
-                        <div className="text-sm text-muted-foreground">{user.phone}</div>
+                        <div className="text-sm text-foreground">
+                          {user.email}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {user.phone}
+                        </div>
                       </div>
                     </TableCell>
 
                     {/* Shift column */}
                     {/* <TableCell>
-                      <Badge 
-                        variant="outline" 
+                      <Badge
+                        variant="outline"
                         className={`text-xs sm:text-sm ${
-                          user.shift === "กะเช้า" 
-                            ? "border-primary/20 text-primary bg-primary/5" 
+                          user.shift === "กะเช้า"
+                            ? "border-primary/20 text-primary bg-primary/5"
                             : "border-purple-200 text-purple-700 bg-purple-50"
                         }`}
                       >
@@ -615,13 +682,16 @@ export default function UserManagementTable() {
                     {/* Status column */}
                     <TableCell>
                       <Badge
-                        variant={user.status === "verified" ? "default" : "secondary"}
-                        className={`text-xs sm:text-sm ${user.status === "verified"
+                        variant={
+                          user.status === "verified" ? "default" : "secondary"
+                        }
+                        className={`text-xs sm:text-sm ${
+                          user.status === "verified"
                             ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/20"
                             : user.status === "disable"
                               ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20"
                               : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/20"
-                          }`}
+                        }`}
                       >
                         {getStatusInThai(user.status)}
                       </Badge>
@@ -646,18 +716,20 @@ export default function UserManagementTable() {
         )}
 
         {/* No data message */}
-        {((activeTab === 'residents' && filteredResidents.length === 0) ||
-          (activeTab === 'guards' && filteredGuards.length === 0)) && (
-            <div className="p-8 sm:p-12 text-center">
-              <Users className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-base sm:text-lg font-medium text-foreground mb-2">
-                ไม่พบข้อมูลผู้ใช้
-              </h3>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                {searchTerm ? 'ลองค้นหาด้วยคำอื่น' : 'ยังไม่มีข้อมูลผู้ใช้ในหมวดหมู่นี้'}
-              </p>
-            </div>
-          )}
+        {((activeTab === "residents" && filteredResidents.length === 0) ||
+          (activeTab === "guards" && filteredGuards.length === 0)) && (
+          <div className="p-8 sm:p-12 text-center">
+            <Users className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-base sm:text-lg font-medium text-foreground mb-2">
+              ไม่พบข้อมูลผู้ใช้
+            </h3>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              {searchTerm
+                ? "ลองค้นหาด้วยคำอื่น"
+                : "ยังไม่มีข้อมูลผู้ใช้ในหมวดหมู่นี้"}
+            </p>
+          </div>
+        )}
 
         {/* Pagination controls */}
         {totalItems > 0 && (
@@ -666,7 +738,9 @@ export default function UserManagementTable() {
             <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
               {/* Items per page selector */}
               <div className="flex items-center space-x-2">
-                <span className="text-xs sm:text-sm text-muted-foreground">แสดง</span>
+                <span className="text-xs sm:text-sm text-muted-foreground">
+                  แสดง
+                </span>
                 <Select
                   value={itemsPerPage.toString()}
                   onValueChange={handleItemsPerPageChange}
@@ -681,12 +755,16 @@ export default function UserManagementTable() {
                     <SelectItem value="20">20</SelectItem>
                   </SelectContent>
                 </Select>
-                <span className="text-xs sm:text-sm text-muted-foreground">รายการต่อหน้า</span>
+                <span className="text-xs sm:text-sm text-muted-foreground">
+                  รายการต่อหน้า
+                </span>
               </div>
 
               {/* Pagination info */}
               <div className="text-xs sm:text-sm text-muted-foreground">
-                แสดง {((currentPage - 1) * itemsPerPage) + 1} ถึง {Math.min(currentPage * itemsPerPage, totalItems)} จาก {totalItems} รายการ
+                แสดง {(currentPage - 1) * itemsPerPage + 1} ถึง{" "}
+                {Math.min(currentPage * itemsPerPage, totalItems)} จาก{" "}
+                {totalItems} รายการ
               </div>
             </div>
 
@@ -725,10 +803,11 @@ export default function UserManagementTable() {
                       variant={currentPage === pageNum ? "default" : "outline"}
                       size="sm"
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`w-6 h-6 sm:w-8 sm:h-8 p-0 text-xs sm:text-sm ${currentPage === pageNum
+                      className={`w-6 h-6 sm:w-8 sm:h-8 p-0 text-xs sm:text-sm ${
+                        currentPage === pageNum
                           ? "bg-primary text-primary-foreground"
                           : "text-muted-foreground hover:bg-muted"
-                        }`}
+                      }`}
                     >
                       {pageNum}
                     </Button>

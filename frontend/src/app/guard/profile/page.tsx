@@ -2,7 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, User, Mail, Phone, MapPin, Shield, Edit, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Shield,
+  Edit,
+  Plus,
+} from "lucide-react";
 import { getAuthData, isAuthenticated } from "@/lib/liffAuth";
 import { ModeToggle } from "@/components/mode-toggle";
 import type { LiffUser } from "@/lib/liffAuth";
@@ -12,33 +21,33 @@ type GuardProfile = LiffUser & { village_name?: string };
 const GuardProfilePage = () => {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<GuardProfile | null>(null);
-  const [villageName, setVillageName] = useState<string>('');
+  const [villageName, setVillageName] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadUserData = async () => {
       if (!isAuthenticated()) {
-        router.push('/liff');
+        router.push("/liff");
         return;
       }
 
       try {
         // Try LIFF authentication first (for guards and residents)
-        let response = await fetch('/api/auth/liff/me', {
-          credentials: 'include',
+        let response = await fetch("/api/auth/liff/me", {
+          credentials: "include",
         });
 
         // If LIFF auth fails, try admin authentication
         if (!response.ok) {
-          response = await fetch('/api/auth/me', {
-            credentials: 'include',
+          response = await fetch("/api/auth/me", {
+            credentials: "include",
           });
         }
 
         if (response.ok) {
           const userData: GuardProfile = await response.json();
           setCurrentUser(userData);
-          
+
           // Set village name from API response
           if (userData.village_name) {
             setVillageName(userData.village_name);
@@ -53,12 +62,12 @@ const GuardProfilePage = () => {
               fetchVillageName(user.village_id);
             }
           } else {
-            router.push('/liff');
+            router.push("/liff");
             return;
           }
         }
       } catch (error) {
-        console.error('Error fetching user data:', error);
+        console.error("Error fetching user data:", error);
         // Fallback to localStorage
         const { user } = getAuthData();
         if (user) {
@@ -67,7 +76,7 @@ const GuardProfilePage = () => {
             fetchVillageName(user.village_id);
           }
         } else {
-          router.push('/liff');
+          router.push("/liff");
           return;
         }
       }
@@ -80,16 +89,19 @@ const GuardProfilePage = () => {
 
   const fetchVillageName = async (villageId: string) => {
     try {
-      const response = await fetch(`/api/villages/validate?id=${encodeURIComponent(villageId)}`, {
-        credentials: 'include'
-      });
+      const response = await fetch(
+        `/api/villages/validate?id=${encodeURIComponent(villageId)}`,
+        {
+          credentials: "include",
+        },
+      );
       const data = await response.json();
-      
+
       if (data.success && data.data && data.data.village_name) {
         setVillageName(data.data.village_name);
       }
     } catch (error) {
-      console.error('Error fetching village name:', error);
+      console.error("Error fetching village name:", error);
     }
   };
 
@@ -98,11 +110,11 @@ const GuardProfilePage = () => {
   };
 
   const handleRegisterRole = () => {
-    router.push('/guard/profile/register-role');
+    router.push("/guard/profile/register-role");
   };
 
   const handleEditProfile = () => {
-    router.push('/guard/profile/edit');
+    router.push("/guard/profile/edit");
   };
 
   if (loading) {
@@ -176,9 +188,7 @@ const GuardProfilePage = () => {
               <h2 className="text-xl font-semibold text-foreground">
                 {currentUser.fname} {currentUser.lname}
               </h2>
-              <p className="text-sm text-muted-foreground">
-                ยามรักษาความปลอดภัย
-              </p>
+              <p className="text-sm text-muted-foreground">รปภ.</p>
             </div>
 
             {/* User Information */}
@@ -203,7 +213,9 @@ const GuardProfilePage = () => {
                 <MapPin className="w-5 h-5 text-muted-foreground" />
                 <div>
                   <p className="text-sm text-muted-foreground">หมู่บ้าน</p>
-                  <p className="text-foreground">{villageName || currentUser.village_id}</p>
+                  <p className="text-foreground">
+                    {villageName || currentUser.village_id}
+                  </p>
                 </div>
               </div>
 
@@ -212,9 +224,13 @@ const GuardProfilePage = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">สถานะ</p>
                   <p className="text-foreground capitalize">
-                    {currentUser.status === 'verified' ? 'ยืนยันแล้ว' : 
-                     currentUser.status === 'pending' ? 'รอการยืนยัน' : 
-                     currentUser.status === 'disable' ? 'ถูกปิดใช้งาน' : currentUser.status}
+                    {currentUser.status === "verified"
+                      ? "ยืนยันแล้ว"
+                      : currentUser.status === "pending"
+                        ? "รอการยืนยัน"
+                        : currentUser.status === "disable"
+                          ? "ถูกปิดใช้งาน"
+                          : currentUser.status}
                   </p>
                 </div>
               </div>
@@ -222,29 +238,33 @@ const GuardProfilePage = () => {
 
             {/* LINE Information */}
             <div className="pt-4 border-t">
-              <h3 className="text-sm font-medium text-muted-foreground mb-3">ข้อมูล LINE</h3>
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                ข้อมูล LINE
+              </h3>
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
                 <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
                   <span className="text-white text-xs font-bold">L</span>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">LINE User ID</p>
-                  <p className="text-foreground text-xs font-mono">{currentUser.lineUserId}</p>
+                  <p className="text-foreground text-xs font-mono">
+                    {currentUser.lineUserId}
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* Action Buttons */}
             <div className="pt-4 space-y-3">
-              <button 
+              <button
                 onClick={handleRegisterRole}
                 className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 ลงทะเบียนบทบาทเพิ่มเติม
               </button>
-              
-              <button 
+
+              <button
                 onClick={handleEditProfile}
                 className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
               >

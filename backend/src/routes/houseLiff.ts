@@ -6,7 +6,7 @@ import { requireLiffAuth } from "../hooks/requireLiffAuth";
 
 /**
  * The house management routes for LIFF users (guards and residents).
- * Accessible by: guard (ยามรักษาความปลอดภัย) and resident (ผู้อยู่อาศัย)
+ * Accessible by: guard (รปภ.) and resident (ผู้อยู่อาศัย)
  * @type {Elysia}
  */
 export const houseLiffRoutes = new Elysia({ prefix: "/api" })
@@ -26,24 +26,24 @@ export const houseLiffRoutes = new Elysia({ prefix: "/api" })
     console.log("currentUser", currentUser);
     console.log("query", query);
     console.log("request URL:", request?.url);
-    
+
     try {
       // Extract village_id from query parameters
       let village_id = query?.village_id;
-      
+
       // Fallback: if query parsing fails, try to extract from URL
       if (!village_id && request?.url) {
         const url = new URL(request.url);
-        village_id = url.searchParams.get('village_id');
+        village_id = url.searchParams.get("village_id");
       }
-      
+
       const { village_ids, role } = currentUser;
 
       console.log("Extracted village_id:", village_id);
       console.log("Available village_ids:", village_ids);
 
       // Validate village_id parameter
-      if (!village_id || typeof village_id !== 'string') {
+      if (!village_id || typeof village_id !== "string") {
         return {
           success: false,
           error: "Village ID is required",
@@ -94,7 +94,7 @@ export const houseLiffRoutes = new Elysia({ prefix: "/api" })
   .get("/villages/liff", async ({ currentUser }: any) => {
     console.log("🏘️ LIFF villages API called");
     console.log("currentUser", currentUser);
-    
+
     try {
       const { village_ids, role } = currentUser;
 
