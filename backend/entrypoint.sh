@@ -7,12 +7,12 @@ MODE=${NODE_ENV:-development}
 sleep 10
 
 # รัน migration ด้วย drizzle-kit ผ่าน npx (เฉพาะเมื่อจำเป็น)
-# bunx drizzle-kit push
+bunx drizzle-kit push
 
 # seed ข้อมูล (เฉพาะเมื่อจำเป็น)
-# if [ "$MODE" != "production" ]; then
-#   bun run src/db/seed.ts
-# fi
+if [ "$MODE" != "production" ]; then
+  bun run src/db/seed.ts
+fi
 
 # รันแอปตามโหมด
 if [ "$MODE" = "production" ]; then
