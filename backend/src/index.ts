@@ -39,6 +39,7 @@ import { ocrLicensePlateRoutes } from "./routes/ocrLicensePlate";
 import { ocrDriverLicenseRoutes } from "./routes/ocrDriverLicense";
 import { visitorsInRoutes } from "./routes/visitorsIn";
 import { demoAuthRoutes } from "./routes/demoAuth";
+
 /**
  * SECURITY ENHANCEMENT: Secure Health Check Endpoint
  *
