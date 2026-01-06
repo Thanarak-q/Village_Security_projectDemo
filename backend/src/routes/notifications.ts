@@ -12,7 +12,6 @@ import { eq, and, desc, count } from 'drizzle-orm';
 import db from '../db/drizzle';
 import { admin_notifications, villages, admins, admin_villages } from '../db/schema';
 import { requireRole } from '../hooks/requireRole';
-import { websocketClient } from '../services/websocketClient';
 
 export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
   .onBeforeHandle(requireRole(['admin', 'staff', 'superadmin']))
@@ -44,10 +43,10 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
 
       // Build where conditions - get notifications for the admin's villages
       const whereConditions = [eq(admin_notifications.village_id, villageIds[0])];
-      
+
       // If admin has multiple villages, we need to handle this differently
       // For now, we'll use the first village_id, but this should be updated to handle multiple villages
-      
+
       if (type) {
         whereConditions.push(eq(admin_notifications.type, type as any));
       }
@@ -96,7 +95,7 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
       };
     } catch (error) {
       console.error('❌ Error fetching notifications:', error);
-      
+
       // Provide more specific error messages based on error type
       let errorMessage = 'Failed to fetch notifications';
       if (error instanceof Error) {
@@ -108,7 +107,7 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
           errorMessage = 'Insufficient permissions to access notifications.';
         }
       }
-      
+
       return {
         success: false,
         error: errorMessage,
@@ -170,7 +169,7 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
   .post('/test', async (context: any) => {
     try {
       const { currentUser } = context;
-      
+
       // Only allow in development environment
       if (process.env.NODE_ENV === 'production') {
         return {
@@ -215,7 +214,7 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
         .where(eq(admin_villages.admin_id, currentUser.admin_id));
 
       const villageId = adminVillages.length > 0 ? adminVillages[0].village_id : null;
-      
+
       if (!villageId) {
         return {
           success: false,
@@ -255,7 +254,7 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
   .post('/test-webhook', async (context: any) => {
     try {
       const { currentUser } = context;
-      
+
       // Only allow in development environment
       if (process.env.NODE_ENV === 'production') {
         return {
@@ -283,7 +282,7 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
         .where(eq(admin_villages.admin_id, currentUser.admin_id));
 
       const villageId = adminVillages.length > 0 ? adminVillages[0].village_id : null;
-      
+
       if (!villageId) {
         return {
           success: false,
@@ -316,95 +315,6 @@ export const notificationsRoutes = new Elysia({ prefix: '/api/notifications' })
       return {
         success: false,
         error: 'Failed to create webhook test notification'
-      };
-    }
-  })
-
-  // POST /api/notifications/realtime - Create and broadcast real-time notification
-  .post('/realtime', async (context: any) => {
-    try {
-      const { currentUser, body } = context;
-      const { title, message, type = 'system', category = 'realtime', target = 'admin', level } = body;
-
-      if (!title) {
-        return {
-          success: false,
-          error: 'Title is required'
-        };
-      }
-
-      // Get the admin's village_id from admin_villages table
-      const adminVillages = await db
-        .select({
-          village_id: admin_villages.village_id,
-        })
-        .from(admin_villages)
-        .where(eq(admin_villages.admin_id, currentUser.admin_id));
-
-      if (adminVillages.length === 0) {
-        return {
-          success: false,
-          error: 'Admin not associated with any village'
-        };
-      }
-
-      const villageId = adminVillages[0].village_id;
-      console.log('🏘️ Using village_id:', villageId);
-
-      // Create notification in database
-      const [newNotification] = await db
-        .insert(admin_notifications)
-        .values({
-          village_id: villageId,
-          title,
-          message: message || '',
-          type: type as any,
-          category: category as any,
-          created_at: new Date(),
-        })
-        .returning();
-
-      // Broadcast via WebSocket
-      const wsNotification = {
-        id: newNotification.notification_id,
-        title: newNotification.title,
-        body: newNotification.message,
-        level: level || 'info',
-        createdAt: newNotification.created_at ? newNotification.created_at.getTime() : Date.now(),
-        villageKey: villageId, // WebSocket client expects villageKey
-        type: newNotification.type,
-        category: newNotification.category,
-        data: newNotification.data
-      };
-
-      let wsSent = false;
-      let wsError = null;
-
-      try {
-        wsSent = await websocketClient.sendNotification(wsNotification);
-      } catch (error) {
-        console.error('❌ WebSocket broadcast failed:', error);
-        wsError = error instanceof Error ? error.message : 'Unknown WebSocket error';
-      }
-
-      return {
-        success: true,
-        data: {
-          notification: newNotification,
-          websocket_sent: wsSent,
-          websocket_error: wsError,
-          message: wsSent 
-            ? 'Notification created and broadcasted successfully'
-            : wsError 
-              ? `Notification created but WebSocket failed: ${wsError}`
-              : 'Notification created but WebSocket service unavailable'
-        }
-      };
-    } catch (error) {
-      console.error('Error creating real-time notification:', error);
-      return {
-        success: false,
-        error: 'Failed to create real-time notification'
       };
     }
   });
