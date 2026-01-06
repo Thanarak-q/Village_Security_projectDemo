@@ -38,6 +38,7 @@ import { ocrIdCardRoutes } from "./routes/ocrIdCard";
 import { ocrLicensePlateRoutes } from "./routes/ocrLicensePlate";
 import { ocrDriverLicenseRoutes } from "./routes/ocrDriverLicense";
 import { visitorsInRoutes } from "./routes/visitorsIn";
+import { demoAuthRoutes } from "./routes/demoAuth";
 /**
  * SECURITY ENHANCEMENT: Secure Health Check Endpoint
  *
@@ -125,6 +126,7 @@ const app = new Elysia()
   .use(ocrIdCardRoutes)
   .use(ocrLicensePlateRoutes)
   .use(ocrDriverLicenseRoutes)
+  .use(demoAuthRoutes)
   .get("/", () => "Hello Village Security API!");
 
 // Initialize database connection and start server

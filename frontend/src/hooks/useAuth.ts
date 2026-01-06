@@ -24,10 +24,17 @@ export function useAuth() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        // Try LIFF authentication first (for guards and residents)
-        let response = await fetch('/api/auth/liff/me', {
+        // Try Demo authentication first (for demo mode)
+        let response = await fetch('/api/auth/demo/me', {
           credentials: 'include',
         });
+
+        // If demo auth fails, try LIFF authentication (for guards and residents)
+        if (!response.ok) {
+          response = await fetch('/api/auth/liff/me', {
+            credentials: 'include',
+          });
+        }
 
         // If LIFF auth fails, try admin authentication
         if (!response.ok) {

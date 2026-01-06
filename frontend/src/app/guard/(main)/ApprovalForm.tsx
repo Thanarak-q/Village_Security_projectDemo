@@ -42,7 +42,17 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { ModeToggle } from "@/components/mode-toggle";
-import { getAuthData } from "@/lib/liffAuth";
+
+// Simple auth data getter from localStorage (compatible with both LIFF and Demo login)
+const getAuthData = () => {
+  const userStr = typeof window !== 'undefined' ? localStorage.getItem('liffUser') : null;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('liffToken') : null;
+  return {
+    user: userStr ? JSON.parse(userStr) : null,
+    token,
+  };
+};
+
 import {
   Select,
   SelectContent,
@@ -903,11 +913,10 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                             visitorForm.setValue("id_card_image", "");
                             visitorForm.setValue("visitor_id_card", "");
                           }}
-                          className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all font-medium ${
-                            documentType === "id_card"
+                          className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all font-medium ${documentType === "id_card"
                               ? "border-primary bg-primary/10 text-primary"
                               : "border-border hover:border-primary/50"
-                          }`}
+                            }`}
                         >
                           บัตรประชาชน
                         </button>
@@ -920,11 +929,10 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                             visitorForm.setValue("id_card_image", "");
                             visitorForm.setValue("visitor_id_card", "");
                           }}
-                          className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all font-medium ${
-                            documentType === "driver_license"
+                          className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all font-medium ${documentType === "driver_license"
                               ? "border-primary bg-primary/10 text-primary"
                               : "border-border hover:border-primary/50"
-                          }`}
+                            }`}
                         >
                           ใบขับขี่
                         </button>
@@ -1280,12 +1288,11 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                                         house.house_id,
                                       );
                                     }}
-                                    className={`w-full text-left px-4 py-4 rounded-lg border flex items-center gap-3 ${
-                                      visitorForm.watch("house_id") ===
-                                      house.house_id
+                                    className={`w-full text-left px-4 py-4 rounded-lg border flex items-center gap-3 ${visitorForm.watch("house_id") ===
+                                        house.house_id
                                         ? "border-primary bg-primary/10"
                                         : "border-border hover:border-ring"
-                                    }`}
+                                      }`}
                                   >
                                     <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
                                       <Home className="w-4 h-4" />
@@ -1297,10 +1304,10 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                                     </div>
                                     {visitorForm.watch("house_id") ===
                                       house.house_id && (
-                                      <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center">
-                                        <div className="w-2 h-2 rounded-full bg-white"></div>
-                                      </div>
-                                    )}
+                                        <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                                          <div className="w-2 h-2 rounded-full bg-white"></div>
+                                        </div>
+                                      )}
                                   </button>
                                 ))}
                                 {filteredHouses.length === 0 && (
@@ -1407,11 +1414,10 @@ function ApprovalForm({ userRoles = [] }: ApprovalFormProps) {
                     <Button
                       type="button"
                       onClick={goNext}
-                      className={`flex-1 h-12 text-base ${
-                        step === 2 && !isStep2Valid()
+                      className={`flex-1 h-12 text-base ${step === 2 && !isStep2Valid()
                           ? "bg-muted cursor-not-allowed text-muted-foreground"
                           : ""
-                      }`}
+                        }`}
                       disabled={isSubmitting || (step === 2 && !isStep2Valid())}
                     >
                       ต่อไป
