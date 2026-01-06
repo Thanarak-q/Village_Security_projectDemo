@@ -144,8 +144,8 @@ export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
           updateData,
           {
             username: existingAdmin[0].username,
-            email: existingAdmin[0].email,
-            phone: existingAdmin[0].phone
+            email: existingAdmin[0].email || undefined,
+            phone: existingAdmin[0].phone || undefined
           }
         );
         // Only log if there were actual changes
@@ -380,8 +380,8 @@ export const adminSettingsRoutes = new Elysia({ prefix: "/api" })
           updateData,
           {
             username: existingAdmin[0].username,
-            email: existingAdmin[0].email,
-            phone: existingAdmin[0].phone
+            email: existingAdmin[0].email || undefined,
+            phone: existingAdmin[0].phone || undefined
           },
           passwordChanged
         );

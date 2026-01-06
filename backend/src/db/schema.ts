@@ -5,7 +5,8 @@
  * for type-safe database operations.
  */
 
-import { unique } from "drizzle-orm/gel-core";
+// import { unique } from "drizzle-orm/gel-core"; // Incorrect import
+import { unique } from "drizzle-orm/pg-core";
 import {
   pgTable,
   text,

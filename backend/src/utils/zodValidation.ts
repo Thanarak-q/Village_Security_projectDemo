@@ -8,20 +8,20 @@ export const registrationSchema = z.object({
     .min(2, 'ชื่อต้องมีอย่างน้อย 2 ตัวอักษร')
     .max(50, 'ชื่อต้องไม่เกิน 50 ตัวอักษร')
     .regex(/^[a-zA-Zก-๙\s]+$/, 'ชื่อต้องเป็นตัวอักษรเท่านั้น'),
-  
+
   lname: z
     .string()
     .min(1, 'กรุณากรอกนามสกุล')
     .min(2, 'นามสกุลต้องมีอย่างน้อย 2 ตัวอักษร')
     .max(50, 'นามสกุลต้องไม่เกิน 50 ตัวอักษร')
     .regex(/^[a-zA-Zก-๙\s]+$/, 'นามสกุลต้องเป็นตัวอักษรเท่านั้น'),
-  
+
   email: z
     .string()
     .min(1, 'กรุณากรอกอีเมล')
     .email('รูปแบบอีเมลไม่ถูกต้อง')
     .max(100, 'อีเมลต้องไม่เกิน 100 ตัวอักษร'),
-  
+
   phone: z
     .string()
     .min(1, 'กรุณากรอกเบอร์โทรศัพท์')
@@ -32,14 +32,14 @@ export const registrationSchema = z.object({
     .refine((phone) => phone.replace(/[^0-9]/g, '').length <= 15, {
       message: 'เบอร์โทรศัพท์ต้องไม่เกิน 15 หลัก'
     }),
-  
+
   village_key: z
     .string()
     .min(1, 'กรุณากรอกรหัสหมู่บ้าน')
     .min(3, 'รหัสหมู่บ้านต้องมีอย่างน้อย 3 ตัวอักษร'),
-    // .max(20, 'รหัสหมู่บ้านต้องไม่เกิน 20 ตัวอักษร')
-    // .regex(/^[a-zA-Z0-9\-]+$/, 'รหัสหมู่บ้านต้องเป็นตัวอักษร ตัวเลข และขีดกลางเท่านั้น'),
-  
+  // .max(20, 'รหัสหมู่บ้านต้องไม่เกิน 20 ตัวอักษร')
+  // .regex(/^[a-zA-Z0-9\-]+$/, 'รหัสหมู่บ้านต้องเป็นตัวอักษร ตัวเลข และขีดกลางเท่านั้น'),
+
   userType: z
     .enum(['resident', 'guard'])
     .refine((val) => val === 'resident' || val === 'guard', {
@@ -99,10 +99,10 @@ export const validateLiffRegistration = (data: {
 }): { isValid: boolean; errors: ValidationError[] } => {
   // First validate the basic registration data
   const basicErrors = validateRegistrationData(data);
-  
+
   // Additional validation for LIFF-specific fields
   const additionalErrors: ValidationError[] = [];
-  
+
   // Validate ID token
   if (!data.idToken || typeof data.idToken !== 'string') {
     additionalErrors.push({
@@ -110,7 +110,7 @@ export const validateLiffRegistration = (data: {
       message: 'ID Token is required'
     });
   }
-  
+
   // Validate profile image URL if provided
   if (data.profile_image_url && typeof data.profile_image_url === 'string') {
     try {
@@ -122,17 +122,17 @@ export const validateLiffRegistration = (data: {
       });
     }
   }
-  
+
   // Validate role consistency
-  if (data.role && data.userType && data.role !== data.userType) {
+  if ((data as any).role && data.userType && (data as any).role !== data.userType) {
     additionalErrors.push({
       field: 'userType',
       message: 'User type and role must match'
     });
   }
-  
+
   const allErrors = [...basicErrors, ...additionalErrors];
-  
+
   return {
     isValid: allErrors.length === 0,
     errors: allErrors
@@ -142,7 +142,7 @@ export const validateLiffRegistration = (data: {
 // Sanitize string input (enhanced version)
 export const sanitizeString = (input: string): string => {
   if (typeof input !== 'string') return '';
-  
+
   return input
     .trim()
     .replace(/[<>\"'&]/g, '') // Remove HTML/script injection characters
@@ -152,7 +152,7 @@ export const sanitizeString = (input: string): string => {
 // Validate email format (enhanced version)
 export const isValidEmail = (email: string): boolean => {
   if (typeof email !== 'string') return false;
-  
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email) && email.length <= 254;
 };
@@ -160,7 +160,7 @@ export const isValidEmail = (email: string): boolean => {
 // Validate phone number format
 export const isValidPhone = (phone: string): boolean => {
   if (typeof phone !== 'string') return false;
-  
+
   const cleanPhone = phone.replace(/[^0-9]/g, '');
   return cleanPhone.length >= 9 && cleanPhone.length <= 15;
 };
@@ -169,7 +169,7 @@ export const isValidPhone = (phone: string): boolean => {
 export const generateVillageKey = (): string => {
   const chars = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
   const segments = [];
-  
+
   // Generate 2 segments of 4 characters each
   for (let i = 0; i < 2; i++) {
     let segment = '';
@@ -178,20 +178,20 @@ export const generateVillageKey = (): string => {
     }
     segments.push(segment);
   }
-  
+
   return segments.join('-');
 };
 
 // Validate village key format
 export const isValidVillageKey = (villageKey: string): boolean => {
   if (typeof villageKey !== 'string') return false;
-  
+
   // Accept both old format (a-zA-Z0-9\-) and new format (XXXX-XXXX)
-  const oldFormat = /^[a-zA-Z0-9\-]+$/.test(villageKey) && 
-                   villageKey.length >= 3 && 
-                   villageKey.length <= 20;
-  
+  const oldFormat = /^[a-zA-Z0-9\-]+$/.test(villageKey) &&
+    villageKey.length >= 3 &&
+    villageKey.length <= 20;
+
   const newFormat = /^[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(villageKey);
-  
+
   return oldFormat || newFormat;
 };

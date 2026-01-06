@@ -17,14 +17,14 @@ export const visitorNotificationRoutes = new Elysia({ prefix: '/api/visitor-noti
    */
   .post('/send-to-residents', async ({ body, set, currentUser }: any) => {
     try {
-      const { 
-        visitorName, 
-        visitorPhone, 
-        houseNumber, 
-        residentName, 
-        purpose, 
+      const {
+        visitorName,
+        visitorPhone,
+        houseNumber,
+        residentName,
+        purpose,
         villageKey,
-        imageUrl 
+        imageUrl
       } = body as {
         visitorName: string;
         visitorPhone: string;
@@ -38,9 +38,9 @@ export const visitorNotificationRoutes = new Elysia({ prefix: '/api/visitor-noti
       // Validate required fields
       if (!visitorName || !visitorPhone || !houseNumber || !residentName || !purpose || !villageKey) {
         set.status = 400;
-        return { 
-          success: false, 
-          error: 'Missing required fields: visitorName, visitorPhone, houseNumber, residentName, purpose, villageKey' 
+        return {
+          success: false,
+          error: 'Missing required fields: visitorName, visitorPhone, houseNumber, residentName, purpose, villageKey'
         };
       }
 
@@ -54,8 +54,8 @@ export const visitorNotificationRoutes = new Elysia({ prefix: '/api/visitor-noti
         houseNumber,
         residentName,
         purpose,
-        entryTime: new Date().toLocaleTimeString('th-TH', { 
-          hour: '2-digit', 
+        entryTime: new Date().toLocaleTimeString('th-TH', {
+          hour: '2-digit',
           minute: '2-digit',
           timeZone: 'Asia/Bangkok'
         }) + ' น.',
@@ -66,8 +66,8 @@ export const visitorNotificationRoutes = new Elysia({ prefix: '/api/visitor-noti
 
       // Send notification to all residents in the house
       const result = await notificationService.sendVisitorNotificationToResidents(
-        visitorData, 
-        houseNumber, 
+        visitorData,
+        houseNumber,
         villageKey
       );
 
@@ -94,16 +94,16 @@ export const visitorNotificationRoutes = new Elysia({ prefix: '/api/visitor-noti
    */
   .post('/send-details', async ({ body, set, currentUser }: any) => {
     try {
-      const { 
+      const {
         userId,
-        visitorName, 
-        visitorPhone, 
-        houseNumber, 
-        residentName, 
-        purpose, 
+        visitorName,
+        visitorPhone,
+        houseNumber,
+        residentName,
+        purpose,
         villageKey,
         visitorId,
-        imageUrl 
+        imageUrl
       } = body as {
         userId: string;
         visitorName: string;
@@ -119,9 +119,9 @@ export const visitorNotificationRoutes = new Elysia({ prefix: '/api/visitor-noti
       // Validate required fields
       if (!userId || !visitorName || !visitorPhone || !houseNumber || !residentName || !purpose || !villageKey || !visitorId) {
         set.status = 400;
-        return { 
-          success: false, 
-          error: 'Missing required fields: userId, visitorName, visitorPhone, houseNumber, residentName, purpose, villageKey, visitorId' 
+        return {
+          success: false,
+          error: 'Missing required fields: userId, visitorName, visitorPhone, houseNumber, residentName, purpose, villageKey, visitorId'
         };
       }
 
@@ -132,8 +132,8 @@ export const visitorNotificationRoutes = new Elysia({ prefix: '/api/visitor-noti
         houseNumber,
         residentName,
         purpose,
-        entryTime: new Date().toLocaleTimeString('th-TH', { 
-          hour: '2-digit', 
+        entryTime: new Date().toLocaleTimeString('th-TH', {
+          hour: '2-digit',
           minute: '2-digit',
           timeZone: 'Asia/Bangkok'
         }) + ' น.',
@@ -167,10 +167,10 @@ export const visitorNotificationRoutes = new Elysia({ prefix: '/api/visitor-noti
    */
   .post('/handle-response', async ({ body, set }) => {
     try {
-      const { 
-        action, 
-        visitorId, 
-        userId, 
+      const {
+        action,
+        visitorId,
+        userId,
         reason,
         houseNumber,
         villageKey
@@ -186,24 +186,24 @@ export const visitorNotificationRoutes = new Elysia({ prefix: '/api/visitor-noti
       // Validate required fields
       if (!action || !visitorId || !userId || !houseNumber || !villageKey) {
         set.status = 400;
-        return { 
-          success: false, 
-          error: 'Missing required fields: action, visitorId, userId, houseNumber, villageKey' 
+        return {
+          success: false,
+          error: 'Missing required fields: action, visitorId, userId, houseNumber, villageKey'
         };
       }
 
       // Import the database utilities
       const { getVisitorRecordByVisitorId, updateVisitorRecordStatus } = await import('../db/visitorRecordUtils');
-      const { flexMessageService } = await import('./flexMessage');
+      const { flexMessageService } = await import('./(line)/flexMessage');
 
       // Check current visitor record status
       const visitorRecord = await getVisitorRecordByVisitorId(visitorId);
-      
+
       if (visitorRecord) {
         // If already processed, return status message
         if (visitorRecord.record_status === 'approved' || visitorRecord.record_status === 'rejected') {
           console.log(`⚠️ Visitor ${visitorId} already ${visitorRecord.record_status}, cannot change status`);
-          
+
           // Send status message showing current state
           const statusMessage = await flexMessageService.getVisitorFlexMessage({
             visitorId,
@@ -214,7 +214,7 @@ export const visitorNotificationRoutes = new Elysia({ prefix: '/api/visitor-noti
             entryTime: visitorRecord.entry_time?.toLocaleString('th-TH') || 'ไม่ระบุ',
             villageName: 'หมู่บ้าน' // You might want to get this from the record
           });
-          
+
           return {
             success: false,
             error: `Visitor request already ${visitorRecord.record_status}`,
@@ -237,7 +237,7 @@ export const visitorNotificationRoutes = new Elysia({ prefix: '/api/visitor-noti
           entryTime: visitorRecord?.entry_time?.toLocaleString('th-TH') || 'ไม่ระบุ',
           villageName: 'หมู่บ้าน' // You might want to get this from the record
         });
-        
+
         return {
           success: true,
           message: 'Denial confirmation sent',
@@ -256,7 +256,7 @@ export const visitorNotificationRoutes = new Elysia({ prefix: '/api/visitor-noti
           entryTime: visitorRecord?.entry_time?.toLocaleString('th-TH') || 'ไม่ระบุ',
           villageName: 'หมู่บ้าน' // You might want to get this from the record
         });
-        
+
         return {
           success: true,
           message: 'Denial cancelled, showing approval message',
@@ -267,19 +267,20 @@ export const visitorNotificationRoutes = new Elysia({ prefix: '/api/visitor-noti
       // Validate action for approve/reject/confirm_deny
       if (!['approve', 'reject', 'confirm_deny'].includes(action)) {
         set.status = 400;
-        return { 
-          success: false, 
-          error: 'Invalid action. Must be "approve", "reject", "deny_confirm", "confirm_deny", or "cancel_deny"' 
+        return {
+          success: false,
+          error: 'Invalid action. Must be "approve", "reject", "deny_confirm", "confirm_deny", or "cancel_deny"'
         };
       }
 
       // Determine final action
       const finalAction = action === 'confirm_deny' ? 'reject' : action;
+      const dbStatus = finalAction === 'approve' ? 'approved' : finalAction === 'reject' ? 'rejected' : 'pending';
 
       // Update visitor record in database
       if (visitorRecord) {
-        await updateVisitorRecordStatus(visitorRecord.visitor_record_id, finalAction);
-        console.log(`✅ Updated visitor record ${visitorRecord.visitor_record_id} status to ${finalAction}`);
+        await updateVisitorRecordStatus(visitorRecord.visitor_record_id, dbStatus as "approved" | "rejected" | "pending");
+        console.log(`✅ Updated visitor record ${visitorRecord.visitor_record_id} status to ${dbStatus}`);
       }
 
       console.log(`Resident ${userId} ${finalAction}d visitor ${visitorId} in house ${houseNumber}${reason ? ` with reason: ${reason}` : ''}`);
@@ -288,7 +289,7 @@ export const visitorNotificationRoutes = new Elysia({ prefix: '/api/visitor-noti
       // TODO: Update visitor status
 
       // Send confirmation message back to resident
-      const confirmationMessage = finalAction === 'approve' 
+      const confirmationMessage = finalAction === 'approve'
         ? `✅ คุณได้ยืนยันการเข้าให้ผู้เยี่ยมแล้ว\n\nผู้เยี่ยมสามารถเข้าบ้านได้แล้ว`
         : `❌ คุณได้ปฏิเสธการเข้าให้ผู้เยี่ยมแล้ว${reason ? `\n\nเหตุผล: ${reason}` : ''}\n\nผู้เยี่ยมจะได้รับแจ้งเตือนและไม่สามารถเข้าบ้านได้`;
 
@@ -367,8 +368,8 @@ export const visitorNotificationRoutes = new Elysia({ prefix: '/api/visitor-noti
         houseNumber: '123/45',
         residentName: 'สมหญิง ทดสอบ',
         purpose: 'ทดสอบระบบแจ้งเตือน',
-        entryTime: new Date().toLocaleTimeString('th-TH', { 
-          hour: '2-digit', 
+        entryTime: new Date().toLocaleTimeString('th-TH', {
+          hour: '2-digit',
           minute: '2-digit',
           timeZone: 'Asia/Bangkok'
         }) + ' น.',

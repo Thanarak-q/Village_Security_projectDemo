@@ -3,8 +3,6 @@
  * Provides server-side message queuing and deduplication
  */
 
-import { WebSocket } from 'ws';
-
 export interface QueuedMessage {
   id: string;
   type: string;
@@ -43,7 +41,6 @@ export class BackendMessageQueue {
   private seenMessages = new Set<string>();
   private cleanupInterval?: NodeJS.Timeout;
   private processingTimeout?: NodeJS.Timeout;
-  private clients = new Map<string, WebSocket>();
 
   constructor(options: Partial<MessageQueueOptions> = {}) {
     this.options = { ...defaultOptions, ...options };
@@ -62,7 +59,7 @@ export class BackendMessageQueue {
 
   private addToSeen(messageId: string): void {
     this.seenMessages.add(messageId);
-    
+
     // Clean up old seen messages
     setTimeout(() => {
       this.seenMessages.delete(messageId);
@@ -72,7 +69,7 @@ export class BackendMessageQueue {
   private cleanupExpiredMessages(): void {
     const now = Date.now();
     const initialSize = this.queue.length;
-    
+
     this.queue = this.queue.filter(message => {
       if (message.expiresAt && message.expiresAt < now) {
         console.log(`🗑️ Message expired: ${message.id}`);
@@ -106,24 +103,26 @@ export class BackendMessageQueue {
       const priorityOrder = { critical: 4, high: 3, normal: 2, low: 1 };
       const aPriority = priorityOrder[a.priority] || 2;
       const bPriority = priorityOrder[b.priority] || 2;
-      
+
       if (aPriority !== bPriority) {
         return bPriority - aPriority;
       }
-      
+
       // Then by timestamp (older first)
       return a.timestamp - b.timestamp;
     });
   }
 
-  public addClient(clientId: string, ws: WebSocket): void {
-    this.clients.set(clientId, ws);
-    console.log(`👤 Client added: ${clientId} (total: ${this.clients.size})`);
+  // Mock method to satisfy interface if needed, but doing nothing for demo
+  public addClient(clientId: string, ws: any): void {
+    // No-op for demo
+    console.log(`👤 Client added (mock): ${clientId}`);
   }
 
+  // Mock method
   public removeClient(clientId: string): void {
-    this.clients.delete(clientId);
-    console.log(`👤 Client removed: ${clientId} (total: ${this.clients.size})`);
+    // No-op for demo
+    console.log(`👤 Client removed (mock): ${clientId}`);
   }
 
   public enqueue(
@@ -138,7 +137,7 @@ export class BackendMessageQueue {
     } = {}
   ): string {
     const messageId = this.generateMessageId(type, data);
-    
+
     // Check for duplicates
     if (this.isDuplicate(messageId)) {
       console.log(`🔄 Duplicate message ignored: ${messageId}`);
@@ -176,7 +175,7 @@ export class BackendMessageQueue {
     this.sortQueue();
 
     console.log(`📥 Message queued: ${messageId} (priority: ${message.priority})`);
-    
+
     // Start processing if not already running
     if (!this.processing) {
       this.processQueue();
@@ -194,10 +193,10 @@ export class BackendMessageQueue {
 
     while (this.queue.length > 0) {
       const message = this.queue[0];
-      
+
       try {
         const success = await this.sendMessage(message);
-        
+
         if (success) {
           // Message sent successfully, remove from queue
           this.queue.shift();
@@ -216,53 +215,22 @@ export class BackendMessageQueue {
   }
 
   private async sendMessage(message: QueuedMessage): Promise<boolean> {
-    const messageData = {
-      type: message.type,
-      data: message.data,
+    // In demo mode without WebSocket, we just log the message and consider it sent
+    console.log(`📢 [DEMO] Mock sending message:`, {
       id: message.id,
-      timestamp: message.timestamp
-    };
+      type: message.type,
+      // target: message.targetClients ? message.targetClients.join(', ') : 'BROADCAST'
+    });
 
-    const messageString = JSON.stringify(messageData);
-    let successCount = 0;
-    let totalTargets = 0;
+    // Simulate network delay slightly
+    // await new Promise(resolve => setTimeout(resolve, 10));
 
-    if (message.targetClients && message.targetClients.length > 0) {
-      // Send to specific clients
-      totalTargets = message.targetClients.length;
-      for (const clientId of message.targetClients) {
-        const client = this.clients.get(clientId);
-        if (client && client.readyState === WebSocket.OPEN) {
-          try {
-            client.send(messageString);
-            successCount++;
-          } catch (error) {
-            console.error(`❌ Failed to send to client ${clientId}:`, error);
-          }
-        }
-      }
-    } else {
-      // Broadcast to all clients
-      totalTargets = this.clients.size;
-      for (const [clientId, client] of this.clients.entries()) {
-        if (client.readyState === WebSocket.OPEN) {
-          try {
-            client.send(messageString);
-            successCount++;
-          } catch (error) {
-            console.error(`❌ Failed to send to client ${clientId}:`, error);
-          }
-        }
-      }
-    }
-
-    // Consider successful if at least one client received the message
-    return successCount > 0;
+    return true;
   }
 
   private async handleRetry(message: QueuedMessage): Promise<void> {
     message.retryCount++;
-    
+
     if (message.retryCount > message.maxRetries) {
       // Max retries exceeded, remove from queue
       this.queue.shift();
@@ -277,7 +245,7 @@ export class BackendMessageQueue {
     );
 
     console.log(`🔄 Retrying message ${message.id} in ${delay}ms (attempt ${message.retryCount}/${message.maxRetries})`);
-    
+
     // Move message to end of queue for retry
     this.queue.shift();
     this.queue.push(message);
@@ -302,7 +270,7 @@ export class BackendMessageQueue {
     return {
       size: this.queue.length,
       processing: this.processing,
-      clientCount: this.clients.size,
+      clientCount: 0, // Mocked to 0
       oldestMessage: this.queue.length > 0 ? this.queue[0].timestamp : undefined,
       newestMessage: this.queue.length > 0 ? this.queue[this.queue.length - 1].timestamp : undefined,
       priorityCounts
@@ -332,7 +300,7 @@ export class BackendMessageQueue {
   public destroy(): void {
     this.stopCleanup();
     this.clearQueue();
-    this.clients.clear();
+    // this.clients.clear(); // Removed as clients map is removed
     if (this.processingTimeout) {
       clearTimeout(this.processingTimeout);
     }

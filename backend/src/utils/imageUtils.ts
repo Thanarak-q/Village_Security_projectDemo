@@ -17,8 +17,8 @@ export async function saveBase64Image(
 ): Promise<string> {
   try {
     // Remove data URL prefix if present (data:image/jpeg;base64,)
-    const base64Content = base64Data.includes(',') 
-      ? base64Data.split(',')[1] 
+    const base64Content = base64Data.includes(',')
+      ? base64Data.split(',')[1]
       : base64Data;
 
     // Generate filename if not provided
@@ -47,7 +47,7 @@ export async function saveBase64Image(
           Key: objectKey,
           Body: imageBuffer,
           ContentType: contentType,
-          ...(acl ? { ACL: acl } : {}),
+          ...(acl ? { ACL: acl as any } : {}),
         })
       );
 

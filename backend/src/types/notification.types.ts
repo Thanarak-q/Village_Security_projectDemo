@@ -38,7 +38,7 @@ export const WSNotificationSchema = z.object({
 export const WSMessageSchema = z.object({
   type: z.enum([
     'WELCOME',
-    'ADMIN_NOTIFICATION', 
+    'ADMIN_NOTIFICATION',
     'ECHO',
     'HEARTBEAT',
     'ERROR'
@@ -71,7 +71,7 @@ export type ConnectionStatus = typeof CONNECTION_STATUS[keyof typeof CONNECTION_
 // Notification Categories and Types (from schema)
 export const NOTIFICATION_TYPES = {
   RESIDENT_PENDING: 'resident_pending',
-  GUARD_PENDING: 'guard_pending', 
+  GUARD_PENDING: 'guard_pending',
   ADMIN_PENDING: 'admin_pending',
   HOUSE_UPDATED: 'house_updated',
   MEMBER_ADDED: 'member_added',
@@ -100,7 +100,7 @@ export const NotificationResponseSchema = z.object({
       category: z.string(),
       title: z.string(),
       message: z.string(),
-      data: z.record(z.unknown()).nullable().optional(),
+      data: z.record(z.string(), z.any()).nullable().optional(),
       created_at: z.string().datetime(),
       village_name: z.string().optional(),
       seen_at: z.string().datetime().nullable().optional(),

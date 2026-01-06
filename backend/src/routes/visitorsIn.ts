@@ -10,7 +10,7 @@ export const visitorsInRoutes = new Elysia({ prefix: "/api" })
   .onBeforeHandle(requireLiffAuth(["guard"]))
   .get(
     "/visitors-in",
-    async ({ query, currentUser, set }) => {
+    async ({ query, currentUser, set }: any) => {
       try {
         // Ensure guard has a village context
         const villageId: string | undefined =
@@ -145,7 +145,7 @@ export const visitorsInRoutes = new Elysia({ prefix: "/api" })
   )
   .post(
     "/visitors-in/approve-out",
-    async ({ body, currentUser, set }) => {
+    async ({ body, currentUser, set }: any) => {
       try {
         const villageId: string | undefined =
           (currentUser?.village_ids && currentUser.village_ids[0]) ||

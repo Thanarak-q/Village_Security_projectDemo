@@ -490,21 +490,21 @@ export async function getVisitorRecordsByLineId(
   options: VisitorRecordLineIdOptions = {}
 ) {
   console.log(`🔍 Querying visitor records for LINE user ID: ${lineUserId}`);
-  
+
   // First, check if the resident exists
   const resident = await db.query.residents.findFirst({
     where: eq(residents.line_user_id, lineUserId),
   });
-  
+
   if (!resident) {
     console.log(`❌ No resident found for LINE user ID: ${lineUserId}`);
     return [];
   }
-  
+
   console.log(`✅ Found resident: ${resident.resident_id} (${resident.fname} ${resident.lname})`);
-  
+
   // Find visitor records where the resident is associated with the house
-  let whereClause = eq(residents.line_user_id, lineUserId);
+  let whereClause: any = eq(residents.line_user_id, lineUserId);
 
   if (options.villageId) {
     whereClause = and(whereClause, eq(houses.village_id, options.villageId));
@@ -712,7 +712,7 @@ export async function deleteVisitorRecord(visitorRecordId: string) {
  */
 export async function getVisitorRecordsByResidentName(residentName: string) {
   console.log(`🔍 Database query for resident: "${residentName}"`);
-  
+
   try {
     // First, let's get all records and filter in JavaScript to debug
     const allRecords = await db
@@ -744,21 +744,21 @@ export async function getVisitorRecordsByResidentName(residentName: string) {
         // Guard information
         guard_name: sql`${guards.fname} || ' ' || ${guards.lname}`,
         guard_email: guards.email,
-      // House information
-      house_address: houses.address,
-      village_id: houses.village_id,
-      village_key: villages.village_key,
-    })
-    .from(visitor_records)
-    .leftJoin(visitors, eq(visitor_records.visitor_id, visitors.visitor_id))
-    .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
-    .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
-    .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
-    .leftJoin(villages, eq(houses.village_id, villages.village_id))
+        // House information
+        house_address: houses.address,
+        village_id: houses.village_id,
+        village_key: villages.village_key,
+      })
+      .from(visitor_records)
+      .leftJoin(visitors, eq(visitor_records.visitor_id, visitors.visitor_id))
+      .innerJoin(residents, eq(visitor_records.resident_id, residents.resident_id))
+      .innerJoin(guards, eq(visitor_records.guard_id, guards.guard_id))
+      .innerJoin(houses, eq(visitor_records.house_id, houses.house_id))
+      .leftJoin(villages, eq(houses.village_id, villages.village_id))
       .orderBy(visitor_records.createdAt);
 
     console.log(`📊 Total records in database: ${allRecords.length}`);
-    
+
     // Filter by resident name in JavaScript
     const filteredRecords = allRecords.filter(record => {
       const recordName = record.resident_name;
@@ -770,14 +770,14 @@ export async function getVisitorRecordsByResidentName(residentName: string) {
     });
 
     console.log(`✅ Found ${filteredRecords.length} records for "${residentName}"`);
-    
+
     // Log some debug info
     if (filteredRecords.length === 0) {
       console.log(`🔍 Available resident names in database:`);
       const uniqueNames = [...new Set(allRecords.map(r => r.resident_name))];
       uniqueNames.slice(0, 10).forEach(name => console.log(`  - "${name}"`));
     }
-    
+
     return filteredRecords;
   } catch (error) {
     console.error(`❌ Database query failed for resident "${residentName}":`, error);
@@ -804,7 +804,7 @@ export async function getWeeklyVisitorRecords(villageIds?: string[], role?: stri
   endOfWeek.setHours(23, 59, 59, 999);
 
   // Build query with village filtering if provided
-  let query = db
+  let query: any = db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
       visitor_id: visitor_records.visitor_id,
@@ -856,13 +856,13 @@ export async function getWeeklyVisitorRecords(villageIds?: string[], role?: stri
   }));
 
   // Process records and count by status for each day
-  weeklyRecords.forEach((record) => {
+  weeklyRecords.forEach((record: any) => {
     if (!record.entry_time) return;
     const recordDate = new Date(record.entry_time);
     const dayOfWeek = recordDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
 
     if (dayOfWeek >= 0 && dayOfWeek < 7) {
-      const status = record.record_status || "pending";
+      const status = (record.record_status || "pending") as "approved" | "pending" | "rejected";
       weeklyData[dayOfWeek][status]++;
       weeklyData[dayOfWeek].total++;
     }
@@ -900,7 +900,7 @@ export async function getMonthlyVisitorRecords(villageIds?: string[], role?: str
   const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59, 999); // December 31st
 
   // Build query with village filtering if provided
-  let query = db
+  let query: any = db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
       visitor_id: visitor_records.visitor_id,
@@ -959,13 +959,13 @@ export async function getMonthlyVisitorRecords(villageIds?: string[], role?: str
   }));
 
   // Process records and count by status for each month
-  yearlyRecords.forEach((record) => {
+  yearlyRecords.forEach((record: any) => {
     if (record.entry_time) {
       const recordDate = new Date(record.entry_time);
       const monthIndex = recordDate.getMonth(); // 0 = January, 1 = February, ..., 11 = December
 
       if (monthIndex >= 0 && monthIndex < 12) {
-        const status = record.record_status || "pending";
+        const status = (record.record_status || "pending") as "approved" | "pending" | "rejected";
         monthlyData[monthIndex][status]++;
         monthlyData[monthIndex].total++;
       }
@@ -998,7 +998,7 @@ export async function getMonthlyVisitorRecords(villageIds?: string[], role?: str
  */
 export async function getYearlyVisitorRecords(villageIds?: string[], role?: string) {
   // Build query with village filtering if provided
-  let query = db
+  let query: any = db
     .select({
       visitor_record_id: visitor_records.visitor_record_id,
       visitor_id: visitor_records.visitor_id,
@@ -1019,12 +1019,12 @@ export async function getYearlyVisitorRecords(villageIds?: string[], role?: stri
 
   // Group records by year
   const recordsByYear: { [key: number]: any[] } = {};
-  
-  allRecords.forEach(record => {
+
+  allRecords.forEach((record: any) => {
     if (record.entry_time) {
       const recordDate = new Date(record.entry_time);
       const year = recordDate.getFullYear();
-      
+
       if (!recordsByYear[year]) {
         recordsByYear[year] = [];
       }

@@ -4,7 +4,7 @@
  */
 
 import { notificationService } from '../services/notificationService';
-import { type VisitorNotificationData } from '../routes/flexMessage';
+import { type VisitorNotificationData } from '../routes/(line)/flexMessage';
 
 // Example 1: Send visitor notification to all residents in a house
 export async function sendVisitorNotificationExample() {
@@ -14,8 +14,8 @@ export async function sendVisitorNotificationExample() {
     houseNumber: '123/45',
     residentName: 'สมหญิง รักบ้าน',
     purpose: 'เยี่ยมเยียนครอบครัว',
-    entryTime: new Date().toLocaleTimeString('th-TH', { 
-      hour: '2-digit', 
+    entryTime: new Date().toLocaleTimeString('th-TH', {
+      hour: '2-digit',
       minute: '2-digit',
       timeZone: 'Asia/Bangkok'
     }) + ' น.',
@@ -26,14 +26,14 @@ export async function sendVisitorNotificationExample() {
 
   const houseNumber = '123/45';
   const villageKey = 'pha-suk-village-001';
-  
+
   try {
     const result = await notificationService.sendVisitorNotificationToResidents(
-      visitorData, 
-      houseNumber, 
+      visitorData,
+      houseNumber,
       villageKey
     );
-    
+
     console.log('Notification result:', result);
   } catch (error) {
     console.error('Error sending notification:', error);
@@ -48,8 +48,8 @@ export async function sendVisitorDetailsExample() {
     houseNumber: '123/45',
     residentName: 'สมหญิง รักบ้าน',
     purpose: 'เยี่ยมเยียนครอบครัว',
-    entryTime: new Date().toLocaleTimeString('th-TH', { 
-      hour: '2-digit', 
+    entryTime: new Date().toLocaleTimeString('th-TH', {
+      hour: '2-digit',
       minute: '2-digit',
       timeZone: 'Asia/Bangkok'
     }) + ' น.',
@@ -59,7 +59,7 @@ export async function sendVisitorDetailsExample() {
   };
 
   const userId = 'U1234567890abcdef'; // LINE User ID
-  
+
   try {
     const success = await notificationService.sendVisitorDetailsFlexMessage(userId, visitorData);
     console.log('Details sent:', success);
@@ -72,7 +72,7 @@ export async function sendVisitorDetailsExample() {
 export async function getResidentsExample() {
   const houseNumber = '123/45';
   const villageKey = 'pha-suk-village-001';
-  
+
   try {
     const residents = await notificationService.getResidentsInHouse(houseNumber, villageKey);
     console.log('Residents in house:', residents);
@@ -84,7 +84,7 @@ export async function getResidentsExample() {
 // Example 4: Using API endpoints
 export async function apiEndpointExample() {
   const baseUrl = process.env.API_BASE_URL;
-  
+
   // Example: Send visitor notification to residents
   const notificationPayload = {
     visitorName: 'สมชาย ใจดี',
@@ -116,7 +116,7 @@ export async function apiEndpointExample() {
 // Example 5: Handle resident response
 export async function handleResidentResponseExample() {
   const baseUrl = process.env.API_BASE_URL || 'http://localhost:3001';
-  
+
   const responsePayload = {
     action: 'approve', // or 'reject'
     visitorId: 'visitor_001',
@@ -147,7 +147,7 @@ export async function getResidentsApiExample() {
   const baseUrl = process.env.API_BASE_URL || 'http://localhost:3001';
   const houseNumber = '123/45';
   const villageKey = 'pha-suk-village-001';
-  
+
   try {
     const response = await fetch(`${baseUrl}/api/visitor-notification/residents/${houseNumber}/${villageKey}`, {
       method: 'GET',
@@ -166,7 +166,7 @@ export async function getResidentsApiExample() {
 // Example 7: Test notification
 export async function testNotificationExample() {
   const baseUrl = process.env.API_BASE_URL || 'http://localhost:3001';
-  
+
   const testPayload = {
     userId: 'U1234567890abcdef' // LINE User ID to test with
   };
@@ -191,20 +191,20 @@ export async function testNotificationExample() {
 // Example 8: Complete workflow
 export async function completeWorkflowExample() {
   console.log('🚀 Starting complete visitor notification workflow...');
-  
+
   try {
     // Step 1: Get residents in house
     console.log('📋 Step 1: Getting residents in house...');
     const residents = await getResidentsExample();
-    
+
     // Step 2: Send notification to all residents
     console.log('📱 Step 2: Sending notification to residents...');
     await sendVisitorNotificationExample();
-    
+
     // Step 3: Simulate resident response
     console.log('✅ Step 3: Simulating resident response...');
     await handleResidentResponseExample();
-    
+
     console.log('🎉 Complete workflow finished!');
   } catch (error) {
     console.error('❌ Workflow failed:', error);
@@ -215,15 +215,15 @@ export async function completeWorkflowExample() {
 export async function batchOperationsExample() {
   const houses = ['123/45', '124/45', '125/45'];
   const villageKey = 'pha-suk-village-001';
-  
+
   const visitorData: VisitorNotificationData = {
     visitorName: 'สมชาย ใจดี',
     visitorPhone: '081-234-5678',
     houseNumber: '123/45',
     residentName: 'สมหญิง รักบ้าน',
     purpose: 'เยี่ยมเยียนครอบครัว',
-    entryTime: new Date().toLocaleTimeString('th-TH', { 
-      hour: '2-digit', 
+    entryTime: new Date().toLocaleTimeString('th-TH', {
+      hour: '2-digit',
       minute: '2-digit',
       timeZone: 'Asia/Bangkok'
     }) + ' น.',
@@ -232,12 +232,12 @@ export async function batchOperationsExample() {
   };
 
   console.log('🔄 Starting batch operations...');
-  
+
   const results = await Promise.allSettled(
     houses.map(async (houseNumber) => {
       const result = await notificationService.sendVisitorNotificationToResidents(
-        { ...visitorData, houseNumber }, 
-        houseNumber, 
+        { ...visitorData, houseNumber },
+        houseNumber,
         villageKey
       );
       return { houseNumber, result };
@@ -269,14 +269,14 @@ export async function errorHandlingExample() {
     };
 
     const result = await notificationService.sendVisitorNotificationToResidents(
-      invalidData, 
-      'invalid_house', 
+      invalidData,
+      'invalid_house',
       'invalid_village'
     );
-    
+
     console.log('Invalid data result:', result);
   } catch (error) {
-    console.log('✅ Error handled correctly:', error.message);
+    console.log('✅ Error handled correctly:', (error as Error).message);
   }
 }
 
@@ -297,7 +297,7 @@ export const visitorNotificationExamples = {
 // Run examples if this file is executed directly
 if (require.main === module) {
   console.log('🧪 Running Visitor Notification Examples...');
-  
+
   // Run individual examples
   completeWorkflowExample().catch(console.error);
 }

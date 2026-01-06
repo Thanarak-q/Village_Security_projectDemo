@@ -12,7 +12,7 @@ import { verifyPassword } from './passwordUtils';
 export interface JWTPayload {
   adminId: string;
   username: string;
-  email: string;
+  email: string | null;
   role: string;
   iat?: number;
   exp?: number;
@@ -23,9 +23,8 @@ export interface AuthResult {
   admin?: {
     id: string;
     username: string;
-    email: string;
+    email: string | null;
     role: string;
-    name: string;
   };
   token?: string;
   error?: string;
@@ -81,24 +80,23 @@ export class AuthService {
 
       // Generate JWT token
       const payload: JWTPayload = {
-        adminId: adminData.id,
+        adminId: adminData.admin_id,
         username: adminData.username,
         email: adminData.email,
         role: adminData.role
       };
 
       const token = jwt.sign(payload, this.jwtSecret, {
-        expiresIn: this.jwtExpiresIn
+        expiresIn: this.jwtExpiresIn as any
       });
 
       return {
         success: true,
         admin: {
-          id: adminData.id,
+          id: adminData.admin_id,
           username: adminData.username,
           email: adminData.email,
           role: adminData.role,
-          name: adminData.name
         },
         token
       };
@@ -115,12 +113,12 @@ export class AuthService {
   public async verifyToken(token: string): Promise<AuthResult> {
     try {
       const decoded = jwt.verify(token, this.jwtSecret) as JWTPayload;
-      
+
       // Verify admin still exists
       const admin = await db
         .select()
         .from(admins)
-        .where(eq(admins.id, decoded.adminId))
+        .where(eq(admins.admin_id, decoded.adminId))
         .limit(1);
 
       if (admin.length === 0) {
@@ -135,10 +133,10 @@ export class AuthService {
       return {
         success: true,
         admin: {
-          id: adminData.id,
+          id: adminData.admin_id,
           email: adminData.email,
+          username: adminData.username,
           role: adminData.role,
-          name: adminData.name
         }
       };
 
@@ -149,7 +147,7 @@ export class AuthService {
           error: 'Invalid token'
         };
       }
-      
+
       console.error('Token verification error:', error);
       return {
         success: false,
@@ -161,12 +159,12 @@ export class AuthService {
   public async refreshToken(token: string): Promise<AuthResult> {
     try {
       const decoded = jwt.verify(token, this.jwtSecret, { ignoreExpiration: true }) as JWTPayload;
-      
+
       // Verify admin still exists
       const admin = await db
         .select()
         .from(admins)
-        .where(eq(admins.id, decoded.adminId))
+        .where(eq(admins.admin_id, decoded.adminId))
         .limit(1);
 
       if (admin.length === 0) {
@@ -180,22 +178,23 @@ export class AuthService {
 
       // Generate new token
       const payload: JWTPayload = {
-        adminId: adminData.id,
+        adminId: adminData.admin_id,
+        username: adminData.username,
         email: adminData.email,
         role: adminData.role
       };
 
       const newToken = jwt.sign(payload, this.jwtSecret, {
-        expiresIn: this.jwtExpiresIn
+        expiresIn: this.jwtExpiresIn as any
       });
 
       return {
         success: true,
         admin: {
-          id: adminData.id,
+          id: adminData.admin_id,
+          username: adminData.username,
           email: adminData.email,
           role: adminData.role,
-          name: adminData.name
         },
         token: newToken
       };

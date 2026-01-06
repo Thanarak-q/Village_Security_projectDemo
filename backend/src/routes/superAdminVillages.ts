@@ -56,7 +56,7 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
             village_name: row.village_name,
             village_key: row.village_key,
             address: row.address,
-            status: row.status,
+            status: row.status || 'unknown',
             disable_at: row.disable_at,
             admins: [],
           });
@@ -131,7 +131,7 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
             village_name: row.village_name,
             village_key: row.village_key,
             address: row.address,
-            status: row.status,
+            status: row.status || 'unknown',
             disable_at: row.disable_at,
             admins: [],
           });
@@ -302,16 +302,16 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
 
       if (villageAdmins.length > 0) {
         set.status = 400;
-        return { 
-          success: false, 
-          error: "Cannot delete village that has admins. Please remove all admins first." 
+        return {
+          success: false,
+          error: "Cannot delete village that has admins. Please remove all admins first."
         };
       }
 
       // Soft delete village
       await db
         .update(villages)
-        .set({ 
+        .set({
           disable_at: new Date(),
           status: "disable"
         })
@@ -352,7 +352,7 @@ export const superAdminVillagesRoutes = new Elysia({ prefix: "/api/superadmin" }
       // Restore village
       await db
         .update(villages)
-        .set({ 
+        .set({
           disable_at: null,
           status: "active"
         })

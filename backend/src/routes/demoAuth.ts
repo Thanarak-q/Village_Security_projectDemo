@@ -298,7 +298,7 @@ export const demoAuthRoutes = new Elysia({ prefix: "/api/auth/demo" })
             return {
                 authenticated: true,
                 demo_mode: true,
-                id: payload.role === 'guard' ? user.guard_id : user.resident_id,
+                id: payload.role === 'guard' ? (user as any).guard_id : (user as any).resident_id,
                 fname: user.fname,
                 lname: user.lname,
                 email: user.email,
@@ -313,8 +313,8 @@ export const demoAuthRoutes = new Elysia({ prefix: "/api/auth/demo" })
                 }] : [],
                 status: user.status,
                 username: `${user.fname} ${user.lname}`,
-                guard_id: payload.role === 'guard' ? user.guard_id : undefined,
-                resident_id: payload.role === 'resident' ? user.resident_id : undefined,
+                guard_id: payload.role === 'guard' ? (user as any).guard_id : undefined,
+                resident_id: payload.role === 'resident' ? (user as any).resident_id : undefined,
             };
         } catch (error) {
             console.error('Error fetching demo user:', error);
