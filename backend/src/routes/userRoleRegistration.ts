@@ -87,7 +87,7 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
     if (authResult) {
       return authResult;
     }
-    
+
     const { query, set } = context;
     try {
       const { lineUserId } = query as { lineUserId: string };
@@ -156,9 +156,9 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
         if (res.village_id) {
           // Get village name and key
           const village = await db
-            .select({ 
+            .select({
               village_name: villages.village_name,
-              village_key: villages.village_key 
+              village_key: villages.village_key
             })
             .from(villages)
             .where(eq(villages.village_id, res.village_id))
@@ -189,9 +189,9 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
         if (g.village_id) {
           // Get village name and key
           const village = await db
-            .select({ 
+            .select({
               village_name: villages.village_name,
-              village_key: villages.village_key 
+              village_key: villages.village_key
             })
             .from(villages)
             .where(eq(villages.village_id, g.village_id))
@@ -234,6 +234,7 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
         phone,
         village_key,
         profile_image_url,
+        move_in_date,
       } = body as {
         lineUserId: string;
         role: "resident" | "guard";
@@ -243,6 +244,7 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
         phone: string;
         village_key: string;
         profile_image_url?: string;
+        move_in_date?: string;
       };
 
       if (!lineUserId || !role || !email || !fname || !lname || !phone || !village_key) {
@@ -312,8 +314,8 @@ export const userRoleRegistrationRoutes = new Elysia({ prefix: "/api" })
       }
 
       // Create new role entry
-      const moveInDateValue = body?.move_in_date
-        ? new Date(body.move_in_date)
+      const moveInDateValue = move_in_date
+        ? new Date(move_in_date)
         : new Date();
 
       if (role === "resident") {
